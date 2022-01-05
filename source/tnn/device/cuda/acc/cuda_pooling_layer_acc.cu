@@ -30,8 +30,8 @@ __global__ void adaptive_pooling_kernel(const float* input, float* output, int c
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid >= output_height * output_width) return;
 
-    const float* input_ptr = input + blockIdx.y * input_height * input_width;
-    float* output_ptr = output + blockIdx.y * output_height * output_width;
+    int bid = blockIdx.y * blockIdx.z;
+    if (bid >= channels) return;
 
     int oh = tid / output_width;
     int ow = tid % output_width;
@@ -44,6 +44,9 @@ __global__ void adaptive_pooling_kernel(const float* input, float* output, int c
     int iw1 = get_end_index(ow, output_width, input_width);
     int kw = iw1 - iw0;
 
+    const float* input_ptr = input + bid * input_height * input_width;
+    float* output_ptr = output + bid * output_height * output_width;
+
     if (pool_type == 1) {
         float sum = 0;
         for (int ih = ih0; ih < ih1; ih++) {
@@ -52,7 +55,7 @@ __global__ void adaptive_pooling_kernel(const float* input, float* output, int c
             }
         }
         output_ptr[oh * output_width + ow] = sum / kh / kw;
-    }
+        }
 }
 
 CudaPoolingLayerAcc::~CudaPoolingLayerAcc() {
@@ -123,14 +126,20 @@ Status CudaPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
         int output_height = is_1d ? output_dims[1] : output_dims[2];
         int output_width = is_1d ? output_dims[2] : output_dims[3];
         int count = output_height*output_width;
-        dim3 grid(TNN_CUDA_GET_BLOCKS(count), channels);
+
+        dim3 grid(TNN_CUDA_GET_BLOCKS(count), std::min(channels, TNN_CUDA_MAX_GRID_DIM), (channels + TNN_CUDA_MAX_GRID_DIM - 1) / TNN_CUDA_MAX_GRID_DIM);
         adaptive_pooling_kernel<<<grid, TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
             input_data, output_data, channels, input_height, input_width, output_height, output_width,
             param->pool_type);
+            
+        auto error = cudaGetLastError();
+        if (error != cudaSuccess) {
+            printf("Error: pooling kernel error!\n%s\n", cudaGetErrorString(error));
+        }
     } else {
         float alpha = 1.f;
         float beta = 0.f;
-        cudnnPoolingForward(context_->cudnn_handle_, this->m_pooling_desc, &alpha, m_input_desc,
+        cudnnPoolingForward(context_->GetCudnnHandle(), this->m_pooling_desc, &alpha, m_input_desc,
             input_data, &beta, m_output_desc, output_data);
     }
     return TNN_OK;
