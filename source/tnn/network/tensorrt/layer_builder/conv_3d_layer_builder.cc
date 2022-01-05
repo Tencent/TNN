@@ -146,7 +146,7 @@ ILayer* Convolution3DTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* net
         dims.push_back(paramlist->kernels[0]);
         last_layer = AddInt8WeightQDQLayers(network, &(resource->filter_handle), kernelWeights,
             paramlist->bias ? &(resource->bias_handle) : nullptr, biasWeights,
-            1 / (weight_scale_value / input_scale_value), dims);
+            input_scale_value, weight_scale_value, dims);
     } else {
         kernelWeights = ConvertToWeights(&(resource->filter_handle));
         if (paramlist->bias) {
