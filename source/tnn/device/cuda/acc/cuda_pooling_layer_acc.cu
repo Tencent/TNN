@@ -134,7 +134,8 @@ Status CudaPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
             
         auto error = cudaGetLastError();
         if (error != cudaSuccess) {
-            printf("Error: pooling kernel error!\n%s\n", cudaGetErrorString(error));
+            LOGE("Error: pooling kernel error!\n %s\n", cudaGetErrorString(error));
+            return Status(TNNERR_CUDA_KERNEL_LAUNCH_ERROR, "Error: pooling kernel error!");
         }
     } else {
         float alpha = 1.f;
