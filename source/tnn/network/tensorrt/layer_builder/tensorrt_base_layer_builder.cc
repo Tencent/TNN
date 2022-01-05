@@ -89,7 +89,7 @@ TensorRTBaseLayerBuilder* CreateTensorRTBaseLayerBuilder(LayerType type) {
 
 ILayer* TensorRTBaseLayerBuilder::AddInt8OutputQDQLayers(nvinfer1::INetworkDefinition* network, ITensor* tensor,
         std::shared_ptr<ForeignTensor> foreign_tensor, float quant_scale, float dequant_scale) {
-#if NV_TENSORRT_VERSION < 8000
+#if NV_TENSORRT_MAJOR < 8
         Weights output_quant_shift;
         output_quant_shift.type = nvinfer1::DataType::kFLOAT;
         output_quant_shift.values = nullptr;
@@ -211,7 +211,7 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
     }
 
     ILayer* constant_layer = network->addConstant(weightDims, int8Weights);
-#if NV_TENSORRT_VERSION < 8000
+#if NV_TENSORRT_MAJOR < 8
         Weights weight_quant_shift;
         weight_quant_shift.type = nvinfer1::DataType::kFLOAT;
         weight_quant_shift.values = nullptr;
