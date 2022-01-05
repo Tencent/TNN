@@ -139,7 +139,7 @@ Status CudaPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     } else {
         float alpha = 1.f;
         float beta = 0.f;
-        cudnnPoolingForward(context_->GetCudnnHandle(), this->m_pooling_desc, &alpha, m_input_desc,
+        cudnnPoolingForward(context_->cudnn_handle_, this->m_pooling_desc, &alpha, m_input_desc,
             input_data, &beta, m_output_desc, output_data);
     }
     return TNN_OK;
