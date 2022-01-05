@@ -30,7 +30,7 @@ __global__ void adaptive_pooling_kernel(const float* input, float* output, int c
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid >= output_height * output_width) return;
 
-    int bid = blockIdx.y * blockIdx.z;
+    int bid = blockIdx.y + blockIdx.z * gridDim.y;
     if (bid >= channels) return;
 
     int oh = tid / output_width;
