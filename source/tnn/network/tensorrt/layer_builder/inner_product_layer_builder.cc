@@ -32,7 +32,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     Weights biasWeights;
     ILayer* weight_layer;
     if (int8) {
-        float weight_scale_value = *(resource->scale_handle.force_to<float*>());
+        // float weight_scale_value = *(resource->scale_handle.force_to<float*>());
         float input_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
             input_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
         float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
@@ -44,7 +44,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         dims.push_back(1);
         weight_layer = AddInt8WeightQDQLayers(network, &(resource->weight_handle), kernelWeights,
             paramlist->has_bias ? &(resource->bias_handle) : nullptr,
-            biasWeights, input_scale_value, weight_scale_value, dims);
+            biasWeights, input_scale_value, &(resource->scale_handle), dims);
 
         if (!std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->IsQuantized()) {
 #if NV_TENSORRT_MAJOR < 8

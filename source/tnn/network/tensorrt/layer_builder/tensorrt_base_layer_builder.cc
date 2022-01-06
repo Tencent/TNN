@@ -158,13 +158,16 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8OutputQDQLayers(nvinfer1::INetworkDefin
         auto output_dequant_layer = network->addDequantize(*(output_quant_layer->getOutput(0)), *(output_quant_constant_layer->getOutput(0)));
         output_dequant_layer->setAxis(0);
 
+        std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetQuantized();
+
         return output_dequant_layer;
 #endif
 }
 
-ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network,
-        RawBuffer* weight, nvinfer1::Weights &kernelWeights, RawBuffer* bias, nvinfer1::Weights &biasWeights, float input_scale,
-        float weight_scale, std::vector<int> dims) {
+ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network, RawBuffer* weight,
+                                                         nvinfer1::Weights& kernelWeights, RawBuffer* bias,
+                                                         nvinfer1::Weights& biasWeights, float input_scale,
+                                                         RawBuffer* weight_scale, std::vector<int> dims) {
     kernelWeights.type = nvinfer1::DataType::kFLOAT;
     kernelWeights.values = nullptr;
     kernelWeights.count = 0;
@@ -173,11 +176,15 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
     int8Weights.type = nvinfer1::DataType::kFLOAT;
     float* host_weight = (float*)malloc(weight->GetDataCount() * sizeof(float));
     int8_weight_data.push_back(host_weight);
+
+    float *weight_scale_data = weight_scale->force_to<float *>();
+    int weight_scale_len = weight_scale->GetDataCount();
     for (int i = 0; i < weight->GetDataCount(); i++) {
 #if NV_TENSORRT_MAJOR < 8
         host_weight[i] = weight->force_to<int8_t*>()[i];
 #else
-        host_weight[i] = weight->force_to<int8_t*>()[i] * (weight_scale / input_scale);
+        int scale_w_idx = i * weight_scale_len / weight->GetDataCount();
+        host_weight[i] = weight->force_to<int8_t*>()[i] * (weight_scale_data[scale_w_idx] / input_scale);
 #endif
     }
     int8Weights.values = (void*)host_weight;
@@ -191,7 +198,8 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
 #if NV_TENSORRT_MAJOR < 8
             host_bias[i] = (bias->force_to<int*>())[i];
 #else
-            host_bias[i] = (bias->force_to<int*>())[i] * weight_scale;
+            int scale_w_idx = weight_scale_len == 1? 0 : i;
+            host_bias[i] = (bias->force_to<int*>())[i] * weight_scale_data[scale_w_idx];
 #endif
         }
         biasWeights.values = (void*)host_bias;
@@ -220,7 +228,7 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
         *weight_quant_scale_data = 1.f;
         weight_quant_scale.type = nvinfer1::DataType::kFLOAT;
         weight_quant_scale.values = (void*)weight_quant_scale_data;
-        weight_quant_scale.count = 1;
+        weight_quant_scale.count = weight_scale_len;
 
         Weights weight_quant_power;
         weight_quant_power.type = nvinfer1::DataType::kFLOAT;
@@ -239,12 +247,14 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
         weight_dequant_shift.count = 0;
 
         Weights weight_dequant_scale;
-        float* weight_dequant_scale_data = (float*)malloc(sizeof(float));
-        *weight_dequant_scale_data = input_scale / weight_scale;
+        float* weight_dequant_scale_data = (float*)malloc(weight_scale_len * sizeof(float));
+        for (int i = 0; i < weight_scale_len; i++) {
+            weight_dequant_scale_data[i] = input_scale / weight_scale_data[i];
+        }
         int8_weight_data.push_back(weight_dequant_scale_data);
         weight_dequant_scale.type = nvinfer1::DataType::kFLOAT;
         weight_dequant_scale.values = (void*)weight_dequant_scale_data;
-        weight_dequant_scale.count = 1;
+        weight_dequant_scale.count = weight_scale_len;
 
         Weights weight_dequant_power;
         weight_dequant_power.type = nvinfer1::DataType::kFLOAT;
@@ -260,14 +270,16 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
         return weight_dequant_layer;
 #else
         Weights weight_quant_scale;
-        float* weight_quant_scale_data = (float*)malloc(sizeof(float));
-        *weight_quant_scale_data = weight_scale / input_scale;
+        float* weight_quant_scale_data = (float*)malloc(weight_scale_len * sizeof(float));
+        for (int i = 0; i < weight_scale_len; i++) {
+            weight_quant_scale_data[i] = weight_scale_data[i] / input_scale;
+        }
         weight_quant_scale.type = nvinfer1::DataType::kFLOAT;
         weight_quant_scale.values = (void*)weight_quant_scale_data;
-        weight_quant_scale.count = 1;
+        weight_quant_scale.count = weight_scale_len;
         Dims weight_quant_scale_dims;
         weight_quant_scale_dims.nbDims = 1;
-        weight_quant_scale_dims.d[0] = 1;
+        weight_quant_scale_dims.d[0] = weight_scale_len;
         auto weight_quant_constant_layer = network->addConstant(weight_quant_scale_dims, weight_quant_scale);
 
         auto weight_quant_layer = network->addQuantize(*(constant_layer->getOutput(0)), *(weight_quant_constant_layer->getOutput(0)));

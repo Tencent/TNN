@@ -136,7 +136,7 @@ ILayer* Convolution3DTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* net
     Weights biasWeights;
     ILayer* last_layer;
     if (int8) {
-        float weight_scale_value = *(resource->scale_handle.force_to<float*>());
+        // float weight_scale_value = *(resource->scale_handle.force_to<float*>());
         float input_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
             input_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
         std::vector<int> dims;
@@ -146,7 +146,7 @@ ILayer* Convolution3DTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* net
         dims.push_back(paramlist->kernels[0]);
         last_layer = AddInt8WeightQDQLayers(network, &(resource->filter_handle), kernelWeights,
             paramlist->bias ? &(resource->bias_handle) : nullptr, biasWeights,
-            input_scale_value, weight_scale_value, dims);
+            input_scale_value, &(resource->scale_handle), dims);
     } else {
         kernelWeights = ConvertToWeights(&(resource->filter_handle));
         if (paramlist->bias) {
