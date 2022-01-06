@@ -158,6 +158,10 @@ Status OpenCLContext::OnInstanceForwardBegin() {
 }
 
 Status OpenCLContext::OnInstanceForwardEnd() {
+    Status ret = opencl_runtime_->SaveProgramCache();
+    if (ret != TNN_OK) {
+        LOGE("save program cache failed, ret: %d, msg: %s\n", (int)ret, ret.description().c_str());
+    }
     return TNN_OK;
 }
 
