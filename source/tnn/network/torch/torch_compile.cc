@@ -162,6 +162,7 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
         auto seg_blocks = partitioning::Partition(mod, g, config);
 
         // run shape infer and combine to blocks
+        /*
         if (min_input_shape.size() && max_input_shape.size() && min_input_shape.size() == max_input_shape.size()) {
 	    //fix clone memory leak
 	    std::stringstream save_stream(std::ios_base::binary | std::ios_base::in | std::ios_base::out);
@@ -200,6 +201,7 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
                 c10::cuda::CUDACachingAllocator::emptyCache();
             }
         }
+        */
     #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
         {
             std::vector<torch::jit::Node *> reg_outputs;

@@ -567,58 +567,58 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         profile->setDimensions(desc.name.c_str(), OptProfileSelector::kMAX, max_dims);
         auto foreign_tensor = foreign_blob->GetForeignTensor();
         auto tensorrt_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor);
-        if (int8_mode) {
-            auto input_scale_value = tensorrt_tensor->GetIntResource()->scale_handle.force_to<float *>()[0];
+        // if (int8_mode) {
+        //     auto input_scale_value = tensorrt_tensor->GetIntResource()->scale_handle.force_to<float *>()[0];
 
-            Weights input_quant_shift;
-            input_quant_shift.type = nvinfer1::DataType::kFLOAT;
-            input_quant_shift.values = nullptr;
-            input_quant_shift.count = 0;
+        //     Weights input_quant_shift;
+        //     input_quant_shift.type = nvinfer1::DataType::kFLOAT;
+        //     input_quant_shift.values = nullptr;
+        //     input_quant_shift.count = 0;
 
-            Weights input_quant_scale;
-            input_quant_scale.type = nvinfer1::DataType::kFLOAT;
-            float* input_quant_scale_data = (float*)malloc(sizeof(float));
-            *input_quant_scale_data = input_scale_value;
-            input_quant_scale.values = (void*)input_quant_scale_data;
-            input_quant_scale.count = 1;
+        //     Weights input_quant_scale;
+        //     input_quant_scale.type = nvinfer1::DataType::kFLOAT;
+        //     float* input_quant_scale_data = (float*)malloc(sizeof(float));
+        //     *input_quant_scale_data = input_scale_value;
+        //     input_quant_scale.values = (void*)input_quant_scale_data;
+        //     input_quant_scale.count = 1;
 
-            Weights input_quant_power;
-            input_quant_power.type = nvinfer1::DataType::kFLOAT;
-            input_quant_power.values = nullptr;
-            input_quant_power.count = 0;
+        //     Weights input_quant_power;
+        //     input_quant_power.type = nvinfer1::DataType::kFLOAT;
+        //     input_quant_power.values = nullptr;
+        //     input_quant_power.count = 0;
 
-            auto input_quant_layer = m_trt_network->addScale(*in_tensor, ScaleMode::kUNIFORM,
-                input_quant_shift, input_quant_scale, input_quant_power);
-            std::string input_quant_layer_name = desc.name + "_input_quant_";
-            input_quant_layer->setOutputType(0, nvinfer1::DataType::kINT8);
-            input_quant_layer->setName(input_quant_layer_name.c_str());
+        //     auto input_quant_layer = m_trt_network->addScale(*in_tensor, ScaleMode::kUNIFORM,
+        //         input_quant_shift, input_quant_scale, input_quant_power);
+        //     std::string input_quant_layer_name = desc.name + "_input_quant_";
+        //     input_quant_layer->setOutputType(0, nvinfer1::DataType::kINT8);
+        //     input_quant_layer->setName(input_quant_layer_name.c_str());
 
-            Weights input_dequant_shift;
-            input_dequant_shift.type = nvinfer1::DataType::kFLOAT;
-            input_dequant_shift.values = nullptr;
-            input_dequant_shift.count = 0;
+        //     Weights input_dequant_shift;
+        //     input_dequant_shift.type = nvinfer1::DataType::kFLOAT;
+        //     input_dequant_shift.values = nullptr;
+        //     input_dequant_shift.count = 0;
 
-            Weights input_dequant_scale;
-            input_dequant_scale.type = nvinfer1::DataType::kFLOAT;
-            float* input_dequant_scale_data = (float*)malloc(sizeof(float));
-            *input_dequant_scale_data = 1 / input_scale_value;
-            input_dequant_scale.values = (void*)input_dequant_scale_data;
-            input_dequant_scale.count = 1;
+        //     Weights input_dequant_scale;
+        //     input_dequant_scale.type = nvinfer1::DataType::kFLOAT;
+        //     float* input_dequant_scale_data = (float*)malloc(sizeof(float));
+        //     *input_dequant_scale_data = 1 / input_scale_value;
+        //     input_dequant_scale.values = (void*)input_dequant_scale_data;
+        //     input_dequant_scale.count = 1;
 
-            Weights input_dequant_power;
-            input_dequant_power.type = nvinfer1::DataType::kFLOAT;
-            input_dequant_power.values = nullptr;
-            input_dequant_power.count = 0;
+        //     Weights input_dequant_power;
+        //     input_dequant_power.type = nvinfer1::DataType::kFLOAT;
+        //     input_dequant_power.values = nullptr;
+        //     input_dequant_power.count = 0;
 
-            auto input_dequant_layer = m_trt_network->addScale(*(input_quant_layer->getOutput(0)),
-                ScaleMode::kUNIFORM, input_dequant_shift, input_dequant_scale, input_dequant_power);
-            std::string input_dequant_layer_name = desc.name + "_input_dequant_";
-            input_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
-            input_dequant_layer->setName(input_dequant_layer_name.c_str());
-            tensorrt_tensor->SetTensor(input_dequant_layer->getOutput(0));
-        } else {
+        //     auto input_dequant_layer = m_trt_network->addScale(*(input_quant_layer->getOutput(0)),
+        //         ScaleMode::kUNIFORM, input_dequant_shift, input_dequant_scale, input_dequant_power);
+        //     std::string input_dequant_layer_name = desc.name + "_input_dequant_";
+        //     input_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
+        //     input_dequant_layer->setName(input_dequant_layer_name.c_str());
+        //     tensorrt_tensor->SetTensor(input_dequant_layer->getOutput(0));
+        // } else {
             tensorrt_tensor->SetTensor(in_tensor);
-        }
+        // }
     }
 
     // Add Const_resources as inputs to tensorrt network

@@ -82,9 +82,8 @@ protected:
     // @brief Build the foreign network
     virtual Status Build();
 
-    ILayer* AddInt8OutputQDQLayers(nvinfer1::INetworkDefinition* network, ITensor* tensor,
-                                   std::shared_ptr<ForeignTensor> foreign_tensor, float quant_scale,
-                                   float dequant_scale);
+    ILayer* AddInt8InputQDQLayers(nvinfer1::INetworkDefinition* network, ITensor* tensor,
+        std::shared_ptr<ForeignTensor> foreign_tensor, float quant_scale, float dequant_scale);
 
     ILayer* AddInt8WeightQDQLayers(nvinfer1::INetworkDefinition* network, RawBuffer* weight,
                                    nvinfer1::Weights& kernelWeights, RawBuffer* bias, nvinfer1::Weights& biasWeights,

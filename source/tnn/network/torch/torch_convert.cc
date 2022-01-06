@@ -9,6 +9,17 @@ namespace conversion {
 
 using namespace partitioning;
 
+inline std::vector<std::string> Rename(const std::vector<std::string>& origin_names, std::map<std::string, std::string>& rename_map) {
+    std::vector<std::string> rename_names;
+    for(auto name : origin_names) {
+        if (rename_map.count(name) > 0) {
+            rename_names.push_back(rename_map[name]);
+        } else {
+            rename_names.push_back(name);
+        }
+    }
+    return rename_names;
+}
 
 void ConvertNodeToLayer(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
     const auto& op_type = node->kind().toQualString();
@@ -40,10 +51,8 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
     auto g = block.g();
 
     // set input shape
-    InputShapesMap inputs_shape_map;
     int input_idx = 0;
     for (auto &input : g->inputs()) {
-        // inputs_shape_map[input->debugName()] = block.in_shape()[input_idx++];
         net_structure->blobs.insert(input->debugName());
         instance_ptr->input_names.push_back(input->debugName());
         if (block.max_in_shape().size()) {
@@ -51,9 +60,8 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
             instance_ptr->max_inputs_shape.push_back(block.max_in_shape()[input_idx]);
             input_idx++;
         }
-        // std::cout << "[ConvertBlockToInstance:input ] " << input->debugName() << std::endl;
+        std::cout << "[ConvertBlockToInstance:input ] " << input->debugName() << std::endl;
     }
-    net_structure->inputs_shape_map = inputs_shape_map;
 
     for (const auto node : g->block()->nodes()) {
         auto kind = node->kind();
@@ -66,11 +74,50 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
     }
     
     for (auto &output : g->outputs()) {
-        // std::cout << "[ConvertBlockToInstance:output] " << output->debugName() << std::endl;
+        std::cout << "[ConvertBlockToInstance:output] " << output->debugName() << std::endl;
         net_structure->blobs.insert(output->debugName());
         net_structure->outputs.insert(output->debugName());
         instance_ptr->output_names.push_back(output->debugName());
     }
+
+    //remove quant and dequant layers begin
+    std::vector<std::shared_ptr<LayerInfo>> layers_orig = net_structure->layers;
+    const int count = layers_orig.size();
+    std::map<std::string, std::string> rename_map;
+    std::set<int> remove_index;
+    for (int index = 0; index < count; index++) {
+        auto layer = layers_orig[index];
+        if (layer->type == LAYER_REFORMAT) {
+            auto layer_param = reinterpret_cast<ReformatLayerParam*>(layer->param.get());
+            if(layer_param->src_type == DATA_TYPE_FLOAT && layer_param->dst_type == DATA_TYPE_INT8) {
+                rename_map[layer->inputs[0]] = layer->outputs[0];
+                remove_index.insert(index);
+            } else if(layer_param->src_type == DATA_TYPE_INT8 && layer_param->dst_type == DATA_TYPE_FLOAT) {
+                rename_map[layer->outputs[0]] = layer->inputs[0];
+                remove_index.insert(index);
+            }
+        }
+    }
+
+    instance_ptr->input_names = Rename(instance_ptr->input_names, rename_map);
+    instance_ptr->output_names = Rename(instance_ptr->output_names, rename_map);
+    std::set<std::string> rename_outputs;
+    for(auto output_name : instance_ptr->output_names) {
+        rename_outputs.insert(output_name);
+    }
+    net_structure->outputs = rename_outputs;
+
+    std::vector<std::shared_ptr<LayerInfo>> layers_fused;
+    for(int index = 0; index < count; index++) {
+        if(remove_index.count(index) == 0) {
+           auto layer = layers_orig[index];
+           layer->inputs = Rename(layer->inputs, rename_map);
+           layer->outputs = Rename(layer->outputs, rename_map);
+           layers_fused.push_back(layer);
+        }
+    }
+    net_structure->layers = layers_fused; 
+    //remove quant and dequant layers end
 
     instance_ptr->ctx_ = ctx;
     instance_ptr->network_config_ = network_config;
@@ -96,13 +143,13 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
         interpreter->InterpretMd5(block_proto_str);
         interpreter->InterpretMd5(block_model_str);
 #endif
-        static int __cnt = 0;
-        const std::string root = "./";
-        const std::string model_name = "splt-" + std::to_string(__cnt++);
-        const std::string proto_path = root + model_name + ".tnnproto";
-        const std::string model_path = root + model_name + ".tnnmodel";
-        TNN_NS::ModelPacker model_packer(net_structure, net_resource);
-        Status status = model_packer.Pack(proto_path, model_path);
+//        static int __cnt = 0;
+//        const std::string root = "./";
+//        const std::string model_name = "splt-" + std::to_string(__cnt++);
+//        const std::string proto_path = root + model_name + ".tnnproto";
+//        const std::string model_path = root + model_name + ".tnnmodel";
+//        TNN_NS::ModelPacker model_packer(net_structure, net_resource);
+//        Status status = model_packer.Pack(proto_path, model_path);
         instance_ptr->instance_->Init(ctx->get_interpreter(), min_inputs_shape_map, max_inputs_shape_map);
         instance_ptr->is_init_ = true;
     }

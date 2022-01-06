@@ -151,6 +151,15 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
         }
     }
 
+    
+    if (int8) {
+        float input_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
+            input_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
+        ILayer* qdq_layer = AddInt8InputQDQLayers(network, input_tensor, input_foreign_tensor,
+            input_scale_value, 1 / input_scale_value);
+        input_tensor = qdq_layer->getOutput(0);
+    }
+
     Dims kernelSize = ConvertToTRTDimsReverse(paramlist->kernels);
     IConvolutionLayer* conv_layer;
     if (paramlist->pad_type == -1 || (pads[0] == pads[1] && pads[2] == pads[3])) {
@@ -200,13 +209,6 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
     } else if (paramlist->activation_type != ActivationType_None) {
         LOGE("Error: Unsupport reshape type(%d)", paramlist->activation_type);
         return nullptr;
-    }
-
-    if (int8) {
-        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
-            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        return AddInt8OutputQDQLayers(network, last_layer->getOutput(0), output_foreign_tensor,
-            output_scale_value, 1 / output_scale_value);
     }
 
     return last_layer;

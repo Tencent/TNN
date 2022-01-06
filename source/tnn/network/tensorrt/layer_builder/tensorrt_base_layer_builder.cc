@@ -87,7 +87,7 @@ TensorRTBaseLayerBuilder* CreateTensorRTBaseLayerBuilder(LayerType type) {
     return cur_layer;
 }
 
-ILayer* TensorRTBaseLayerBuilder::AddInt8OutputQDQLayers(nvinfer1::INetworkDefinition* network, ITensor* tensor,
+ILayer* TensorRTBaseLayerBuilder::AddInt8InputQDQLayers(nvinfer1::INetworkDefinition* network, ITensor* tensor,
         std::shared_ptr<ForeignTensor> foreign_tensor, float quant_scale, float dequant_scale) {
 #if NV_TENSORRT_MAJOR < 8
         Weights output_quant_shift;

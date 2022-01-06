@@ -153,10 +153,10 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     }
 
     if (int8) {
-        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
-            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        auto output_dequant_layer =  AddInt8OutputQDQLayers(network, layer->getOutput(0), output_foreign_tensor, output_scale_value, 1 / output_scale_value);
-        input_tensor = output_dequant_layer->getOutput(0);
+//        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
+//            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
+//        auto output_dequant_layer =  AddInt8OutputQDQLayers(network, layer->getOutput(0), output_foreign_tensor, output_scale_value, 1 / output_scale_value);
+//        input_tensor = output_dequant_layer->getOutput(0);
     }
 
     Dims out_dims;

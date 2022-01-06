@@ -131,6 +131,7 @@ ILayer* Convolution3DTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* net
     auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
     bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetInt8Mode();
+    int8 = false;
 
     Weights kernelWeights;
     Weights biasWeights;
@@ -191,7 +192,7 @@ ILayer* Convolution3DTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* net
     last_layer = conv_layer;
 
     if (int8) {
-        conv_layer->setPrecision(nvinfer1::DataType::kINT8);
+        // conv_layer->setPrecision(nvinfer1::DataType::kINT8);
     }
 
     IActivationLayer* activation_layer;
@@ -209,10 +210,10 @@ ILayer* Convolution3DTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* net
     }
 
     if (int8) {
-        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
-            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        return AddInt8OutputQDQLayers(network, last_layer->getOutput(0), output_foreign_tensor,
-            output_scale_value, 1 / output_scale_value);
+        // float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
+        //     output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
+        // return AddInt8OutputQDQLayers(network, last_layer->getOutput(0), output_foreign_tensor,
+        //     output_scale_value, 1 / output_scale_value);
     }
 
     return last_layer;
