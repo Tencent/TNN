@@ -155,18 +155,7 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8OutputQDQLayers(nvinfer1::INetworkDefin
         auto output_quant_layer = network->addQuantize(*tensor, *(output_quant_constant_layer->getOutput(0)));
         output_quant_layer->setAxis(0);
 
-        Weights output_dequant_scale;
-        float* output_dequant_scale_data = (float*)malloc(sizeof(float));
-        *output_dequant_scale_data = 1 / dequant_scale;
-        output_dequant_scale.type = nvinfer1::DataType::kFLOAT;
-        output_dequant_scale.values = (void*)output_dequant_scale_data;
-        output_dequant_scale.count = 1;
-        Dims output_dequant_scale_dims;
-        output_dequant_scale_dims.nbDims = 1;
-        output_dequant_scale_dims.d[0] = 1;
-        auto output_dequant_constant_layer = network->addConstant(output_dequant_scale_dims, output_dequant_scale);
-
-        auto output_dequant_layer = network->addDequantize(*(output_quant_layer->getOutput(0)), *(output_dequant_constant_layer->getOutput(0)));
+        auto output_dequant_layer = network->addDequantize(*(output_quant_layer->getOutput(0)), *(output_quant_constant_layer->getOutput(0)));
         output_dequant_layer->setAxis(0);
 
         return output_dequant_layer;
@@ -284,17 +273,7 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
         auto weight_quant_layer = network->addQuantize(*(constant_layer->getOutput(0)), *(weight_quant_constant_layer->getOutput(0)));
         weight_quant_layer->setAxis(0);
 
-        Weights weight_dequant_scale;
-        float* weight_dequant_scale_data = (float*)malloc(sizeof(float));
-        *weight_dequant_scale_data = weight_scale / input_scale;
-        weight_dequant_scale.type = nvinfer1::DataType::kFLOAT;
-        weight_dequant_scale.values = (void*)weight_quant_scale_data;
-        weight_dequant_scale.count = 1;
-        Dims weight_dequant_scale_dims;
-        weight_dequant_scale_dims.nbDims = 1;
-        weight_dequant_scale_dims.d[0] = 1;
-        auto weight_dequant_constant_layer = network->addConstant(weight_dequant_scale_dims, weight_dequant_scale);
-        auto weight_dequant_layer = network->addDequantize(*(weight_quant_layer->getOutput(0)), *(weight_dequant_constant_layer->getOutput(0)));
+        auto weight_dequant_layer = network->addDequantize(*(weight_quant_layer->getOutput(0)), *(weight_quant_constant_layer->getOutput(0)));
         weight_dequant_layer->setAxis(0);
         
         return weight_dequant_layer;

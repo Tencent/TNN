@@ -113,18 +113,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
             auto input_quant_layer = network->addQuantize(*input_tensor, *(input_quant_constant_layer->getOutput(0)));
             input_quant_layer->setAxis(0);
 
-            Weights input_dequant_scale;
-            float *input_dequant_scale_data = (float *)malloc(sizeof(float));
-            *input_dequant_scale_data = input_scale_value;
-            input_dequant_scale.type = nvinfer1::DataType::kFLOAT;
-            input_dequant_scale.values = (void *)input_dequant_scale_data;
-            input_dequant_scale.count = 1;
-            Dims input_dequant_scale_dims;
-            input_dequant_scale_dims.nbDims = 1;
-            input_dequant_scale_dims.d[0] = 1;
-            auto input_dequant_constant_layer = network->addConstant(input_dequant_scale_dims, input_dequant_scale);
-
-            auto input_dequant_layer = network->addDequantize(*(input_quant_layer->getOutput(0)), *(input_dequant_constant_layer->getOutput(0)));
+            auto input_dequant_layer = network->addDequantize(*(input_quant_layer->getOutput(0)), *(input_quant_constant_layer->getOutput(0)));
             input_dequant_layer->setAxis(0);
             input_tensor = input_dequant_layer->getOutput(0);
 #endif
