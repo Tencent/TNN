@@ -1713,6 +1713,13 @@ RawBuffer quant_bias(RawBuffer &bias, RawBuffer &scale) {
     return bias_quant;
 }
 
+void add_blob_scale_resource(RawBuffer &scale_buf, IntScaleResource *layer_res) {
+    layer_res->scale_handle = scale_buf;
+    auto zero_point_handle = RawBuffer(scale_buf.GetDataCount() * sizeof(int8_t));
+    zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+    layer_res->zero_point_handle = zero_point_handle;
+}
+
 // func: quantize_per_tensor(Tensor self, float scale, int zero_point, ScalarType dtype) -> Tensor
 class QuantTensorTorchConverter : public TorchOpConverter {
 public:
@@ -1733,7 +1740,7 @@ public:
 
         auto scale_buf          = getValue(node->inputs().at(1));
         auto layer_res          = new (IntScaleResource);
-        layer_res->scale_handle = scale_buf;
+        add_blob_scale_resource(scale_buf, layer_res);
 
         net_structure->layers.push_back(layer_info);
         net_resource->resource_map[node->output(0)->debugName() + BLOB_SCALE_SUFFIX] =
@@ -1831,6 +1838,9 @@ public:
             *w_scale_buf.force_to<float *>() = q_scale;
         }
         layer_res->scale_handle = merge_weight_scale(i_scale_buf, w_scale_buf);
+        auto zero_point_handle = RawBuffer(w_scale_buf.GetDataCount() * sizeof(int8_t));
+        zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+        layer_res->zero_point_handle = zero_point_handle;
 
         auto shape                  = layer_res->filter_handle.GetBufferDims();
         layer_param->name           = layer_info->name;
@@ -1859,7 +1869,7 @@ public:
         // set output scale res
         auto o_scale_buf                = getValue(node->inputs().at(2));
         auto o_scale_layer_res          = new (IntScaleResource);
-        o_scale_layer_res->scale_handle = o_scale_buf;
+        add_blob_scale_resource(o_scale_buf, o_scale_layer_res);
 
         net_structure->layers.push_back(layer_info);
         net_resource->resource_map[node->output(0)->debugName() + BLOB_SCALE_SUFFIX] =
@@ -1921,6 +1931,9 @@ public:
             *w_scale_buf.force_to<float *>() = q_scale;
         }
         layer_res->scale_handle = merge_weight_scale(i_scale_buf, w_scale_buf);
+        auto zero_point_handle = RawBuffer(w_scale_buf.GetDataCount() * sizeof(int8_t));
+        zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+        layer_res->zero_point_handle = zero_point_handle;
 
         // set param accroding to real value, just test here
         layer_param->name       = layer_info->name;
@@ -1945,7 +1958,7 @@ public:
         auto o_scale_buf                = getValue(node->inputs().at(2));
         float *o_scale_value            = o_scale_buf.force_to<float *>();
         auto o_scale_layer_res          = new (IntScaleResource);
-        o_scale_layer_res->scale_handle = o_scale_buf;
+        add_blob_scale_resource(o_scale_buf, o_scale_layer_res);
 
         net_resource->resource_map[node->output(0)->debugName() + BLOB_SCALE_SUFFIX] =
             std::shared_ptr<LayerResource>(o_scale_layer_res);
@@ -1963,7 +1976,7 @@ public:
         auto o_scale_buf                = getValue(node->inputs().at(2));
         float *o_scale_value            = o_scale_buf.force_to<float *>();
         auto o_scale_layer_res          = new (IntScaleResource);
-        o_scale_layer_res->scale_handle = o_scale_buf;
+        add_blob_scale_resource(o_scale_buf, o_scale_layer_res);
 
         // generate quant add layer
         {

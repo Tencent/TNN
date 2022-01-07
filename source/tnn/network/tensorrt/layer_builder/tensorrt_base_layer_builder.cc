@@ -151,12 +151,15 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8InputQDQLayers(nvinfer1::INetworkDefini
         output_quant_scale_dims.nbDims = 1;
         output_quant_scale_dims.d[0] = 1;
         auto output_quant_constant_layer = network->addConstant(output_quant_scale_dims, output_quant_scale);
+        output_quant_constant_layer->setName((layer_name_ + "_input_scale").c_str());
 
         auto output_quant_layer = network->addQuantize(*tensor, *(output_quant_constant_layer->getOutput(0)));
         output_quant_layer->setAxis(0);
+        output_quant_layer->setName((layer_name_ + "_input_scale_q").c_str());
 
         auto output_dequant_layer = network->addDequantize(*(output_quant_layer->getOutput(0)), *(output_quant_constant_layer->getOutput(0)));
         output_dequant_layer->setAxis(0);
+        output_dequant_layer->setName((layer_name_ + "_input_scale_dq").c_str());
 
         std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->SetQuantized();
 
@@ -216,6 +219,7 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
     }
 
     ILayer* constant_layer = network->addConstant(weightDims, int8Weights);
+    constant_layer->setName((layer_name_ + "_weight").c_str());
 #if NV_TENSORRT_MAJOR < 8
         Weights weight_quant_shift;
         weight_quant_shift.type = nvinfer1::DataType::kFLOAT;
@@ -281,12 +285,15 @@ ILayer* TensorRTBaseLayerBuilder::AddInt8WeightQDQLayers(nvinfer1::INetworkDefin
         weight_quant_scale_dims.nbDims = 1;
         weight_quant_scale_dims.d[0] = weight_scale_len;
         auto weight_quant_constant_layer = network->addConstant(weight_quant_scale_dims, weight_quant_scale);
+        weight_quant_constant_layer->setName((layer_name_ + "_weight_scale").c_str());
 
         auto weight_quant_layer = network->addQuantize(*(constant_layer->getOutput(0)), *(weight_quant_constant_layer->getOutput(0)));
         weight_quant_layer->setAxis(0);
+        weight_quant_layer->setName((layer_name_ + "_weight_scale_q").c_str());
 
         auto weight_dequant_layer = network->addDequantize(*(weight_quant_layer->getOutput(0)), *(weight_quant_constant_layer->getOutput(0)));
         weight_dequant_layer->setAxis(0);
+        weight_dequant_layer->setName((layer_name_ + "_weight_scale_dq").c_str());
         
         return weight_dequant_layer;
 #endif
