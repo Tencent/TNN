@@ -524,16 +524,22 @@ Status CoreMLNetwork::Forward() {
                                                                   strides:strides_
                                                               deallocator:^(void *_Nonnull bytes) {}
                                                                     error:&error];
+            LOGE_IF(error, "coreml alloc input array error: %s\n", error.debugDescription.UTF8String);
+            RETURN_VALUE_ON_NEQ(error, nil, Status(TNNERR_MODEL_ERR, "coreml alloc input array error"));
             auto input_feat_value = [MLFeatureValue featureValueWithMultiArray:input_array];
             [input_dict setObject:input_feat_value forKey:input_name];
         }
 
         auto input  = [[MLDictionaryFeatureProvider alloc] initWithDictionary:input_dict
                                                                         error:&error];
+        LOGE_IF(error, "coreml alloc input error: %s\n", error.debugDescription.UTF8String);
+        RETURN_VALUE_ON_NEQ(error, nil, Status(TNNERR_MODEL_ERR, "coreml alloc input error"));
         
         //coreml forword
         auto output = (MLDictionaryFeatureProvider *)[coreml_executor_.model predictionFromFeatures:input
                                                                                                 error:&error];
+        LOGE_IF(error, "coreml predict error: %s\n", error.debugDescription.UTF8String);
+        RETURN_VALUE_ON_NEQ(error, nil, Status(TNNERR_MODEL_ERR, "coreml predict error"));
         
         //copy output map
         for (auto iter = blob_output_map_.begin(); iter != blob_output_map_.end(); ++iter) {
