@@ -45,6 +45,10 @@ TEST_P(StrideSliceLayerTest, StrideSliceLayer) {
 
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
 
+    if (DEVICE_APPLE_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<StrideSliceLayerParam> param(new StrideSliceLayerParam());
     param->name    = "StrideSlice";
