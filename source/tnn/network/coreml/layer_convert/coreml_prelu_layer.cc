@@ -44,7 +44,7 @@ Status CoreMLPReluLayer::BuildLayerParam() {
     coreml_layer_->activation = (CoreML__Specification__ActivationParams *)coreml_layer_param_.get();
     core_ml__specification__activation_params__init(coreml_layer_->activation);
     
-    if (slope_count == 1) {  // Leaky ReLU
+    if (channel_share) {  // Leaky ReLU
         coreml_layer_->activation->nonlinearity_type_case = CORE_ML__SPECIFICATION__ACTIVATION_PARAMS__NONLINEARITY_TYPE_LEAKY_RE_LU;
         coreml_layer_type_ = std::shared_ptr<CoreML__Specification__ActivationLeakyReLU>(new CoreML__Specification__ActivationLeakyReLU);
         coreml_layer_->activation->leakyrelu = (CoreML__Specification__ActivationLeakyReLU *)coreml_layer_type_.get();
