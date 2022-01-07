@@ -34,6 +34,9 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
         if (![[NSFileManager defaultManager] fileExistsAtPath:_cachePath]) {
             LOGE("The input cache path (%s) is invalid, automatically try NSTemporaryDirectory\n", path.c_str());
             _cachePath = NSTemporaryDirectory();
+#if TNN_COREML_TEST
+            LOGE("Input cache path: %s\n", _cachePath.UTF8String);
+#endif
         }
         _ID = [NSString stringWithUTF8String:ID.c_str()];
     }
