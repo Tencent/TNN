@@ -58,6 +58,7 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
         
     }
     auto device = GetDevice(type);
+    LOGE_IF(!device, "device is nil or unsupported for type: %d\n", type);
     RETURN_VALUE_ON_NEQ(device != NULL, true, TNNERR_DEVICE_NOT_SUPPORT);
     
     if (interpreter) {
