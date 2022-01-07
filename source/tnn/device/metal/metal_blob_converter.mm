@@ -367,7 +367,9 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
 
-        [command_buffer commit];
+        command_buffer = context_impl.commandBuffer;
+
+        [context_impl commit:YES];
         if (waitState == 1) {
             [command_buffer waitUntilCompleted];
         } else if (waitState == 2) {
@@ -407,7 +409,9 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
 
-        [command_buffer commit];
+        command_buffer = context_impl.commandBuffer;
+
+        [context_impl commit:YES];
 
         [command_buffer waitUntilCompleted];
         memcpy(output_mat.GetData(), output_mtl_buffer.contents, count * bytes_size);
@@ -472,7 +476,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
 
-        auto command_buffer = context_impl.commandBuffer;
+        command_buffer = context_impl.commandBuffer;
         [context_impl commit:YES];
 
         if (output_mat_device == DEVICE_METAL) {
@@ -536,7 +540,8 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
 
-        [command_buffer commit];
+        command_buffer = context_impl.commandBuffer;
+        [context_impl commit:YES];
 
         if (output_mat_device == DEVICE_METAL) {
             if (waitState == 1) {
