@@ -59,6 +59,10 @@ TEST_P(HardSwishLayerTest, HardSwishLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_APPLE_NPU == dev && input_count > 1) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<HardSwishLayerParam> param(new HardSwishLayerParam());
     param->name  = "HardSwish";
