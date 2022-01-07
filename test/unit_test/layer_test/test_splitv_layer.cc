@@ -48,6 +48,10 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
         GTEST_SKIP();
     }
 
+    if (dim_count > 5 && DEVICE_APPLE_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     if (DEVICE_OPENCL == dev && (dim_count > 4 || axis != 1)) {
         GTEST_SKIP();
     }
