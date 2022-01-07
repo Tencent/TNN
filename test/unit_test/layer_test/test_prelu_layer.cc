@@ -48,6 +48,10 @@ TEST_P(PReluLayerTest, PReluLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_APPLE_NPU == dev && dim_count != 4) {
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<PReluLayerParam> param(new PReluLayerParam());
     param->name           = "PRelu";
