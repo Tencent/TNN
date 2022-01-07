@@ -73,7 +73,7 @@ Status CoreMLSliceLayer::BuildConstantWeightsLayer() {
 }
 
 std::vector<std::string> CoreMLSliceLayer::BuildLayerInputs() {
-    return CoreMLBaseLayer::BuildLayerInputs();
+    return {layer_info_->inputs[0]};
 }
 
 std::vector<std::string> CoreMLSliceLayer::BuildLayerOutputs() {

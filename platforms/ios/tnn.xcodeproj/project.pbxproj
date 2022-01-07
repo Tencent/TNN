@@ -544,6 +544,11 @@
 		9DDA7090241F99E700F17A1C /* version.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DDA7081241F99E600F17A1C /* version.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		9DDA70A1241F9A0300F17A1C /* core in Headers */ = {isa = PBXBuildFile; fileRef = 9DDA709E241F99F800F17A1C /* core */; settings = {ATTRIBUTES = (Public, ); }; };
 		9DDA70A2241F9A0300F17A1C /* utils in Headers */ = {isa = PBXBuildFile; fileRef = 9DDA709D241F99F800F17A1C /* utils */; settings = {ATTRIBUTES = (Public, ); }; };
+		9DE4CBD827859F0700FCEF95 /* coreml_reduce_min_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DE4CBD327859F0600FCEF95 /* coreml_reduce_min_layer.cc */; };
+		9DE4CBD927859F0700FCEF95 /* coreml_softsign_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DE4CBD427859F0700FCEF95 /* coreml_softsign_layer.cc */; };
+		9DE4CBDA27859F0700FCEF95 /* coreml_softplus_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DE4CBD527859F0700FCEF95 /* coreml_softplus_layer.cc */; };
+		9DE4CBDB27859F0700FCEF95 /* coreml_div_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DE4CBD627859F0700FCEF95 /* coreml_div_layer.cc */; };
+		9DE4CBDC27859F0700FCEF95 /* coreml_reduce_max_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DE4CBD727859F0700FCEF95 /* coreml_reduce_max_layer.cc */; };
 		9DF19E9F24A1FE8E00E1376D /* metal_pooling_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = 9DF19E9D24A1FE8E00E1376D /* metal_pooling_layer_acc.metal */; };
 		9DF19EA024A1FE8E00E1376D /* metal_pooling_layer_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DF19E9E24A1FE8E00E1376D /* metal_pooling_layer_acc.mm */; };
 		9DF19EA224A200AC00E1376D /* metal_cpu_adapter_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DF19EA124A200AC00E1376D /* metal_cpu_adapter_acc.h */; };
@@ -1625,6 +1630,11 @@
 		9DDA7081241F99E600F17A1C /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = version.h; sourceTree = "<group>"; };
 		9DDA709D241F99F800F17A1C /* utils */ = {isa = PBXFileReference; lastKnownFileType = folder; path = utils; sourceTree = "<group>"; };
 		9DDA709E241F99F800F17A1C /* core */ = {isa = PBXFileReference; lastKnownFileType = folder; path = core; sourceTree = "<group>"; };
+		9DE4CBD327859F0600FCEF95 /* coreml_reduce_min_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_reduce_min_layer.cc; sourceTree = "<group>"; };
+		9DE4CBD427859F0700FCEF95 /* coreml_softsign_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_softsign_layer.cc; sourceTree = "<group>"; };
+		9DE4CBD527859F0700FCEF95 /* coreml_softplus_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_softplus_layer.cc; sourceTree = "<group>"; };
+		9DE4CBD627859F0700FCEF95 /* coreml_div_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_div_layer.cc; sourceTree = "<group>"; };
+		9DE4CBD727859F0700FCEF95 /* coreml_reduce_max_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_reduce_max_layer.cc; sourceTree = "<group>"; };
 		9DF19E9D24A1FE8E00E1376D /* metal_pooling_layer_acc.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_pooling_layer_acc.metal; sourceTree = "<group>"; };
 		9DF19E9E24A1FE8E00E1376D /* metal_pooling_layer_acc.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_pooling_layer_acc.mm; sourceTree = "<group>"; };
 		9DF19EA124A200AC00E1376D /* metal_cpu_adapter_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = metal_cpu_adapter_acc.h; sourceTree = "<group>"; };
@@ -3347,6 +3357,11 @@
 		DE14B473275C87C700379D4F /* layer_convert */ = {
 			isa = PBXGroup;
 			children = (
+				9DE4CBD627859F0700FCEF95 /* coreml_div_layer.cc */,
+				9DE4CBD727859F0700FCEF95 /* coreml_reduce_max_layer.cc */,
+				9DE4CBD327859F0600FCEF95 /* coreml_reduce_min_layer.cc */,
+				9DE4CBD527859F0700FCEF95 /* coreml_softplus_layer.cc */,
+				9DE4CBD427859F0700FCEF95 /* coreml_softsign_layer.cc */,
 				DEC606732775DF6C00F6AA07 /* coreml_reduce_mean_layer.cc */,
 				DEC606712775DBC900F6AA07 /* coreml_reduce_sum_layer.cc */,
 				DEC6066F2775CAE700F6AA07 /* coreml_hard_swish_layer.cc */,
@@ -3949,6 +3964,7 @@
 				EC12EC8225E67549007ADDE4 /* net_optimizer_cbam_fused_reduce.cc in Sources */,
 				9DD1FB4D247CE9BE00800139 /* metal_common.metal in Sources */,
 				9D32FF2724557EED002DCDAB /* pooling_3d_layer_interpreter.cc in Sources */,
+				9DE4CBDA27859F0700FCEF95 /* coreml_softplus_layer.cc in Sources */,
 				E4D05BF8259F161000921502 /* arm_batch_norm_fp16_layer.cc in Sources */,
 				9D32FCC624557EEC002DCDAB /* reduce_prod_layer.cc in Sources */,
 				9D32FF1F24557EED002DCDAB /* hard_swish_layer_interpreter.cc in Sources */,
@@ -4084,6 +4100,7 @@
 				DE14B587275C87C700379D4F /* DataStructures.pb-c.c in Sources */,
 				9DD1FBC0247CE9BE00800139 /* metal_conv_layer_1x1.metal in Sources */,
 				9D32FCFC24557EEC002DCDAB /* upsample_layer.cc in Sources */,
+				9DE4CBD927859F0700FCEF95 /* coreml_softsign_layer.cc in Sources */,
 				DE14B57E275C87C700379D4F /* FeatureTypes.proto in Sources */,
 				9D32FC9F24557EEC002DCDAB /* memory_mode_state_factory.cc in Sources */,
 				32BFADEB2684AAEE00502FAC /* GEMM_INT8_SDOT_4X8.S in Sources */,
@@ -4264,6 +4281,7 @@
 				9DD1FB9D247CE9BE00800139 /* metal_softplus_layer_acc.mm in Sources */,
 				9DF543A6258B1366006CEC97 /* arm_reshape_layer_acc.cc in Sources */,
 				9DD1FB48247CE9BE00800139 /* metal_mul_layer_acc.mm in Sources */,
+				9DE4CBDC27859F0700FCEF95 /* coreml_reduce_max_layer.cc in Sources */,
 				9DD1FC67247CEA1400800139 /* arm_context.cc in Sources */,
 				9DF543C1258B1366006CEC97 /* arm_reduce_mean_layer_acc.cc in Sources */,
 				E4D05BF0259F15C700921502 /* arm_pool_layer_acc.cc in Sources */,
@@ -4413,6 +4431,7 @@
 				9DF543C4258B1366006CEC97 /* arm_max_layer_acc.cc in Sources */,
 				ECCDCF4425E10B9D00D7D297 /* bias_add_layer_interpreter.cc in Sources */,
 				4E187D03267202BF00804FDF /* einsum_layer_interpreter.cc in Sources */,
+				9DE4CBDB27859F0700FCEF95 /* coreml_div_layer.cc in Sources */,
 				9DD1FB4F247CE9BE00800139 /* metal_instance_norm_layer_acc.mm in Sources */,
 				9DF543C0258B1366006CEC97 /* arm_hard_sigmoid_acc.cc in Sources */,
 				DE14B57F275C87C700379D4F /* Parameters.proto in Sources */,
@@ -4545,6 +4564,7 @@
 				EC4B9723264A77FE0015F32A /* layer_norm_layer_interpreter.cc in Sources */,
 				ECCDCEC625DF536000D7D297 /* compute_int8.cc in Sources */,
 				DE14B5A2275C87C700379D4F /* coreml_model.mm in Sources */,
+				9DE4CBD827859F0700FCEF95 /* coreml_reduce_min_layer.cc in Sources */,
 				9DD1FB57247CE9BE00800139 /* metal_reduce_sum_layer_acc.mm in Sources */,
 				9D32FCED24557EEC002DCDAB /* sin_layer.cc in Sources */,
 				9DF543BC258B1366006CEC97 /* arm_deconv_layer_stride.cc in Sources */,
