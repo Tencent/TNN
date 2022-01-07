@@ -48,7 +48,8 @@ TEST_P(PReluLayerTest, PReluLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_APPLE_NPU == dev && dim_count != 4) {
+    if (DEVICE_APPLE_NPU == dev && (dim_count != 4 || batch != 1 || channel <= 1)) {
+        //APPLE NPU raise segment default error for func compileModelAtURL if batch!=1 or channel<=1
         GTEST_SKIP();
     }
 
