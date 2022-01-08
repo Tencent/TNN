@@ -29,7 +29,9 @@ static bool TestFilter(DeviceType device_type, int input_dim_size, int axis_size
         return true;
     if (device_type == DEVICE_APPLE_NPU && input_dim_size < 5)
         return true;
-
+    if (device_type == DEVICE_APPLE_NPU && input_dim_size > 4 && axis_size == 1)
+        return true;
+        
     return false;
 }
 
