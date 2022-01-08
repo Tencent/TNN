@@ -77,6 +77,18 @@ Status CoreMLUpsampleLayer::BuildLayerParam() {
             }
         }
     } else {
+        //Note: CoreML infer output shape with formular below for intput shape, different from the one in upsample_layer.cc
+        //CoreML: [C, H, W] -> [C, scalingFactor[0] * H, scalingFactor[1] * W]
+        //TNN: [C, H, W] -> [C, round(scalingFactor[0] * H), round(scalingFactor[1] * W)]
+        //Adjust scales
+        for(int i=0; i<scales.size(); i++) {
+            int input_dim = input_shape[input_shape_size - scales.size() + i];
+            float output_dim = scales[scales.size() - i - 1] * input_dim;
+            float output_dim_r = round(output_dim);
+            if (output_dim_r - floor(output_dim) > 0) {
+                scales[scales.size() - i - 1] = output_dim_r/input_dim;
+            }
+        }
         for(int i=0;i<scales.size();i++){
             if((scales[i]-((int)scales[i])) > 0.000001){
                 isFractional = true;
@@ -109,19 +121,19 @@ Status CoreMLUpsampleLayer::BuildLayerParam() {
     } else if(mode == 2) {  // bilinear/linear
         coreml_layer_->upsample->mode = CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__INTERPOLATION_MODE__BILINEAR;
         // align corners option from pytorch
-        if(isFractional) { // Fractional upsample only compatible with align_corners=true or align_corners=false
+//        if(isFractional) { // Fractional upsample only compatible with align_corners=true or align_corners=false
             if(align_corners == 0) {// ALIGN_CORNERS_FALSE: spacing = Xin / Xout , grid_point[i] = min(Xin-1, max(0, i * spacing + 0.5 * spacing - 0.5)), for i = 0,1,2,….,Xout-1
                 coreml_layer_->upsample->linearupsamplemode = CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__ALIGN_CORNERS_FALSE;
             } else if(align_corners == 1) {// ALIGN_CORNERS_TRUE: spacing = (Xin-1) / (Xout-1) , grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
                 coreml_layer_->upsample->linearupsamplemode=   CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__ALIGN_CORNERS_TRUE;
             }
-        } else {
-            if(align_corners == 0) {// DEFAULT: spacing = (Xin-Xin/Xout) / (Xout-1) , grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
-                coreml_layer_->upsample->linearupsamplemode = CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__DEFAULT;
-            } else if(align_corners == 1) {// ALIGN_CORNERS_TRUE: spacing = (Xin-1) / (Xout-1) , grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
-                coreml_layer_->upsample->linearupsamplemode=   CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__ALIGN_CORNERS_TRUE;
-            }
-        }
+//        } else {
+//            if(align_corners == 0) {// DEFAULT: spacing = (Xin-Xin/Xout) / (Xout-1) , grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
+//                coreml_layer_->upsample->linearupsamplemode = CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__DEFAULT;
+//            } else if(align_corners == 1) {// ALIGN_CORNERS_TRUE: spacing = (Xin-1) / (Xout-1) , grid_point[i] = min(Xin-1, max(0, i * spacing)), for i = 0,1,2,….,Xout-1
+//                coreml_layer_->upsample->linearupsamplemode=   CORE_ML__SPECIFICATION__UPSAMPLE_LAYER_PARAMS__LINEAR_UPSAMPLE_MODE__ALIGN_CORNERS_TRUE;
+//            }
+//        }
     } else { // cubic ...
         LOGE("Error: Upsample dont support resize type\n");
         return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize type");
