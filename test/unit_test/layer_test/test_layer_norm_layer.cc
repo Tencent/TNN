@@ -58,7 +58,19 @@ TEST_P(LayerNormLayerTest, LayerNormLayer) {
     std::vector<int> scale_bias_dims(reduce_dims_size, 0);
     for(int i=0; i<reduce_dims_size; ++i) scale_bias_dims[i] = input_dims[channel_dim_size+i];
 
-    auto interpreter            = GenerateInterpreter("LayerNorm", {input_dims, scale_bias_dims, scale_bias_dims}, param);
+    // resource
+    int norm_size = DimsVectorUtils::Count(scale_bias_dims);
+    std::shared_ptr<RawBuffer> scales_buffer (new RawBuffer(sizeof(float)*norm_size, scale_bias_dims));
+    InitRandom(scales_buffer->force_to<float*>(), norm_size, 1.0f);
+    std::shared_ptr<RawBuffer> biases_buffer (new RawBuffer(sizeof(float)*norm_size, scale_bias_dims));
+    InitRandom(biases_buffer->force_to<float*>(), norm_size, 1.0f);
+
+    auto interpreter = GenerateInterpreter("LayerNorm", {input_dims, scale_bias_dims, scale_bias_dims}, param);
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter.get());
+    auto net_structure = default_interpreter->GetNetStructure();
+    auto net_resource = default_interpreter->GetNetResource();
+    net_resource->constant_map[net_structure->layers[0]->inputs[1]] = scales_buffer;
+    net_resource->constant_map[net_structure->layers[0]->inputs[2]] = biases_buffer;
     Run(interpreter);
 }
 

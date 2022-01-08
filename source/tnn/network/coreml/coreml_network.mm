@@ -348,8 +348,13 @@ Status CoreMLNetwork::GetAllInputBlobs(BlobMap &blobs) {
     BlobShapesMap inputs_shape_map;
     BlobDataTypeMap inputs_type_map;
     if (model_config_.model_type == MODEL_TYPE_TNN) {
-        inputs_shape_map = net_structure_->inputs_shape_map;
-        inputs_type_map = net_structure_->input_data_type_map;
+        //filter out const input for layer unitest such as layernorm
+        for (auto iter : net_structure_->inputs_shape_map) {
+            if (net_resource_ && net_resource_->constant_map.find(iter.first) == net_resource_->constant_map.end()) {
+                inputs_shape_map[iter.first] = iter.second;
+                inputs_type_map[iter.first] = net_structure_->input_data_type_map[iter.first];
+            }
+        }
     } else if (model_config_.model_type == MODEL_TYPE_COREML) {
         RETURN_ON_NEQ([coreml_executor_ getInputShapesMap:inputs_shape_map
                                              dataTypesMap:inputs_type_map], TNN_OK);

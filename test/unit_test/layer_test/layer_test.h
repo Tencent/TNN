@@ -29,6 +29,7 @@
 #include "tnn/core/status.h"
 #include "tnn/core/tnn.h"
 #include "tnn/layer/base_layer.h"
+#include "tnn/interpreter/default_model_interpreter.h"
 
 #define EXPECT_EQ_OR_RETURN(status, target)                                                                            \
     if ((status) != (target))                                                                                          \
