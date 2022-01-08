@@ -27,6 +27,8 @@ static bool TestFilter(DeviceType device_type, int input_dim_size, int axis_size
         return true;
     if (device_type == DEVICE_OPENCL && input_dim_size > 4 && axis_size == 1)
         return true;
+    if (device_type == DEVICE_APPLE_NPU && input_dim_size < 5)
+        return true;
 
     return false;
 }
@@ -163,6 +165,11 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     if (dim_count == 1) {
         input_dims = {channel};
     }
+    
+    // APPLE_NPU can not support DATA_TYPE_INT32
+    if (dev == DEVICE_APPLE_NPU && data_type == DATA_TYPE_INT32) {
+        GTEST_SKIP();
+    }
 
     if (DEVICE_HUAWEI_NPU != dev) {
         auto interpreter1 = GenerateInterpreter("ReduceMax", {input_dims}, param);
@@ -171,22 +178,24 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         Run(interpreter2);
         auto interpreter3 = GenerateInterpreter("ReduceMean", {input_dims}, param);
         Run(interpreter3);
-        auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
-        Run(interpreter8);
-        if (DEVICE_CUDA != dev) {
-            auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
-            Run(interpreter5);
-            auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
-            Run(interpreter6);
-            auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
-            Run(interpreter7);
-            auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
-            Run(interpreter10);
+        if(DEVICE_APPLE_NPU != dev){
+            auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
+            Run(interpreter8);
+            if (DEVICE_CUDA != dev) {
+                auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
+                Run(interpreter5);
+                auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
+                Run(interpreter6);
+                auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
+                Run(interpreter7);
+                auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
+                Run(interpreter10);
+            }
         }
     }
     auto interpreter4 = GenerateInterpreter("ReduceSum", {input_dims}, param);
     Run(interpreter4);
-    if (DEVICE_CUDA != dev) {
+    if (DEVICE_CUDA != dev && DEVICE_APPLE_NPU != dev) {
         auto interpreter9 = GenerateInterpreter("ReduceProd", {input_dims}, param);
         Run(interpreter9);
     }
