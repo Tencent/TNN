@@ -102,8 +102,8 @@ struct BenchResult {
     NSArray *modelList = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:modelZone
                                                                              error:nil];
     
-    NSPredicate *predicateProto = [NSPredicate predicateWithFormat:@"self ENDSWITH 'proto'"];
-    NSPredicate *predicateModel = [NSPredicate predicateWithFormat:@"self ENDSWITH 'model'"];
+    NSPredicate *predicateProto = [NSPredicate predicateWithFormat:@"self ENDSWITH 'tnnproto'"];
+    NSPredicate *predicateModel = [NSPredicate predicateWithFormat:@"self ENDSWITH 'tnnmodel'"];
     NSPredicate *predicateCoreML = [NSPredicate predicateWithFormat:@"self ENDSWITH 'mlmodel'"];
     NSPredicate *predicateCoreMLC = [NSPredicate predicateWithFormat:@"self ENDSWITH 'mlmodelc'"];
     
@@ -122,40 +122,58 @@ struct BenchResult {
                continue;
            }
            
+           NSComparator sort = ^(NSString *obj1,NSString *obj2){
+               auto range = NSMakeRange(0,obj1.length);
+               return [obj1 compare:obj2 options:NSCaseInsensitiveSearch|NSNumericSearch|
+                       NSWidthInsensitiveSearch|NSForcedOrderingSearch range:range];
+           };
+           
            BenchModel model;
            model.name = modelDir.UTF8String;
            
            NSArray *modelFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:modelDirPath
                                                                                      error:nil];
-           NSArray<NSString *> *protos = [modelFiles filteredArrayUsingPredicate:predicateProto];
-           if (protos.count > 0) {
+           NSArray<NSString *> *protos = [[modelFiles filteredArrayUsingPredicate:predicateProto] sortedArrayUsingComparator:sort];
+           NSArray<NSString *> *models = [[modelFiles filteredArrayUsingPredicate:predicateModel] sortedArrayUsingComparator:sort];
+           
+           //support multiple models in the same directory
+           for (size_t index = 0; index < std::min(protos.count, models.count); index++) {
+               auto proto_prefix = [protos[index] substringToIndex:protos[index].length - @".tnnproto".length];
+               auto model_prefix = [models[index] substringToIndex:models[index].length - @".tnnmodel".length];
+               if (![proto_prefix isEqualToString:model_prefix]) {
+                   continue;
+               }
+               model.name = proto_prefix.UTF8String;
+               
                auto proto = [NSString stringWithContentsOfFile:[modelDirPath stringByAppendingPathComponent:protos[0]]
                                                         encoding:NSUTF8StringEncoding
                                                            error:nil];
                if (proto.length > 0) {
                    model.tnn_proto_content = proto.UTF8String;
-               }
-           }
-           
-           if (model.tnn_proto_content.length() > 0) {
-               NSArray<NSString *> *models = [modelFiles filteredArrayUsingPredicate:predicateModel];
-               if (models.count > 0) {
+                   
     //               model.tnn_model_content = [modelDirPath stringByAppendingPathComponent:models[0]].UTF8String;
                    NSData *data = [NSData dataWithContentsOfFile:[modelDirPath
-                                                                  stringByAppendingPathComponent:models[0]]];
+                                                                  stringByAppendingPathComponent:models[index]]];
                    model.tnn_model_content = string((const char *)[data bytes], [data length]);
                }
+               
+               netmodels.push_back(model);
            }
 
-           NSArray<NSString *> *coremls = [modelFiles filteredArrayUsingPredicate:predicateCoreML];
+           NSArray<NSString *> *coremls = [[modelFiles filteredArrayUsingPredicate:predicateCoreML] sortedArrayUsingComparator:sort];
            if (coremls.count > 0) {
+               model.tnn_proto_content = "";
+               model.tnn_model_content = "";
                model.coreml = [modelDirPath stringByAppendingPathComponent:coremls[0]].UTF8String;
+               netmodels.push_back(model);
            }
            coremls = [modelFiles filteredArrayUsingPredicate:predicateCoreMLC];
            if (coremls.count > 0) {
+               model.tnn_proto_content = "";
+               model.tnn_model_content = "";
                model.coreml = [modelDirPath stringByAppendingPathComponent:coremls[0]].UTF8String;
+               netmodels.push_back(model);
            }
-           netmodels.push_back(model);
        }
     }
     return netmodels;
