@@ -33,7 +33,7 @@ DECLARE_COREML_LAYER_WITH_FUNC_DATA(Reshape, LAYER_RESHAPE,
                                      std::shared_ptr<LayerInfo> permute0_layer_info_;
                                      std::shared_ptr<LayerInfo> permute1_layer_info_;
                                      std::shared_ptr<LayerInfo> unsqueeze_layer_info_;
-                                    std::shared_ptr<LayerInfo> squeeze_layer_info_;);
+                                     std::shared_ptr<LayerInfo> squeeze_layer_info_;);
 
 bool CoreMLReshapeLayer::IsDynamic() {
     if (layer_info_ && layer_info_->inputs.size() >= 2 && net_resource_ &&
@@ -93,11 +93,19 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
         
         // add permute to convert nchw to nhwc, when reshape_type = 1
         if (reshape_type == 1) {
-            if ((input_shape_size!=4) || (output_shape_size!=4)) {
-                return Status(TNNERR_MODEL_ERR, "CoreMLReshapeLayer input rank and output rank must be equal to 4 , when reshape_type = 1");
+//            if ((input_shape_size!=4) || (output_shape_size!=4)) {
+//                return Status(TNNERR_MODEL_ERR, "CoreMLReshapeLayer input rank and output rank must be equal to 4 , when reshape_type = 1");
+//            }
+            if(input_shape_size != output_shape_size) {
+                return Status(TNNERR_MODEL_ERR, "CoreMLReshapeLayer input rank must be equal and output rank");
             }
-            RETURN_ON_NEQ(BuildPermute0Layer(), TNN_OK);
-            RETURN_ON_NEQ(BuildPermute1Layer(), TNN_OK);
+            if(input_shape_size > 4 || output_shape_size > 4) {
+                return Status(TNNERR_MODEL_ERR, "CoreMLReshapeLayer input rank and output rank must be smaller or equal to 4 , when reshape_type = 1");
+            }
+//            if (input_shape_size > 2) {
+                RETURN_ON_NEQ(BuildPermute0Layer(), TNN_OK);
+                RETURN_ON_NEQ(BuildPermute1Layer(), TNN_OK);
+//            }
         }
         
         // add unsqueeze to expenad dims
@@ -167,8 +175,13 @@ Status CoreMLReshapeLayer::BuildPermute0Layer() {
         auto permute0_param = std::shared_ptr<PermuteLayerParam>(new PermuteLayerParam);
         permute0_layer_info_->param = permute0_param;
         {
-            std::vector<int> orders_ = {0,2,3,1};  // nchw2nhwc
-            permute0_param->orders = orders_;
+            if(input_shape_size == 4) {
+                permute0_param->orders = {0,2,3,1};  // nchw2nhwc
+            } else if(input_shape_size == 3) {
+                permute0_param->orders = {0,2,1};  // nch2nhc
+            } else if(input_shape_size == 2) {
+                permute0_param->orders = {0,1};  // nc2nc
+            }
         }
     }
     RETURN_ON_NEQ(permute0_layer->Init(permute0_layer_info_.get(), nullptr), TNN_OK);
@@ -190,8 +203,13 @@ Status CoreMLReshapeLayer::BuildPermute1Layer() {
         auto permute1_param = std::shared_ptr<PermuteLayerParam>(new PermuteLayerParam);
         permute1_layer_info_->param = permute1_param;
         {
-            std::vector<int> orders_ = {0,3,1,2};  // nhwc2nchw
-            permute1_param->orders = orders_;
+            if(input_shape_size == 4) {
+                permute1_param->orders = {0,3,1,2};  // nhwc2nchw
+            } else if(input_shape_size == 3) {
+                permute1_param->orders = {0,2,1};  // nhc2nch
+            } else if(input_shape_size == 2) {
+                permute1_param->orders = {0,1};  // nc2nc
+            }
         }
     }
     RETURN_ON_NEQ(permute1_layer->Init(permute1_layer_info_.get(), nullptr), TNN_OK);
