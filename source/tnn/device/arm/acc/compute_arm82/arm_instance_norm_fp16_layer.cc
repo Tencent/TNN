@@ -18,9 +18,6 @@
 #include "tnn/core/status.h"
 #include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/acc/arm_instance_norm_layer_acc.h"
-#include "tnn/utils/half.hpp"
-#include <arm_neon.h>
-#include <arm_fp16.h>
 
 namespace TNN_NS {
 Status ArmInstanceNormLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -36,10 +33,10 @@ Status ArmInstanceNormLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, cons
     int area     = DimsVectorUtils::Count(desc.dims, 2);
 
     RawBuffer scale_handle = layer_res->scale_handle;
-    RawBuffer bias_handle  = layer_res->bias_handle;
     if (scale_handle.GetDataType() == DATA_TYPE_FLOAT) {
         scale_handle = ConvertFloatToFP16(scale_handle);
     }
+    RawBuffer bias_handle  = layer_res->bias_handle;
     if (bias_handle.GetDataType() == DATA_TYPE_FLOAT) {
         bias_handle = ConvertFloatToFP16(bias_handle);
     }
@@ -58,56 +55,64 @@ Status ArmInstanceNormLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, cons
             b_data = tmp;
         }
     }
-
-    float16_t *input_data  = reinterpret_cast<float16_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
-    float16_t *output_data = reinterpret_cast<float16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
-
-
-    float32x4_t area_v  = vdupq_n_f32(area);
-    float32x4_t epsilon = vdupq_n_f32(0.00001f);
+    fp16_t *input_data  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+    fp16_t *output_data = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    Float4 area_v  = Float4(area);
+    Float4 epsilon = Float4(layer_param->eps);
     for (int b = 0; b < batch; ++b) {
         for (int c = 0; c < c_r8; c += 8) {
-            float32x4_t sum_low  = vdupq_n_f32(0.0f);
-            float32x4_t sum_high = vdupq_n_f32(0.0f);
-            fp16_t *input_c      = input_data + b * c_r8 * area + c * area;
-            fp16_t *output_c     = output_data + b * c_r8 * area + c * area;
+            Float4 sum_low   = Float4(0.0f);
+            Float4 sum_high  = Float4(0.0f);
+            fp16_t *input_c  = input_data + b * c_r8 * area + c * area;
+            fp16_t *output_c = output_data + b * c_r8 * area + c * area;
             for (int hw = 0; hw < area; ++hw) {
-                float16x8_t v = vld1q_f16(input_c + hw * 8);
-                float16x4_t v_low = vld1_f16(input_c + hw *8);
-
-                sum_low       = sum_low + vcvt_f32_f16(vget_low_f16(v));
-                sum_high      = sum_high + vcvt_f32_f16(vget_high_f16(v));
+                Half8 v      = Half8::load(input_c + hw * 8);
+                Half4 v_low  = Half8::get_low(v);
+                Half4 v_high = Half8::get_high(v);
+                Half4::add_to_f32(v_low, sum_low);
+                Half4::add_to_f32(v_high, sum_high);
             }
-            float32x4_t mean_low  = vdivq_f32(sum_low, area_v);
-            float32x4_t mean_high = vdivq_f32(sum_high, area_v);
+            Half4 mean_low  = Half4::float4_to_half4(Float4::div(sum_low, area_v));
+            Half4 mean_high = Half4::float4_to_half4(Float4::div(sum_high, area_v));
+            Half8 mean      = Half8::combine(mean_low, mean_high);
 
-            float32x4_t sum_var_low  = vdupq_n_f32(0.0f);
-            float32x4_t sum_var_high = vdupq_n_f32(0.0f);
+            Float4 sum_var_low  = Float4(0.0f);
+            Float4 sum_var_high = Float4(0.0f);
             for (int hw = 0; hw < area; ++hw) {
-                float16x8_t v         = vld1q_f16(input_c + hw * 8);
-                float32x4_t diff_low  = vcvt_f32_f16(vget_low_f16(v)) - mean_low;
-                float32x4_t diff_high = vcvt_f32_f16(vget_high_f16(v)) - mean_high;
-                sum_var_low           = sum_var_low + vmulq_f32(diff_low, diff_low);
-                sum_var_high          = sum_var_high + vmulq_f32(diff_high, diff_high);
+                Half8 v            = Half8::load(input_c + hw * 8);
+                Half8 diff         = v - mean;
+                Half4 diff_low     = Half8::get_low(diff);
+                Half4 diff_high    = Half8::get_high(diff);
+                Float4 square_low  = Half4::half4_to_float4(diff_low) * Half4::half4_to_float4(diff_low);
+                Float4 square_high = Half4::half4_to_float4(diff_high) * Half4::half4_to_float4(diff_high);
+                sum_var_low        = sum_var_low + square_low;
+                sum_var_high       = sum_var_high + square_high;
             }
-            float32x4_t variance_low  = vdivq_f32(sum_var_low, area_v);
-            float32x4_t variance_high = vdivq_f32(sum_var_high, area_v);
+            Float4 variance_low  = Float4::div(sum_var_low, area_v);
+            Float4 variance_high = Float4::div(sum_var_high, area_v);
 
-            variance_low  = vsqrtq_f32(variance_low + epsilon);
-            variance_high = vsqrtq_f32(variance_high + epsilon);
-            float16x8_t k = vld1q_f16(k_data + c);
+            variance_low  = Float4::sqrt(variance_low + epsilon);
+            variance_high = Float4::sqrt(variance_high + epsilon);
+            Half8 k       = Half8::load(k_data + c);
+            Half4 k_low   = Half8::get_low(k);
+            Half4 k_high  = Half8::get_high(k);
+            variance_low  = Half4::divq_half4_float4_to_f32(k_low, variance_low);
+            variance_high = Half4::divq_half4_float4_to_f32(k_high, variance_high);
 
-            variance_low       = vdivq_f32(vcvt_f32_f16(vget_low_f16(k)), variance_low);
-            variance_high      = vdivq_f32(vcvt_f32_f16(vget_high_f16(k)), variance_high);
-            float16x8_t b      = b_data == nullptr ? vdupq_n_f32(0.0f) : vld1q_f16(b_data);
-            float32x4_t b_low  = vcvt_f32_f16(vget_low_f16(b)) - vmulq_f32(mean_low, variance_low);
-            float32x4_t b_high = vcvt_f32_f16(vget_high_f16(b)) - vmulq_f32(mean_high, variance_high);
+            Half8 b       = b_data == nullptr ? Half8((fp16_t)0.0f) : Half8::load(b_data);
+            Float4 b_low  = Half4::half4_to_float4(Half8::get_low(b));
+            Float4 b_high = Half4::half4_to_float4(Half8::get_high(b));
+            b_low         = b_low - Half4::half4_to_float4(mean_low) * variance_low;
+            b_high        = b_high - Half4::half4_to_float4(mean_high) * variance_high;
+
             for (int hw = 0; hw < area; ++hw) {
-                float16x8_t v        = vld1q_f16(input_c + hw * 8);
-                float32x4_t res_low  = vcvt_f32_f16(vget_low_f16(v)) * variance_low + b_low;
-                float32x4_t res_high = vcvt_f32_f16(vget_high_f16(v)) * variance_high + b_high;
-                float16x8_t res      = vcombine_f16(vcvt_f16_f32(res_low), vcvt_f16_f32(res_high));
-                vst1q_f16(output_c + hw * 8, res);
+                Half8 v         = Half8::load(input_c + hw * 8);
+                Half4 v_low     = Half8::get_low(v);
+                Half4 v_high    = Half8::get_high(v);
+                Float4 res_low  = Half4::mlaq_float4_half4_float4_to_float4(b_low, v_low, variance_low);
+                Float4 res_high = Half4::mlaq_float4_half4_float4_to_float4(b_high, v_high, variance_high);
+                Half8 res       = Half8::combine(Half4::float4_to_half4(res_low), Half4::float4_to_half4(res_high));
+                Half8::save(output_c + hw * 8, res);
             }
         }
     }
