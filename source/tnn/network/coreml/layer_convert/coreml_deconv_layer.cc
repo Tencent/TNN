@@ -49,7 +49,6 @@ Status CoreMLDeconvLayer::BuildLayerParam() {
     auto dilate_y = conv_param->dialations[1];
     auto has_bias = conv_param->bias;
     auto n_group = conv_param->group;
-    auto kernel_channels = conv_param->input_channel * n_group;
     auto output_channels = conv_param->output_channel;
     auto pad_type = conv_param->pad_type;
     auto conv_res = dynamic_cast<ConvLayerResource *>(layer_resource_);
@@ -58,6 +57,9 @@ Status CoreMLDeconvLayer::BuildLayerParam() {
     auto weight_type = conv_res->filter_handle.GetDataType();
     auto bias_size = conv_res->bias_handle.GetDataCount();
     auto bias_type = conv_res->bias_handle.GetDataType();
+    output_channels = std::max(output_channels, bias_size);
+    auto kernel_channels = n_group*weight_size/kernel_x/kernel_y/output_channels;
+    kernel_channels = std::max(kernel_channels, conv_param->input_channel);
     
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__ConvolutionLayerParams>(new CoreML__Specification__ConvolutionLayerParams);
     coreml_layer_->convolution = (CoreML__Specification__ConvolutionLayerParams *)coreml_layer_param_.get();

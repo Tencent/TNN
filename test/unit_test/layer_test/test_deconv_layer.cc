@@ -105,10 +105,6 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     if (pad_type == 2 && DEVICE_APPLE_NPU == dev) {
         GTEST_SKIP();
     }
-    // APPLE_NPU can not support group > 1
-    if (group > 1 && DEVICE_APPLE_NPU == dev) {
-        GTEST_SKIP();
-    }
 
     if (kernel <= 1) {
         pad = 0;

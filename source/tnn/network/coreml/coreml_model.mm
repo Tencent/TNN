@@ -125,6 +125,10 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
     NSError* error = nil;
     [[NSFileManager defaultManager] removeItemAtURL:mlmodelURL error:&error];
     
+#if TNN_COREML_TEST
+    [self cleanup];
+#endif
+    
 #ifdef DEBUG
     LOGD("TNN buildFromProtoBuf time: %f ms\n", (CFAbsoluteTimeGetCurrent() - time_start) * 1000.0);
 #endif

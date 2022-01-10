@@ -59,6 +59,10 @@ Status CoreMLConvLayer::BuildLayerParam() {
     auto bias_size = conv_res->bias_handle.GetDataCount();
     auto bias_type = conv_res->bias_handle.GetDataType();
     
+    output_channels = std::max(output_channels, bias_size);
+    auto kernel_channels_t = weight_size/kernel_x/kernel_y/output_channels;
+    kernel_channels = std::max(kernel_channels, kernel_channels_t);
+    
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__ConvolutionLayerParams>(new CoreML__Specification__ConvolutionLayerParams);
     coreml_layer_->convolution = (CoreML__Specification__ConvolutionLayerParams *)coreml_layer_param_.get();
     core_ml__specification__convolution_layer_params__init(coreml_layer_->convolution);
