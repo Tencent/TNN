@@ -36,7 +36,7 @@ Status ArmInstanceNormLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, cons
     if (scale_handle.GetDataType() == DATA_TYPE_FLOAT) {
         scale_handle = ConvertFloatToFP16(scale_handle);
     }
-    RawBuffer bias_handle  = layer_res->bias_handle;
+    RawBuffer bias_handle = layer_res->bias_handle;
     if (bias_handle.GetDataType() == DATA_TYPE_FLOAT) {
         bias_handle = ConvertFloatToFP16(bias_handle);
     }
@@ -57,8 +57,8 @@ Status ArmInstanceNormLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, cons
     }
     fp16_t *input_data  = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
     fp16_t *output_data = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
-    Float4 area_v  = Float4(area);
-    Float4 epsilon = Float4(layer_param->eps);
+    Float4 area_v       = Float4(area);
+    Float4 epsilon      = Float4(layer_param->eps);
     for (int b = 0; b < batch; ++b) {
         for (int c = 0; c < c_r8; c += 8) {
             Float4 sum_low   = Float4(0.0f);
@@ -72,17 +72,14 @@ Status ArmInstanceNormLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, cons
                 Half4::add_to_f32(v_low, sum_low);
                 Half4::add_to_f32(v_high, sum_high);
             }
-            Half4 mean_low  = Half4::float4_to_half4(Float4::div(sum_low, area_v));
-            Half4 mean_high = Half4::float4_to_half4(Float4::div(sum_high, area_v));
-            Half8 mean      = Half8::combine(mean_low, mean_high);
-
+            Float4 mean_low     = Float4::div(sum_low, area_v);
+            Float4 mean_high    = Float4::div(sum_high, area_v);
             Float4 sum_var_low  = Float4(0.0f);
             Float4 sum_var_high = Float4(0.0f);
             for (int hw = 0; hw < area; ++hw) {
-                Half8 v            = Half8::load(input_c + hw * 8);
-                Half8 diff         = v - mean;
-                Float4 diff_low    = Half4::half4_to_float4(Half8::get_low(diff));
-                Float4 diff_high   = Half4::half4_to_float4(Half8::get_high(diff));
+                Half8 v          = Half8::load(input_c + hw * 8);
+                Float4 diff_low  = Half4::half4_to_float4(Half8::get_low(v)) - mean_low;
+                Float4 diff_high = Half4::half4_to_float4(Half8::get_high(v)) - mean_high;
                 Float4::mla(sum_var_low, diff_low, diff_low);
                 Float4::mla(sum_var_high, diff_high, diff_high);
             }
@@ -100,8 +97,8 @@ Status ArmInstanceNormLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, cons
             Half8 b       = b_data == nullptr ? Half8((fp16_t)0.0f) : Half8::load(b_data);
             Float4 b_low  = Half4::half4_to_float4(Half8::get_low(b));
             Float4 b_high = Half4::half4_to_float4(Half8::get_high(b));
-            b_low         = b_low - Half4::half4_to_float4(mean_low) * variance_low;
-            b_high        = b_high - Half4::half4_to_float4(mean_high) * variance_high;
+            Float4::mls(b_low, mean_low, variance_low);
+            Float4::mls(b_high, mean_high, variance_high);
 
             for (int hw = 0; hw < area; ++hw) {
                 Half8 v         = Half8::load(input_c + hw * 8);
