@@ -52,7 +52,12 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
         GTEST_SKIP();
     }
 
-    if ((dim_size > 5 || reshape_type == 1)&& DEVICE_APPLE_NPU == dev) {
+    // APPLE_NPU can not support dim > 5
+    if ((dim_size > 5)&& DEVICE_APPLE_NPU == dev) {
+        GTEST_SKIP();
+    }
+    // APPLE_NPU can not support dim != 4, when reshape_type = 1 
+    if (reshape_type == 1 && dim_size != 4 && DEVICE_APPLE_NPU == dev) {
         GTEST_SKIP();
     }
     
