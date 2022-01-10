@@ -145,7 +145,7 @@ struct BenchResult {
                }
                model.name = proto_prefix.UTF8String;
                
-               auto proto = [NSString stringWithContentsOfFile:[modelDirPath stringByAppendingPathComponent:protos[0]]
+               auto proto = [NSString stringWithContentsOfFile:[modelDirPath stringByAppendingPathComponent:protos[index]]
                                                         encoding:NSUTF8StringEncoding
                                                            error:nil];
                if (proto.length > 0) {
