@@ -30,6 +30,7 @@ static bool TestFilter(DeviceType device_type, int input_dim_size, int axis_size
     if (device_type == DEVICE_APPLE_NPU && input_dim_size < 5)
         return true;
     // in order to skip when axis = {3, -2} 
+    // [ n  d  k  h  w]
     // ->         *
     // [ 0  1  2  3  4]
     // [-5 -4 -3 -2 -1]
