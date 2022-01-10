@@ -71,6 +71,16 @@ struct Half4 {
         value = lr.value;
         return *this;
     }
+    static Half4 float4_to_half4(const Float4& v1) {
+        Half4 dst;
+        dst.value = vcvt_f16_f32(v1.value);
+        return dst;
+    }
+    static Float4 half4_to_float4(const Half4& v1) {
+        Float4 dst;
+        dst.value = vcvt_f32_f16(v1.value);
+        return dst;
+    }
 };
 
 struct Half8 {
@@ -114,8 +124,18 @@ struct Half8 {
     static void get_low(const Half8& v1, Half4& v2) {
         v2.value = vget_low_f16(v1.value);
     }
+    static Half4 get_low(const Half8& v1) {
+        Half4 dst;
+        dst.value = vget_low_f16(v1.value);
+        return dst;
+    }
     static void get_high(const Half8& v1, Half4& v2) {
         v2.value = vget_high_f16(v1.value);
+    }
+    static Half4 get_high(const Half8& v1) {
+        Half4 dst;
+        dst.value = vget_high_f16(v1.value);
+        return dst;
     }
     static Half8 combine(const Half4& v1, const Half4& v2) {
         return vcombine_f16(v1.value, v2.value);
@@ -548,6 +568,16 @@ struct Half4 {
         value = lr.value;
         return *this;
     }
+    static Half4 float4_to_half4(const Float4& v) {
+        Half4 dst;
+        dst.value = vreinterpret_s16_f16(vcvt_f16_f32(v.value));
+        return dst;
+    }
+    static Float4 half4_to_float4(const Half4& v) {
+        Float4 dst;
+        dst.value = vcvt_f32_f16(vreinterpret_f16_s16(v.value));
+        return dst;
+    }
 };
 
 struct Half8 {
@@ -674,8 +704,16 @@ struct Half8 {
     static void get_low(const Half8& v1, Half4& v2) {
         v2.value = vget_low_s16(v1.value);
     }
+    static Half4 get_low(const Half8&v) {
+        Half4 dst = vget_low_s16(v.value);
+        return dst;
+    }
     static void get_high(const Half8& v1, Half4& v2) {
         v2.value = vget_high_s16(v1.value);
+    }
+    static Half4 get_high(const Half8&v) {
+        Half4 dst = vget_high_s16(v.value);
+        return dst;
     }
     static Half8 combine(const Half4& v1, const Half4& v2) {
         return vcombine_s16(v1.value, v2.value);
@@ -1248,6 +1286,20 @@ struct Half4 : TNNVector<fp16_t, 4> {
             v2.value[i] = v2.value[i] + (float)v1.value[i];
         }
     }
+    static Half4 float4_to_half4(const Float4& v1) {
+        Half4 dst;
+        for (int i = 0; i < 4; ++i) {
+            dst.value[i] = (fp16_t)v1.value[i];
+        }
+        return dst;
+    }
+    static Float4 half4_to_float4(const Half4& v1) {
+        Float4 dst;
+        for (int i = 0; i < 4; ++i) {
+            dst.value[i] = (float )v1.value[i];
+        }
+        return dst;
+    }
 };
 
 struct Half8 : TNNVector<fp16_t, 8> {
@@ -1270,11 +1322,27 @@ struct Half8 : TNNVector<fp16_t, 8> {
         v2.value[2] = v1.value[2];
         v2.value[3] = v1.value[3];
     }
+    static Half4 get_low(const Half8& v1) {
+        Half4 dst;
+        dst.value[0] = v1.value[0];
+        dst.value[1] = v1.value[1];
+        dst.value[2] = v1.value[2];
+        dst.value[3] = v1.value[3];
+        return dst;
+    }
     static void get_high(const Half8& v1, Half4& v2) {
         v2.value[0] = v1.value[4];
         v2.value[1] = v1.value[5];
         v2.value[2] = v1.value[6];
         v2.value[3] = v1.value[7];
+    }
+    static Half4 get_high(const Half8& v1) {
+        Half4 dst;
+        dst.value[0] = v1.value[4];
+        dst.value[1] = v1.value[5];
+        dst.value[2] = v1.value[6];
+        dst.value[3] = v1.value[7];
+        return dst;
     }
     static Half8 combine(const Half4& v1, const Half4& v2) {
         Half8 dst;
