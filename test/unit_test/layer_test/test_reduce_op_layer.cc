@@ -29,7 +29,14 @@ static bool TestFilter(DeviceType device_type, int input_dim_size, int axis_size
         return true;
     if (device_type == DEVICE_APPLE_NPU && input_dim_size < 5)
         return true;
-    if (device_type == DEVICE_APPLE_NPU && input_dim_size > 4 && axis_size == 1)
+    // in order to skip when axis = {3, -2} 
+    // ->         *
+    // [ 0  1  2  3  4]
+    // [-5 -4 -3 -2 -1]
+    //            *  <-
+    // axis=3 and axis=-2 are point to the same axis, when dims=5
+    // this cause coreml model error
+    if (device_type == DEVICE_APPLE_NPU && input_dim_size > 4 && axis_size == 1)  
         return true;
         
     return false;
