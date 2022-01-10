@@ -81,12 +81,10 @@ Status ArmInstanceNormLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, cons
             for (int hw = 0; hw < area; ++hw) {
                 Half8 v            = Half8::load(input_c + hw * 8);
                 Half8 diff         = v - mean;
-                Half4 diff_low     = Half8::get_low(diff);
-                Half4 diff_high    = Half8::get_high(diff);
-                Float4 square_low  = Half4::half4_to_float4(diff_low) * Half4::half4_to_float4(diff_low);
-                Float4 square_high = Half4::half4_to_float4(diff_high) * Half4::half4_to_float4(diff_high);
-                sum_var_low        = sum_var_low + square_low;
-                sum_var_high       = sum_var_high + square_high;
+                Float4 diff_low    = Half4::half4_to_float4(Half8::get_low(diff));
+                Float4 diff_high   = Half4::half4_to_float4(Half8::get_high(diff));
+                Float4::mla(sum_var_low, diff_low, diff_low);
+                Float4::mla(sum_var_high, diff_high, diff_high);
             }
             Float4 variance_low  = Float4::div(sum_var_low, area_v);
             Float4 variance_high = Float4::div(sum_var_high, area_v);
@@ -94,10 +92,10 @@ Status ArmInstanceNormLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, cons
             variance_low  = Float4::sqrt(variance_low + epsilon);
             variance_high = Float4::sqrt(variance_high + epsilon);
             Half8 k       = Half8::load(k_data + c);
-            Half4 k_low   = Half8::get_low(k);
-            Half4 k_high  = Half8::get_high(k);
-            variance_low  = Half4::divq_half4_float4_to_f32(k_low, variance_low);
-            variance_high = Half4::divq_half4_float4_to_f32(k_high, variance_high);
+            Float4 k_low  = Half4::half4_to_float4(Half8::get_low(k));
+            Float4 k_high = Half4::half4_to_float4(Half8::get_high(k));
+            variance_low  = Float4::div(k_low, variance_low);
+            variance_high = Float4::div(k_high, variance_high);
 
             Half8 b       = b_data == nullptr ? Half8((fp16_t)0.0f) : Half8::load(b_data);
             Float4 b_low  = Half4::half4_to_float4(Half8::get_low(b));
@@ -107,11 +105,13 @@ Status ArmInstanceNormLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, cons
 
             for (int hw = 0; hw < area; ++hw) {
                 Half8 v         = Half8::load(input_c + hw * 8);
-                Half4 v_low     = Half8::get_low(v);
-                Half4 v_high    = Half8::get_high(v);
-                Float4 res_low  = Half4::mlaq_float4_half4_float4_to_float4(b_low, v_low, variance_low);
-                Float4 res_high = Half4::mlaq_float4_half4_float4_to_float4(b_high, v_high, variance_high);
-                Half8 res       = Half8::combine(Half4::float4_to_half4(res_low), Half4::float4_to_half4(res_high));
+                Float4 v_low    = Half4::half4_to_float4(Half8::get_low(v));
+                Float4 v_high   = Half4::half4_to_float4(Half8::get_high(v));
+                Float4 res_low  = b_low;
+                Float4 res_high = b_high;
+                Float4::mla(res_low, v_low, variance_low);
+                Float4::mla(res_high, v_high, variance_high);
+                Half8 res = Half8::combine(Half4::float4_to_half4(res_low), Half4::float4_to_half4(res_high));
                 Half8::save(output_c + hw * 8, res);
             }
         }

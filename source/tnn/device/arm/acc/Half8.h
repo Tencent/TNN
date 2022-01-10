@@ -81,16 +81,6 @@ struct Half4 {
         dst.value = vcvt_f32_f16(v1.value);
         return dst;
     }
-    static Float4 divq_half4_float4_to_f32(const Half4& v1, const Float4& v2) {
-        Float4 dst;
-        dst.value = vdivq_f32(vcvt_f32_f16(v1.value), v2.value);
-        return dst;
-    }
-    static Float4 mlaq_float4_half4_float4_to_float4(const Float4& v1, const Half4& v2, const Float4& v3) {
-        Float4 dst;
-        dst.value = vmlaq_f32(v1.value, vcvt_f32_f16(v2.value), v3.value);
-        return dst;
-    }
 };
 
 struct Half8 {
@@ -586,14 +576,6 @@ struct Half4 {
     static Float4 half4_to_float4(const Half4& v) {
         Float4 dst;
         dst.value = vcvt_f32_f16(vreinterpret_f16_s16(v.value));
-        return dst;
-    }
-    static Float4 divq_half4_float4_to_f32(const Half4& v1, const Float4& v2) {
-        Float4 dst = Float4::div(vcvt_f32_f16(vreinterpret_f16_s16(v1.value)), v2);
-        return dst;
-    }
-    static Float4 mlaq_float4_half4_float4_to_float4(const Float4& v1, const Half4& v2, const Float4& v3) {
-        Float4 dst = vmlaq_f32(v1.value, vcvt_f32_f16(vreinterpret_f16_s16(v2.value)), v3.value);
         return dst;
     }
 };
@@ -1315,22 +1297,6 @@ struct Half4 : TNNVector<fp16_t, 4> {
         Float4 dst;
         for (int i = 0; i < 4; ++i) {
             dst.value[i] = (float )v1.value[i];
-        }
-        return dst;
-    }
-
-    static Float4 divq_half4_float4_to_f32(const Half4& v1, const Float4& v2) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = (float)v1.value[i] / v2.value[i];
-        }
-        return dst;
-    }
-
-    static Float4 mlaq_float4_half4_float4_to_float4(const Float4& v1, const Half4& v2, const Float4& v3) {
-        Float4 dst;
-        for (int i = 0; i < 4; ++i) {
-            dst.value[i] = v1.value[i] + (float )v2.value[i] * v3.value[i];
         }
         return dst;
     }
