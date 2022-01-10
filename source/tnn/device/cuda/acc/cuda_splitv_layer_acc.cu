@@ -29,8 +29,8 @@ __global__ void splitv_separate_kernel(
 
     const int split_size = split_end - split_start;
     const int size = split_size * inner_size;
-    src += (blockIdx.z * blockDim.y + blockIdx.y) * in_stride;
-    dst += (blockIdx.z * blockDim.y + blockIdx.y) * size;
+    src += (blockIdx.z * gridDim.y + blockIdx.y) * in_stride;
+    dst += (blockIdx.z * gridDim.y + blockIdx.y) * size;
   
     #pragma unroll
     for(int i =0;i < ELE_PER_THREAD ;i++)
