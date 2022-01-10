@@ -14,82 +14,9 @@
 
 #include "coreml_base_layer.h"
 
-// Use Slice
-namespace TNN_NS {
-
-DECLARE_COREML_LAYER_WITH_DATA(Slice, LAYER_STRIDED_SLICE_V2,
-                                std::shared_ptr<void> coreml_layer_type_;);
-
-Status CoreMLSliceLayer::BuildLayerType() {
-    //layer type
-    coreml_layer_->layer_case = CORE_ML__SPECIFICATION__NEURAL_NETWORK_LAYER__LAYER_SLICE;
-    return TNN_OK;
-}
-
-Status CoreMLSliceLayer::BuildLayerParam() {
-    //layer param
-    auto param = layer_info_->param.get();
-    auto layer_param = dynamic_cast<StrideSliceV2LayerParam *>(param);
-    CHECK_PARAM_NULL(layer_param);
-    auto begins = layer_param->begins;
-    auto ends = layer_param->ends;
-    auto axes = layer_param->axes;
-    auto strides = layer_param->strides;
-    
-    std::vector<int> input_shape;
-    if (net_resource_ && layer_info_->inputs.size()>0 && layer_info_->outputs.size()>0) {
-        if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
-            input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
-        }
-    }
-    
-    coreml_layer_param_ = std::shared_ptr<CoreML__Specification__SliceLayerParams>(new CoreML__Specification__SliceLayerParams);
-    coreml_layer_->slice = (CoreML__Specification__SliceLayerParams *)coreml_layer_param_.get();
-    core_ml__specification__slice_layer_params__init(coreml_layer_->slice);
-    switch (axes.front()) {
-        case 1:
-            coreml_layer_->slice->axis = CORE_ML__SPECIFICATION__SLICE_LAYER_PARAMS__SLICE_AXIS__CHANNEL_AXIS;
-            break;
-        case 2:
-            coreml_layer_->slice->axis = CORE_ML__SPECIFICATION__SLICE_LAYER_PARAMS__SLICE_AXIS__HEIGHT_AXIS;
-            break;
-        case 3:
-            coreml_layer_->slice->axis = CORE_ML__SPECIFICATION__SLICE_LAYER_PARAMS__SLICE_AXIS__WIDTH_AXIS;
-            break;
-        default:
-            LOGE("Error: SliceLayer failed, dont support axes:%d\n", axes.front());
-            return Status(TNNERR_PARAM_ERR, "SliceLayer failed, dont support this axes");
-            break;
-    }
-    coreml_layer_->slice->startindex = begins.front();
-    coreml_layer_->slice->endindex = ends.front() > input_shape[axes.front()] ? input_shape[axes.front()] : ends.front();
-    coreml_layer_->slice->stride = strides.front();
-    
-    return TNN_OK;
-}
-
-Status CoreMLSliceLayer::BuildConstantWeightsLayer() {
-    return CoreMLBaseLayer::BuildConstantWeightsLayer();
-}
-
-std::vector<std::string> CoreMLSliceLayer::BuildLayerInputs() {
-    return {layer_info_->inputs[0]};
-}
-
-std::vector<std::string> CoreMLSliceLayer::BuildLayerOutputs() {
-    return CoreMLBaseLayer::BuildLayerOutputs();
-}
-
-REGISTER_COREML_LAYER(Slice, LAYER_STRIDED_SLICE_V2);
-
-}  // namespace TNN_NS
-
-
-// Use SliceStatic
-/*
  namespace TNN_NS {
 
- DECLARE_COREML_LAYER_WITH_DATA(Slice, LAYER_STRIDED_SLICE_V2,
+ DECLARE_COREML_LAYER_WITH_DATA(Slice, LAYER_STRIDED_SLICE,
                                 std::shared_ptr<void> coreml_layer_type_;
                                 std::shared_ptr<void> coreml_layer_beginids_;
                                 std::shared_ptr<void> coreml_layer_beginmasks_;
@@ -106,12 +33,18 @@ REGISTER_COREML_LAYER(Slice, LAYER_STRIDED_SLICE_V2);
  Status CoreMLSliceLayer::BuildLayerParam() {
      //layer param
      auto param = layer_info_->param.get();
-     auto layer_param = dynamic_cast<StrideSliceV2LayerParam *>(param);
+     auto layer_param = dynamic_cast<StrideSliceLayerParam *>(param);
      CHECK_PARAM_NULL(layer_param);
-     auto begins = layer_param->begins;
-     auto ends = layer_param->ends;
-     auto axes = layer_param->axes;
-     auto strides = layer_param->strides;
+     // order [w h d c n]
+     std::vector<int> begins = {};
+     std::vector<int> ends = {};
+     std::vector<int> strides = {};
+     auto size = layer_param->begins.size();
+     for (int i = 0; i<size; i++) {
+         begins.push_back(layer_param->begins[size - 1 - i]);
+         ends.push_back(layer_param->ends[size - 1 - i]);
+         strides.push_back(layer_param->strides[size - 1 - i]);
+     }
      
      std::vector<int> input_shape;
      int input_shape_size=0;
@@ -143,19 +76,19 @@ REGISTER_COREML_LAYER(Slice, LAYER_STRIDED_SLICE_V2);
      coreml_layer_->slicestatic->strides = (int64_t *)coreml_layer_strides_.get();
      
      for(int i=0;i<input_shape_size;i++){
-         coreml_layer_->slicestatic->beginids[i] = 0;
-         coreml_layer_->slicestatic->beginmasks[i] = true;
-         coreml_layer_->slicestatic->endids[i] = 0;
-         coreml_layer_->slicestatic->endmasks[i] = true;
-         coreml_layer_->slicestatic->strides[i] = 1;
-     }
-     coreml_layer_->slicestatic->beginids[axes.front()] = begins.front();
-     coreml_layer_->slicestatic->endids[axes.front()] = ends.front() > input_shape[axes.front()] ? input_shape[axes.front()] : ends.front();
-     if(begins.front() > 0){
-         coreml_layer_->slicestatic->beginmasks[axes.front()] = false;
-     }
-     if(ends.front() < input_shape[axes.front()]){
-         coreml_layer_->slicestatic->endmasks[axes.front()] = false;
+         coreml_layer_->slicestatic->beginids[i] = begins[i];
+         if (begins[i] == 0) {
+             coreml_layer_->slicestatic->beginmasks[i] = true;
+         } else {
+             coreml_layer_->slicestatic->beginmasks[i] = false;
+         }
+         coreml_layer_->slicestatic->endids[i] = ends[i] > input_shape[i] ? input_shape[i] : ends[i];
+         if (ends[i] == 0) {
+             coreml_layer_->slicestatic->endmasks[i] = true;
+         } else {
+             coreml_layer_->slicestatic->endmasks[i] = false;
+         }
+         coreml_layer_->slicestatic->strides[i] = strides[i];
      }
      
      return TNN_OK;
@@ -173,7 +106,6 @@ REGISTER_COREML_LAYER(Slice, LAYER_STRIDED_SLICE_V2);
      return CoreMLBaseLayer::BuildLayerOutputs();
  }
 
- REGISTER_COREML_LAYER(Slice, LAYER_STRIDED_SLICE_V2);
+ REGISTER_COREML_LAYER(Slice, LAYER_STRIDED_SLICE);
 
  }  // namespace TNN_NS
-*/

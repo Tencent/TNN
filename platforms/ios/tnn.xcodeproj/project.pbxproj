@@ -764,6 +764,7 @@
 		DE6D15EE2767789400907180 /* coreml_clip_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE6D15ED2767789300907180 /* coreml_clip_layer.cc */; };
 		DE6D15F02767789C00907180 /* coreml_slice_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE6D15EF2767789C00907180 /* coreml_slice_layer.cc */; };
 		DE6D15F2276778A400907180 /* coreml_sub_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE6D15F1276778A400907180 /* coreml_sub_layer.cc */; };
+		DE714B03278C602200683750 /* coreml_slice_v2_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DE714B02278C602100683750 /* coreml_slice_v2_layer.cc */; };
 		DEA37E09276B58B30031F2F1 /* coreml_shuffle_channel_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DEA37E08276B58B30031F2F1 /* coreml_shuffle_channel_layer.cc */; };
 		DEA37E0E276C326D0031F2F1 /* coreml_reshape_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DEA37E0D276C326D0031F2F1 /* coreml_reshape_layer.cc */; };
 		DEA37E21276CA9A80031F2F1 /* coreml_relu6_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = DEA37E20276CA9A80031F2F1 /* coreml_relu6_layer.cc */; };
@@ -1850,6 +1851,7 @@
 		DE6D15ED2767789300907180 /* coreml_clip_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_clip_layer.cc; sourceTree = "<group>"; };
 		DE6D15EF2767789C00907180 /* coreml_slice_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_slice_layer.cc; sourceTree = "<group>"; };
 		DE6D15F1276778A400907180 /* coreml_sub_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_sub_layer.cc; sourceTree = "<group>"; };
+		DE714B02278C602100683750 /* coreml_slice_v2_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_slice_v2_layer.cc; sourceTree = "<group>"; };
 		DEA37E08276B58B30031F2F1 /* coreml_shuffle_channel_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_shuffle_channel_layer.cc; sourceTree = "<group>"; };
 		DEA37E0D276C326D0031F2F1 /* coreml_reshape_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_reshape_layer.cc; sourceTree = "<group>"; };
 		DEA37E20276CA9A80031F2F1 /* coreml_relu6_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = coreml_relu6_layer.cc; sourceTree = "<group>"; };
@@ -3357,6 +3359,7 @@
 		DE14B473275C87C700379D4F /* layer_convert */ = {
 			isa = PBXGroup;
 			children = (
+				DE714B02278C602100683750 /* coreml_slice_v2_layer.cc */,
 				9DE4CBD627859F0700FCEF95 /* coreml_div_layer.cc */,
 				9DE4CBD727859F0700FCEF95 /* coreml_reduce_max_layer.cc */,
 				9DE4CBD327859F0600FCEF95 /* coreml_reduce_min_layer.cc */,
@@ -4205,6 +4208,7 @@
 				9D32FF1024557EED002DCDAB /* detection_output_interpreter.cc in Sources */,
 				9D32FCDB24557EEC002DCDAB /* instance_norm_layer.cc in Sources */,
 				3623EF96269598FF00932B9F /* cpu_where_layer_acc.cc in Sources */,
+				DE714B03278C602200683750 /* coreml_slice_v2_layer.cc in Sources */,
 				9D32FF4024557EED002DCDAB /* abstract_model_interpreter.cc in Sources */,
 				ECCDCE8225DF536000D7D297 /* cpu_mat_converter.cc in Sources */,
 				9DD1FB5A247CE9BE00800139 /* metal_log_layer_acc.metal in Sources */,
