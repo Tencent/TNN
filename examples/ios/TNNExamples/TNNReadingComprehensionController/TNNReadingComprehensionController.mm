@@ -82,9 +82,9 @@ using namespace TNN_NS;
     // file from tnn framework project to TNNExamples app
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/tiny-bert/tiny-bert-squad.tnnmodel"
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/tiny-bert/tiny-bert-squad-fixed-256.tnnmodel"
                                                           ofType:nil];
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/tiny-bert/tiny-bert-squad.tnnproto"
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/tiny-bert/tiny-bert-squad-fixed-256.tnnproto"
                                                           ofType:nil];
     auto vocab_path = [[NSBundle mainBundle] pathForResource:@"model/tiny-bert/vocab.txt"
                                                           ofType:nil];
