@@ -15,6 +15,7 @@
 #include "coreml_base_layer.h"
 
 // Use ReshapeStatic
+
 namespace TNN_NS {
 
 DECLARE_COREML_LAYER_WITH_FUNC_DATA(Reshape, LAYER_RESHAPE,
@@ -210,7 +211,7 @@ REGISTER_COREML_LAYER(Reshape, LAYER_RESHAPE);
 }  // namespace TNN_NS
 
 
-// Use ReshapeStatic
+// Use ReshapeRankPreserving
 /*
  namespace TNN_NS {
 
