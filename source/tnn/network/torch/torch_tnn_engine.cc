@@ -3,6 +3,7 @@
 #include "tnn/core/tnn.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
 #include "tnn/core/macro.h"
+#include <thread>
 
 namespace TNN_NS {
 namespace runtime {
@@ -125,7 +126,7 @@ TNNEngine::TNNEngine(std::vector<std::string> &serialize) {
         dynamic_cast<ModelInterpreter *>(interpreter)->GetNetStructure()->inputs_shape_map = max_input_shape;
         instance_->Init(interpreter_ptr, min_input_shape, max_input_shape);
         is_init_ = true;
-        instance_->SetCpuNumThreads(10);
+        instance_->SetCpuNumThreads(std::thread::hardware_concurrency());
     }
     network_config_ = network_config;
 

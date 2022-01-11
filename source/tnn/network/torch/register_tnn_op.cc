@@ -24,6 +24,7 @@
 #include "c10/cuda/CUDAStream.h"
 #include "tnn/utils/blob_dump_utils.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
+#include <thread>
 
 namespace TNN_NS {
 namespace runtime {
@@ -68,7 +69,7 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         // package.Pack("torch.tnnproto", "torch.tnnmodel");
         compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), min_shape, max_shape);
         compiled_engine->is_init_ = true;
-        compiled_engine->instance_->SetCpuNumThreads(10);
+        compiled_engine->instance_->SetCpuNumThreads(std::thread::hardware_concurrency());
     }
 
     if (inputs[0].is_cuda()) {
