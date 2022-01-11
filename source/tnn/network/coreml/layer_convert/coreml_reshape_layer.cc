@@ -27,8 +27,8 @@ DECLARE_COREML_LAYER_WITH_FUNC_DATA(Reshape, LAYER_RESHAPE,
                                      std::vector<std::shared_ptr<CoreML__Specification__Tensor> > coreml_layer_inputtensor_;
                                      std::shared_ptr<CoreML__Specification__Tensor*> coreml_layer_outputtensor_arr_;
                                      std::vector<std::shared_ptr<CoreML__Specification__Tensor> > coreml_layer_outputtensor_;
-                                     int input_shape_size = 0;
-                                     int output_shape_size = 0;
+                                     int input_shape_size_ = 0;
+                                     int output_shape_size_ = 0;
                                      std::shared_ptr<LayerInfo> permute0_layer_info_;
                                      std::shared_ptr<LayerInfo> permute1_layer_info_;);
 
@@ -57,12 +57,12 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
     if (net_resource_ && layer_info_->inputs.size()>0 && layer_info_->outputs.size()>0) {
         if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
             input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
-            input_shape_size = (int)input_shape.size();
+            input_shape_size_ = (int)input_shape.size();
         }
         
         if (net_resource_->blob_shapes_map.find(layer_info_->outputs[0]) != net_resource_->blob_shapes_map.end()) {
             output_shape = net_resource_->blob_shapes_map[layer_info_->outputs[0]];
-            output_shape_size = (int)output_shape.size();
+            output_shape_size_ = (int)output_shape.size();
         }
     }
     
@@ -84,13 +84,13 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
         // Tensorflow TFLite reshape(nhwc): 1
         auto reshape_type = reshape_param->reshape_type;
     
-        if (input_shape_size <= 0 || output_shape_size <= 0 || shape_size != output_shape_size) {
+        if (input_shape_size_ <= 0 || output_shape_size_ <= 0 || shape_size != output_shape_size_) {
             return Status(TNNERR_MODEL_ERR, "CoreMLReshapeLayer has invalid input shape, output shape, or ReshapeLayerParam");
         }
         
         // add permute to convert nchw to nhwc, when reshape_type = 1
         if (reshape_type == 1) {
-            if(input_shape_size > 4 || output_shape_size > 4) {
+            if(input_shape_size_ > 4 || output_shape_size_ > 4) {
                 return Status(TNNERR_MODEL_ERR, "CoreMLReshapeLayer input rank and output rank must be smaller or equal to 4 , when reshape_type = 1");
             }
             RETURN_ON_NEQ(BuildPermute0Layer(), TNN_OK);
@@ -100,10 +100,10 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
         coreml_layer_param_ = std::shared_ptr<CoreML__Specification__ReshapeStaticLayerParams>(new CoreML__Specification__ReshapeStaticLayerParams);
         coreml_layer_->reshapestatic = (CoreML__Specification__ReshapeStaticLayerParams *)coreml_layer_param_.get();
         core_ml__specification__reshape_static_layer_params__init(coreml_layer_->reshapestatic);
-        coreml_layer_->reshapestatic->n_targetshape = output_shape_size;
+        coreml_layer_->reshapestatic->n_targetshape = output_shape_size_;
         coreml_layer_shape_ = std::shared_ptr<int64_t>(new int64_t [coreml_layer_->reshapestatic->n_targetshape], [](int64_t* p) { delete[] p; });
         coreml_layer_->reshapestatic->targetshape = (int64_t *)coreml_layer_shape_.get();
-        for (int i=0;i<output_shape_size;i++){
+        for (int i=0;i<output_shape_size_;i++){
             coreml_layer_->reshapestatic->targetshape[i] = output_shape[i];
         }
         
@@ -125,11 +125,11 @@ Status CoreMLReshapeLayer::BuildPermute0Layer() {
         auto permute0_param = std::shared_ptr<PermuteLayerParam>(new PermuteLayerParam);
         permute0_layer_info_->param = permute0_param;
         {
-            if(input_shape_size == 4) {
+            if(input_shape_size_ == 4) {
                 permute0_param->orders = {0,2,3,1};  // nchw2nhwc
-            } else if(input_shape_size == 3) {
+            } else if(input_shape_size_ == 3) {
                 permute0_param->orders = {0,2,1};  // nch2nhc
-            } else if(input_shape_size == 2) {
+            } else if(input_shape_size_ == 2) {
                 permute0_param->orders = {0,1};  // nc2nc
             }
         }
@@ -153,11 +153,11 @@ Status CoreMLReshapeLayer::BuildPermute1Layer() {
         auto permute1_param = std::shared_ptr<PermuteLayerParam>(new PermuteLayerParam);
         permute1_layer_info_->param = permute1_param;
         {
-            if(input_shape_size == 4) {
+            if(input_shape_size_ == 4) {
                 permute1_param->orders = {0,3,1,2};  // nhwc2nchw
-            } else if(input_shape_size == 3) {
+            } else if(input_shape_size_ == 3) {
                 permute1_param->orders = {0,2,1};  // nhc2nch
-            } else if(input_shape_size == 2) {
+            } else if(input_shape_size_ == 2) {
                 permute1_param->orders = {0,1};  // nc2nc
             }
         }
@@ -226,8 +226,8 @@ REGISTER_COREML_LAYER(Reshape, LAYER_RESHAPE);
                                       std::vector<std::shared_ptr<CoreML__Specification__Tensor> > coreml_layer_inputtensor_;
                                       std::shared_ptr<CoreML__Specification__Tensor*> coreml_layer_outputtensor_arr_;
                                       std::vector<std::shared_ptr<CoreML__Specification__Tensor> > coreml_layer_outputtensor_;
-                                      int input_shape_size = 0;
-                                      int output_shape_size = 0;
+                                      int input_shape_size_ = 0;
+                                      int output_shape_size_ = 0;
                                       std::shared_ptr<LayerInfo> permute0_layer_info_;
                                       std::shared_ptr<LayerInfo> permute1_layer_info_;
                                       std::shared_ptr<LayerInfo> unsqueeze_layer_info_;
@@ -256,12 +256,12 @@ REGISTER_COREML_LAYER(Reshape, LAYER_RESHAPE);
      if (net_resource_ && layer_info_->inputs.size()>0 && layer_info_->outputs.size()>0) {
          if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
              auto input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
-             input_shape_size = (int)input_shape.size();
+             input_shape_size_ = (int)input_shape.size();
          }
          
          if (net_resource_->blob_shapes_map.find(layer_info_->outputs[0]) != net_resource_->blob_shapes_map.end()) {
              auto output_shape = net_resource_->blob_shapes_map[layer_info_->outputs[0]];
-             output_shape_size = (int)output_shape.size();
+             output_shape_size_ = (int)output_shape.size();
          }
      }
      
@@ -285,13 +285,13 @@ REGISTER_COREML_LAYER(Reshape, LAYER_RESHAPE);
          // Tensorflow TFLite reshape(nhwc): 1
          auto reshape_type = reshape_param->reshape_type;
      
-         if (input_shape_size <= 0 || output_shape_size <= 0 || shape_size != output_shape_size) {
+         if (input_shape_size_ <= 0 || output_shape_size_ <= 0 || shape_size != output_shape_size_) {
              return Status(TNNERR_MODEL_ERR, "CoreMLReshapeLayer has invalid input shape, output shape, or ReshapeLayerParam");
          }
          
          // add permute to convert nchw to nhwc, when reshape_type = 1
          if (reshape_type == 1) {
-             if ((input_shape_size!=4) || (output_shape_size!=4)) {
+             if ((input_shape_size_!=4) || (output_shape_size_!=4)) {
                  return Status(TNNERR_MODEL_ERR, "CoreMLReshapeLayer input rank and output rank must be equal to 4 , when reshape_type = 1");
              }
              RETURN_ON_NEQ(BuildPermute0Layer(), TNN_OK);
@@ -299,8 +299,8 @@ REGISTER_COREML_LAYER(Reshape, LAYER_RESHAPE);
          }
          
          // add unsqueeze to expenad dims
-         int reshape_size = MAX(output_shape_size, input_shape_size);
-         if (output_shape_size  > input_shape_size) {
+         int reshape_size = MAX(output_shape_size_, input_shape_size_);
+         if (output_shape_size_  > input_shape_size_) {
              RETURN_ON_NEQ(BuildUnsqueezeLayer(), TNN_OK);
          }
          
@@ -310,8 +310,8 @@ REGISTER_COREML_LAYER(Reshape, LAYER_RESHAPE);
          coreml_layer_->rankpreservingreshape->n_targetshape = reshape_size;
          coreml_layer_shape_ = std::shared_ptr<int64_t>(new int64_t [coreml_layer_->rankpreservingreshape->n_targetshape], [](int64_t* p) { delete[] p; });
          coreml_layer_->rankpreservingreshape->targetshape = (int64_t *)coreml_layer_shape_.get();
-         if(output_shape_size  < input_shape_size){
-             auto reduce_dims = input_shape_size - output_shape_size;
+         if(output_shape_size_  < input_shape_size_){
+             auto reduce_dims = input_shape_size_ - output_shape_size_;
              for(int i=0;i<reduce_dims;i++){
                  shape.push_back(1);
              }
@@ -344,7 +344,7 @@ REGISTER_COREML_LAYER(Reshape, LAYER_RESHAPE);
          }
          
          // add squeeze to reduce dims
-         if (output_shape_size  < input_shape_size) {
+         if (output_shape_size_  < input_shape_size_) {
              RETURN_ON_NEQ(BuildSqueezeLayer(), TNN_OK);
          }
      }
@@ -412,7 +412,7 @@ REGISTER_COREML_LAYER(Reshape, LAYER_RESHAPE);
          squeeze_layer_info_->param = squeeze_param;
          {
              std::vector<int> axes = {};
-             auto  reduce_dims = input_shape_size - output_shape_size;
+             auto  reduce_dims = input_shape_size_ - output_shape_size_;
              for(int i=0;i<reduce_dims;i++){
                  axes.push_back(i-reduce_dims);
              }
@@ -439,7 +439,7 @@ REGISTER_COREML_LAYER(Reshape, LAYER_RESHAPE);
          unsqueeze_layer_info_->param = unsqueeze_param;
          {
              std::vector<int> axes = {};
-             auto expand_dims = output_shape_size - input_shape_size;
+             auto expand_dims = output_shape_size_ - input_shape_size_;
              for(int i=0;i<expand_dims;i++){
                  axes.push_back(i-expand_dims);
              }
@@ -465,7 +465,7 @@ REGISTER_COREML_LAYER(Reshape, LAYER_RESHAPE);
          } else {
              auto param = layer_info_->param.get();
              auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
-             if(output_shape_size  > input_shape_size) {
+             if(output_shape_size_  > input_shape_size_) {
                  return {reshape_param->name + "-unsqueeze-out"};
              }
              if(reshape_param->reshape_type == 1) {
@@ -485,7 +485,7 @@ REGISTER_COREML_LAYER(Reshape, LAYER_RESHAPE);
          } else {
              auto param = layer_info_->param.get();
              auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
-             if(output_shape_size  < input_shape_size) {
+             if(output_shape_size_  < input_shape_size_) {
                  return {reshape_param->name + "-squeeze-in"};
              }
              if(reshape_param->reshape_type == 1) {
