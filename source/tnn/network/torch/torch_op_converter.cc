@@ -503,7 +503,7 @@ public:
         {
             std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
             layer_info->type = LAYER_MATMUL;
-            layer_info->type_str = "Matmul";
+            layer_info->type_str = "MatMul";
             layer_info->name = matmul_out_name;
 
             layer_info->inputs.push_back(node->inputs()[0]->debugName());

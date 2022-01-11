@@ -17,6 +17,7 @@
 #include <torch/csrc/jit/passes/constant_pooling.h>
 #include <torch/csrc/jit/passes/dead_code_elimination.h>
 #include <torch/csrc/jit/passes/fold_conv_bn.h>
+#include <torch/csrc/jit/passes/frozen_conv_folding.h>
 #include <torch/csrc/jit/passes/remove_dropout.h>
 #include <torch/csrc/jit/passes/remove_inplace_ops.h>
 #include <torch/csrc/jit/passes/remove_mutation.h>
@@ -280,6 +281,7 @@ namespace jit {
         module = torch::jit::freeze_module(module);
         auto graph = module.get_method("forward").graph();
         LowerSimpleTuples(graph);
+        FoldFrozenConvBatchnorm(graph);
 
         removeDropout(module);
         RemoveException(graph->block());

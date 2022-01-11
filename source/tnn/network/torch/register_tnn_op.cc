@@ -30,6 +30,7 @@ namespace runtime {
 
 std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
                                         c10::intrusive_ptr<TNNEngine> compiled_engine) {
+    auto is_cuda = inputs[0].is_cuda();
     auto scalar_type = inputs[0].scalar_type();
     auto input_names  = compiled_engine->input_names;
     auto output_names = compiled_engine->output_names;
@@ -67,6 +68,7 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         // package.Pack("torch.tnnproto", "torch.tnnmodel");
         compiled_engine->instance_->Init(compiled_engine->ctx_->get_interpreter(), min_shape, max_shape);
         compiled_engine->is_init_ = true;
+        compiled_engine->instance_->SetCpuNumThreads(10);
     }
 
     if (inputs[0].is_cuda()) {
@@ -74,7 +76,9 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         compiled_engine->instance_->SetCommandQueue(stream.stream());
     }
 
-    compiled_engine->instance_->Reshape(inputs_shape_map);
+    if (is_cuda) {
+        compiled_engine->instance_->Reshape(inputs_shape_map);
+    }
 
     BlobMap input_blobs;
     BlobMap output_blobs;
@@ -100,10 +104,20 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
 
         BlobHandle handle;
         handle.base = contig_input.data_ptr();
-        input_blobs[input_names[i]]->SetHandle(handle);
-        input_blobs[input_names[i]]->SetBlobDesc(blob_desc);
-
+        if (is_cuda) {
+            input_blobs[input_names[i]]->SetHandle(handle);
+            input_blobs[input_names[i]]->SetBlobDesc(blob_desc);
+        } else {
+            auto blob_handle = input_blobs[input_names[i]]->GetHandle();
+            // auto input_mat = std::make_shared<Mat>(DEVICE_NAIVE, NCHW_FLOAT, blob_desc.dims, handle.base);
+            // compiled_engine->instance_->SetInputMat(input_mat, MatConvertParam(), input_names[i]);
+            memcpy(blob_handle.base, handle.base, DimsVectorUtils::Count(blob_desc.dims) * sizeof(float));
+        }
         // DumpDeviceBlob(input_blobs[input_names[i]], cmd_queue, "tnn-input-"+input_names[i]);
+    }
+
+    if (!is_cuda) {
+        compiled_engine->instance_->Forward();
     }
 
     std::vector<at::Tensor> outputs(output_names.size());
@@ -118,12 +132,20 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
 
         BlobHandle handle;
         handle.base = outputs[i].data_ptr();;
-        output_blobs[output_names[i]]->SetHandle(handle);
+        if (is_cuda) {
+            output_blobs[output_names[i]]->SetHandle(handle);
+        } else {
+            auto blob_handle = output_blobs[output_names[i]]->GetHandle();
+            memcpy(handle.base, blob_handle.base, DimsVectorUtils::Count(desc.dims) * sizeof(float));
+        }
+
         // DumpDeviceBlob(output_blobs[output_names[i]], cmd_queue, "tnn-output-"+output_names[i]);
     }
 
     // use torch memory management
-    compiled_engine->instance_->Forward();
+    if (is_cuda) {
+        compiled_engine->instance_->Forward();
+    }
 
     return outputs;
 }
