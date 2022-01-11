@@ -69,8 +69,11 @@ ILayer* StrideSliceV2TRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     InferOutputShape();
     DimsVector end_dim(param->ends), begin_dim(param->begins), axes_dim(param->axes), stride_dim(param->strides);
     auto dim = output_blobs_[0]->GetBlobDesc().dims;
-    for (int i = 0; i < param->axes.size(); i++) {
-        if (end_dim[param->axes[i]] == INT_MAX) end_dim[param->axes[i]] = param->begins[param->axes[i]] + dim[param->axes[i]];
+    if (!dim.empty()) {
+        for (int i = 0; i < param->axes.size(); i++) {
+            if (end_dim[param->axes[i]] == INT_MAX) 
+                end_dim[param->axes[i]] = param->begins[param->axes[i]] + dim[param->axes[i]];
+        }
     }
     axes = ShapeTensor(1, std::move(axes_dim));
     strides = ShapeTensor(1, std::move(stride_dim));
