@@ -207,7 +207,12 @@ download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/tiny-bert-squad.tnnproto" \
     "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/tiny-bert/tiny-bert-squad.tnnmodel" \
     "tiny-bert"
-  
+
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/tiny-bert-squad-fixed-256.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/tiny-bert/tiny-bert-squad-fixed-256.tnnmodel" \
+    "tiny-bert"
+
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/vocab.txt" \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/vocab.txt" \
