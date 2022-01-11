@@ -103,10 +103,25 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
         coreml_layer_->reshapestatic->n_targetshape = output_shape_size_;
         coreml_layer_shape_ = std::shared_ptr<int64_t>(new int64_t [coreml_layer_->reshapestatic->n_targetshape], [](int64_t* p) { delete[] p; });
         coreml_layer_->reshapestatic->targetshape = (int64_t *)coreml_layer_shape_.get();
-        for (int i=0;i<output_shape_size_;i++){
-            coreml_layer_->reshapestatic->targetshape[i] = output_shape[i];
-        }
         
+        if (reshape_type == 1) {
+            std::vector<int> output_shape_permute;
+            if(output_shape_size_ == 4) {
+                output_shape_permute = {output_shape[0],output_shape[2],output_shape[3],output_shape[1]};
+            } else if(output_shape_size_ == 3) {
+                output_shape_permute = {output_shape[0],output_shape[2],output_shape[1]};
+            } else if(output_shape_size_ == 2) {
+                output_shape_permute = {output_shape[0],output_shape[1]};
+            }
+            for (int i=0;i<output_shape_size_;i++){
+                coreml_layer_->reshapestatic->targetshape[i] = output_shape_permute[i];
+            }
+        } else {
+            for (int i=0;i<output_shape_size_;i++){
+                coreml_layer_->reshapestatic->targetshape[i] = output_shape[i];
+            }
+        }
+
     }
     
     return TNN_OK;
@@ -153,11 +168,11 @@ Status CoreMLReshapeLayer::BuildPermute1Layer() {
         auto permute1_param = std::shared_ptr<PermuteLayerParam>(new PermuteLayerParam);
         permute1_layer_info_->param = permute1_param;
         {
-            if(input_shape_size_ == 4) {
+            if(output_shape_size_ == 4) {
                 permute1_param->orders = {0,3,1,2};  // nhwc2nchw
-            } else if(input_shape_size_ == 3) {
+            } else if(output_shape_size_ == 3) {
                 permute1_param->orders = {0,2,1};  // nhc2nch
-            } else if(input_shape_size_ == 2) {
+            } else if(output_shape_size_ == 2) {
                 permute1_param->orders = {0,1};  // nc2nc
             }
         }
