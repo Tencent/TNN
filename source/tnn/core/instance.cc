@@ -68,7 +68,6 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
         LOGE("ERROR: network_ is nil, network_type may not support\n");
         return Status(TNNERR_NET_ERR, "network_ is nil, network_type may not support");
     }
-    /*
     if (net_config_.device_type == DEVICE_CUDA) {
         auto ret = network_->Init(net_config_, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape, inputs_data_type, false);
         if (ret == TNN_OK) {
@@ -78,7 +77,6 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
         LOGI("Init network failed. Try to re-init it with const folder, and if succeed all of error info above can be ignored.\n");
         network_.reset();
     }
-    */
 
     if (default_interpreter && default_interpreter->GetNetStructure() &&
         (NeedDoConstantFolding(default_interpreter->GetNetStructure()) || net_config_.device_type == DEVICE_CUDA)) {

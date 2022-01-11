@@ -227,6 +227,7 @@ enum LayerType {
     LAYER_SCATTER                                           = 336,
     LAYER_SPLITTORCH                                        = 337,
     LAYER_PERMUTEV2                                         = 338,
+    LAYER_MULTI_HEAD_ATTENTION                              = 339,
 
     LAYER_BLOB_SCALE                                        = 600,
 

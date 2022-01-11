@@ -132,12 +132,20 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
             batch_eq &= (input_tensors[0]->getDimensions().d[i]==input_tensors[1]->getDimensions().d[i]); 
             in0_batch *= input_tensors[0]->getDimensions().d[i]==-1 ? 2 : input_tensors[0]->getDimensions().d[1];
         }
-        for (int i=input_tensors[0]->getDimensions().nbDims-2; i<input_tensors[0]->getDimensions().nbDims; i++) {
-            mnk_unknown &= input_tensors[0]->getDimensions().d[i]==-1;
-            mnk_unknown &= input_tensors[1]->getDimensions().d[i]==-1;
-        }
+        //for (int i=input_tensors[0]->getDimensions().nbDims-2; i<input_tensors[0]->getDimensions().nbDims; i++) {
+            //mnk_unknown &= input_tensors[0]->getDimensions().d[i]==-1;
+            //mnk_unknown &= input_tensors[1]->getDimensions().d[i]==-1;
+            //mnk_unknown &= input_tensors[0]->getDimensions().d[i]==input_tensors[1]->getDimensions().d[i];
+        //}
+        mnk_unknown &= input_tensors[0]->getDimensions().nbDims==4;
         if (dims_b.d[dims_b.nbDims - 1] == 1 ||
             (batch_eq && in0_batch>1 && mnk_unknown)) {
+            ////////////////////////
+            //std::cout << "=== DEBUG, TRT, Plugin, name = " << GetLayerName() << ", i0.shape = [";
+            //for (int i=0; i<input_tensors[0]->getDimensions().nbDims; i++)
+            //    std::cout << input_tensors[0]->getDimensions().d[i] << ",";
+            //std::cout << "] ===" << std::endl;
+            ////////////////////////
             return TensorRTPluginLayerBuilder::AddToNetwork(network); 
         }
     }

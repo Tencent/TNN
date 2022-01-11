@@ -302,6 +302,13 @@ struct SplitVLayerParam : public LayerParam {
     PARAM_COPY(SplitVLayerParam)
 };
 
+struct MultiHeadAttentionLayerParam : public LayerParam {
+    int hidden_size = 0;
+    int num_heads = 0;
+
+    PARAM_COPY(MultiHeadAttentionLayerParam)
+};
+
 struct ReduceLayerParam : public LayerParam {
     int keep_dims = 0;
     std::vector<int> axis;
