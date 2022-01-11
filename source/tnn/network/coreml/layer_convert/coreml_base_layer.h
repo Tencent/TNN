@@ -145,7 +145,19 @@ public:
 
 std::shared_ptr<CoreMLBaseLayer> CreateCoreMLBaseLayer(LayerType type);
 
-    
+#define DECLARE_COREML_BINARY_LAYER(type_string, layer_type)                                \
+  class CoreML##type_string##Layer : public CoreMLBinaryLayer {                             \
+    public:                                                                                 \
+        CoreML##type_string##Layer(LayerType layer_type) : CoreMLBinaryLayer(layer_type){}; \
+        virtual ~CoreML##type_string##Layer(){};                                            \
+    protected:                                                                              \
+        virtual Status BuildLayerType();                                                    \
+        virtual Status BuildLayerParam();                                                   \
+        virtual Status BuildConstantWeightsLayer();                                         \
+        virtual std::vector<std::string> BuildLayerInputs();                                \
+        virtual std::vector<std::string> BuildLayerOutputs();                               \
+    }
+
 #define DECLARE_COREML_LAYER(type_string, layer_type)                                       \
   class CoreML##type_string##Layer : public CoreMLBaseLayer {                               \
     public:                                                                                 \

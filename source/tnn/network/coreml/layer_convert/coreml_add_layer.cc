@@ -14,10 +14,11 @@
 
 #include "coreml_base_layer.h"
 #include "coreml_const_layer.h"
+#include "coreml_binary_layer.h"
 
 namespace TNN_NS {
 
-DECLARE_COREML_LAYER(Add, LAYER_ADD);
+DECLARE_COREML_BINARY_LAYER(Add, LAYER_ADD);
 
 Status CoreMLAddLayer::BuildLayerType() {
     //layer type
@@ -34,50 +35,11 @@ Status CoreMLAddLayer::BuildLayerParam() {
 }
 
 Status CoreMLAddLayer::BuildConstantWeightsLayer() {
-    auto layer_res = dynamic_cast<EltwiseLayerResource *>(layer_resource_);
-    if (layer_res && layer_res->element_handle.GetDataCount() > 0) {
-        //weight in layer resource
-        auto blob_name = GetLayerName();
-        blob_name += "-weight-input";
-        auto weight_layer = std::make_shared<CoreMLConstLayer>(LAYER_CONST);
-        auto status = weight_layer->Init(blob_name, layer_res->element_handle);
-        RETURN_ON_NEQ(status, TNN_OK);
-        
-        coreml_layer_constant_weights_ = {weight_layer};
-    } else if(layer_info_ && net_resource_) {
-        //weight in constantmap
-        for (auto iter : layer_info_->inputs) {
-            if (net_resource_->constant_map.find(iter) != net_resource_->constant_map.end()) {
-                auto weight_buffer = net_resource_->constant_map[iter];
-                auto weight_layer = std::make_shared<CoreMLConstLayer>(LAYER_CONST);
-                auto status = weight_layer->Init(iter, *(weight_buffer.get()));
-                RETURN_ON_NEQ(status, TNN_OK);
-                
-                coreml_layer_constant_weights_.push_back(weight_layer);
-            }
-        }
-    }
-    return TNN_OK;
+    return CoreMLBinaryLayer::BuildConstantWeightsLayer();
 }
 
 std::vector<std::string> CoreMLAddLayer::BuildLayerInputs() {
-    if (!layer_info_) {
-        return std::vector<std::string>();
-    }
-    auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(layer_info_->param.get());
-    auto inputs = layer_info_->inputs;
-    auto layer_res = dynamic_cast<EltwiseLayerResource *>(layer_resource_);
-    if (layer_res && layer_res->element_handle.GetDataCount() > 0) {
-        auto weight_name = coreml_layer_constant_weights_[0]->GetLayerName();
-        
-        auto weight_input_index = layer_param->weight_input_index;
-        if (weight_input_index == 0) {
-            inputs.insert(inputs.begin(), weight_name);
-        } else {
-            inputs.push_back(weight_name);
-        }
-    }
-    return inputs;
+    return CoreMLBinaryLayer::BuildLayerInputs();
 }
 
 std::vector<std::string> CoreMLAddLayer::BuildLayerOutputs() {
