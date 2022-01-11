@@ -650,17 +650,8 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
 
     for (int layer_id = 0; layer_id < this->layers_.size(); layer_id++) {
         BaseLayer* cur_layer = this->layers_[layer_id];
-        nvinfer1::ILayer *cur_trt_layer;
-        try
-        {
-            cur_trt_layer = dynamic_cast<TensorRTBaseLayerBuilder*>(cur_layer)->AddToNetwork(m_trt_network);
-        }
-        catch(std::bad_alloc)
-        {
-            LOGE("std::bad_alloc error for building layer \"%s\"\n", cur_layer->GetLayerName().c_str());
-            return TNNERR_LAYER_ERR;
-        }
-            
+        
+        nvinfer1::ILayer *cur_trt_layer = dynamic_cast<TensorRTBaseLayerBuilder*>(cur_layer)->AddToNetwork(m_trt_network);
         if (cur_trt_layer == nullptr ) {
             LOGE("build trt layer for \"%s\" failed\n", cur_layer->GetLayerName().c_str());
             return TNNERR_LAYER_ERR;
