@@ -79,7 +79,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build
         run: |
-          ./scripts/build_ios.sh
+          ./scripts/build_framework_ios.sh
           cd ./platforms/ios
           zip -9r ${{ env.ASSET_NAME }}.zip ./tnn.bundle ./tnn.framework
       - name: Upload_asset

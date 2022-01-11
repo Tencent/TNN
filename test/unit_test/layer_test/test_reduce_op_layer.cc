@@ -87,7 +87,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                                             // keep_dim
                                             testing::Values(0, 1),
                                             // dim count
-                                            testing::Values(1, 2, 3, 4, 5),
+                                            testing::Values(2, 3, 4, 5),
                                             // axis
                                             testing::Values(std::vector<int>({0}), std::vector<int>({1}), std::vector<int>({2}),
                                                             std::vector<int>({3}), std::vector<int>({1, 2}),
@@ -131,7 +131,10 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     if (!TestFilter(dev, dim_count, axis.size())) {
         GTEST_SKIP();
     }
-
+    // skip output dims size is 1;
+    if (keep_dims== 0 && axis.size() == dim_count - 1) {
+        GTEST_SKIP();
+    }
     // blobconverter cannot handle 1-dimensional blob, skip it for now
     if (dim_count <= axis.size()+1 && keep_dims == 0) {
         if (dev == DEVICE_ARM && (dim_count == axis.size()+1 && keep_dims == 0)) {

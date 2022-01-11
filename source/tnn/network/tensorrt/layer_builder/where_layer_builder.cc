@@ -21,9 +21,9 @@ DECLARE_TENSORRT_LAYER_BUILDER(Where, LAYER_WHERE);
 
 ILayer* WhereTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto input_tensors = GetInputITensors();
-    auto condition = input_tensors[0];
-    auto x = input_tensors[1];
-    auto y = input_tensors[2];
+    auto x = input_tensors[0];
+    auto y = input_tensors[1];
+    auto condition = input_tensors[2];
 
     if (condition->getType() == nvinfer1::DataType::kFLOAT) {
         ILayer* cast_layer = network->addIdentity(*condition);
@@ -32,6 +32,7 @@ ILayer* WhereTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     }
 
     BroadcastTensors(network, x, y, condition);
+
     ISelectLayer* layer = network->addSelect(*condition, *x, *y);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());

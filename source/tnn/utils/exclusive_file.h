@@ -18,7 +18,8 @@
 #include <stdlib.h>
 #include <string>
 
-#if defined _WIN32 
+#if defined _WIN32
+#define NOMINMAX
 #include <windows.h>
 #include <winbase.h>
 // Do not remove following statement.

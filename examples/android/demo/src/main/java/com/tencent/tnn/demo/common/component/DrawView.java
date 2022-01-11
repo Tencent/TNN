@@ -177,6 +177,22 @@ public class DrawView extends SurfaceView
     @Override
     protected void onDraw(Canvas canvas)
     {
+        if (image_info_list.size() > 0) {
+            for (int i = 0; i < image_info_list.size(); i++) {
+                ImageInfo imageInfo = image_info_list.get(i);
+                if (imageInfo.image_channel != 4) {
+                    Log.e(TAG, "canvas get invalid image info, image_channel: " + imageInfo.image_channel);
+                } else {
+                    Bitmap bitmap = Bitmap.createBitmap(imageInfo.image_width, imageInfo.image_height, Bitmap.Config.ARGB_8888);
+                    ByteBuffer buffer = ByteBuffer.wrap(imageInfo.data);
+                    bitmap.copyPixelsFromBuffer(buffer);
+                    Rect rect = new Rect(0, 0, getWidth() - 1, getHeight() -1);
+                    canvas.drawBitmap(bitmap, null, rect, null);
+                    bitmap.recycle();
+                }
+            }
+        }
+
         if (rects.size() > 0)
         {
             for (int i=0; i<rects.size(); i++) {
@@ -203,22 +219,6 @@ public class DrawView extends SurfaceView
                 canvas.drawLines(point_lines, line_paint);
                 if(labels.size() > 0) {
                     canvas.drawText(labels.get(i), point_lines[0], point_lines[1], text_paint);
-                }
-            }
-        }
-
-        if (image_info_list.size() > 0) {
-            for (int i = 0; i < image_info_list.size(); i++) {
-                ImageInfo imageInfo = image_info_list.get(i);
-                if (imageInfo.image_channel != 4) {
-                    Log.e(TAG, "canvas get invalid image info, image_channel: " + imageInfo.image_channel);
-                } else {
-                    Bitmap bitmap = Bitmap.createBitmap(imageInfo.image_width, imageInfo.image_height, Bitmap.Config.ARGB_8888);
-                    ByteBuffer buffer = ByteBuffer.wrap(imageInfo.data);
-                    bitmap.copyPixelsFromBuffer(buffer);
-                    Rect rect = new Rect(0, 0, getWidth() - 1, getHeight() -1);
-                    canvas.drawBitmap(bitmap, null, rect, null);
-                    bitmap.recycle();
                 }
             }
         }

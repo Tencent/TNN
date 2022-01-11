@@ -35,6 +35,10 @@ IntScaleResource* CreateIntScale(int channel) {
         k_data[k] = std::fabs(k_data[k] - 0.f) < FLT_EPSILON ? 1.f : k_data[k];
     }
     int8scale->scale_handle = scale;
+    // scale zero point
+    RawBuffer zero_point(channel * sizeof(int8_t));
+    zero_point.SetDataType(DATA_TYPE_INT8);
+    int8scale->zero_point_handle = zero_point;
 
     // bias
     RawBuffer bias(channel * sizeof(int32_t));

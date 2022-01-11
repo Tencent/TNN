@@ -141,6 +141,9 @@ static TNN_NS::Status CreateResource(TNN_NS::NetResource& net_resource,
         cal_weight_scale_data[i] = input_scale[i] * weight_scales[i];
     }
     resource->scale_handle = scale_handle;
+    auto zero_point_handle = TNN_NS::RawBuffer(weight_scales.size() * sizeof(int8_t));
+    zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+    resource->zero_point_handle = zero_point_handle;
 
     if (tf_lite_operator->inputs.size() >2) {
         // bias

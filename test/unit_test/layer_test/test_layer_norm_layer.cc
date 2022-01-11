@@ -25,7 +25,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, LayerNormLayerTest,
                          ::testing::Combine(testing::Values(1, 2),              // batch
                                             testing::Values(1, 4, 6),           // channel
                                             testing::Values(10, 20, 65, 128),   // input_size
-                                            testing::Values(1, 2, 3, 4, 5),     // reduce_dims_size
+                                            testing::Values(2, 3, 4, 5),        // reduce_dims_size
                                             testing::Values(2, 3, 4, 5)));      // dim count
 
 TEST_P(LayerNormLayerTest, LayerNormLayer) {
