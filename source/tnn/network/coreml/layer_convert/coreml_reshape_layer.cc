@@ -153,11 +153,11 @@ Status CoreMLReshapeLayer::BuildPermute1Layer() {
         auto permute1_param = std::shared_ptr<PermuteLayerParam>(new PermuteLayerParam);
         permute1_layer_info_->param = permute1_param;
         {
-            if(input_shape_size == 4) {
+            if(output_shape_size == 4) {
                 permute1_param->orders = {0,3,1,2};  // nhwc2nchw
-            } else if(input_shape_size == 3) {
+            } else if(output_shape_size == 3) {
                 permute1_param->orders = {0,2,1};  // nhc2nch
-            } else if(input_shape_size == 2) {
+            } else if(output_shape_size == 2) {
                 permute1_param->orders = {0,1};  // nc2nc
             }
         }
