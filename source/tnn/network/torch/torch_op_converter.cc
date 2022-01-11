@@ -875,6 +875,8 @@ public:
         layer_info->inputs.push_back(node->inputs()[0]->debugName());
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
 
+        layer_info->param = std::make_shared<LayerParam>();
+
         ADD_INPUTS_AND_OUTPUTS;
 
         net_structure->layers.push_back(layer_info);

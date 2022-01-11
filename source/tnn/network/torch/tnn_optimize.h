@@ -5,10 +5,8 @@
 
 #include "tnn/network/torch/torch_op_converter.h"
 
-namespace torch {
-namespace jit {
-    void TNNOptPass();
-}
+namespace TNN_NS {
+    void TNNOptPass(NetStructure* net_structure, NetResource* net_resource);
 }  // namespace torch
 
 #endif  // TNN_SOURCE_TNN_NETWORK_TNN_OPTIMIZE_H
