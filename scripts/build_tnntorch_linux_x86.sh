@@ -171,8 +171,6 @@ copy_openvino_libraries() {
 
 # build_openvino
 
-copy_openvino_libraries
-
 # add openvino end
 
 # rm -rf ${BUILD_DIR}
@@ -209,6 +207,8 @@ echo $CUDA_TOOLKIT_ROOT_DIR
 
 cp -r ${TNN_ROOT_PATH}/include ${TNN_INSTALL_DIR}/
 cp -d libTNN.so* ${TNN_INSTALL_DIR}/lib/
+
+copy_openvino_libraries
 
 # deps
 cuda_dep_list=$( ldd libTNN.so | awk '{if (match($3, "/usr/local/cuda")){ print $3}}' )
