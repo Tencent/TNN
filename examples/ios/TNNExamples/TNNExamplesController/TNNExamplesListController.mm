@@ -280,7 +280,7 @@ using namespace std;
     auto exampleController = (TNNExamplesController *)vc;
     exampleController.viewModel = data.viewModel;
 
-    [self.navigationController setViewControllers:@[ vc ] animated:YES];
+    [self.navigationController pushViewController:vc animated:YES];
 }
 
 @end
