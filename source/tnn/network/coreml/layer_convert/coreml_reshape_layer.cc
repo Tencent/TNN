@@ -103,10 +103,25 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
         coreml_layer_->reshapestatic->n_targetshape = output_shape_size;
         coreml_layer_shape_ = std::shared_ptr<int64_t>(new int64_t [coreml_layer_->reshapestatic->n_targetshape], [](int64_t* p) { delete[] p; });
         coreml_layer_->reshapestatic->targetshape = (int64_t *)coreml_layer_shape_.get();
-        for (int i=0;i<output_shape_size;i++){
-            coreml_layer_->reshapestatic->targetshape[i] = output_shape[i];
-        }
         
+        if (reshape_type == 1) {
+            std::vector<int> output_shape_permute;
+            if(output_shape_size == 4) {
+                output_shape_permute = {output_shape[0],output_shape[2],output_shape[3],output_shape[1]};
+            } else if(output_shape_size == 3) {
+                output_shape_permute = {output_shape[0],output_shape[2],output_shape[1]};
+            } else if(output_shape_size == 2) {
+                output_shape_permute = {output_shape[0],output_shape[1]};
+            }
+            for (int i=0;i<output_shape_size;i++){
+                coreml_layer_->reshapestatic->targetshape[i] = output_shape_permute[i];
+            }
+        } else {
+            for (int i=0;i<output_shape_size;i++){
+                coreml_layer_->reshapestatic->targetshape[i] = output_shape[i];
+            }
+        }
+
     }
     
     return TNN_OK;
