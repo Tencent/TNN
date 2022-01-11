@@ -37,6 +37,7 @@ NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
     g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
 
 std::unordered_map<std::string, TensorRTPluginLayerBuilder*> TensorRTNetwork_::m_plugin_layer_name_map;
+TRTLogger TensorRTNetwork_::m_trt_logger;
 
 std::mutex TensorRTNetwork_::network_mutex;
 
