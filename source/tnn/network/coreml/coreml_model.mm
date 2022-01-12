@@ -23,7 +23,10 @@ using namespace TNN_NS;
 
 - (TNN_NS::Status)getShapesMap:(TNN_NS::BlobShapesMap &) shapesMap
                                 dataTypesMap:(TNN_NS::BlobDataTypeMap &) typesMap
-fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API_AVAILABLE(ios(12.0), macosx(10.14));;
+fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API_AVAILABLE(ios(12.0), macosx(10.14));
+
+- (tnn::Status)cleanupMLModel;
+- (tnn::Status)cleanupMLModelC;
 
 @end
 
@@ -122,11 +125,10 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
     status = [self buildFromPathMLModel];
     
     //remove mlmodel, no need to check error
-    NSError* error = nil;
-    [[NSFileManager defaultManager] removeItemAtURL:mlmodelURL error:&error];
+    [self cleanupMLModel];
     
 #if TNN_COREML_TEST
-    [self cleanup];
+    [self cleanupMLModelC];
 #endif
     
 #ifdef DEBUG
@@ -135,17 +137,27 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
     return status;
 }
 
-- (TNN_NS::Status)cleanup {
+- (tnn::Status)cleanupMLModel {
     NSError* error = nil;
     
     //remove mlmodel, no need to check error
     auto mlmodelURL = [self mlmodelPath];
     [[NSFileManager defaultManager] removeItemAtURL:mlmodelURL error:&error];
+    return TNN_NS::TNN_OK;
+}
+
+- (tnn::Status)cleanupMLModelC {
+    NSError* error = nil;
     
     //remove mlmodelc, no need to check error
     auto mlmodelcURL = [self mlmodelcPath];
     [[NSFileManager defaultManager] removeItemAtURL:mlmodelcURL error:&error];
     return TNN_NS::TNN_OK;
+}
+
+- (TNN_NS::Status)cleanup {
+    [self cleanupMLModel];
+    [self cleanupMLModelC];
 }
 
 - (TNN_NS::Status)saveModel:(CoreML__Specification__Model*)model {
@@ -187,6 +199,7 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
         NSError* error = nil;
         NSURL* mlmodelcURL = [MLModel compileModelAtURL:mlmodelURL error:&error];
         if (error != nil) {
+            [self cleanupMLModelC];
             LOGE("Error compiling model %s.\n", [error localizedDescription].UTF8String);
             return TNN_NS::Status(TNN_NS::TNNERR_ANE_COMPILE_MODEL_ERROR, "Error: Failed compiling model.");
         }
