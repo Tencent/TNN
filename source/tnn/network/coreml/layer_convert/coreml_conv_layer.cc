@@ -191,6 +191,9 @@ Status CoreMLConvLayer::BuildLayerParam() {
     
     if(activation_type_ == ActivationType_ReLU || activation_type_ == ActivationType_ReLU6) {
         RETURN_ON_NEQ(BuildActivationLayer(), TNN_OK);
+    } else if (activation_type_ != ActivationType_None) {
+        LOGE("CoreMLConvLayer dont support activation type (%d)\n", activation_type_);
+        return Status(TNNERR_MODEL_ERR, "CoreMLConvLayer dont support this activation type");
     }
     
     return TNN_OK;
@@ -212,6 +215,7 @@ Status CoreMLConvLayer::BuildActivationLayer() {
         coreml_layer_after_ = relu_layer;
     } else if (activation_type_ == ActivationType_ReLU6) {
         auto relu6_layer = CreateCoreMLBaseLayer(LAYER_RELU6);
+        relu6_layer->SetNetResource(net_resource_);
         activation_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
         {
             activation_layer_info_->type = LAYER_RELU6;
@@ -221,12 +225,15 @@ Status CoreMLConvLayer::BuildActivationLayer() {
         }
         
         net_resource_->blob_shapes_map[activation_layer_info_->outputs[0]] = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
+        net_resource_->blob_shapes_map[activation_layer_info_->outputs[0]] = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
         
         RETURN_ON_NEQ(relu6_layer->Init(activation_layer_info_.get(), nullptr), TNN_OK);
-//        RETURN_ON_NEQ(relu6_layer->SetNetResource(net_resource_), TNN_OK);
-        
         coreml_layer_after_ = relu6_layer;
+    } else if (activation_type_ != ActivationType_None) {
+        LOGE("CoreMLConvLayer dont support activation type (%d)\n", activation_type_);
+        return Status(TNNERR_MODEL_ERR, "CoreMLConvLayer dont support this activation type");
     }
+    
     return TNN_OK;
 }
 

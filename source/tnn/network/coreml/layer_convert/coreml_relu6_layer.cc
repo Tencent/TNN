@@ -38,24 +38,24 @@ Status CoreMLRelu6Layer::BuildLayerType() {
 
 Status CoreMLRelu6Layer::BuildLayerParam() {
     //layer param
-//    DimsVector input_shape, output_shape;
-//    if (net_resource_ && layer_info_->inputs.size()>0) {
-//        if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
-//            input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
-//        }
-//    }
-//    
-//    if (net_resource_ && layer_info_->outputs.size()>0) {
-//        if (net_resource_->blob_shapes_map.find(layer_info_->outputs[0]) != net_resource_->blob_shapes_map.end()) {
-//            output_shape = net_resource_->blob_shapes_map[layer_info_->outputs[0]];
-//        }
-//    }
-//    
-//    if (input_shape.size() <= 0 || output_shape.size() <= 0) {
-//        LOGE("CoreMLRelu6Layer has no fixed input or output shape\n");
-//        return Status(TNNERR_MODEL_ERR, "CoreMLRelu6Layer has no fixed input or output shape");
-//    }
-//    
+    DimsVector input_shape, output_shape;
+    if (net_resource_ && layer_info_->inputs.size()>0) {
+        if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
+            input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
+        }
+    }
+    
+    if (net_resource_ && layer_info_->outputs.size()>0) {
+        if (net_resource_->blob_shapes_map.find(layer_info_->outputs[0]) != net_resource_->blob_shapes_map.end()) {
+            output_shape = net_resource_->blob_shapes_map[layer_info_->outputs[0]];
+        }
+    }
+    
+    if (input_shape.size() <= 0 || output_shape.size() <= 0) {
+        LOGE("CoreMLRelu6Layer has no fixed input or output shape\n");
+        return Status(TNNERR_MODEL_ERR, "CoreMLRelu6Layer has no fixed input or output shape");
+    }
+    
     // use Clip(min=0, max=6) to instead of Relu6
     coreml_layer_clip_ = CreateCoreMLBaseLayer(LAYER_CLIP);
     coreml_layer_clip_->SetNetResource(net_resource_);
@@ -76,7 +76,7 @@ Status CoreMLRelu6Layer::BuildLayerParam() {
             }
         }
         //put clip output shape to net resource
-//        net_resource_->blob_shapes_map[clip_layer_info_->outputs[0]] = output_shape;
+        net_resource_->blob_shapes_map[clip_layer_info_->outputs[0]] = output_shape;
         
         RETURN_ON_NEQ(coreml_layer_clip_->Init(clip_layer_info_.get(), nullptr),  TNN_OK);
     }
