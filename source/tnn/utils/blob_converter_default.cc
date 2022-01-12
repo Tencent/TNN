@@ -23,6 +23,7 @@
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -271,7 +272,7 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
         } else {
             FREE_INT8_TEMP_DATA();
             return Status(TNNERR_PARAM_ERR, "reverse type not support yet, mat type: " +
-                          std::to_string(image.GetMatType()));
+                          ToString(image.GetMatType()));
         }
     }
 
@@ -399,7 +400,7 @@ Status DefaultBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertPa
         } else {
             FREE_INT8_TEMP_DATA();
             return Status(TNNERR_PARAM_ERR, "reverse type not support yet, mat type: " +
-                          std::to_string(image.GetMatType()));
+                          ToString(image.GetMatType()));
         }
         image = reversed;
     }
