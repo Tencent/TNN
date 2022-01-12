@@ -94,7 +94,13 @@ typedef void(^CommonCallback)(Status);
     }];
     
     //init network
-    [self.switchDevice setSelectedSegmentIndex:self.viewModel.preferGPU ? 1 : 0];
+    int index = 0;
+    if(self.viewModel.preferComputeUnits == TNNComputeUnitsAppleNPU) {
+        index = 2;
+    } else if(self.viewModel.preferComputeUnits == TNNComputeUnitsGPU) {
+        index = 1;
+    }
+    [self.switchDevice setSelectedSegmentIndex:index];
     auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {

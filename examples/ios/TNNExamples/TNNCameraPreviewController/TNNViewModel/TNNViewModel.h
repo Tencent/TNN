@@ -23,7 +23,7 @@ using namespace::TNN_NS;
 @property (nonatomic, strong) NSString *title;
 @property (nonatomic, assign) UIDeviceOrientation preferDeviceOrientation;
 @property (nonatomic, assign) bool preferFrontCamera;
-@property (nonatomic, assign) bool preferGPU;
+@property (nonatomic, assign) TNNComputeUnits preferComputeUnits;
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
 
 //Object Detection

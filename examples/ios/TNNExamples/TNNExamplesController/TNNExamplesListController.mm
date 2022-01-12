@@ -151,7 +151,6 @@ using namespace std;
         {
             data.viewModel = [TNNYoloObjectDetectorViewModel new];
             data.viewModel.title = data.title;
-            data.viewModel.preferGPU = true;
         }
         [examples addObject:data];
     }
@@ -165,7 +164,6 @@ using namespace std;
         {
             data.viewModel = [TNNNanodetObjectDetectorViewModel new];
             data.viewModel.title = data.title;
-            data.viewModel.preferGPU = false;
         }
         [examples addObject:data];
     }
@@ -250,7 +248,6 @@ using namespace std;
             data.viewModel = [TNNSkeletonDetectorViewModel new];
             data.viewModel.title = @"人体关键点 - 腾讯微视";
             data.viewModel.preferFrontCamera = false;
-            data.viewModel.preferGPU = false;
         }
         [examples addObject:data];
     }
