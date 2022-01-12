@@ -224,8 +224,8 @@ Status CoreMLConvLayer::BuildActivationLayer() {
             activation_layer_info_->outputs = layer_info_->outputs;
         }
         
-        net_resource_->blob_shapes_map[activation_layer_info_->outputs[0]] = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
-        net_resource_->blob_shapes_map[activation_layer_info_->outputs[0]] = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
+        net_resource_->blob_shapes_map[activation_layer_info_->inputs[0]] = net_resource_->blob_shapes_map[layer_info_->outputs[0]];
+        net_resource_->blob_shapes_map[activation_layer_info_->outputs[0]] = net_resource_->blob_shapes_map[layer_info_->outputs[0]];
         
         RETURN_ON_NEQ(relu6_layer->Init(activation_layer_info_.get(), nullptr), TNN_OK);
         coreml_layer_after_ = relu6_layer;
