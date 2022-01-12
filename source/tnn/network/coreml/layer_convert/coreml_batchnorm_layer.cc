@@ -56,6 +56,7 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
     auto bias_data_type = layer_res->bias_handle.GetDataType();
     
     bool share_channel = scale_count==1;
+    channels = std::max(channels, scale_count);
     channels = std::max(channels, bias_count);
     
     RETURN_VALUE_ON_NEQ(channels >= scale_count, true, Status(TNNERR_MODEL_ERR, "Batchnorm has invalid scale param"));
