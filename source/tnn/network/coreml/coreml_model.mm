@@ -158,6 +158,7 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
 - (TNN_NS::Status)cleanup {
     [self cleanupMLModel];
     [self cleanupMLModelC];
+    return TNN_NS::TNN_OK;
 }
 
 - (TNN_NS::Status)saveModel:(CoreML__Specification__Model*)model {
