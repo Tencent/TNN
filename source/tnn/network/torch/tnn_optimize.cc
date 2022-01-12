@@ -27,7 +27,7 @@ void RemoveClone(NetStructure* net_structure, NetResource* net_resource) {
 
     };
 
-//    layers.erase(std::remove_if(layers.begin(), layers.end(), remove_clone), layers.end());
+   layers.erase(std::remove_if(layers.begin(), layers.end(), remove_clone), layers.end());
 }
 
 void RemoveSingleConcat(NetStructure* net_structure, NetResource* net_resource) {

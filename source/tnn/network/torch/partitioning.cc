@@ -519,18 +519,7 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
         std::remove_if(segmented_blocks.begin(), segmented_blocks.end(),
                        [](SegmentedBlock& seg_block) { return seg_block.target() == SegmentedBlock::kTorch; }),
         segmented_blocks.end());
-    std::for_each(segmented_blocks.begin(), segmented_blocks.end(),
-                  [](SegmentedBlock& block) { block.check_raw_nodes(); });
-    
-    segmented_blocks = RemoveUnnessaryBlocks(segmented_blocks);
 
-    int curr_seg_idx = 0;
-    for (auto block : segmented_blocks){
-        printf("====================== subgraph start %d ======================\n", curr_seg_idx);
-        std::cout << block.g()->toString(false);
-        printf("====================== subgraph end   %d ======================\n",curr_seg_idx);
-        curr_seg_idx++;
-    }
     // for (auto block : segmented_blocks) {
     //     printf("====================== subgraph start %d ======================\n", block.target());
     //     // if (block.target() == SegmentedBlock::kTNN) {
@@ -541,7 +530,10 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
     // }
     // find_unions(segmented_blocks);
 
-    return segmented_blocks;
+    std::for_each(segmented_blocks.begin(), segmented_blocks.end(),
+                  [](SegmentedBlock& block) { block.check_raw_nodes(); });
+
+    return RemoveUnnessaryBlocks(segmented_blocks);
 }
 
 }  // namespace partitioning

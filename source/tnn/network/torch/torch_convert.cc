@@ -72,6 +72,8 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
         instance_ptr->output_names.push_back(output->debugName());
     }
 
+    TNNOptPass(net_structure, net_resource);
+
     instance_ptr->ctx_ = ctx;
     instance_ptr->network_config_ = network_config;
     // instance_ptr->instance_->Init(ctx->get_interpreter(), inputs_shape_map);
@@ -96,18 +98,16 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
         interpreter->InterpretMd5(block_proto_str);
         interpreter->InterpretMd5(block_model_str);
 #endif
-         static int __cnt = 0;
-         const std::string root = "./";
-         const std::string model_name = "centernet-" + std::to_string(__cnt++);
-         const std::string proto_path = root + model_name + ".tnnproto";
-         const std::string model_path = root + model_name + ".tnnmodel";
-         TNN_NS::ModelPacker model_packer(net_structure, net_resource);
-         Status status = model_packer.Pack(proto_path, model_path);
+        //  static int __cnt = 0;
+        //  const std::string root = "./";
+        //  const std::string model_name = "centernet-" + std::to_string(__cnt++);
+        //  const std::string proto_path = root + model_name + ".tnnproto";
+        //  const std::string model_path = root + model_name + ".tnnmodel";
+        //  TNN_NS::ModelPacker model_packer(net_structure, net_resource);
+        //  Status status = model_packer.Pack(proto_path, model_path);
         instance_ptr->instance_->Init(ctx->get_interpreter(), min_inputs_shape_map, max_inputs_shape_map);
         instance_ptr->is_init_ = true;
     }
-
-    TNNOptPass(net_structure, net_resource);
 
     return instance_ptr;
 }
