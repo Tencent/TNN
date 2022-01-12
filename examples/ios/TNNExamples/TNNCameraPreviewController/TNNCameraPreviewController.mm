@@ -44,7 +44,7 @@ typedef void(^CommonCallback)(Status);
     [super viewDidLoad];
     [self.viewModel adajustStackPrevieView:self.stackPreview];
     
-    [self clearNavigationBarLeft];
+//    [self clearNavigationBarLeft];
     self.navigationItem.title = self.viewModel.title;
     [self forceToOrientation:self.viewModel.preferDeviceOrientation];
     
