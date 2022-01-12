@@ -16,19 +16,22 @@
 
 namespace TNN_NS {
 
-DECLARE_COREML_LAYER_WITH_DATA(Conv, LAYER_CONVOLUTION,
-                                std::shared_ptr<uint64_t> stride_;
-                                std::shared_ptr<uint64_t> dilationfactor_;
-                                std::shared_ptr<uint64_t> kernelsize_;
-                                std::shared_ptr<CoreML__Specification__ValidPadding> valid_;
-                                std::shared_ptr<CoreML__Specification__SamePadding> same_;
-                                std::shared_ptr<CoreML__Specification__BorderAmounts> paddingamounts_;
-                                std::shared_ptr<CoreML__Specification__BorderAmounts__EdgeSizes*> borderamounts_;
-                                std::vector<std::shared_ptr<CoreML__Specification__BorderAmounts__EdgeSizes> > borderamounts_arr_;
-                                std::shared_ptr<CoreML__Specification__WeightParams> weight_param_;
-                                std::shared_ptr<CoreML__Specification__WeightParams> bias_param_;
-                                std::shared_ptr<float> weight_fp32_ptr_;
-                                std::shared_ptr<float> bias_fp32_ptr_;);
+DECLARE_COREML_LAYER_WITH_FUNC_DATA(Conv, LAYER_CONVOLUTION,
+                                    virtual Status BuildActivationLayer();,
+                                    std::shared_ptr<uint64_t> stride_;
+                                    std::shared_ptr<uint64_t> dilationfactor_;
+                                    std::shared_ptr<uint64_t> kernelsize_;
+                                    std::shared_ptr<CoreML__Specification__ValidPadding> valid_;
+                                    std::shared_ptr<CoreML__Specification__SamePadding> same_;
+                                    std::shared_ptr<CoreML__Specification__BorderAmounts> paddingamounts_;
+                                    std::shared_ptr<CoreML__Specification__BorderAmounts__EdgeSizes*> borderamounts_;
+                                    std::vector<std::shared_ptr<CoreML__Specification__BorderAmounts__EdgeSizes> > borderamounts_arr_;
+                                    std::shared_ptr<CoreML__Specification__WeightParams> weight_param_;
+                                    std::shared_ptr<CoreML__Specification__WeightParams> bias_param_;
+                                    std::shared_ptr<float> weight_fp32_ptr_;
+                                    std::shared_ptr<float> bias_fp32_ptr_;
+                                    int activation_type_ = ActivationType_None;
+                                    std::shared_ptr<LayerInfo> activation_layer_info_;);
 
 Status CoreMLConvLayer::BuildLayerType() {
     //layer type
@@ -52,6 +55,7 @@ Status CoreMLConvLayer::BuildLayerParam() {
     auto kernel_channels = (conv_param->input_channel / n_group) ? conv_param->input_channel / n_group : 1;
     auto output_channels = conv_param->output_channel;
     auto pad_type = conv_param->pad_type;
+    activation_type_ = conv_param->activation_type;
     auto conv_res = dynamic_cast<ConvLayerResource *>(layer_resource_);
     CHECK_PARAM_NULL(conv_res);
     auto weight_size = conv_res->filter_handle.GetDataCount();
@@ -185,6 +189,44 @@ Status CoreMLConvLayer::BuildLayerParam() {
         core_ml__specification__valid_padding__init(coreml_layer_->convolution->valid);
     }
     
+    if(activation_type_ == ActivationType_ReLU || activation_type_ == ActivationType_ReLU6) {
+        RETURN_ON_NEQ(BuildActivationLayer(), TNN_OK);
+    }
+    
+    return TNN_OK;
+}
+
+Status CoreMLConvLayer::BuildActivationLayer() {
+    auto param = layer_info_->param.get();
+    auto conv_param = dynamic_cast<ConvLayerParam *>(param);
+    if (activation_type_ == ActivationType_ReLU) {
+        auto relu_layer = CreateCoreMLBaseLayer(LAYER_RELU);
+        activation_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
+        {
+            activation_layer_info_->type = LAYER_RELU;
+            activation_layer_info_->name = conv_param->name + "-relu";
+            activation_layer_info_->inputs = {conv_param->name + "-relu-in"};
+            activation_layer_info_->outputs = layer_info_->outputs;
+        }
+        RETURN_ON_NEQ(relu_layer->Init(activation_layer_info_.get(), nullptr), TNN_OK);
+        coreml_layer_after_ = relu_layer;
+    } else if (activation_type_ == ActivationType_ReLU6) {
+        auto relu6_layer = CreateCoreMLBaseLayer(LAYER_RELU6);
+        activation_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
+        {
+            activation_layer_info_->type = LAYER_RELU6;
+            activation_layer_info_->name = conv_param->name + "-relu6";
+            activation_layer_info_->inputs = {conv_param->name + "-relu6-in"};
+            activation_layer_info_->outputs = layer_info_->outputs;
+        }
+        
+        net_resource_->blob_shapes_map[activation_layer_info_->outputs[0]] = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
+        
+        RETURN_ON_NEQ(relu6_layer->Init(activation_layer_info_.get(), nullptr), TNN_OK);
+//        RETURN_ON_NEQ(relu6_layer->SetNetResource(net_resource_), TNN_OK);
+        
+        coreml_layer_after_ = relu6_layer;
+    }
     return TNN_OK;
 }
 
@@ -197,7 +239,19 @@ std::vector<std::string> CoreMLConvLayer::BuildLayerInputs() {
 }
 
 std::vector<std::string> CoreMLConvLayer::BuildLayerOutputs() {
-    return CoreMLBaseLayer::BuildLayerOutputs();
+    if (!layer_info_) {
+        return std::vector<std::string>();
+    } else {
+        auto param = layer_info_->param.get();
+        auto conv_param = dynamic_cast<ConvLayerParam *>(param);
+        if (activation_type_ == ActivationType_ReLU) {
+            return {conv_param->name + "-relu-in"};
+        } else if (activation_type_ == ActivationType_ReLU6) {
+            return {conv_param->name + "-relu6-in"};
+        }
+        
+        return layer_info_->outputs;
+    }
 }
 
 REGISTER_COREML_LAYER(Conv, LAYER_CONVOLUTION);

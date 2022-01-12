@@ -69,7 +69,7 @@ TEST_P(ConvLayerTest, ConvLayer) {
         GTEST_SKIP();
     }
 
-    if (activation_type != ActivationType_None && DEVICE_APPLE_NPU == dev) {
+    if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_APPLE_NPU == dev) {
         GTEST_SKIP();
     }
 
