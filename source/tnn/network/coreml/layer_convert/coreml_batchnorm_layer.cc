@@ -34,6 +34,17 @@ Status CoreMLBatchnormLayer::BuildLayerType() {
 }
 
 Status CoreMLBatchnormLayer::BuildLayerParam() {
+    int channels = 0;
+    if (net_resource_ && layer_info_->inputs.size()>0) {
+        if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
+            auto input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
+            if (input_shape.size() > 1) {
+                channels = input_shape[1];
+            }
+        }
+    }
+    
+    
     //layer param
     auto param = layer_info_->param.get();
     
@@ -45,7 +56,8 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
     auto bias_data_type = layer_res->bias_handle.GetDataType();
     
     bool share_channel = scale_count==1;
-    int channels = std::max(scale_count, bias_count);
+    channels = std::max(channels, bias_count);
+    channels = std::max(channels, bias_count);
     
     RETURN_VALUE_ON_NEQ(channels >= scale_count, true, Status(TNNERR_MODEL_ERR, "Batchnorm has invalid scale param"));
     
