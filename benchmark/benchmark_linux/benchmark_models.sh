@@ -56,7 +56,7 @@ function build_bench() {
     cd $BUILD_DIR
     cmake ${TNN_ROOT_PATH} \
         -DCMAKE_BUILD_TYPE=Release \
-        -DTNN_CPU_ENABLE=OFF \
+        -DTNN_CPU_ENABLE=ON \
         -DTNN_X86_ENABLE=ON \
         -DTNN_OPENCL_ENABLE:BOOL=$OPENCL \
         -DTNN_PROFILER_ENABLE:BOOL=${PROFILING} \

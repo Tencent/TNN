@@ -67,17 +67,23 @@ void BroadCastInit(const DimsVector &dims, const DimsVector &dims0, const DimsVe
     if (DimsVectorUtils::Equal(dims0, dims1)) {
         type = BroadcastTypeNormal;
         dims_broadcast.clear();
-    } else if (DimsVectorUtils::Equal(dims0, dims1, 1)) {
+    } else if (DimsVectorUtils::Equal(dims0, dims1, 1) &&
+              (DimsVectorUtils::Count(dims0, 0, 1) == 1 ||
+               DimsVectorUtils::Count(dims1, 0, 1) == 1)) {
         type = BroadcastTypeElement;
         dims_broadcast.clear();
         if (dims0[0] < dims1[0])
             swap_flag = true;
-    } else if (DimsVectorUtils::Equal(dims0, dims1, 2)) {
+    } else if (DimsVectorUtils::Equal(dims0, dims1, 2) &&
+              (DimsVectorUtils::Count(dims0, 0, 2) == 1 ||
+               DimsVectorUtils::Count(dims1, 0, 2) == 1)) {
         type = BroadcastTypeHeightWidth;
         dims_broadcast.clear();
         if (dims0[1] < dims1[1])
             swap_flag = true;
-    } else if (DimsVectorUtils::Equal(dims0, dims1, 3)) {
+    } else if (DimsVectorUtils::Equal(dims0, dims1, 3) &&
+              (DimsVectorUtils::Count(dims0, 0, 3) == 1 ||
+               DimsVectorUtils::Count(dims1, 0, 3) == 1)) {
         type = BroadcastTypeWidth;
         dims_broadcast.clear();
         if (dims0[1] < dims1[1])

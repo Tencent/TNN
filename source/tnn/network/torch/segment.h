@@ -100,6 +100,7 @@ public:
     enum SegmentedBlockTarget target() {
         return target_;
     }
+    void check_raw_nodes();
 
 private:
     SegmentedBlockTarget target_;

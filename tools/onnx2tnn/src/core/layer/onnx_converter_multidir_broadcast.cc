@@ -44,12 +44,9 @@ std::tuple<int, std::string> OnnxOpConverterMultiBrodcast::GetWeightInputIndexNa
 string OnnxOpConverterMultiBrodcast::TNNLayerParam(NodeProto &node, OnnxNetInfo &net_info) {
     auto weight_input       = GetWeightInputIndexName(node, net_info);
     auto weight_input_index = get<0>(weight_input);
-    if (weight_input_index >= 0) {
-        ostringstream layer_param;
-        layer_param << weight_input_index << " ";
-        return layer_param.str();
-    }
-    return "";
+    ostringstream layer_param;
+    layer_param << weight_input_index << " ";
+    return layer_param.str();
 }
 
 bool OnnxOpConverterMultiBrodcast::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {

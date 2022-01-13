@@ -102,12 +102,12 @@ Status CpuReformatLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
 
         if (param->type == DEQUANT_ONLY) {
             NaiveDequantBias(reinterpret_cast<int8_t *>(inputs[idx]->GetHandle().base),
-                         re->scale_handle.force_to<float *>(), re->scale_bias_handle.force_to<int8_t *>(), 
+                         re->scale_handle.force_to<float *>(), re->zero_point_handle.force_to<int8_t *>(), 
                          re->scale_handle.GetDataCount(),
                          reinterpret_cast<float *>(outputs[idx]->GetHandle().base), dims);
         } else if (param->type == QUANT_ONLY) {
             NaiveQuantBias(reinterpret_cast<float *>(inputs[idx]->GetHandle().base), re->scale_handle.force_to<float *>(),  
-                        re->scale_bias_handle.force_to<int8_t *>(),
+                        re->zero_point_handle.force_to<int8_t *>(),
                        re->scale_handle.GetDataCount(), reinterpret_cast<int8_t *>(outputs[idx]->GetHandle().base),
                        dims);
         }

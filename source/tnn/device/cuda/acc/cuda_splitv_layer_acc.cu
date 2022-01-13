@@ -29,8 +29,8 @@ __global__ void splitv_separate_kernel(
 
     const int split_size = split_end - split_start;
     const int size = split_size * inner_size;
-    src += blockIdx.z * in_stride;
-    dst += blockIdx.z * size;
+    src += (blockIdx.z * gridDim.y + blockIdx.y) * in_stride;
+    dst += (blockIdx.z * gridDim.y + blockIdx.y) * size;
   
     #pragma unroll
     for(int i =0;i < ELE_PER_THREAD ;i++)
@@ -81,7 +81,8 @@ Status CudaSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
       int split_end = split_begin + slices[i];
       dim3 griddim;
       griddim.x = (slices[i] * inner_size + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
-      griddim.z = DimsVectorUtils::Count(dims, 0, axis);
+      griddim.y = DimsVectorUtils::Count(dims, 1, axis);
+      griddim.z = DimsVectorUtils::Count(dims, 0, 1);
 
       float* output_data = static_cast<float*>(output_blob->GetHandle().base);
       splitv_separate_kernel<THREAD_PER_BLOCK, ELE_PER_THREAD><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>

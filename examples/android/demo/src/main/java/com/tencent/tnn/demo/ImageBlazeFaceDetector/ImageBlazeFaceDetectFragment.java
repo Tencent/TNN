@@ -56,7 +56,6 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
     }
 
     private String initModel() {
-
         String targetDir = getActivity().getFilesDir().getAbsolutePath();
 
         //copy detect model to sdcard
@@ -82,7 +81,7 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
         }
     }
 
-    private void onSwichGPU(boolean b) {
+    private void onSwitchGPU(boolean b) {
         if (b && mHuaweiNPUswitch.isChecked()) {
             mHuaweiNPUswitch.setChecked(false);
             mUseHuaweiNpu = false;
@@ -92,7 +91,7 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
         result_view.setText("");
     }
 
-    private void onSwichNPU(boolean b) {
+    private void onSwitchNPU(boolean b) {
         if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
@@ -119,7 +118,7 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
         mGPUSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichGPU(b);
+                onSwitchGPU(b);
             }
         });
 
@@ -128,7 +127,7 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
         mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichNPU(b);
+                onSwitchNPU(b);
             }
         });
 
@@ -167,9 +166,7 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
 
     }
 
-
     private void startDetect() {
-
         Bitmap originBitmap = FileUtils.readBitmapFromFile(getActivity().getAssets(), IMAGE);
         Bitmap scaleBitmap = Bitmap.createScaledBitmap(originBitmap, NET_W_INPUT, NET_H_INPUT, false);
         ImageView source = (ImageView) $(R.id.origin);
@@ -243,7 +240,6 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
         super.onStop();
     }
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -252,7 +248,6 @@ public class ImageBlazeFaceDetectFragment extends BaseFragment {
 
     private void preview() {
         Log.i(TAG, "preview");
-
     }
 
     private void getFocus() {

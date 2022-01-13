@@ -55,13 +55,14 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
     std::vector<int> input_dims = {batch, channel};
     while (input_dims.size() < dim_count) input_dims.push_back(input_size);
 
+    if (axis >= dim_count) {
+        GTEST_SKIP();
+    }
+
     if (input_dims[axis] < output_count) {
         GTEST_SKIP();
     }
 
-    if (axis >= dim_count) {
-        GTEST_SKIP();
-    }
 
     // param
     std::shared_ptr<SplitVLayerParam> param(new SplitVLayerParam());

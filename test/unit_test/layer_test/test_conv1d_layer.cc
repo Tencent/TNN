@@ -28,9 +28,9 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, Conv1DLayerTest,
                          ::testing::Combine(  // batch
                              testing::Values(1),
                              // channel
-                             testing::Values(4, 15, 32, 63, 128, 1023),
+                             testing::Values(4, 15, 32, 63),
                              // hw
-                             testing::Values(4, 15, 32, 63, 128, 1023),
+                             testing::Values(4, 15, 32, 63),
                              // group
                              testing::Values(1),
                              // kernel

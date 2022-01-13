@@ -20,6 +20,7 @@
 #include "tnn/utils/mat_converter_utils.h"
 #include "tnn/device/cuda/cuda_macro.h"
 #include "tnn/device/cuda/cuda_mat_util.cuh"
+#include "cuda_runtime.h"
 
 namespace TNN_NS {
 
@@ -304,7 +305,7 @@ __device__ __forceinline__ int imin(int a, int b) {
     return min(a,b);
 }
 
-template<int THREAD_PER_BLOCK, int ELE_PER_THREAD>
+template<int ELE_PER_THREAD, int THREAD_PER_BLOCK, BorderType border_type>
 __global__ void warp_affine_bilinear_kernel(const uint8_t* src, uint8_t* dst, const int H, const int W, const int C,
         const int OH, const int OW, const short* table, double* tm, const uint8_t border_value) {
     src += blockIdx.y * H * W * C;
@@ -347,11 +348,22 @@ __global__ void warp_affine_bilinear_kernel(const uint8_t* src, uint8_t* dst, co
         for(int wi = 0; wi < 2; wi++) {
             #pragma unroll
             for(int hi = 0; hi < 2; hi++) {
+
                 if (new_w_real[wi] >= 0 && new_w_real[wi] < W &&
                     new_h_real[hi] >= 0 && new_h_real[hi] < H) {
                     val[hi][wi] = src[(new_h_real[hi] * W + new_w_real[wi]) * C + c];
                 } else {
-                    val[hi][wi] = border_value;
+                    switch (border_type) {
+                        case BORDER_TYPE_CONSTANT:
+                            val[hi][wi] = border_value;
+                            break;
+                        case BORDER_TYPE_TRANSPARENT:
+                            val[hi][wi] = dst[hwc_id];
+                            break;
+                        default:
+                            val[hi][wi] = 0;
+                            break;
+                    }   
                 }
             }
         }
@@ -362,7 +374,7 @@ __global__ void warp_affine_bilinear_kernel(const uint8_t* src, uint8_t* dst, co
     }
 }
 
-template<int THREAD_PER_BLOCK, int ELE_PER_THREAD>
+template<int ELE_PER_THREAD, int THREAD_PER_BLOCK, BorderType border_type>
 __global__ void warp_affine_nearest_kernel(const uint8_t* src, uint8_t* dst, const int H, const int W, const int C,
         const int OH, const int OW, double* tm, const uint8_t border_value) {
     src += blockIdx.y * H * W * C;
@@ -407,7 +419,17 @@ __global__ void warp_affine_nearest_kernel(const uint8_t* src, uint8_t* dst, con
                     new_h_real[hi] >= 0 && new_h_real[hi] < H) {
                     val[hi][wi] = src[(new_h_real[hi] * W + new_w_real[wi]) * C + c];
                 } else {
-                    val[hi][wi] = border_value;
+                    switch (border_type) {
+                        case BORDER_TYPE_CONSTANT:
+                            val[hi][wi] = border_value;
+                            break;
+                        case BORDER_TYPE_TRANSPARENT:
+                            val[hi][wi] = dst[hwc_id];
+                            break;
+                        default:
+                            val[hi][wi] = 0;
+                            break;
+                    }
                 }
             }
         }
@@ -487,7 +509,7 @@ static void initInterTab2D(short* input_table) {
 }
 
 void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-        const float (*transform)[3], const float border_val) {
+        const float (*transform)[3], const float border_val, BorderType border_type, void* stream) {
     double m[6];
     WarpAffineMatrixInverse(transform, m);
     double *tm_gpu;
@@ -500,19 +522,24 @@ void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, i
     initInterTab2D(table_cpu);
     cudaMemcpy(table_gpu, table_cpu, table_size * sizeof(short), cudaMemcpyHostToDevice);
     const int THREAD_PER_BLOCK = 128;
-    const int ELE_PER_THREAD = 8;
+    const int ELE_PER_THREAD = 32;
     int size_dst = dst_h * dst_w * channel;
     dim3 griddim;
     griddim.x = (size_dst + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
     griddim.y = batch;
-    warp_affine_bilinear_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
-        channel, dst_h, dst_w, table_gpu, tm_gpu, border_val);
+    if (border_type == BORDER_TYPE_CONSTANT) {
+        warp_affine_bilinear_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_CONSTANT><<<griddim, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_h, src_w,
+            channel, dst_h, dst_w, table_gpu, tm_gpu, border_val);
+    } else if (border_type == BORDER_TYPE_TRANSPARENT) {
+        warp_affine_bilinear_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_TRANSPARENT><<<griddim, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_h, src_w,
+            channel, dst_h, dst_w, table_gpu, tm_gpu, border_val);
+    }
     CUDA_CHECK(cudaFree(tm_gpu));
     CUDA_CHECK(cudaFree(table_gpu));
 }
 
 void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-        const float (*transform)[3], const float border_val) {
+        const float (*transform)[3], const float border_val, BorderType border_type) {
     double m[6];
     WarpAffineMatrixInverse(transform, m);
     double *tm_gpu;
@@ -524,8 +551,13 @@ void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, in
     dim3 griddim;
     griddim.x = (size_dst + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
     griddim.y = batch;
-    warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
-        channel, dst_h, dst_w, tm_gpu, border_val);
+    if (border_type == BORDER_TYPE_CONSTANT) {
+        warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_CONSTANT><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
+            channel, dst_h, dst_w, tm_gpu, border_val);
+    } else if (border_type == BORDER_TYPE_TRANSPARENT) {
+        warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_TRANSPARENT><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
+            channel, dst_h, dst_w, tm_gpu, border_val);
+    }
     CUDA_CHECK(cudaFree(tm_gpu));
 }
 
