@@ -11,11 +11,6 @@ void RemoveClone(NetStructure* net_structure, NetResource* net_resource) {
         const auto clone_input  = layer_info->inputs[0];
         const auto clone_output = layer_info->outputs[0];
         for (auto& layer : layers) {
-//            for (auto& input : layer->inputs) {
-//                if (input == clone_output) {
-//                    input = clone_input;
-//                }
-//            }
                 for (int i = 0; i < layer->inputs.size(); i++) {
                     if (layer->inputs[i] == clone_output) {
                         layer->inputs[i] = clone_input;
