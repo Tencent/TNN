@@ -233,6 +233,7 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
         _model = [MLModel modelWithContentsOfURL:mlmodelcURL configuration:config error:&error];
         
         if (error != nil) {
+            [self cleanupMLModelC];
             LOGE("Error Creating MLModel %s.\n", [error localizedDescription].UTF8String);
             return TNN_NS::Status(TNN_NS::TNNERR_ANE_COMPILE_MODEL_ERROR, "Error: Failed Creating MLModel.");
         }
