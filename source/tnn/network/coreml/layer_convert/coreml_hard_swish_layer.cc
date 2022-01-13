@@ -79,7 +79,14 @@ Status CoreMLHardSwishLayer::BuildLayerParam() {
         {
             hardsigmoid_layer_info_->type = LAYER_HARDSIGMOID;
             hardsigmoid_layer_info_->name = layer_info_->name + "-hardsigmoid";
-            hardsigmoid_layer_info_->inputs = layer_info_->inputs;
+            if (layer_info_->inputs.size() == 1) {
+                hardsigmoid_layer_info_->inputs = layer_info_->inputs;
+            } else if (layer_info_->inputs.size() == 2) {
+                hardsigmoid_layer_info_->inputs = {layer_info_->inputs[1]};
+            } else {
+                LOGE("CoreMLHardSwishLayer can not support input shape size: %d\n", (int) layer_info_->inputs.size());
+                return Status(TNNERR_MODEL_ERR, "CoreMLHardSwishLayer can not support this input shape size");
+            }
             hardsigmoid_layer_info_->outputs = {hardsigmoid_layer_info_->name + "-out"};
             hardsigmoid_layer_info_->param = hardsigmoid_param;
             {
@@ -100,7 +107,15 @@ Status CoreMLHardSwishLayer::BuildLayerParam() {
         {
             mul_layer_info_->type = LAYER_MUL;
             mul_layer_info_->name = layer_info_->name + "-mul";
-            auto inputs_ = layer_info_->inputs;
+            std::vector<std::string> inputs_;
+            if (layer_info_->inputs.size() == 1) {
+                inputs_ = layer_info_->inputs;
+            } else if (layer_info_->inputs.size() == 2) {
+                inputs_ = {layer_info_->inputs[0]};
+            } else {
+                LOGE("CoreMLHardSwishLayer can not support input shape size: %d\n", (int) layer_info_->inputs.size());
+                return Status(TNNERR_MODEL_ERR, "CoreMLHardSwishLayer can not support this input shape size");
+            }
             inputs_.push_back(layer_info_->name + "-hardsigmoid-out");
             mul_layer_info_->inputs = inputs_;
             mul_layer_info_->outputs = layer_info_->outputs;
