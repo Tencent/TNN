@@ -100,7 +100,7 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
 #endif
         //  static int __cnt = 0;
         //  const std::string root = "./";
-        //  const std::string model_name = "centernet-" + std::to_string(__cnt++);
+        //  const std::string model_name = "splt-" + std::to_string(__cnt++);
         //  const std::string proto_path = root + model_name + ".tnnproto";
         //  const std::string model_path = root + model_name + ".tnnmodel";
         //  TNN_NS::ModelPacker model_packer(net_structure, net_resource);

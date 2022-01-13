@@ -22,7 +22,7 @@
 #include "tnn/core/status.h"
 
 #define DUMP_INPUT_BLOB 0
-#define DUMP_OUTPUT_BLOB 1
+#define DUMP_OUTPUT_BLOB 0
 
 namespace TNN_NS {
 

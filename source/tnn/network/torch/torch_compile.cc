@@ -200,7 +200,7 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
                 c10::cuda::CUDACachingAllocator::emptyCache();
             }
         }
-    #if (DUMP_INPUT_BLO || DUMP_OUTPUT_BLO)
+    #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
         {
             std::vector<torch::jit::Node *> reg_outputs;
             for (auto &block : seg_blocks) {

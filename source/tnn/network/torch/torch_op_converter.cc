@@ -503,7 +503,7 @@ public:
         {
             std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
             layer_info->type = LAYER_MATMUL;
-            layer_info->type_str = "Matmul";
+            layer_info->type_str = "MatMul";
             layer_info->name = matmul_out_name;
 
             layer_info->inputs.push_back(node->inputs()[0]->debugName());
@@ -675,7 +675,7 @@ public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_HARDSIGMOID;
-        layer_info->type_str = "Hardsigmoid";
+        layer_info->type_str = "HardSigmoid";
         layer_info->name = node->output(0)->debugName();
 
         const auto& inputs = node->inputs();
@@ -703,7 +703,7 @@ public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_HARDSWISH;
-        layer_info->type_str = "Hardswish";
+        layer_info->type_str = "HardSwish";
         layer_info->name = node->output(0)->debugName();
 
         const auto& inputs = node->inputs();
@@ -1717,6 +1717,7 @@ REGISTER_TORCH_OP_CONVERTER(Gather, aten, select)
 REGISTER_TORCH_OP_CONVERTER(Gelu, aten, gelu)
 REGISTER_TORCH_OP_CONVERTER(HardTanh, aten, hardtanh_)
 REGISTER_TORCH_OP_CONVERTER(HardSigmoid, aten, hardsigmoid_)
+REGISTER_TORCH_OP_CONVERTER(HardSigmoid, aten, hardsigmoid)
 REGISTER_TORCH_OP_CONVERTER(HardSwish, aten, hardswish_)
 REGISTER_TORCH_OP_CONVERTER(LayerNorm, aten, layer_norm)
 REGISTER_TORCH_OP_CONVERTER(Linear, aten, linear)
