@@ -98,7 +98,7 @@ Status ModelInterpreter::Interpret(std::vector<std::string> &params) {
         return status;
     }
 
-    for (auto item : params) {
+    for (const auto& item : params) {
         params_md5_.push_back(md5(item));
         LOGD("model params md5: %s\n", md5(item).c_str());
     }

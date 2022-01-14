@@ -5,7 +5,7 @@ import argparse
 
 import onnx
 import onnx.utils
-from onnx import optimizer
+# from onnx import optimizer
 
 # import onnxsim #pip3 install onnx-simplifier
 # import sys

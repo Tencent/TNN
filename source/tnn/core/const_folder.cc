@@ -87,15 +87,18 @@ Status ConstFolder::Forward() {
     RETURN_ON_NEQ(status, TNN_OK);
     
     BlobShapesMap shapes_map;
+    BlobDataTypeMap datatypes_map;
     //save all input and output blob shapes, better for cuda device
     for (auto layer : layers_){
         auto inputs = layer->GetInputBlobs();
         for (auto blob : inputs) {
             shapes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().dims;
+            datatypes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().data_type;
         }
         auto outputs = layer->GetOutputBlobs();
         for (auto blob : outputs) {
             shapes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().dims;
+            datatypes_map[blob->GetBlobDesc().name]  = blob->GetBlobDesc().data_type;
         }
     }
     
@@ -147,6 +150,7 @@ Status ConstFolder::Forward() {
     net_resource_->constant_map = constant_map;
     net_resource_->constant_blob_flags = constant_blob_flags;
     net_resource_->blob_shapes_map = shapes_map;
+    net_resource_->blob_datatype_map = datatypes_map;
     
     return TNN_OK;
 }

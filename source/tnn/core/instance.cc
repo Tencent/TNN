@@ -46,15 +46,30 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
 }
 
 Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
-    auto device = GetDevice(net_config_.device_type);
-    RETURN_VALUE_ON_NEQ(device != NULL, true, TNNERR_DEVICE_NOT_SUPPORT);
-    interpreter_ = interpreter->Copy();
-    if (nullptr == interpreter_) {
-        // The ModelInterpreter not implement Copy API, just use interpreter
-        LOGI("Interpreter Copy failed, use interpreter in params instead\n");
-        interpreter_ = interpreter;
+    
+    auto type = net_config_.device_type;
+    if(type == DEVICE_APPLE_NPU) {
+        //use DEVICE_ARM OR DEVICE_X86 according to hardware
+#if defined(__arm__) || defined(__arm64__)
+        type = DEVICE_ARM;
+#else
+        type = DEVICE_X86;
+#endif
+        
     }
-
+    auto device = GetDevice(type);
+    LOGE_IF(!device, "device is nil or unsupported for type: %d\n", type);
+    RETURN_VALUE_ON_NEQ(device != NULL, true, TNNERR_DEVICE_NOT_SUPPORT);
+    
+    if (interpreter) {
+        interpreter_ = interpreter->Copy();
+        if (nullptr == interpreter_) {
+            // The ModelInterpreter not implement Copy API, just use interpreter
+            LOGI("Interpreter Copy failed, use interpreter in params instead\n");
+            interpreter_ = interpreter;
+        }
+    }
+    
     auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter_.get());
 
     auto network_type = net_config_.network_type;
@@ -79,28 +94,29 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
     }
 
     if (default_interpreter && default_interpreter->GetNetStructure() &&
-        (NeedDoConstantFolding(default_interpreter->GetNetStructure()) || net_config_.device_type == DEVICE_CUDA)) {
+        (NeedDoConstantFolding(default_interpreter->GetNetStructure()) ||
+         net_config_.device_type == DEVICE_CUDA || net_config_.device_type == DEVICE_APPLE_NPU)) {
         auto const_folder = std::make_shared<ConstFolder>();
         auto folder_net_config = net_config_;
-	folder_net_config.share_memory_mode = SHARE_MEMORY_MODE_DEFAULT;
-	auto status = const_folder->Init(folder_net_config, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape);
+        folder_net_config.share_memory_mode = SHARE_MEMORY_MODE_DEFAULT;
+        auto status = const_folder->Init(folder_net_config, model_config_, interpreter_.get(), min_inputs_shape, max_inputs_shape);
         RETURN_ON_NEQ(status, TNN_OK);
 
         if (min_inputs_shape.size() != 0) {
             status = const_folder->Reshape(min_inputs_shape);
             RETURN_ON_NEQ(status, TNN_OK);
             auto min_blob_shapes_map = default_interpreter->GetNetResource()->blob_shapes_map;
-            
+                
             //Note output shape may not change after reshape for const folder, but will do change after forward because shape may be determined at rumtime
             status = const_folder->Reshape(max_inputs_shape);
             RETURN_ON_NEQ(status, TNN_OK);
-            
+                
             default_interpreter->GetNetResource()->min_blob_shapes_map = min_blob_shapes_map;
         } else {
             auto max_constant_map = default_interpreter->GetNetResource()->blob_shapes_map;
             default_interpreter->GetNetResource()->min_blob_shapes_map = max_constant_map;
         }
- 
+     
         const_folder_ = const_folder;
     }
 
@@ -323,3 +339,4 @@ std::string Instance::FinishProfile(bool do_print) {
 #endif
 
 }  // namespace TNN_NS
+

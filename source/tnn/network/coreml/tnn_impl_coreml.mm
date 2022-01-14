@@ -1,8 +1,8 @@
-#include "tnn/device/metal/tnn_impl_coreml.h"
+#include "tnn_impl_coreml.h"
+#include "stdio.h"
 #include "tnn/core/instance.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
 #include "tnn/interpreter/net_structure.h"
-#include "stdio.h"
 
 namespace TNN_NS {
 
@@ -17,7 +17,10 @@ TNNImplCoreML::~TNNImplCoreML() {
 }
 
 Status TNNImplCoreML::Init(ModelConfig& config) {
-    return TNNImpl::Init(config);
+//    return TNNImpl::Init(config);
+    RETURN_ON_NEQ(TNNImpl::Init(config), TNN_OK);
+    model_config_.params = config.params;
+    return TNN_OK;
 }
 
 Status TNNImplCoreML::DeInit() {
@@ -57,6 +60,5 @@ std::shared_ptr<Instance> TNNImplCoreML::CreateInst(NetworkConfig& net_config,
     }
     return instance;
 }
-
     
 }  // namespace TNN_NS

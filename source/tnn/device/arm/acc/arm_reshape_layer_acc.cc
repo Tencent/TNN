@@ -100,10 +100,13 @@ Status ArmReshapeLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const
 
     char *input_origin  = GetBlobHandlePtr(inputs[0]->GetHandle());
     char *output_origin = GetBlobHandlePtr(outputs[0]->GetHandle());
-
+    
+    const int ib = dims_input.size() > 0 ? dims_input[0] : 1;
     auto ic    = DimsFunctionUtils::GetDim(dims_input, 1);
     auto ic_r8 = ROUND_UP(ic, 8);
     auto ihw   = DimsVectorUtils::Count(dims_input, 2);
+    
+    const int ob = dims_output.size() > 0 ? dims_output[0] : 1;
     auto oc    = DimsFunctionUtils::GetDim(dims_output, 1);
     auto oc_r8 = ROUND_UP(oc, 8);
     auto ohw   = DimsVectorUtils::Count(dims_output, 2);
@@ -113,7 +116,7 @@ Status ArmReshapeLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const
     auto output_plane    = oc * ohw;
     auto output_plane_r8 = oc_r8 * ohw;
 
-    for (int b = 0; b < dims_input[0]; b++) {
+    for (int b = 0; b < ib; b++) {
         auto input_data     = reinterpret_cast<fp16_t *>(input_origin) + b * input_plane_r8;
         auto workspace_data = reinterpret_cast<fp16_t *>(workspace_) + b * input_plane;
         if (reshape_type_ == 0)
@@ -123,7 +126,7 @@ Status ArmReshapeLayerAcc::Exec<fp16_t>(const std::vector<Blob *> &inputs, const
         else
             return Status(TNNERR_LAYER_ERR, "Unsupport reshape type");
     }
-    for (int b = 0; b < dims_output[0]; b++) {
+    for (int b = 0; b < ob; b++) {
         auto workspace_data = reinterpret_cast<fp16_t *>(workspace_) + b * output_plane;
         auto output_data    = reinterpret_cast<fp16_t *>(output_origin) + b * output_plane_r8;
         if (reshape_type_ == 0)
