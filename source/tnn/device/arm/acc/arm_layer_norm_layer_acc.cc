@@ -120,9 +120,13 @@ Status ArmLayerNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     DataType input_data_type = inputs[0]->GetBlobDesc().data_type;
     if (DATA_TYPE_FLOAT == input_data_type) {
         return Exec(inputs, outputs);
-    } else if (DATA_TYPE_HALF == input_data_type) {
+    }
+#ifdef TNN_ARM82
+    else if (DATA_TYPE_HALF == input_data_type) {
         return ExecFp16(inputs, outputs);
-    } else {
+    }
+#endif
+    else {
         LOGE("Error: ArmLayerNormLayerAcc layer acc dont support datatype: %d\n", input_data_type);
         return Status(TNNERR_MODEL_ERR, "Error: ArmLayerNormLayerAcc layer acc dont support datatype");
     }
