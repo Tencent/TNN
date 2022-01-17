@@ -65,6 +65,7 @@
 		368F9EA927953079008B53A5 /* arm_layer_norm_fp16_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 368F9EA827953079008B53A5 /* arm_layer_norm_fp16_layer.cc */; };
 		369005C5267314D900412264 /* pad_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 369005C3267314D900412264 /* pad_utils.cc */; };
 		369005C6267314D900412264 /* pad_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 369005C4267314D900412264 /* pad_utils.h */; };
+		36B52B9C2795B28F00B34309 /* arm_instance_norm_layer_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = 36B52B9B2795B28F00B34309 /* arm_instance_norm_layer_acc.h */; };
 		36C14F01278D795E0099C5D0 /* arm_instance_norm_fp16_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36C14F00278D795E0099C5D0 /* arm_instance_norm_fp16_layer.cc */; };
 		4E187CFA267202BF00804FDF /* roialign_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4E187CF0267202BE00804FDF /* roialign_layer_interpreter.cc */; };
 		4E187CFB267202BF00804FDF /* conv_1d_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4E187CF1267202BE00804FDF /* conv_1d_layer_interpreter.cc */; };
@@ -1153,6 +1154,7 @@
 		368F9EA827953079008B53A5 /* arm_layer_norm_fp16_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_layer_norm_fp16_layer.cc; sourceTree = "<group>"; };
 		369005C3267314D900412264 /* pad_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pad_utils.cc; sourceTree = "<group>"; };
 		369005C4267314D900412264 /* pad_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pad_utils.h; sourceTree = "<group>"; };
+		36B52B9B2795B28F00B34309 /* arm_instance_norm_layer_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_instance_norm_layer_acc.h; sourceTree = "<group>"; };
 		36C14F00278D795E0099C5D0 /* arm_instance_norm_fp16_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_instance_norm_fp16_layer.cc; sourceTree = "<group>"; };
 		4E187CF0267202BE00804FDF /* roialign_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = roialign_layer_interpreter.cc; path = tnn/layer_interpreter/roialign_layer_interpreter.cc; sourceTree = "<group>"; };
 		4E187CF1267202BE00804FDF /* conv_1d_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = conv_1d_layer_interpreter.cc; path = tnn/layer_interpreter/conv_1d_layer_interpreter.cc; sourceTree = "<group>"; };
@@ -3057,6 +3059,7 @@
 		9DF542DF258B1363006CEC97 /* acc */ = {
 			isa = PBXGroup;
 			children = (
+				36B52B9B2795B28F00B34309 /* arm_instance_norm_layer_acc.h */,
 				3620403C26E8D4E000935711 /* arm_gelu_layer_acc.h */,
 				3620403F26E8D4E000935711 /* arm_gelu_layer.acc.cc */,
 				3620403D26E8D4E000935711 /* arm_layer_norm_layer_acc.cc */,
@@ -3809,6 +3812,7 @@
 				EC0BE13725144B5E009BD69A /* detection_post_process_utils.h in Headers */,
 				3620404026E8D4E100935711 /* arm_gelu_layer_acc.h in Headers */,
 				9DF543AA258B1366006CEC97 /* arm_unary_layer_acc.h in Headers */,
+				36B52B9C2795B28F00B34309 /* arm_instance_norm_layer_acc.h in Headers */,
 				9D32FC9624557EEC002DCDAB /* blob_memory_size_info.h in Headers */,
 				9D32FCA224557EEC002DCDAB /* blob_memory_pool.h in Headers */,
 				E44D947326048C1A003FE4A3 /* dims_utils.h in Headers */,
@@ -4872,7 +4876,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 71;
+				CURRENT_PROJECT_VERSION = 73;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -4934,7 +4938,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 71;
+				CURRENT_PROJECT_VERSION = 73;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -4966,7 +4970,7 @@
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 71;
+				DYLIB_CURRENT_VERSION = 73;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_BITCODE = YES;
 				FRAMEWORK_VERSION = A;
@@ -5023,7 +5027,7 @@
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 71;
+				DYLIB_CURRENT_VERSION = 73;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_BITCODE = YES;
 				FRAMEWORK_VERSION = A;
