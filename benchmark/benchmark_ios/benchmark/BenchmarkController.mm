@@ -261,7 +261,7 @@ struct BenchResult {
     {
         ModelConfig config;
         if (protoContent.length() > 0 && modelPathOrContent.length() > 0) {
-            config.model_type = MODEL_TYPE_TNN;
+            config.model_type = MODEL_TYPE_RAPIDNET;
             config.params = {protoContent, modelPathOrContent};
         } else if (coremlDir.length() > 0) {
             config.model_type = MODEL_TYPE_COREML;
