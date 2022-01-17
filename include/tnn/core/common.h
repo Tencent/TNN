@@ -111,6 +111,7 @@ typedef enum {
     DEVICE_ATLAS      = 0x1040,
     DEVICE_HUAWEI_NPU = 0x1050,
     DEVICE_RK_NPU     = 0x1060,
+    DEVICE_APPLE_NPU  = 0x1070,
 } DeviceType;
 
 typedef enum {

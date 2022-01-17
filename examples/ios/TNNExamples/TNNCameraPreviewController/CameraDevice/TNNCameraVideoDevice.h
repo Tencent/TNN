@@ -49,6 +49,7 @@ typedef void(^CameraSetupCallback)(BOOL);
 @interface TNNCameraVideoDevice : NSObject
 @property (nonatomic, weak) NSObject<TNNCameraVideoDeviceDelegate> *delegate;
 @property (nonatomic, strong, readonly) AVCaptureVideoPreviewLayer *videoPreviewLayer;
+@property (nonatomic, assign) AVCaptureVideoOrientation videoOrientation;
 @property (nonatomic, strong, readonly) dispatch_queue_t queue;
 
 - (instancetype)init;

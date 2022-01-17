@@ -21,8 +21,9 @@ using namespace::TNN_NS;
 @property (nonatomic, assign) std::shared_ptr<TNNSDKSample> predictor;
 
 @property (nonatomic, strong) NSString *title;
+@property (nonatomic, assign) UIDeviceOrientation preferDeviceOrientation;
 @property (nonatomic, assign) bool preferFrontCamera;
-@property (nonatomic, assign) bool preferGPU;
+@property (nonatomic, assign) TNNComputeUnits preferComputeUnits;
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units;
 
 //Object Detection
@@ -31,6 +32,11 @@ using namespace::TNN_NS;
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object;
 
 //Custom UI control
+- (BOOL)showImageAtMinorPreview;
+
 - (void)setupCustomView:(UIView *)view
            layoutHeight:(NSLayoutConstraint *)viewLayoutHeight;
+
+//Custom UI control
+- (void)adajustStackPrevieView:(UIStackView *)stackView;
 @end

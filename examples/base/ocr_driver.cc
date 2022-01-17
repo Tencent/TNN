@@ -167,8 +167,7 @@ Status OCRDriver::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
             text_boxes = output->text_boxes;
         }
         if(text_boxes.size() <= 0) {
-            printf("Error no text boxes found!\n");
-            return -1;
+            return TNN_OK;
         }
     }
     std::vector<cv::Mat> part_images = getPartImages(predictor_textbox_detector_cast->GetPaddedInput(), text_boxes);
