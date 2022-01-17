@@ -12,13 +12,18 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_METAL_CORE_COREML_NETWORK_H_
-#define TNN_SOURCE_TNN_DEVICE_METAL_CORE_COREML_NETWORK_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_COREML_COREML_NETWORK_H_
+#define TNN_SOURCE_TNN_DEVICE_COREML_COREML_NETWORK_H_
+
 #import <CoreML/CoreML.h>
 
 #include "tnn/core/abstract_device.h"
 #include "tnn/core/abstract_network.h"
 #include "tnn/core/context.h"
+#include "tnn/core/default_network.h"
+#include "mlmodel/include/Model.pb-c.h"
+#include "tnn/network/coreml/layer_convert/coreml_base_layer.h"
+#import "coreml_model.h"
 
 namespace TNN_NS {
 
@@ -68,21 +73,57 @@ public:
 
     // @brief get all output blobs
     virtual Status GetAllOutputBlobs(BlobMap &blobs);
-
-private:
+            
+    Status SetInput(CoreML__Specification__FeatureDescription** describe, std::string name, std::vector<int> shape, DataType type);
+    
+    Status SetOutput(CoreML__Specification__FeatureDescription** describe, std::string name, std::vector<int> shape, DataType type);
+        
+    Status InitCoreMLModel(NetStructure *net_structure, NetResource *net_resource);
+    
+    Status ConvertCoreMLModel(NetStructure *net_structure, NetResource *net_resource);
+        
+    Status CompileModel(CoreML__Specification__Model* model);
+    
+protected:
+    ModelConfig model_config_;
     AbstractDevice *device_              = nullptr;
-    Context *context_                    = nullptr;
-    __strong NSDictionary *coreml_net_   = nil;
-    __strong NSDictionary *coreml_shape_ = nil;
-    __strong NSObject *coreml_model_     = nil;
+    Context *context_                       = nullptr;
+    NetStructure *net_structure_      = nullptr;
+    NetResource *net_resource_     = nullptr;
+    
     BlobMap blob_input_map_;
     BlobMap blob_output_map_;
-    DimsVector coreml_input_dims_;
-    DimsVector coreml_output_dims_;
+    
+    std::vector<std::shared_ptr<Blob> > blob_input_ = {};
+    std::vector<std::shared_ptr<Blob> > blob_output_ = {};
     
     Status CheckCoreMLStatus();
+    
+    std::unique_ptr<_CoreML__Specification__Model> coreml_model_;
+    std::vector<std::shared_ptr<CoreMLBaseLayer> > coreml_layers_;
+    std::vector<CoreML__Specification__NeuralNetworkLayer*> coreml_layer_ptrs_;
+    
+    std::shared_ptr<void> coreml_neural_network_;
+    std::shared_ptr<void> coreml_model_description_;
+    
+    std::shared_ptr<CoreML__Specification__FeatureDescription *> coreml_input_arr_;
+    std::vector<std::shared_ptr<CoreML__Specification__FeatureDescription> > coreml_input_feature_description_;
+    std::vector<std::shared_ptr<CoreML__Specification__FeatureType> > coreml_input_feature_type_;
+    std::vector<std::shared_ptr<CoreML__Specification__ArrayFeatureType> > coreml_input_array_feature_type_;
+    std::vector<std::shared_ptr<int64_t> > coreml_input_shape_;
+    std::vector<std::shared_ptr<char> > input_name_;
+    
+    std::shared_ptr<CoreML__Specification__FeatureDescription *> coreml_output_arr_;
+    std::vector<std::shared_ptr<CoreML__Specification__FeatureDescription> > coreml_output_feature_description_;
+    std::vector<std::shared_ptr<CoreML__Specification__FeatureType> > coreml_output_feature_type_;
+    std::vector<std::shared_ptr<CoreML__Specification__ArrayFeatureType> > coreml_output_array_feature_type_;
+    std::vector<std::shared_ptr<int64_t> >coreml_output_shape_;
+    std::vector<std::shared_ptr<char> > output_name_;
+    
+    CoreMLModel* coreml_executor_ = nil;
+    
 };
 
 } // namespace TNN_NS
 
-#endif // TNN_SOURCE_TNN_DEVICE_METAL_CORE_COREML_NETWORK_H_
+#endif // TNN_SOURCE_TNN_DEVICE_COREML_COREML_NETWORK_H_

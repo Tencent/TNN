@@ -39,8 +39,9 @@ public:
                                                             std::string name = kTNNSDKDefaultName);
     
 private:
-    void GenerateDetectResult(std::shared_ptr<Mat> output, std::vector<ObjectInfo>& detects,
-                              int num_detections, int image_width, int image_height);
+    void GenerateObjects(std::vector<ObjectInfo>& objects,
+                         std::shared_ptr<Mat> scores, std::shared_ptr<Mat> boxes,
+                         float score_threshold, int image_width, int image_height);
     
 };
 

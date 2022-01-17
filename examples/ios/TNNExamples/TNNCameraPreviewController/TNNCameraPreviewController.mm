@@ -20,10 +20,11 @@ typedef void(^CommonCallback)(Status);
 @interface TNNCameraPreviewController () <TNNCameraVideoDeviceDelegate> {
     std::vector<std::shared_ptr<ObjectInfo> > _object_list_last;
 }
-@property (nonatomic, weak) IBOutlet UIImageView *cameraPreview;
+@property (nonatomic, weak) IBOutlet UIStackView *stackPreview;
+@property (nonatomic, strong) IBOutlet UIImageView *cameraPreview;
+@property (nonatomic, strong) IBOutlet UIImageView *minorPreview;
 @property (nonatomic, weak) IBOutlet UILabel *labelResult;
 @property (nonatomic, weak) IBOutlet UILabel *labelFPS;
-@property (nonatomic, weak) IBOutlet UISwitch *switchGPU;
 @property (nonatomic, weak) IBOutlet UIButton *rotateCamera;
 
 @property (nonatomic, strong) TNNCameraVideoDevice *cameraDevice;
@@ -31,7 +32,8 @@ typedef void(^CommonCallback)(Status);
 
 @property (nonatomic, strong) dispatch_semaphore_t inflightSemaphore;
 
-@property (nonatomic, strong) TNNMaskImage *maskImage;
+@property (nonatomic, strong) TNNMaskImage *cameraMaskImage;
+@property (nonatomic, strong) TNNMaskImage *minorMaskImage;
 @property (nonatomic, strong) NSArray<TNNBoundingBox *> *boundingBoxes;
 @property (nonatomic, strong) NSArray<UIColor *> *colors;
 @end
@@ -40,7 +42,11 @@ typedef void(^CommonCallback)(Status);
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    [self.viewModel adajustStackPrevieView:self.stackPreview];
+    
+//    [self clearNavigationBarLeft];
     self.navigationItem.title = self.viewModel.title;
+    [self forceToOrientation:self.viewModel.preferDeviceOrientation];
     
     //colors for each class
     auto colors = [NSMutableArray array];
@@ -61,11 +67,17 @@ typedef void(^CommonCallback)(Status);
     
     _boundingBoxes = [NSArray array];
     // maskimage layer
-    _maskImage = [[TNNMaskImage alloc] init];
+    _cameraMaskImage = [[TNNMaskImage alloc] init];
+    _minorMaskImage = [[TNNMaskImage alloc] init];
     _inflightSemaphore = dispatch_semaphore_create(kMaxBuffersInFlight);
     
     self.cameraDevice = [[TNNCameraVideoDevice alloc] init];
     self.cameraDevice.delegate = self;
+    if (self.viewModel.preferDeviceOrientation == UIDeviceOrientationLandscapeRight) {
+        self.cameraDevice.videoOrientation = AVCaptureVideoOrientationLandscapeLeft;
+    } else {
+        self.cameraDevice.videoOrientation = AVCaptureVideoOrientationPortrait;
+    }
     if (self.cameraDevice.videoPreviewLayer) {
         [self.cameraPreview.layer addSublayer:self.cameraDevice.videoPreviewLayer];
         [self resizePreviewLayer];
@@ -82,8 +94,14 @@ typedef void(^CommonCallback)(Status);
     }];
     
     //init network
-    [self.switchGPU setOn:self.viewModel.preferGPU];
-    auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    int index = 0;
+    if(self.viewModel.preferComputeUnits == TNNComputeUnitsAppleNPU) {
+        index = 2;
+    } else if(self.viewModel.preferComputeUnits == TNNComputeUnitsGPU) {
+        index = 1;
+    }
+    [self.switchDevice setSelectedSegmentIndex:index];
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
             //刷新界面
@@ -106,6 +124,14 @@ typedef void(^CommonCallback)(Status);
     [self.cameraDevice stopSession];
 }
 
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    if (self.viewModel.preferDeviceOrientation == UIDeviceOrientationLandscapeRight) {
+        return UIInterfaceOrientationMaskLandscapeLeft;
+    } else {
+        return UIInterfaceOrientationMaskPortrait;
+    }
+}
+
 - (void)setupBoundingBox:(NSUInteger)maxNumber {
     // Set up the bounding boxes.
     auto boundingBoxes = [NSMutableArray arrayWithArray:_boundingBoxes];
@@ -119,9 +145,12 @@ typedef void(^CommonCallback)(Status);
         
         [iter addToLayer:_cameraPreview.layer];
     }
-    [_maskImage hide];
-    [_maskImage removeFromSuperLayer];
-    [_maskImage addToLayer:_cameraPreview.layer];
+    [_cameraMaskImage hide];
+    [_cameraMaskImage removeFromSuperLayer];
+    [_cameraMaskImage addToLayer:_cameraPreview.layer];
+    [_minorMaskImage hide];
+    [_minorMaskImage removeFromSuperLayer];
+    [_minorMaskImage addToLayer:_minorPreview.layer];
     self.boundingBoxes = boundingBoxes;
 }
 
@@ -133,7 +162,7 @@ typedef void(^CommonCallback)(Status);
 
 - (void)loadNeuralNetwork:(TNNComputeUnits)units
                  callback:(CommonCallback)callback {
-    //异步加载模型
+    //load model async
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         Status status = [self.viewModel loadNeuralNetworkModel:units];
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -146,13 +175,13 @@ typedef void(^CommonCallback)(Status);
 
 #pragma mark - IBAction Interfaces
 
-- (IBAction)onSwitchGPU:(id)sender
+- (void)onSwitchChanged:(id)sender
 {
     //init network
-    auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     [self loadNeuralNetwork:units callback:^(Status status) {
         if (status != TNN_OK) {
-            //刷新界面
+            //update UI
             [self showSDKOutput:nullptr withOriginImageSize:CGSizeZero withStatus:status];
         }
     }];
@@ -183,7 +212,7 @@ typedef void(^CommonCallback)(Status);
     //for muti-thread safety, increase ref count, to insure predictor is not released while detecting object
     auto fps_counter_async_thread = _fps_counter;
     auto predictor_async_thread = self.viewModel.predictor;
-    auto compute_units = self.viewModel.predictor->GetComputeUnits();
+    auto actual_units = self.viewModel.predictor->GetComputeUnits();
     
     CVImageBufferRef image_buffer = CMSampleBufferGetImageBuffer(video_buffer);
     int origin_width = (int)CVPixelBufferGetWidth(image_buffer);
@@ -191,24 +220,24 @@ typedef void(^CommonCallback)(Status);
     CGSize origin_image_size = CGSizeMake(origin_width, origin_height);
     
     id<MTLTexture> image_texture = nil;
-    if (compute_units == TNNComputeUnitsGPU) {
+    if (actual_units == TNNComputeUnitsGPU) {
         image_texture = [camera getMTLTextureFromImageBuffer:image_buffer];
     }
     //NSLog(@"==== (%d, %d)", origin_height, origin_width);
     
-    //异步运行模型
+    //run model async
     CVBufferRetain(image_buffer);
     auto image_texture_ref = CFBridgingRetain(image_texture);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         Status status = TNN_OK;
         std::map<std::string, double> map_fps;
-
-        //Note：智能指针必须在resize后才能释放
+        
+        //Note：smart point must be reed after the op resize
         std::shared_ptr<char> image_data = nullptr;
         std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
         // devan: to support generate UIImage, set channel to 4
         auto origin_dims = {1, 4, origin_height, origin_width};
-        if (compute_units == TNNComputeUnitsCPU) {
+        if (actual_units == TNNComputeUnitsCPU || actual_units == TNNComputeUnitsAppleNPU) {
             image_data = utility::CVImageBuffRefGetData(image_buffer);
             image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, origin_dims, image_data.get());
         } else {
@@ -246,7 +275,6 @@ typedef void(^CommonCallback)(Status);
              hideTextFrame:hideTextbox
                      withStatus:status];
             [self showFPS:map_fps];
-            //[self showTime: time];
         });
         
         dispatch_semaphore_signal(self.inflightSemaphore);
@@ -261,7 +289,17 @@ typedef void(^CommonCallback)(Status);
     auto object_list = [self.viewModel getObjectList:output];
     [self showObjectInfo:object_list withOriginImageSize:size hideTextFrame:hideTextFrame withStatus:status];
     auto mask_data   = [self.viewModel getImage:output];
-    [self showMask:mask_data withOriginImageSize:size withStatus:status];
+    if (![self.viewModel showImageAtMinorPreview]) {
+        [self showImage:mask_data atImageLayer:_cameraMaskImage withOriginImageSize:size withStatus:status];
+    } else {
+        [self showImage:mask_data atImageLayer:_minorMaskImage withOriginImageSize:size withStatus:status];
+    }
+}
+
+- (void)showSDKOutput:(std::shared_ptr<TNNSDKOutput>)output
+  withOriginImageSize:(CGSize)size
+           withStatus:(Status)status {
+    [self showSDKOutput:output withOriginImageSize:size hideTextFrame:true withStatus:status];
 }
 
 - (void)showObjectInfo:(std::vector<std::shared_ptr<ObjectInfo> >)object_list
@@ -319,7 +357,8 @@ typedef void(^CommonCallback)(Status);
     }
 }
 
-- (void)showMask:(ImageInfo)image_info
+- (void)showImage:(ImageInfo)image_info
+            atImageLayer:(TNNMaskImage *)image_layer
             withOriginImageSize:(CGSize)origin_size
             withStatus:(Status)status {
     if (!image_info.data)
@@ -330,7 +369,7 @@ typedef void(^CommonCallback)(Status);
     }
     // devan: method to support RGB data?
     UIImage* image = utility::UIImageWithDataRGBA(image_info.data.get(), image_info.image_height, image_info.image_width);
-    [_maskImage showImage:image atFrame:_cameraPreview.bounds];
+    [image_layer showImage:image atFrame:_cameraPreview.bounds];
 }
 
 
@@ -373,23 +412,12 @@ typedef void(^CommonCallback)(Status);
 }
 
 - (void)showFPS:(std::map<std::string, double>) map_fps {
-    NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
-                            self.switchGPU.isOn ? @"metal\n" : @"arm\n"];
+    auto actual_units = self.viewModel.predictor->GetComputeUnits();
+    auto fps = [NSMutableString stringWithFormat:@"device: %@",  [self getNSSTringForComputeUnits:actual_units]];
     int index = 0;
     for (auto item : map_fps) {
-        [fps appendFormat:@"%@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
+        [fps appendFormat:@" %@fps %s: %.2f", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
         NSLog(@"%@fps %s: %.2f",  index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second);
-    }
-    self.labelFPS.text = fps;
-}
-
-- (void)showTime:(std::map<std::string, double>) map_time {
-    NSMutableString *fps = [NSMutableString stringWithFormat:@"device: %@",
-                            self.switchGPU.isOn ? @"metal\n" : @"arm\n"];
-    int index = 0;
-    for (auto item : map_time) {
-        [fps appendFormat:@"%@time %s: %.4f ms", index++ > 0 ? @"\n" : @"", item.first.c_str(), item.second];
-        //LOGE("=== %s: %.4f\n", item.first.c_str(), item.second);
     }
     self.labelFPS.text = fps;
 }

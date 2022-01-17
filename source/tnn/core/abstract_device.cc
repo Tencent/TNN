@@ -64,3 +64,4 @@ std::map<DeviceType, std::shared_ptr<AbstractDevice>>& GetGlobalDeviceMap() {
 }
 
 }  // namespace TNN_NS
+

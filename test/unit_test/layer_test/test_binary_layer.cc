@@ -52,6 +52,10 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_po
         GTEST_SKIP();
     }
 
+    if (data_type == DATA_TYPE_INT8 && DEVICE_APPLE_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     std::vector<int> param_dims;
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
     if (0 == param_size_type) {
@@ -79,6 +83,9 @@ void BinaryLayerTest::RunBinaryTest(std::string layer_type_str, bool resource_po
             InitRandom(buffer_data, param_count, 0.001f, 1.0f);
         } else {
             InitRandom(buffer_data, param_count, 1.0f);
+        }
+        if (DEVICE_APPLE_NPU == dev) {
+            buffer.SetBufferDims(param_dims);
         }
         resource->element_handle = buffer;
         resource->element_shape  = param_dims;
