@@ -25,8 +25,8 @@ using namespace TNN_NS;
                                 dataTypesMap:(TNN_NS::BlobDataTypeMap &) typesMap
 fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API_AVAILABLE(ios(12.0), macosx(10.14));
 
-- (tnn::Status)cleanupMLModel;
-- (tnn::Status)cleanupMLModelC;
+- (TNN_NS::Status)cleanupMLModel;
+- (TNN_NS::Status)cleanupMLModelC;
 
 @end
 
@@ -137,7 +137,7 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
     return status;
 }
 
-- (tnn::Status)cleanupMLModel {
+- (TNN_NS::Status)cleanupMLModel {
     NSError* error = nil;
     
     //remove mlmodel, no need to check error
@@ -146,7 +146,7 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
     return TNN_NS::TNN_OK;
 }
 
-- (tnn::Status)cleanupMLModelC {
+- (TNN_NS::Status)cleanupMLModelC {
     NSError* error = nil;
     
     //remove mlmodelc, no need to check error
