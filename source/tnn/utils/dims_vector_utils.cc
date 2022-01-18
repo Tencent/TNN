@@ -84,6 +84,10 @@ DimsVector DimsVectorUtils::Min(const DimsVector &dims0, const DimsVector &dims1
 }
 
 bool DimsVectorUtils::Equal(const DimsVector &dims0, const DimsVector &dims1, int start_index, int end_index) {
+    if (dims0.size() == 0 && dims1.size() == 0) {
+        return true;
+    }
+    
     if (dims0.size() <= start_index) {
         return false;
     }

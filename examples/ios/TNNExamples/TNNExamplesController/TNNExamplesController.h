@@ -14,9 +14,26 @@
 
 #import <UIKit/UIKit.h>
 #import "TNNViewModel.h"
+#import "TOSegmentedControl.h"
+#include "tnn_sdk_sample.h"
 
 @interface TNNExamplesController : UIViewController
+@property(nonatomic, weak) IBOutlet TOSegmentedControl *switchDevice;
 @property (nonatomic, weak) IBOutlet UIView *customOptionView;
 @property (nonatomic, weak) IBOutlet NSLayoutConstraint *customOptionViewHeight;
 @property (nonatomic, strong) TNNViewModel *viewModel;
+
+- (void)onSwitchChanged:(id)sender;
+
+-(TNNComputeUnits)getComputeUnitsForIndex:(NSInteger)index;
+-(NSString *)getNSSTringForComputeUnits:(TNNComputeUnits)unit;
+
+- (BOOL)shouldAutorotate;
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations;
+@end
+
+
+@interface UIViewController (UIDeviceOrientation)
+- (void)forceToOrientation:(UIDeviceOrientation)orientation;
+- (void)clearNavigationBarLeft;
 @end

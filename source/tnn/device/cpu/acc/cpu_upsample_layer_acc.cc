@@ -104,8 +104,10 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
 
         OMP_PARALLEL_FOR_
         for (int h2 = 0; h2 < output_height; ++h2) {
-            float h1r     = static_cast<float>(rheight * (h2 + 0.5) - 0.5);
-            h1r           = h1r >= 0 ? h1r : 0;
+            float h1r = static_cast<float>(rheight * (h2 + 0.5) - 0.5);
+            h1r = h1r >= 0 ? h1r : 0;
+            h1r = (h1r < input_height - 1) ? h1r : input_height - 1;
+            
             const int h1  = static_cast<int>(h1r);
             const int h1p = (h1 < input_height - 1) ? 1 : 0;
 
@@ -114,8 +116,9 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
 
             for (int w2 = 0; w2 < output_width; ++w2) {
                 float w1r = static_cast<float>(rwidth * (w2 + 0.5) - 0.5);
-                w1r       = w1r >= 0 ? w1r : 0;
-
+                w1r = w1r >= 0 ? w1r : 0;
+                w1r = (w1r < input_width - 1) ? w1r : input_width - 1;
+                
                 const int w1            = static_cast<int>(w1r);
                 const int w1p           = (w1 < input_width - 1) ? 1 : 0;
                 const float w1lambda    = w1r - w1;

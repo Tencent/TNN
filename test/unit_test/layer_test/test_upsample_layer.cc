@@ -58,7 +58,7 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
 
     if (mode == 3) {
         // skip cubic upsample for now
-        if (data_type == DATA_TYPE_INT8 || DEVICE_HUAWEI_NPU == dev || DEVICE_CUDA == dev) {
+        if (data_type == DATA_TYPE_INT8 || DEVICE_HUAWEI_NPU == dev || DEVICE_APPLE_NPU == dev || DEVICE_CUDA == dev) {
             GTEST_SKIP();
         }
     }
@@ -69,6 +69,11 @@ TEST_P(UpsampleLayerTest, UpsampleLayer) {
     }
 
     if (DEVICE_HUAWEI_NPU == dev && scale_x * scale_y <= 1.0f/7.0f) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_APPLE_NPU == dev && (data_type == DATA_TYPE_INT8 || mode != 2)) {
+        ////CoreML only support integer scale with mode nn, fractional scale for mode linear
         GTEST_SKIP();
     }
 

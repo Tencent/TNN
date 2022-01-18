@@ -64,6 +64,7 @@ private:
     DimsVector dims_ = {};
 };
 
+RawBuffer ConvertFloatToFP16(RawBuffer &buf);
 RawBuffer ConvertHalfHandle(RawBuffer &buf);
 RawBuffer ConvertFloatToBFP16(RawBuffer &buf);
 RawBuffer ConvertHalfToBFP16(RawBuffer &buf);

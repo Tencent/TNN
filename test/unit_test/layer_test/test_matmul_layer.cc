@@ -78,6 +78,10 @@ TEST_P(MatMulLayerTest, MatMulLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_APPLE_NPU == dev && (weight_pos == 1 || weight_pos == 0)) {
+        GTEST_SKIP();
+    }
+
     if (IsCrossBroadCast(input0_dim, input1_dim)) {
         GTEST_SKIP();
     }
