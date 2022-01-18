@@ -59,6 +59,7 @@ using namespace std;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
 
         option->min_score_threshold = 0.5;
         option->min_suppression_threshold = 0.3;
@@ -108,6 +109,7 @@ using namespace std;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
 
         option->pose_presence_threshold = 0.5;
         option->landmark_visibility_threshold = 0.1;

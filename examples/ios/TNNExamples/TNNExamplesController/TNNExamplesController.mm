@@ -24,8 +24,63 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    __weak typeof(self) weakSelf = self;
+    self.switchDevice.backgroundColor = [UIColor systemGrayColor];
+    self.switchDevice.thumbColor = [UIColor systemGreenColor];
+    self.switchDevice.items = @[@"CPU", @"GPU", @"NPU"];
+    self.switchDevice.segmentTappedHandler = ^(NSInteger index, BOOL reversed) {
+        [weakSelf onSwitchChanged:weakSelf.switchDevice];
+    };
+    
     [self.viewModel setupCustomView:self.customOptionView
                        layoutHeight:self.customOptionViewHeight];
 }
 
+- (BOOL)shouldAutorotate {
+    return YES;
+}
+
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    return UIInterfaceOrientationMaskPortrait;
+}
+
+- (void)onSwitchChanged:(id)sender {
+}
+
+-(TNNComputeUnits)getComputeUnitsForIndex:(NSInteger)index {
+    if (index == 0) {
+        return TNNComputeUnitsCPU;
+    } else if (index == 1) {
+        return TNNComputeUnitsGPU;
+    } else {
+        return TNNComputeUnitsAppleNPU;
+    }
+}
+
+-(NSString *)getNSSTringForComputeUnits:(TNNComputeUnits)units {
+    if (units == TNNComputeUnitsCPU) {
+        return @"cpu";
+    } else if (units == TNNComputeUnitsGPU) {
+        return @"gpu";
+    } else {
+        return  @"npu";
+    }
+}
+
+@end
+
+
+@implementation UIViewController (UIDeviceOrientation)
+- (void)forceToOrientation:(UIDeviceOrientation)orientation {
+    NSNumber *orientationUnknown = [NSNumber numberWithInt:0];
+    [[UIDevice currentDevice] setValue:orientationUnknown forKey:@"orientation"];
+    NSNumber *orientationTarget = [NSNumber numberWithInteger:orientation];
+    [[UIDevice currentDevice] setValue:orientationTarget forKey:@"orientation"];
+}
+
+- (void)clearNavigationBarLeft {
+    self.navigationItem.leftBarButtonItem = nil;
+    self.navigationItem.leftBarButtonItems = nil;
+    self.navigationItem.hidesBackButton = YES;
+}
 @end

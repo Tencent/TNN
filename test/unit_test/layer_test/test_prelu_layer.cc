@@ -48,6 +48,11 @@ TEST_P(PReluLayerTest, PReluLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_APPLE_NPU == dev && (dim_count != 4 || batch != 1 || channel <= 1)) {
+        //APPLE NPU raise segment default error for func compileModelAtURL if batch!=1 or channel<=1
+        GTEST_SKIP();
+    }
+
     // param
     std::shared_ptr<PReluLayerParam> param(new PReluLayerParam());
     param->name           = "PRelu";

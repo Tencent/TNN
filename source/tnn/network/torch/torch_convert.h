@@ -21,6 +21,7 @@
 #include "c10/util/intrusive_ptr.h"
 #include "torch/custom_class.h"
 #include "tnn/network/torch/torch_tnn_runtime.h"
+#include "tnn/network/torch/tnn_optimize.h"
 
 namespace TNN_NS {
 namespace conversion {

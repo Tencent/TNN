@@ -48,16 +48,14 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_OPENCL == dev && dim_count > 4) {
-        GTEST_SKIP();
-    }
-    if (DEVICE_HUAWEI_NPU == dev && dim_count != 4) {
+    if (dim_count != 4) {
         GTEST_SKIP();
     }
 
     // param
-    std::shared_ptr<LayerParam> param(new LayerParam());
+    std::shared_ptr<BatchNormLayerParam> param(new BatchNormLayerParam());
     param->name = "BatchNorm";
+    param->channels = channel;
 
     // resource
     std::shared_ptr<BatchNormLayerResource> resource(new BatchNormLayerResource());
@@ -77,11 +75,14 @@ TEST_P(BatchNormScaleLayerTest, BatchNormScaleLayer) {
     //std::vector<int> input_dims = {batch, channel, input_size, input_size};
     std::vector<int> input_dims = {batch, channel};
     while(input_dims.size() < dim_count) input_dims.push_back(input_size);
-    auto interpreter1           = GenerateInterpreter("BatchNormCxx", {input_dims}, param, resource);
-    auto interpreter2           = GenerateInterpreter("Scale", {input_dims}, param, resource);
+    auto interpreter1 = GenerateInterpreter("BatchNormCxx", {input_dims}, param, resource);
     Precision precision = SetPrecision(dev, dtype);
     Run(interpreter1, precision);
-    Run(interpreter2, precision);
+
+    if (DEVICE_APPLE_NPU != dev) {
+        auto interpreter2 = GenerateInterpreter("Scale", {input_dims}, param, resource);
+        Run(interpreter2, precision);
+    }
 }
 
 }  // namespace TNN_NS

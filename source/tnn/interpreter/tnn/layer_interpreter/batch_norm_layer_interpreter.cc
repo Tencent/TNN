@@ -18,8 +18,8 @@ namespace TNN_NS {
 
 DECLARE_LAYER_INTERPRETER(BatchNorm, LAYER_BATCH_NORM);
 
-Status BatchNormLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam** param) {
-    return TNN_OK;
+Status BatchNormLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, LayerParam** param) {
+        return TNN_OK;
 }
 
 Status BatchNormLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {
