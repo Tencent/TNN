@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifdef TNN_ARM82
+#if TNN_ARM82
 
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
