@@ -121,7 +121,7 @@ Status ArmLayerNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     if (DATA_TYPE_FLOAT == input_data_type) {
         return Exec(inputs, outputs);
     }
-#ifdef TNN_ARM82
+#if TNN_ARM82
     else if (DATA_TYPE_HALF == input_data_type) {
         return ExecFp16(inputs, outputs);
     }
