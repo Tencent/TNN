@@ -59,6 +59,9 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
     if (DEVICE_HUAWEI_NPU == dev && dim_count > 4) {
         GTEST_SKIP();
     }
+    if (DEVICE_APPLE_NPU == dev && dim_count > 5) {
+        GTEST_SKIP();
+    }
 
     // param
     std::shared_ptr<ConcatLayerParam> param(new ConcatLayerParam());

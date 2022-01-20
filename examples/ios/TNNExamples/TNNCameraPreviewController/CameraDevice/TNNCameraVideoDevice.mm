@@ -32,9 +32,10 @@ AVCapturePhotoCaptureDelegate> {
         _captureSession = [[AVCaptureSession alloc] init];
         _device = MTLCreateSystemDefaultDevice();
         
+        _videoOrientation = AVCaptureVideoOrientationPortrait;
         _videoPreviewLayer = [AVCaptureVideoPreviewLayer layerWithSession:_captureSession];
         _videoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
-        _videoPreviewLayer.connection.videoOrientation = AVCaptureVideoOrientationPortrait;
+        _videoPreviewLayer.connection.videoOrientation = _videoOrientation;
         
         _textureCache = nil;
     }
@@ -131,7 +132,18 @@ completion:(CameraSetupCallback)completion {
         NSLog(@"couldn't add video output");
     }
     auto connection = [_videoOutput connectionWithMediaType:AVMediaTypeVideo];
-    connection.videoOrientation = AVCaptureVideoOrientationPortrait;
+    connection.videoOrientation = _videoOrientation;
+    
+    float radius = 0;
+    if (_videoOrientation == AVCaptureVideoOrientationLandscapeLeft) {
+        radius = M_PI_2;
+    }
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        //calayer set must be performed in main thread
+        [CATransaction setDisableActions:YES];
+        [self.videoPreviewLayer setAffineTransform:CGAffineTransformMakeRotation(radius)];
+        [CATransaction setDisableActions:NO];
+    });
 }
 
 - (AVCaptureDevice *) cameraWithPosition:(AVCaptureDevicePosition) position

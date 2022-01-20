@@ -116,13 +116,15 @@ struct BenchResult {
 
 typedef enum {
     // run on cpu
-    TNNComputeUnitsCPU = 0,
+    TNNComputeUnitsCPU              = 0x0000,
     // run on gpu, if failed run on cpu
-    TNNComputeUnitsGPU = 1,
+    TNNComputeUnitsGPU              = 0x0100,
     // run on huawei_npu, if failed run on cpu
-    TNNComputeUnitsHuaweiNPU = 2,
+    TNNComputeUnitsHuaweiNPU  = 0x0300,
+    // run on huawei_npu, if failed run on cpu
+    TNNComputeUnitsAppleNPU     = 0x0301,
     // run on cpu Naive
-    TNNComputeUnitsNaive = 3,
+    TNNComputeUnitsNaive             = 0x0400,
 } TNNComputeUnits;
 
 struct RGBA{
@@ -163,6 +165,8 @@ public:
     std::string proto_content = "";
     std::string model_content = "";
     std::string library_path = "";
+    // cache path to store possible cache models or opt kernel. if the cached model exists, it will cost less time to do init process
+    std::string cache_path = "";
     TNNComputeUnits compute_units = TNNComputeUnitsCPU;
     Precision precision = PRECISION_AUTO;
     InputShapesMap input_shapes = {};
