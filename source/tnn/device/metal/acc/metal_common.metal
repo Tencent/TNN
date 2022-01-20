@@ -88,3 +88,11 @@ inline ftype4 tanh_high_precision(ftype4 x) {
 
     return ftype4(result);
 }
+
+// compute softplus according to its definition
+// metal::softplus may produce nan
+inline ftype4 softplus_high_precision(ftype4 x) {
+    float4 result = log(exp(float4(x)) + float4(One4));
+
+    return ftype4(result);
+}
