@@ -47,7 +47,11 @@ Status UpsampleOVLayerBuilder::Build() {
     if (paramlist->align_corners) {
         attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::align_corners;
     } else {
-        attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::half_pixel;
+        if (paramlist->mode == 1) {
+            attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::asymmetric;
+        } else {
+            attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::half_pixel;
+        }
     }
     attrs.nearest_mode = ngraph::op::v4::Interpolate::NearestMode::floor;
     // attrs.align_corners = paramlist->align_corners;

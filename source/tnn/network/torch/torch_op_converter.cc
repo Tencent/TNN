@@ -1270,9 +1270,9 @@ public:
     bool IsSupported(const torch::jit::Node *node) {
         // in this mode, upsample param dims will be calc runtime
         // Todo: trt shape tensor should expand hw tensor to nchw tensor
-        if (!toIValue(node->input(1))) {
-            return false;
-        }
+        // if (!toIValue(node->input(1))) {
+        //     return false;
+        // }
         return true;
     }
 
