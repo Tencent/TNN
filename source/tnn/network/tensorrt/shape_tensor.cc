@@ -357,6 +357,7 @@ nvinfer1::IShuffleLayer* addUnsqueeze(INetworkDefinition* network,
         return nullptr;
     }
 
+    if (dims.size() < 0) return nullptr;
     std::vector<int> subscripts(dims.size());
     std::iota(subscripts.begin(), subscripts.end(), 0);
     for (const auto& axis : axesSet) {

@@ -37,6 +37,7 @@ NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
     g_network_impl_tensorrt_factory_register(NETWORK_TYPE_TENSORRT);
 
 std::unordered_map<std::string, TensorRTPluginLayerBuilder*> TensorRTNetwork_::m_plugin_layer_name_map;
+TRTLogger TensorRTNetwork_::m_trt_logger;
 
 std::mutex TensorRTNetwork_::network_mutex;
 
@@ -649,8 +650,8 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
 
     for (int layer_id = 0; layer_id < this->layers_.size(); layer_id++) {
         BaseLayer* cur_layer = this->layers_[layer_id];
-        nvinfer1::ILayer *cur_trt_layer = 
-            dynamic_cast<TensorRTBaseLayerBuilder*>(cur_layer)->AddToNetwork(m_trt_network);
+        
+        nvinfer1::ILayer *cur_trt_layer = dynamic_cast<TensorRTBaseLayerBuilder*>(cur_layer)->AddToNetwork(m_trt_network);
         if (cur_trt_layer == nullptr ) {
             LOGE("build trt layer for \"%s\" failed\n", cur_layer->GetLayerName().c_str());
             return TNNERR_LAYER_ERR;
