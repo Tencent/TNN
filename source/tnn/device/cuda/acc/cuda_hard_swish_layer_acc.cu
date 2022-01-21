@@ -19,7 +19,15 @@ namespace TNN_NS {
 
 DECLARE_CUDA_ACC(HardSwish, LAYER_HARDSWISH);
 
-__global__ void hard_swish_kernel(int count, const float* in1, const float* in2, float* out, int in_n1,
+template<typename T>
+__global__ void hard_swish_elementwise_kernel(const int count, const T *input, T *output, const float alpha, const float beta) {
+    CUDA_KERNEL_LOOP(index, count) {
+        output[index] = input[index] * T(max(min(float(input[index]) * alpha + beta, 1.f), 0.f));
+    }
+}
+
+template<typename T>
+__global__ void hard_swish_kernel(int count, const T* in1, const T* in2, T* out, int in_n1,
         int in_c1, int in_h1, int in_w1, int in_n2, int in_c2, int in_h2, int in_w2, int out_c, int out_h,
         int out_w, const float alpha, const float beta) {
     CUDA_KERNEL_LOOP(index, count) {
@@ -35,7 +43,7 @@ __global__ void hard_swish_kernel(int count, const float* in1, const float* in2,
         int input_index_h_2 = min(h, in_h2-1) * in_w1 + input_index_c_2;
         int input_index_w_1 = min(w, in_w1-1) + input_index_h_1;
         int input_index_w_2 = min(w, in_w2-1) + input_index_h_2;
-        out[index] = in1[input_index_w_1] * max(min(in2[input_index_w_2] * alpha + beta, 1.f), 0.f);
+        out[index] = in1[input_index_w_1] * T(max(min(float(in2[input_index_w_2]) * alpha + beta, 1.f), 0.f));
     }
 }
 
@@ -62,10 +70,31 @@ Status CudaHardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     Blob* output_blob = outputs[0];
     if (inputs.size() != 1) {
         input_blob2 = inputs[1];
+    } else {
+
+        int count = DimsVectorUtils::Count(input_blob1->GetBlobDesc().dims);
+        if (input_blob1->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+            float* input_data = static_cast<float*>(input_blob1->GetHandle().base);
+            float* output_data = static_cast<float*>(output_blob->GetHandle().base);
+            hard_swish_elementwise_kernel<float><<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+                count, input_data, output_data, params->alpha, params->beta
+            );
+        } else if (input_blob1->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+            printf("half here\n");
+            half* input_data = static_cast<half*>(input_blob1->GetHandle().base);
+            half* output_data = static_cast<half*>(output_blob->GetHandle().base);
+            hard_swish_elementwise_kernel<half><<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+                count, input_data, output_data, params->alpha, params->beta
+            );
+        }
+
+        // auto error = cudaGetLastError();
+        // if (error != cudaSuccess) {
+        //     LOGE("Error: hard swish kernel error!\n %s\n", cudaGetErrorString(error));
+        //     return Status(TNNERR_CUDA_KERNEL_LAUNCH_ERROR, "Error: hard swish kernel error!");
+        // }
+        return TNN_OK;
     }
-    float* input_data1 = static_cast<float*>(input_blob1->GetHandle().base);
-    float* input_data2 = static_cast<float*>(input_blob2->GetHandle().base);
-    float* output_data = static_cast<float*>(output_blob->GetHandle().base);
 
     auto input_dims1 = input_blob1->GetBlobDesc().dims;
     auto input_dims2 = input_blob2->GetBlobDesc().dims;
@@ -85,9 +114,22 @@ Status CudaHardSwishLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     int out_h = DimsFunctionUtils::GetDim(output_dims, 2);
     int out_w = DimsFunctionUtils::GetDim(output_dims, 3);
 
-    hard_swish_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-        count, input_data1, input_data2, output_data, in_n1, in_c1, in_h1, in_w1, in_n2, in_c2, in_h2,
-        in_w2, out_c, out_h, out_w, params->alpha, params->beta);
+    if (input_blob1->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+        float* input_data1 = static_cast<float*>(input_blob1->GetHandle().base);
+        float* input_data2 = static_cast<float*>(input_blob2->GetHandle().base);
+        float* output_data = static_cast<float*>(output_blob->GetHandle().base);
+        
+        hard_swish_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+            count, input_data1, input_data2, output_data, in_n1, in_c1, in_h1, in_w1, in_n2, in_c2, in_h2,
+            in_w2, out_c, out_h, out_w, params->alpha, params->beta);
+    } else if (input_blob1->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        half* input_data1 = static_cast<half*>(input_blob1->GetHandle().base);
+        half* input_data2 = static_cast<half*>(input_blob2->GetHandle().base);
+        half* output_data = static_cast<half*>(output_blob->GetHandle().base);
+        hard_swish_kernel<half><<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+            count, input_data1, input_data2, output_data, in_n1, in_c1, in_h1, in_w1, in_n2, in_c2, in_h2,
+            in_w2, out_c, out_h, out_w, params->alpha, params->beta);
+    }
     
     return TNN_OK;
 }

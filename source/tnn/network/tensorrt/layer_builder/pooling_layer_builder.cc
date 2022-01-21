@@ -46,7 +46,7 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetInt8Mode();
 
     bool symmetric = (paramlist->pads[0] == paramlist->pads[1]) && (paramlist->pads[2] == paramlist->pads[3]);
-    if (symmetric && ((int8 && paramlist->pool_type == 1) || paramlist->is_adaptive_pool)) {
+    if (symmetric && ((int8 && paramlist->pool_type == 1) || paramlist->is_adaptive_pool) && !paramlist->is_global_pool) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
 

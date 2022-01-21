@@ -38,6 +38,15 @@ nvinfer1::DataType HardSigmoidTRTPluginLayerBuilder::getOutputDataType(int index
 }
 
 ILayer* HardSigmoidTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
+    auto paramlist = dynamic_cast<HardSigmoidLayerParam *>(param_);
+    auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
+    auto layer = network->addActivation(*tensor, nvinfer1::ActivationType::kHARD_SIGMOID);
+    layer->setAlpha(paramlist->alpha);
+    layer->setBeta(paramlist->beta);
+    layer->setName(layer_name_.c_str());
+
+    return layer;
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 

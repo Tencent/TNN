@@ -28,8 +28,6 @@ using namespace TNN_NS;
 @property(nonatomic, weak) IBOutlet UIButton *btnTNNExamples;
 @property(nonatomic, weak) IBOutlet UIImageView *imageView;
 @property(nonatomic, weak) IBOutlet UILabel *labelResult;
-@property(nonatomic, weak) IBOutlet UISwitch *switchGPU;
-
 @property(nonatomic, strong) UIImage *image_orig;
 @property(nonatomic, strong) UIImage *image_color;
 @end
@@ -63,7 +61,7 @@ using namespace TNN_NS;
 }
 
 
-- (IBAction)onSwichChanged:(id)sender {
+- (void)onSwitchChanged:(id)sender {
     self.imageView.image  = self.image_orig;
     self.labelResult.text = nil;
 }
@@ -101,13 +99,14 @@ using namespace TNN_NS;
 
     auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
 
-    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     auto option = std::make_shared<TNNSDKOption>();
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = path_library.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
     }
     
     auto predictor = std::make_shared<FaceGrayTransfer>();
@@ -123,8 +122,8 @@ using namespace TNN_NS;
     predictor->SetBenchOption(bench_option);
     
     std::shared_ptr<TNNSDKOutput> sdk_output = nullptr;
-    auto compute_units = predictor->GetComputeUnits();
-    if (compute_units == TNNComputeUnitsGPU) {
+    auto actual_units = predictor->GetComputeUnits();
+    if (actual_units == TNNComputeUnitsGPU) {
         auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, target_dims);
 
         id<MTLTexture> texture_rgba = (__bridge id<MTLTexture>)image_mat->GetData();
@@ -138,7 +137,7 @@ using namespace TNN_NS;
                           withBytes:image_data.get()
                         bytesPerRow:target_width * 4];
         status = predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
-    } else if (compute_units == TNNComputeUnitsCPU) {
+    } else if (actual_units == TNNComputeUnitsCPU || actual_units == TNNComputeUnitsAppleNPU) {
         auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
         status = predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
     }
@@ -173,7 +172,7 @@ using namespace TNN_NS;
 
     auto bench_result   = predictor->GetBenchResult();
     self.labelResult.text = [NSString stringWithFormat:@"device: %@\ntime:\n%s",
-                             compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
+                             [self getNSSTringForComputeUnits:actual_units],
                              bench_result.Description().c_str()];
 }
 

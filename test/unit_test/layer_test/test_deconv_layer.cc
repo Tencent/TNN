@@ -93,6 +93,18 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
     if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_X86 == dev) {
         GTEST_SKIP();
     }
+    // APPLE_NPU can not support Activation inplace
+    if (activation_type != ActivationType_None && DEVICE_APPLE_NPU == dev) {
+        GTEST_SKIP();
+    }
+    // APPLE_NPU can not support DATA_TYPE_BFP16
+    if (data_type == DATA_TYPE_BFP16 && DEVICE_APPLE_NPU == dev) {
+        GTEST_SKIP();
+    }
+    // APPLE_NPU can not support pad_type = 2
+    if (pad_type == 2 && DEVICE_APPLE_NPU == dev) {
+        GTEST_SKIP();
+    }
 
     if (kernel <= 1) {
         pad = 0;
@@ -119,6 +131,10 @@ TEST_P(DeconvLayerTest, DeconvLayer) {
 
     if (output_pad > 0) {
         param->pad_type = 3;
+        // APPLE_NPU can not support pad_type = 3
+        if(DEVICE_APPLE_NPU == dev) {
+            GTEST_SKIP();
+        }
     } else {
         param->pad_type = pad_type;
     }

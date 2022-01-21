@@ -79,8 +79,20 @@ Status PoolingLayer::InferOutputShape(bool ignore_error) {
         pool_param->kernels = {width, height};
         pool_param->strides = {1, 1};
         pool_param->pool_type = 1;
-
-        return TNN_OK;
+        if (output_shape[0] == 1 && output_shape[1] == 1) {
+            pool_param->is_global_pool   = true;
+            DimsVector output_dims;
+            output_dims.push_back(num);
+            output_dims.push_back(channels);
+            output_dims.push_back(1);
+            output_dims.push_back(1);
+            for (int i = 0; i < output_blobs_.size(); ++i) {
+                output_blobs_[i]->GetBlobDesc().dims = output_dims;
+            }
+            return TNN_OK;
+        } else {
+            return TNN_OK;
+        }
     }
 
     const int kernel_w = PoolingLayerRuntimeKernelWidth(pool_param, dims_input);
