@@ -1290,8 +1290,20 @@ public:
             case at::aten::upsample_nearest2d:
                 layer_param->mode = 1;
                 if (node->inputs().size() == 3) {
-                    auto scales = getValue<std::vector<double>>(node->input(2));
-                    layer_param->scales = {(float)scales[1], (float)scales[0]};
+                    if (node->input(2)->type()->kind() == c10::TypeKind::NoneType) {
+                        // scale is none, use dims
+                        layer_info->inputs.push_back(node->input(1)->debugName() + "_roi");
+                        layer_info->inputs.push_back(node->input(1)->debugName() + "_scale");
+                        layer_info->inputs.push_back(node->input(1)->debugName());
+                        layer_param->scales = {0.f, 0.f};
+                        // empty raw buffer just makes tnn not crash
+                        net_resource->constant_map[layer_info->inputs[1]] = std::make_shared<RawBuffer>();
+                        net_resource->constant_map[layer_info->inputs[2]] = std::make_shared<RawBuffer>();
+                    } else {
+                        // scale is not none, use scale
+                        auto scales = getValue<std::vector<double>>(node->input(2));
+                        layer_param->scales = {(float)scales[1], (float)scales[0]};
+                    }
                 } else if (node->inputs().size() == 4) {
                     if (!toIValue(node->input(1))) {
                         layer_info->inputs.push_back(node->input(1)->debugName() + "_roi");
