@@ -1114,25 +1114,34 @@ public:
     }
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
-        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-        layer_info->type = LAYER_SPLITTORCH;
-        layer_info->type_str = "SplitTorch";
-        layer_info->name = node->output(0)->debugName();
+        auto unpack_node      = node->output(0)->uses()[0].user;
+        const int output_size = unpack_node->outputs().size();
+        const int split_size  = static_cast<int>(getValue<int64_t>(node->inputs()[1]));
+        const int axis        = static_cast<int>(getValue<int64_t>(node->inputs()[2]));
+        for (int i = 0; i < output_size; i++) {
+            std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+            layer_info->type                      = LAYER_STRIDED_SLICE_V2;
+            layer_info->type_str                  = "StridedSliceV2";
+            layer_info->name                      = unpack_node->output(i)->debugName();
 
-        layer_info->inputs.push_back(node->inputs()[0]->debugName());
-        auto unpack_node = node->output(0)->uses()[0].user;
-	for (const auto output : unpack_node->outputs()) {
-            layer_info->outputs.push_back(output->debugName());
+            layer_info->inputs.push_back(node->inputs()[0]->debugName());
+            layer_info->outputs.push_back(unpack_node->output(i)->debugName());
+
+            auto layer_param = std::make_shared<StrideSliceV2LayerParam>();
+            layer_param->begins.push_back(i * split_size);
+            layer_param->ends.push_back((i + 1) * split_size);
+            if (i + 1 == output_size) {
+                layer_param->ends.back() = INT_MAX;
+            }
+            layer_param->axes.push_back(axis);
+            layer_param->strides.push_back(1);
+
+            layer_info->param = layer_param;
+
+            ADD_INPUTS_AND_OUTPUTS;
+
+            net_structure->layers.push_back(layer_info);
         }
-
-        auto layer_param = std::make_shared<SplitTorchLayerParam>();
-        layer_param->split_size = static_cast<int>(getValue<int64_t>(node->inputs()[1]));
-        layer_param->axis = static_cast<int>(getValue<int64_t>(node->inputs()[2]));
-        layer_info->param = layer_param;
-
-        ADD_INPUTS_AND_OUTPUTS;
-
-        net_structure->layers.push_back(layer_info);
 
         return TNN_OK;
     }
