@@ -14,6 +14,7 @@
 
 #include "coreml_base_layer.h"
 #include "coreml_const_layer.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
@@ -26,6 +27,48 @@ std::shared_ptr<char> NullTerminatedCString(std::string & name) {
     }
     ptr[name.size()] = '\0';
     return cstring;
+}
+
+Status RawBuffer2CoreMLWeight(RawBuffer *rawbuffer,
+                              shared_ptr<CoreML__Specification__WeightParams> &coreml_weight, shared_ptr<RawBuffer> &rawbuffer_fp32) {
+    return RawBuffer2CoreMLWeight(rawbuffer->GetDataCount(), rawbuffer->force_to<void *>(), rawbuffer->GetDataType(), rawbuffer->GetBufferDims(),
+                                  coreml_weight, rawbuffer_fp32);
+}
+
+Status RawBuffer2CoreMLWeight(int data_count, void *data_ptr, DataType data_type, DimsVector data_dims,
+                              shared_ptr<CoreML__Specification__WeightParams> &coreml_weight, shared_ptr<RawBuffer> &rawbuffer_fp32) {
+    coreml_weight = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
+    core_ml__specification__weight_params__init(coreml_weight.get());
+    
+    const int byte_size = DataTypeUtils::GetBytesSize(data_type);
+    switch (data_type) {
+        case DATA_TYPE_FLOAT:
+            coreml_weight->n_floatvalue = data_count;
+            coreml_weight->floatvalue = (float *)data_ptr;
+            break;
+        case DATA_TYPE_HALF:
+            {
+#if TNN_COREML_FULL_PRECISION
+                rawbuffer_fp32 = shared_ptr<RawBuffer>(new RawBuffer(data_count*sizeof(float), data_dims));
+                float *data_fp32_ptr = rawbuffer_fp32->force_to<float *>();
+                RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)data_ptr, (float *)data_fp32_ptr, data_count),TNN_OK);
+                
+                coreml_weight->n_floatvalue = data_count;
+                coreml_weight->floatvalue = data_fp32_ptr;
+#else
+                coreml_weight->float16value.len = data_count*byte_size;
+                coreml_weight->float16value.data = (uint8_t *)data_ptr;
+#endif
+            }
+            break;
+        default:
+            {
+                LOGE("RawBuffer2CoreMLWeight dont support data type (%d)\n", data_type);
+                return Status(TNNERR_PARAM_ERR, "RawBuffer2CoreMLWeight dont support data type");
+            }
+            break;
+    }
+    return TNN_OK;
 }
 
 CoreMLBaseLayer::CoreMLBaseLayer(LayerType type) {

@@ -34,9 +34,19 @@
 #define TNN_COREML_FULL_PRECISION 1
 #endif
 
+using namespace std;
+
 namespace TNN_NS {
 
 std::shared_ptr<char> NullTerminatedCString(std::string & name);
+//@brief convert rawbuffer to CoreML__Specification__WeightParams, if rawbuffer is fp16, rawbuffer_fp32 will be allocate, the caller must keep reference of it, or runtime error may raise
+// @rawbuffer input rawbuffer
+// @coreml_weight output CoreML__Specification__WeightParams
+// @rawbuffer_fp32 output fp32 RawBuffer
+Status RawBuffer2CoreMLWeight(RawBuffer *rawbuffer,
+                              shared_ptr<CoreML__Specification__WeightParams> &coreml_weight, shared_ptr<RawBuffer> &rawbuffer_fp32);
+Status RawBuffer2CoreMLWeight(int data_count, void *data_ptr, DataType data_type, DimsVector data_dims,
+                              shared_ptr<CoreML__Specification__WeightParams> &coreml_weight, shared_ptr<RawBuffer> &rawbuffer_fp32);
 
 class CoreMLConstLayer;
 
