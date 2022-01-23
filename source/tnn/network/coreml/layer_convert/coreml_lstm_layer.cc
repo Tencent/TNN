@@ -71,7 +71,9 @@ DECLARE_COREML_LAYER_WITH_FUNC_DATA(LSTM, LAYER_LSTMONNX,
                                     std::shared_ptr<CoreMLBaseLayer> coreml_layer_squezze_ct_;);
 
 std::vector<CoreML__Specification__NeuralNetworkLayer*> CoreMLLSTMLayer::GetCoreMLLayerPtrs() {
-    auto all_ptrs = CoreMLBaseLayer::GetCoreMLLayerPtrs();
+    //NOTE: make sure the order of layer be correct, or compile error may raise.
+    //protobuf spec. validator error: Layer '39' consumes an input named 'input_expanded' which is not present in this network.
+    std::vector<CoreML__Specification__NeuralNetworkLayer*> all_ptrs;
     if (coreml_layer_unsquezze_input_) {
         auto ptrs = coreml_layer_unsquezze_input_->GetCoreMLLayerPtrs();
         all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
@@ -84,6 +86,10 @@ std::vector<CoreML__Specification__NeuralNetworkLayer*> CoreMLLSTMLayer::GetCore
         auto ptrs = coreml_layer_unsquezze_c0_->GetCoreMLLayerPtrs();
         all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
     }
+    
+    auto sub_ptrs = CoreMLBaseLayer::GetCoreMLLayerPtrs();
+    all_ptrs.insert(all_ptrs.end(), sub_ptrs.begin(), sub_ptrs.end());
+    
     if (coreml_layer_squezze_output_) {
         auto ptrs = coreml_layer_squezze_output_->GetCoreMLLayerPtrs();
         all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
@@ -337,7 +343,6 @@ Status CoreMLLSTMLayer::BuildUnsqueezeInputLayer() {
     {
         layer_info_unsqueeze_input_->type = LAYER_UNSQUEEZE;
         layer_info_unsqueeze_input_->name = layer_info_->name + "-unsqueeze-input";
-        layer_info_unsqueeze_input_->name = "input_expanded";
         layer_info_unsqueeze_input_->inputs = {layer_info_->inputs[0]};
         layer_info_unsqueeze_input_->outputs = {layer_info_unsqueeze_input_->name};
         layer_info_unsqueeze_input_->param = param_unsqueeze_input;
