@@ -71,6 +71,11 @@ cp $cublas_dep_list ${TNN_INSTALL_DIR}/lib/
 #tensorrt
 tensorrt_dep_list=$( ldd libTNN.so | awk '{if (match($3, "TensorRT")){ print $3}}' )
 cp ${tensorrt_dep_list} ${TNN_INSTALL_DIR}/lib/
+#tensorrt8 special 
+tensorrt_builder_resource=`find ${TENSORRT_ROOT_DIR} -name "libnvinfer_builder_resource.so*"`
+if [ -n "$tensorrt_builder_resource" ]; then  
+    cp ${tensorrt_builder_resource} ${TNN_INSTALL_DIR}/lib/
+fi
 
 #cudnn
 cudnn_dep_list=$( ldd libTNN.so | awk '{if (match($3, "cudnn")){ print $3}}' )
