@@ -209,7 +209,7 @@ Status CoreMLLSTMLayer::BuildLayerParam() {
                                           coreml_layer_unsquezze_h0_, layer_info_unsqueeze_h0_), TNN_OK);
         RETURN_ON_NEQ(BuildUnsqueezeLayer(layer_info_->inputs[5], layer_info_->name + "-unsqueeze-c0",
                                           coreml_layer_unsquezze_c0_, layer_info_unsqueeze_c0_), TNN_OK);
-        RETURN_ON_NEQ(BuildSqueezeLayer(layer_info_->name + "--squeeze-output", layer_info_->outputs[0],
+        RETURN_ON_NEQ(BuildSqueezeLayer(layer_info_->name + "-squeeze-output", layer_info_->outputs[0],
                                         coreml_layer_squezze_output_, layer_info_squeeze_output_), TNN_OK);
         RETURN_ON_NEQ(BuildSqueezeLayer(layer_info_->name + "-squeeze-ht", layer_info_->outputs[1],
                                         coreml_layer_squezze_ht_, layer_info_squeeze_ht_), TNN_OK);
