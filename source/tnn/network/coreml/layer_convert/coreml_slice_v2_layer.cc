@@ -13,15 +13,37 @@
 // specific language governing permissions and limitations under the License.
 
 #include "coreml_base_layer.h"
+#include "coreml_const_layer.h"
 
 namespace TNN_NS {
+DECLARE_COREML_LAYER_WITH_FUNC_DATA(SliceV2, LAYER_STRIDED_SLICE_V2,
+                                    bool IsDynamic();,
+                                    std::shared_ptr<void> coreml_layer_type_;
+                                    std::shared_ptr<int64_t> coreml_layer_begins_;
+                                    std::shared_ptr<int> coreml_layer_begin_masks_;
+                                    std::shared_ptr<int64_t> coreml_layer_ends_;
+                                    std::shared_ptr<int> coreml_layer_end_masks_;
+                                    std::shared_ptr<int64_t> coreml_layer_strides_;
+                                    std::shared_ptr<int> coreml_layer_suqeeze_masks_;);
 
-DECLARE_COREML_LAYER_WITH_DATA(SliceV2, LAYER_STRIDED_SLICE_V2,
-                                std::shared_ptr<void> coreml_layer_type_;);
+bool CoreMLSliceV2Layer::IsDynamic() {
+    if (layer_info_ && net_resource_ && layer_info_->inputs.size() == 1) {
+        if (net_resource_->constant_map.find(layer_info_->inputs[0]) == net_resource_->constant_map.end()) {
+            return false;
+        }
+    }
+    return true;
+}
 
 Status CoreMLSliceV2Layer::BuildLayerType() {
     //layer type
-    coreml_layer_->layer_case = CORE_ML__SPECIFICATION__NEURAL_NETWORK_LAYER__LAYER_SLICE;
+    if (IsDynamic()) {
+        coreml_layer_->layer_case = CORE_ML__SPECIFICATION__NEURAL_NETWORK_LAYER__LAYER_SLICE_DYNAMIC;
+    } else {
+        //use slicestatic not slice, slice dont work for case with axis = 0 and input shape [2, 2, 4]
+        //coreml_layer_->layer_case = CORE_ML__SPECIFICATION__NEURAL_NETWORK_LAYER__LAYER_SCALE;
+        coreml_layer_->layer_case = CORE_ML__SPECIFICATION__NEURAL_NETWORK_LAYER__LAYER_SLICE_STATIC;
+    }
     return TNN_OK;
 }
 
@@ -41,28 +63,66 @@ Status CoreMLSliceV2Layer::BuildLayerParam() {
             input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
         }
     }
-    
-    coreml_layer_param_ = std::shared_ptr<CoreML__Specification__SliceLayerParams>(new CoreML__Specification__SliceLayerParams);
-    coreml_layer_->slice = (CoreML__Specification__SliceLayerParams *)coreml_layer_param_.get();
-    core_ml__specification__slice_layer_params__init(coreml_layer_->slice);
-    switch (axes.front()) {
-        case 1:
-            coreml_layer_->slice->axis = CORE_ML__SPECIFICATION__SLICE_LAYER_PARAMS__SLICE_AXIS__CHANNEL_AXIS;
-            break;
-        case 2:
-            coreml_layer_->slice->axis = CORE_ML__SPECIFICATION__SLICE_LAYER_PARAMS__SLICE_AXIS__HEIGHT_AXIS;
-            break;
-        case 3:
-            coreml_layer_->slice->axis = CORE_ML__SPECIFICATION__SLICE_LAYER_PARAMS__SLICE_AXIS__WIDTH_AXIS;
-            break;
-        default:
-            LOGE("Error: SliceLayer failed, dont support axes:%d\n", axes.front());
-            return Status(TNNERR_PARAM_ERR, "SliceLayer failed, dont support this axes");
-            break;
+    const int input_shape_size = (int)input_shape.size();
+    if (input_shape_size == 0) {
+        return Status(TNNERR_COMMON_ERROR, "CoreMLSliceV2Layer has invalid input shape size");
     }
-    coreml_layer_->slice->startindex = begins.front();
-    coreml_layer_->slice->endindex = ends.front() > input_shape[axes.front()] ? input_shape[axes.front()] : ends.front();
-    coreml_layer_->slice->stride = strides.front();
+    
+    if (IsDynamic()) {
+        coreml_layer_param_ = std::shared_ptr<CoreML__Specification__SliceDynamicLayerParams>(new CoreML__Specification__SliceDynamicLayerParams);
+        coreml_layer_->slicedynamic = (CoreML__Specification__SliceDynamicLayerParams *)coreml_layer_param_.get();
+        core_ml__specification__slice_dynamic_layer_params__init(coreml_layer_->slicedynamic);
+        
+    } else {
+        coreml_layer_param_ = std::shared_ptr<CoreML__Specification__SliceStaticLayerParams>(new CoreML__Specification__SliceStaticLayerParams);
+        coreml_layer_->slicestatic = (CoreML__Specification__SliceStaticLayerParams *)coreml_layer_param_.get();
+        core_ml__specification__slice_static_layer_params__init(coreml_layer_->slicestatic);
+        
+        coreml_layer_->slicestatic->n_beginids = input_shape_size;
+        coreml_layer_->slicestatic->n_endids = input_shape_size;
+        coreml_layer_->slicestatic->n_strides = input_shape_size;
+//        coreml_layer_->slicestatic->n_beginmasks = input_shape_size;
+//        coreml_layer_->slicestatic->n_endmasks = input_shape_size;
+//        coreml_layer_->slicestatic->n_squeezemasks = input_shape_size;
+        
+        coreml_layer_begins_ = std::shared_ptr<int64_t>(new int64_t [input_shape_size], [](int64_t* p) { delete[] p; });
+        coreml_layer_ends_ = std::shared_ptr<int64_t>(new int64_t [input_shape_size], [](int64_t* p) { delete[] p; });
+        coreml_layer_strides_ = std::shared_ptr<int64_t>(new int64_t [input_shape_size], [](int64_t* p) { delete[] p; });
+//        coreml_layer_begin_masks_ = std::shared_ptr<int>(new int [input_shape_size], [](int* p) { delete[] p; });
+//        coreml_layer_end_masks_ = std::shared_ptr<int>(new int [input_shape_size], [](int* p) { delete[] p; });
+//        coreml_layer_suqeeze_masks_ = std::shared_ptr<int>(new int [input_shape_size], [](int* p) { delete[] p; });
+        
+        auto coreml_layer_begins_ptr = coreml_layer_begins_.get();
+        auto coreml_layer_ends_ptr = coreml_layer_ends_.get();
+        auto coreml_layer_strides_ptr = coreml_layer_strides_.get();
+//        auto coreml_layer_begin_masks_ptr = coreml_layer_begin_masks_.get();
+//        auto coreml_layer_end_masks_ptr = coreml_layer_end_masks_.get();
+//        auto coreml_layer_suqeeze_masks_ptr = coreml_layer_suqeeze_masks_.get();
+        
+        //set default value
+        for (int index = 0; index < input_shape_size; index++) {
+            coreml_layer_begins_ptr[index] = 0;
+            coreml_layer_ends_ptr[index] = -1;
+            coreml_layer_strides_ptr[index] = 1;
+//            coreml_layer_begin_masks_ptr[index] = 0;
+//            coreml_layer_end_masks_ptr[index] = 0;
+//            coreml_layer_suqeeze_masks_ptr[index] = 0;
+        }
+        
+        for (int index = 0; index < axes.size(); index++) {
+            auto axis = axes[index];
+            coreml_layer_begins_ptr[axis] = begins[index];
+            coreml_layer_ends_ptr[axis] = ends[index];
+            coreml_layer_strides_ptr[axis] = strides[index];
+        }
+        
+        coreml_layer_->slicestatic->beginids = coreml_layer_begins_ptr;
+        coreml_layer_->slicestatic->endids = coreml_layer_ends_ptr;
+        coreml_layer_->slicestatic->strides = coreml_layer_strides_ptr;
+//        coreml_layer_->slicestatic->beginmasks = coreml_layer_begin_masks_ptr;
+//        coreml_layer_->slicestatic->endmasks = coreml_layer_end_masks_ptr;
+//        coreml_layer_->slicestatic->squeezemasks = coreml_layer_suqeeze_masks_ptr;
+    }
     
     return TNN_OK;
 }
@@ -72,7 +132,11 @@ Status CoreMLSliceV2Layer::BuildConstantWeightsLayer() {
 }
 
 std::vector<std::string> CoreMLSliceV2Layer::BuildLayerInputs() {
-    return {layer_info_->inputs[0]};
+    if (IsDynamic()) {
+        return layer_info_->inputs;
+    } else {
+        return {layer_info_->inputs[0]};
+    }
 }
 
 std::vector<std::string> CoreMLSliceV2Layer::BuildLayerOutputs() {
