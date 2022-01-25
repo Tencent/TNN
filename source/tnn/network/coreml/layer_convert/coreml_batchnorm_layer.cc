@@ -13,18 +13,23 @@
 // specific language governing permissions and limitations under the License.
 
 #include "coreml_base_layer.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
 DECLARE_COREML_LAYER_WITH_DATA(Batchnorm, LAYER_BATCH_NORM,
                                 std::shared_ptr<void> coreml_layer_type_;
-                                std::shared_ptr<void> coreml_layer_gamma_;
-                                std::shared_ptr<void> coreml_layer_beta_;
-                                std::shared_ptr<void> coreml_layer_mean_;
-                                std::shared_ptr<void> coreml_layer_variance_;
+                                std::shared_ptr<CoreML__Specification__WeightParams> coreml_layer_gamma_;
+                                std::shared_ptr<CoreML__Specification__WeightParams> coreml_layer_beta_;
+                                std::shared_ptr<CoreML__Specification__WeightParams> coreml_layer_mean_;
+                                std::shared_ptr<CoreML__Specification__WeightParams> coreml_layer_variance_;
                                 std::shared_ptr<void> mean_;
                                 std::shared_ptr<void> variance_;
                                 std::shared_ptr<float> scale_fp32_ptr_;
+                                std::shared_ptr<RawBuffer> rawbuffer_shared_expand_scale_;
+                                std::shared_ptr<RawBuffer> rawbuffer_shared_expand_bias_;
+                                std::shared_ptr<RawBuffer> rawbuffer_scale_fp32_;
+                                std::shared_ptr<RawBuffer> rawbuffer_bias_fp32_;
                                 std::shared_ptr<float> bias_fp32_ptr_;);
 
 Status CoreMLBatchnormLayer::BuildLayerType() {
@@ -54,6 +59,7 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
     auto scale_data_type = layer_res->scale_handle.GetDataType();
     auto bias_count = layer_res->bias_handle.GetDataCount();
     auto bias_data_type = layer_res->bias_handle.GetDataType();
+    const int byte_size = DataTypeUtils::GetBytesSize(scale_data_type);
     
     bool share_channel = scale_count==1;
     channels = std::max(channels, scale_count);
@@ -71,118 +77,46 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
     coreml_layer_->batchnorm->channels = channels;
     coreml_layer_->batchnorm->computemeanvar = false;
     coreml_layer_->batchnorm->instancenormalization = false;
-    coreml_layer_gamma_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
-    coreml_layer_->batchnorm->gamma = (CoreML__Specification__WeightParams*) coreml_layer_gamma_.get();
-    core_ml__specification__weight_params__init(coreml_layer_->batchnorm->gamma);
-    switch (scale_data_type) {
-        case DATA_TYPE_FLOAT:
-            if (share_channel) {
-                //share channel mode
-                scale_fp32_ptr_ = std::shared_ptr<float>(new float [channels], [](float* p) { delete[] p; });
-                auto scale_fp32_ptr = scale_fp32_ptr_.get();
-                for (int ii=0; ii<channels; ii++) {
-                    scale_fp32_ptr[ii] = *(layer_res->scale_handle.force_to<float *>());
-                }
-                coreml_layer_->batchnorm->gamma->n_floatvalue = channels;
-                coreml_layer_->batchnorm->gamma->floatvalue = scale_fp32_ptr;
-            } else {
-                coreml_layer_->batchnorm->gamma->n_floatvalue = channels;
-                coreml_layer_->batchnorm->gamma->floatvalue = layer_res->scale_handle.force_to<float *>();
-            }
-            break;
-        case DATA_TYPE_HALF:
-            {
-#if TNN_COREML_FULL_PRECISION
-                if (share_channel) {
-                    //share channel mode
-                    void *scale_data_ptr = layer_res->scale_handle.force_to<void *>();
-                    scale_fp32_ptr_ = std::shared_ptr<float>(new float [channels], [](float* p) { delete[] p; });
-                    auto scale_fp32_ptr = scale_fp32_ptr_.get();
-                    RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)scale_data_ptr, (float *)scale_fp32_ptr, 1),TNN_OK);
-                    for (int ii=1; ii<channels; ii++) {
-                        scale_fp32_ptr[ii] = scale_fp32_ptr[0];
-                    }
-                    coreml_layer_->batchnorm->gamma->n_floatvalue = channels;
-                    coreml_layer_->batchnorm->gamma->floatvalue = scale_fp32_ptr;
-                } else {
-                    void *scale_data_ptr = layer_res->scale_handle.force_to<void *>();
-                    scale_fp32_ptr_ = std::shared_ptr<float>(new float [channels], [](float* p) { delete[] p; });
-                    auto scale_fp32_ptr = scale_fp32_ptr_.get();
-                    RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)scale_data_ptr, (float *)scale_fp32_ptr, channels),TNN_OK);
-                    coreml_layer_->batchnorm->gamma->n_floatvalue = channels;
-                    coreml_layer_->batchnorm->gamma->floatvalue = scale_fp32_ptr;
-                }
-#else
-                coreml_layer_->batchnorm->gamma->float16value.len = layer_res->scale_handle.GetBytesSize();
-                coreml_layer_->batchnorm->gamma->float16value.data = layer_res->scale_handle.force_to<uint8_t *>();
-#endif
-            }
-            break;
-        default:
-            {
-                LOGE("CoreMLBatchnormLayer dont support data type (%d)\n", scale_data_type);
-                return Status(TNNERR_PARAM_ERR, "CoreMLBatchnormLayer dont support data type");
-            }
-            break;
-    }
     
-    coreml_layer_beta_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
-    coreml_layer_->batchnorm->beta = (CoreML__Specification__WeightParams*) coreml_layer_beta_.get();
-    core_ml__specification__weight_params__init(coreml_layer_->batchnorm->beta);
+    if (share_channel) {
+        rawbuffer_shared_expand_scale_ = std::shared_ptr<RawBuffer>(new RawBuffer(channels*byte_size));
+        rawbuffer_shared_expand_scale_->SetBufferDims({channels});
+        char *scale_data_expand = layer_res->scale_handle.force_to<char *>();
+        char *scale_data = layer_res->scale_handle.force_to<char *>();
+        for (int index = 0; index < channels; index++) {
+            memcpy(scale_data_expand + index*byte_size, scale_data, byte_size);
+        }
+        
+        RETURN_ON_NEQ(RawBuffer2CoreMLWeight(rawbuffer_shared_expand_scale_.get(),
+                                             coreml_layer_gamma_, rawbuffer_scale_fp32_), TNN_OK);
+    } else {
+        RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(layer_res->scale_handle),
+                                             coreml_layer_gamma_, rawbuffer_scale_fp32_), TNN_OK);
+    }
+    coreml_layer_->batchnorm->gamma = coreml_layer_gamma_.get();
+    
     if (channels > bias_count) {
-        float default_bias_value = 0;
-        if (share_channel && bias_count != 0) {
-            default_bias_value = *(layer_res->bias_handle.force_to<float *>());
+        rawbuffer_shared_expand_bias_ = std::shared_ptr<RawBuffer>(new RawBuffer(channels*byte_size));
+        rawbuffer_shared_expand_bias_->SetBufferDims({channels});
+        char *bias_data_expand = layer_res->scale_handle.force_to<char *>();
+        char *bias_data = layer_res->scale_handle.force_to<char *>();
+        
+        if (share_channel && bias_count > 0) {
+            for (int index = 0; index < channels; index++) {
+                memcpy(bias_data_expand + index*byte_size, bias_data, byte_size);
+            }
+        } else {
+            memset(bias_data_expand, 0, channels*byte_size);
         }
-        bias_fp32_ptr_ = std::shared_ptr<float>(new float [channels], [](float* p) { delete[] p; });
-        auto bias_fp32_ptr = bias_fp32_ptr_.get();
-        for (int ii=0; ii<channels; ii++) {
-            bias_fp32_ptr[ii] = default_bias_value;
-        }
+        
+        RETURN_ON_NEQ(RawBuffer2CoreMLWeight(rawbuffer_shared_expand_bias_.get(),
+                                             coreml_layer_beta_, rawbuffer_bias_fp32_), TNN_OK);
+    } else {
+        RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(layer_res->bias_handle),
+                                             coreml_layer_beta_, rawbuffer_bias_fp32_), TNN_OK);
     }
+    coreml_layer_->batchnorm->beta =  coreml_layer_beta_.get();
     
-    switch (bias_data_type) {
-        case DATA_TYPE_FLOAT:
-            if (channels > bias_count) {
-                coreml_layer_->batchnorm->beta->n_floatvalue = channels;
-                coreml_layer_->batchnorm->beta->floatvalue = bias_fp32_ptr_.get();
-            } else {
-                coreml_layer_->batchnorm->beta->n_floatvalue = bias_count;
-                coreml_layer_->batchnorm->beta->floatvalue = layer_res->bias_handle.force_to<float *>();
-            }
-            break;
-        case DATA_TYPE_HALF:
-            {
-#if TNN_COREML_FULL_PRECISION
-                if (channels > bias_count) {
-                    coreml_layer_->batchnorm->beta->n_floatvalue = channels;
-                    coreml_layer_->batchnorm->beta->floatvalue = bias_fp32_ptr_.get();
-                } else {
-                    coreml_layer_->batchnorm->beta->n_floatvalue = bias_count;
-                    void *bias_data_ptr = layer_res->bias_handle.force_to<void *>();
-                    bias_fp32_ptr_ = std::shared_ptr<float>(new float [bias_count], [](float* p) { delete[] p; });
-                    auto bias_fp32_ptr = bias_fp32_ptr_.get();
-                    RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)bias_data_ptr, (float *)bias_fp32_ptr, bias_count),TNN_OK);
-                    coreml_layer_->batchnorm->beta->floatvalue = bias_fp32_ptr;
-                }
-#else
-                if (channels > bias_count) {
-                    coreml_layer_->batchnorm->beta->float16value.len = channels;
-                    coreml_layer_->batchnorm->beta->float16value.data = bias_fp32_ptr_.get();
-                } else {
-                    coreml_layer_->batchnorm->beta->float16value.len = layer_res->bias_handle.GetBytesSize();
-                    coreml_layer_->batchnorm->beta->float16value.data = layer_res->bias_handle.force_to<uint8_t *>();
-                }
-#endif
-            }
-            break;
-        default:
-            {
-                LOGE("CoreMLBatchnormLayer dont support data type (%d)\n", bias_data_type);
-                return Status(TNNERR_PARAM_ERR, "CoreMLBatchnormLayer dont support data type");
-            }
-            break;
-    }
     coreml_layer_mean_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
     coreml_layer_->batchnorm->mean = (CoreML__Specification__WeightParams*) coreml_layer_mean_.get();
     core_ml__specification__weight_params__init(coreml_layer_->batchnorm->mean);

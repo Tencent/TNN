@@ -41,10 +41,27 @@ Status RawBuffer2CoreMLWeight(int data_count, void *data_ptr, DataType data_type
     core_ml__specification__weight_params__init(coreml_weight.get());
     
     const int byte_size = DataTypeUtils::GetBytesSize(data_type);
+    
+    //TODO: to chcek data type
     switch (data_type) {
         case DATA_TYPE_FLOAT:
+        {
             coreml_weight->n_floatvalue = data_count;
             coreml_weight->floatvalue = (float *)data_ptr;
+        }
+            break;
+        case DATA_TYPE_INT32:
+            {
+                //CoreML only support FP32, so we need convert int32 to fp32
+                rawbuffer_fp32 = shared_ptr<RawBuffer>(new RawBuffer(data_count*sizeof(float), data_dims));
+                float *data_fp32_ptr = rawbuffer_fp32->force_to<float *>();
+                int *int32_data = (int *)data_ptr;
+                for (int i=0; i<data_count; i++) {
+                    data_fp32_ptr[i] = int32_data[i];
+                }
+                coreml_weight->n_floatvalue = data_count;
+                coreml_weight->floatvalue = data_fp32_ptr;
+            }
             break;
         case DATA_TYPE_HALF:
             {
