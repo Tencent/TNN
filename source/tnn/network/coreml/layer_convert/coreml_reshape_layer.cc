@@ -83,8 +83,11 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
         // onnx caffe reshape(nchw): 0
         // Tensorflow TFLite reshape(nhwc): 1
         auto reshape_type = reshape_param->reshape_type;
+        if (output_shape_size_ <= 0) {
+            output_shape_size_ = shape.size();
+        }
     
-        if (input_shape_size_ <= 0 || output_shape_size_ <= 0 || shape_size != output_shape_size_) {
+        if ((reshape_type == 1 && input_shape_size_ <= 0) || output_shape_size_ <= 0 || shape_size != output_shape_size_) {
             return Status(TNNERR_MODEL_ERR, "CoreMLReshapeLayer has invalid input shape, output shape, or ReshapeLayerParam");
         }
         
@@ -118,7 +121,7 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
             }
         } else {
             for (int i=0;i<output_shape_size_;i++){
-                coreml_layer_->reshapestatic->targetshape[i] = output_shape[i];
+                coreml_layer_->reshapestatic->targetshape[i] = shape[i];
             }
         }
 
