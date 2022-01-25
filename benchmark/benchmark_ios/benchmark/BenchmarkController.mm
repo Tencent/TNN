@@ -195,7 +195,7 @@ struct BenchResult {
     option.warm_count = 5;
     option.forward_count = 10;
     option.create_count = 1;
-    option.create_count = 4;
+    option.create_count = 2;
     
     //Get metallib path from app bundle
     //PS：A script(Build Phases -> Run Script) is added to copy the metallib file in tnn framework project to benchmark app
