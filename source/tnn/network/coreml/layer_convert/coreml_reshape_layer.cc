@@ -33,9 +33,18 @@ DECLARE_COREML_LAYER_WITH_FUNC_DATA(Reshape, LAYER_RESHAPE,
                                      std::shared_ptr<LayerInfo> permute1_layer_info_;);
 
 bool CoreMLReshapeLayer::IsDynamic() {
-    if (layer_info_ && layer_info_->inputs.size() >= 2 && net_resource_ &&
-        net_resource_->constant_map.find(layer_info_->inputs[1]) == net_resource_->constant_map.end()) {
-        return true;
+    if (layer_info_ && layer_info_->inputs.size() >= 2 && net_resource_) {
+        auto shape_name = layer_info_->inputs[1];
+        if (net_resource_->constant_blob_flags.find(shape_name) != net_resource_->constant_blob_flags.end()) {
+            auto blob_flag = net_resource_->constant_blob_flags[shape_name];
+            if (blob_flag == DATA_FLAG_CHANGE_NEVER) {
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            return true;
+        }
     }
     return false;
 }

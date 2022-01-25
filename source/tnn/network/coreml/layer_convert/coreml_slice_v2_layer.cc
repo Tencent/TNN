@@ -102,7 +102,8 @@ Status CoreMLSliceV2Layer::BuildLayerParam() {
         //set default value
         for (int index = 0; index < input_shape_size; index++) {
             coreml_layer_begins_ptr[index] = 0;
-            coreml_layer_ends_ptr[index] = -1;
+            //for some case, -1 may raise error when compile
+            coreml_layer_ends_ptr[index] = input_shape[index];
             coreml_layer_strides_ptr[index] = 1;
             coreml_layer_begin_masks_ptr[index] = 0;
             coreml_layer_end_masks_ptr[index] = 0;
