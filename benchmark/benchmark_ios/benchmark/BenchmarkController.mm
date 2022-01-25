@@ -195,6 +195,7 @@ struct BenchResult {
     option.warm_count = 5;
     option.forward_count = 10;
     option.create_count = 1;
+    option.create_count = 4;
     
     //Get metallib path from app bundle
     //PS：A script(Build Phases -> Run Script) is added to copy the metallib file in tnn framework project to benchmark app
@@ -205,48 +206,50 @@ struct BenchResult {
     
     NSString *allResult = [NSString string];
     for (auto model : allModels) {
-        NSLog(@"model: %s", model.name.c_str());
-        allResult = [allResult stringByAppendingFormat:@"model: %s\n", model.name.c_str()];
-    
-        //benchmark on cpu
-        auto result_cpu = [self benchmarkWithProtoContent:model.tnn_proto_content
-                                                model:model.tnn_model_content
-                                               coreml:model.coreml
-                                              library:pathLibrary.UTF8String
-                                              netType:NETWORK_TYPE_DEFAULT
-                                              deviceType:DEVICE_ARM
-                                               option:option];
-        NSLog(@"cpu: \ntime: %s", result_cpu.description().c_str());
-        allResult = [allResult stringByAppendingFormat:@"cpu: \ntime: %s\n",
-                     result_cpu.description().c_str()];
-
-        //benchmark on gpu
-        auto result_gpu = [self benchmarkWithProtoContent:model.tnn_proto_content
-                                                model:model.tnn_model_content
-                                               coreml:model.coreml
-                                              library:pathLibrary.UTF8String
-                                              netType:NETWORK_TYPE_DEFAULT
-                                              deviceType:DEVICE_METAL
-                                               option:option];
-        NSLog(@"gpu: \ntime: %s", result_gpu.description().c_str());
-        allResult = [allResult stringByAppendingFormat:@"gpu: \ntime: %s\n",
-                     result_gpu.description().c_str()];
-
-        //benchmark on npu
-        auto result_npu = [self benchmarkWithProtoContent:model.tnn_proto_content
-                                                model:model.tnn_model_content
-                                               coreml:model.coreml
-                                              library:pathLibrary.UTF8String
-                                              netType:NETWORK_TYPE_COREML
-                                              deviceType:DEVICE_APPLE_NPU
-                                               option:option];
-        NSLog(@"npu: \ntime: %s", result_npu.description().c_str());
-        allResult = [allResult stringByAppendingFormat:@"npu: \ntime: %s\n",
-                     result_npu.description().c_str()];
+        @autoreleasepool {
+            NSLog(@"model: %s", model.name.c_str());
+            allResult = [allResult stringByAppendingFormat:@"model: %s\n", model.name.c_str()];
         
+            //benchmark on cpu
+            auto result_cpu = [self benchmarkWithProtoContent:model.tnn_proto_content
+                                                    model:model.tnn_model_content
+                                                   coreml:model.coreml
+                                                  library:pathLibrary.UTF8String
+                                                  netType:NETWORK_TYPE_DEFAULT
+                                                  deviceType:DEVICE_ARM
+                                                   option:option];
+            NSLog(@"cpu: \ntime: %s", result_cpu.description().c_str());
+            allResult = [allResult stringByAppendingFormat:@"cpu: \ntime: %s\n",
+                         result_cpu.description().c_str()];
+
+            //benchmark on gpu
+            auto result_gpu = [self benchmarkWithProtoContent:model.tnn_proto_content
+                                                    model:model.tnn_model_content
+                                                   coreml:model.coreml
+                                                  library:pathLibrary.UTF8String
+                                                  netType:NETWORK_TYPE_DEFAULT
+                                                  deviceType:DEVICE_METAL
+                                                   option:option];
+            NSLog(@"gpu: \ntime: %s", result_gpu.description().c_str());
+            allResult = [allResult stringByAppendingFormat:@"gpu: \ntime: %s\n",
+                         result_gpu.description().c_str()];
+
+            //benchmark on npu
+            auto result_npu = [self benchmarkWithProtoContent:model.tnn_proto_content
+                                                    model:model.tnn_model_content
+                                                   coreml:model.coreml
+                                                  library:pathLibrary.UTF8String
+                                                  netType:NETWORK_TYPE_COREML
+                                                  deviceType:DEVICE_APPLE_NPU
+                                                   option:option];
+            NSLog(@"npu: \ntime: %s", result_npu.description().c_str());
+            allResult = [allResult stringByAppendingFormat:@"npu: \ntime: %s\n",
+                         result_npu.description().c_str()];
+            
+        }
+        
+        self.textViewResult.text = allResult;
     }
-    
-    self.textViewResult.text = allResult;
 }
 
 - (BenchResult)benchmarkWithProtoContent:(string)protoContent
