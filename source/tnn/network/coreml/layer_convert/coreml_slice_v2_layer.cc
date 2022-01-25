@@ -81,32 +81,32 @@ Status CoreMLSliceV2Layer::BuildLayerParam() {
         coreml_layer_->slicestatic->n_beginids = input_shape_size;
         coreml_layer_->slicestatic->n_endids = input_shape_size;
         coreml_layer_->slicestatic->n_strides = input_shape_size;
-//        coreml_layer_->slicestatic->n_beginmasks = input_shape_size;
-//        coreml_layer_->slicestatic->n_endmasks = input_shape_size;
-//        coreml_layer_->slicestatic->n_squeezemasks = input_shape_size;
+        coreml_layer_->slicestatic->n_beginmasks = input_shape_size;
+        coreml_layer_->slicestatic->n_endmasks = input_shape_size;
+        coreml_layer_->slicestatic->n_squeezemasks = input_shape_size;
         
         coreml_layer_begins_ = std::shared_ptr<int64_t>(new int64_t [input_shape_size], [](int64_t* p) { delete[] p; });
         coreml_layer_ends_ = std::shared_ptr<int64_t>(new int64_t [input_shape_size], [](int64_t* p) { delete[] p; });
         coreml_layer_strides_ = std::shared_ptr<int64_t>(new int64_t [input_shape_size], [](int64_t* p) { delete[] p; });
-//        coreml_layer_begin_masks_ = std::shared_ptr<int>(new int [input_shape_size], [](int* p) { delete[] p; });
-//        coreml_layer_end_masks_ = std::shared_ptr<int>(new int [input_shape_size], [](int* p) { delete[] p; });
-//        coreml_layer_suqeeze_masks_ = std::shared_ptr<int>(new int [input_shape_size], [](int* p) { delete[] p; });
+        coreml_layer_begin_masks_ = std::shared_ptr<int>(new int [input_shape_size], [](int* p) { delete[] p; });
+        coreml_layer_end_masks_ = std::shared_ptr<int>(new int [input_shape_size], [](int* p) { delete[] p; });
+        coreml_layer_suqeeze_masks_ = std::shared_ptr<int>(new int [input_shape_size], [](int* p) { delete[] p; });
         
         auto coreml_layer_begins_ptr = coreml_layer_begins_.get();
         auto coreml_layer_ends_ptr = coreml_layer_ends_.get();
         auto coreml_layer_strides_ptr = coreml_layer_strides_.get();
-//        auto coreml_layer_begin_masks_ptr = coreml_layer_begin_masks_.get();
-//        auto coreml_layer_end_masks_ptr = coreml_layer_end_masks_.get();
-//        auto coreml_layer_suqeeze_masks_ptr = coreml_layer_suqeeze_masks_.get();
+        auto coreml_layer_begin_masks_ptr = coreml_layer_begin_masks_.get();
+        auto coreml_layer_end_masks_ptr = coreml_layer_end_masks_.get();
+        auto coreml_layer_suqeeze_masks_ptr = coreml_layer_suqeeze_masks_.get();
         
         //set default value
         for (int index = 0; index < input_shape_size; index++) {
             coreml_layer_begins_ptr[index] = 0;
             coreml_layer_ends_ptr[index] = -1;
             coreml_layer_strides_ptr[index] = 1;
-//            coreml_layer_begin_masks_ptr[index] = 0;
-//            coreml_layer_end_masks_ptr[index] = 0;
-//            coreml_layer_suqeeze_masks_ptr[index] = 0;
+            coreml_layer_begin_masks_ptr[index] = 0;
+            coreml_layer_end_masks_ptr[index] = 0;
+            coreml_layer_suqeeze_masks_ptr[index] = 0;
         }
         
         for (int index = 0; index < axes.size(); index++) {
@@ -119,9 +119,9 @@ Status CoreMLSliceV2Layer::BuildLayerParam() {
         coreml_layer_->slicestatic->beginids = coreml_layer_begins_ptr;
         coreml_layer_->slicestatic->endids = coreml_layer_ends_ptr;
         coreml_layer_->slicestatic->strides = coreml_layer_strides_ptr;
-//        coreml_layer_->slicestatic->beginmasks = coreml_layer_begin_masks_ptr;
-//        coreml_layer_->slicestatic->endmasks = coreml_layer_end_masks_ptr;
-//        coreml_layer_->slicestatic->squeezemasks = coreml_layer_suqeeze_masks_ptr;
+        coreml_layer_->slicestatic->beginmasks = coreml_layer_begin_masks_ptr;
+        coreml_layer_->slicestatic->endmasks = coreml_layer_end_masks_ptr;
+        coreml_layer_->slicestatic->squeezemasks = coreml_layer_suqeeze_masks_ptr;
     }
     
     return TNN_OK;
