@@ -161,17 +161,22 @@ struct BenchResult {
            }
 
            NSArray<NSString *> *coremls = [[modelFiles filteredArrayUsingPredicate:predicateCoreML] sortedArrayUsingComparator:sort];
-           if (coremls.count > 0) {
+           for (NSString *iter in coremls) {
+               auto proto_prefix = [iter substringToIndex:iter.length - @".mlmodel".length];
+               model.name = proto_prefix.UTF8String;
                model.tnn_proto_content = "";
                model.tnn_model_content = "";
-               model.coreml = [modelDirPath stringByAppendingPathComponent:coremls[0]].UTF8String;
+               model.coreml = [modelDirPath stringByAppendingPathComponent:iter].UTF8String;
                netmodels.push_back(model);
            }
+           
            coremls = [modelFiles filteredArrayUsingPredicate:predicateCoreMLC];
-           if (coremls.count > 0) {
+           for (NSString *iter in coremls) {
+               auto proto_prefix = [iter substringToIndex:iter.length - @".mlmodelc".length];
+               model.name = proto_prefix.UTF8String;
                model.tnn_proto_content = "";
                model.tnn_model_content = "";
-               model.coreml = [modelDirPath stringByAppendingPathComponent:coremls[0]].UTF8String;
+               model.coreml = [modelDirPath stringByAppendingPathComponent:iter].UTF8String;
                netmodels.push_back(model);
            }
        }
@@ -293,10 +298,12 @@ struct BenchResult {
     
     //warm cpu, only used when benchmark
     for (int cc=0; cc<option.warm_count; cc++) {
-        result.status = instance->Forward();
-        if (result.status != TNN_OK) {
-            NSLog(@"instance.Forward Error: %s", result.status.description().c_str());
-            return result;
+        @autoreleasepool {
+            result.status = instance->Forward();
+            if (result.status != TNN_OK) {
+                NSLog(@"instance.Forward Error: %s", result.status.description().c_str());
+                return result;
+            }
         }
     }
     
@@ -309,14 +316,16 @@ struct BenchResult {
     }
 #endif
     for (int cc=0; cc<option.forward_count; cc++) {
-        timeval tv_begin, tv_end;
-        gettimeofday(&tv_begin, NULL);
-        
-        result.status = instance->Forward();
-        
-        gettimeofday(&tv_end, NULL);
-        double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
-        result.addTime(elapsed);
+        @autoreleasepool {
+            timeval tv_begin, tv_end;
+            gettimeofday(&tv_begin, NULL);
+            
+            result.status = instance->Forward();
+            
+            gettimeofday(&tv_end, NULL);
+            double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
+            result.addTime(elapsed);
+        }
     }
 #if TNN_PROFILE
     if (profile_layer_time) {
