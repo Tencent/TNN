@@ -45,6 +45,9 @@ TEST_P(ShuffleLayerTest, ShuffleLayer) {
     if (DEVICE_HUAWEI_NPU == dev && dim_count != 4) {
         GTEST_SKIP();
     }
+    if (DEVICE_APPLE_NPU == dev && dim_count > 5) {
+        GTEST_SKIP();
+    }
 
     // param
     std::shared_ptr<ShuffleLayerParam> param(new ShuffleLayerParam());

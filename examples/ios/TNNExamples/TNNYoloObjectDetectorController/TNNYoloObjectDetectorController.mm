@@ -28,7 +28,6 @@ using namespace TNN_NS;
 @property(nonatomic, weak) IBOutlet UIButton *btnTNNExamples;
 @property(nonatomic, weak) IBOutlet UIImageView *imageView;
 @property(nonatomic, weak) IBOutlet UILabel *labelResult;
-@property(nonatomic, weak) IBOutlet UISwitch *switchGPU;
 
 @property(nonatomic, strong) UIImage *image_orig;
 
@@ -66,7 +65,7 @@ using namespace TNN_NS;
     [view addSubview:self.labelResult];
 }
 
-- (IBAction)onSwichChanged:(id)sender {
+- (void)onSwitchChanged:(id)sender {
     self.imageView.image  = self.image_orig;
     self.labelResult.text = nil;
 }
@@ -99,13 +98,14 @@ using namespace TNN_NS;
 
     auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
 
-    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     auto option = std::make_shared<TNNSDKOption>();
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
     }
     
     auto predictor = std::make_shared<ObjectDetectorYolo>();
@@ -137,7 +137,7 @@ using namespace TNN_NS;
                           withBytes:image_data.get()
                         bytesPerRow:target_width * 4];
         status = predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
-    } else if (compute_units == TNNComputeUnitsCPU) {
+    } else if (compute_units == TNNComputeUnitsCPU || units == TNNComputeUnitsAppleNPU) {
         auto image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, target_dims, image_data.get());
         status = predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output);
     }
@@ -155,7 +155,7 @@ using namespace TNN_NS;
     
     auto bench_result     = predictor->GetBenchResult();
     self.labelResult.text = [NSString stringWithFormat:@"device: %@      \nfind %d objects\ntime:\n%s",
-                                                       compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
+                                                       [self getNSSTringForComputeUnits:compute_units],
                                                        (int)object_list.size(), bench_result.Description().c_str()];
     
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);

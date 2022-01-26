@@ -39,6 +39,9 @@ struct NetResource {
     //min shape map, corresponding to min_inputs_shape in Instance.Init
     BlobShapesMap min_blob_shapes_map;
     
+    //data type for input and output blobs
+    BlobDataTypeMap blob_datatype_map;
+    
 };
 
 DataType GetNetResourceDataType(NetResource *resource);

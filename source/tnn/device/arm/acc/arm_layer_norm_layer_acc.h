@@ -20,7 +20,18 @@
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(LayerNorm, LAYER_LAYER_NORM);
+class ArmLayerNormLayerAcc : public ArmLayerAcc {
+public:
+    virtual ~ArmLayerNormLayerAcc(){};
+    virtual Status DoForward(const std::vector<Blob*>& inputs, const std::vector<Blob*>& outputs) override;
+
+private:
+    Status Exec(const std::vector<Blob*>& inputs, const std::vector<Blob*>& outputs);
+
+#if TNN_ARM82
+    Status ExecFp16(const std::vector<Blob*>& inputs, const std::vector<Blob*>& outputs);
+#endif
+};
 
 }  // namespace TNN_NS
 

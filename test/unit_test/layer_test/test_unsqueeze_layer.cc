@@ -30,6 +30,9 @@ static bool TestFilter(DeviceType device_type, DataType data_type) {
     if (device_type == DEVICE_OPENCL && data_type == DATA_TYPE_FLOAT)
         return true;
     
+    if (device_type == DEVICE_APPLE_NPU && data_type == DATA_TYPE_FLOAT)
+        return true;
+    
     return false;
 }
 
@@ -80,6 +83,10 @@ TEST_P(UnsqueezeLayerTest, UnsqueezeLayer) {
     }
 
     if (axes.size() + input_dims.size() > 6) {
+        GTEST_SKIP();
+    }
+
+    if (DEVICE_APPLE_NPU == dev && (axes.size() + input_dims.size() > 5)) {
         GTEST_SKIP();
     }
 

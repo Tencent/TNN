@@ -25,7 +25,6 @@ using namespace TNN_NS;
 @property(nonatomic, weak) IBOutlet UIButton *btnTNNExamples;
 @property(nonatomic, weak) IBOutlet UIImageView *imageView;
 @property(nonatomic, weak) IBOutlet UILabel *labelResult;
-@property(nonatomic, weak) IBOutlet UISwitch *switchGPU;
 
 @property(nonatomic, strong) UIImage *image_orig;
 @end
@@ -54,7 +53,7 @@ using namespace TNN_NS;
     [view addSubview:self.labelResult];
 }
 
-- (IBAction)onSwichChanged:(id)sender {
+- (void)onSwitchChanged:(id)sender {
     self.imageView.image  = self.image_orig;
     self.labelResult.text = nil;
 }
@@ -95,7 +94,7 @@ using namespace TNN_NS;
         return;
     }
     
-    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     
     auto option = std::make_shared<UltraFaceDetectorOption>();
     {
@@ -103,6 +102,7 @@ using namespace TNN_NS;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
         
         option->score_threshold = 0.95;
         option->iou_threshold = 0.15;
@@ -126,7 +126,9 @@ using namespace TNN_NS;
     const int origin_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
     DimsVector image_dims = {1, 3, origin_height, origin_width};
     std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
-    if(units == TNNComputeUnitsCPU) {
+    
+    auto actual_units = predictor->GetComputeUnits();
+    if(actual_units == TNNComputeUnitsCPU || actual_units == TNNComputeUnitsAppleNPU) {
         image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, image_dims, image_data.get());
     } else {
         image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, image_dims);
@@ -171,7 +173,7 @@ using namespace TNN_NS;
     
     auto bench_result     = predictor->GetBenchResult();
     self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s",
-                                                       units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
+                                                       [self getNSSTringForComputeUnits:actual_units],
                                                        (int)face_info.size(), bench_result.Description().c_str()];
 
     auto target_width  = target_dims[3];
