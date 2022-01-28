@@ -69,25 +69,25 @@ Status CoreMLInnerproductLayer::BuildLayerParam() {
         RETURN_ON_NEQ(BuildSqueezeLayer(), TNN_OK);
     }
     
-    int input_dims;
+    int inputchannels;
     if(weight_dims.size() == 0){
         if (input_shape.size() <= 0) {
             return Status(TNNERR_MODEL_ERR, "CoreMLInnerproductLayer has invalid input shape");
         }
         if(input_shape_size > output_shape_size) {
             auto reduce_dims = input_shape_size - output_shape_size;
-            input_dims = input_shape[input_shape_size - 1 - reduce_dims];
+            inputchannels = input_shape[input_shape_size - 1 - reduce_dims];
         } else {
-            input_dims = input_shape.back();
+            inputchannels = input_shape.back();
         }
     } else {
-        input_dims = weight_dims.back();
+        inputchannels = DimsVectorUtils::Count(weight_dims)/num_output;
     }
    
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__InnerProductLayerParams>(new CoreML__Specification__InnerProductLayerParams);
     coreml_layer_->innerproduct = (CoreML__Specification__InnerProductLayerParams *)coreml_layer_param_.get();
     core_ml__specification__inner_product_layer_params__init(coreml_layer_->innerproduct);
-    coreml_layer_->innerproduct->inputchannels = input_dims;
+    coreml_layer_->innerproduct->inputchannels = inputchannels;
     coreml_layer_->innerproduct->outputchannels = num_output;
     
     RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(layer_res->weight_handle),
