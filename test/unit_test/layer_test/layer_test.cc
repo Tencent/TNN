@@ -113,6 +113,9 @@ Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precisi
     NetworkConfig config_device;
     config_device.device_type = ConvertDeviceType(FLAGS_dt);
     config_device.enable_tune_kernel = FLAGS_et;
+     if (DEVICE_APPLE_NPU == config_device.device_type) {
+        config_device.network_type = NETWORK_TYPE_COREML;
+    }
     if (DEVICE_HUAWEI_NPU == config_device.device_type) {
         config_device.network_type = NETWORK_TYPE_HUAWEI_NPU;
     }

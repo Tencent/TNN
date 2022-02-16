@@ -128,7 +128,7 @@ private:
     int m_max_batchsize;
     nvinfer1::ICudaEngine* m_trt_engine;
     nvinfer1::IExecutionContext* m_trt_context;
-    TRTLogger m_trt_logger;
+    static TRTLogger m_trt_logger;
     std::unordered_map<std::string, std::shared_ptr<nvinfer1::ITensor>> m_blob_tensor_map;
     std::unordered_set<nvinfer1::ITensor *> m_tensor_set;
     void** m_trt_bindings;

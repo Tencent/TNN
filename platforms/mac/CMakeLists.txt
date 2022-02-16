@@ -4,7 +4,7 @@ if(TNN_OPENCL_ENABLE)
 endif()
 
 # Darwin third party
-if(TNN_METAL_ENABLE)
+if(TNN_METAL_ENABLE OR TNN_APPLE_NPU_ENABLE)
     target_link_libraries(TNN "-framework Foundation")
     target_link_libraries(TNN "-framework Metal")
     target_link_libraries(TNN "-framework CoreML")

@@ -82,8 +82,8 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
 
         //copy detect model to sdcard
         String[] modelPathsDetector = {
-                "mobilenetv2_ssd.tnnmodel",
-                "mobilenetv2_ssd.tnnproto",
+                "mobilenetv2_ssd_tf.tnnmodel",
+                "mobilenetv2_ssd_tf.tnnproto",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {

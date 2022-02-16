@@ -26,7 +26,7 @@ static const char proto_path_message[] = "(required) tnn proto file path";
 
 static const char model_path_message[] = "(required) tnn model file path";
 
-static const char device_type_message[] = "(required) specify tnn device type: NAIVE, X86, ARM, CUDA, METAL, OPENCL, HUAWEI_NPU, default is ARM.";
+static const char device_type_message[] = "(required) specify tnn device type: NAIVE, X86, ARM, CUDA, METAL, OPENCL, HUAWEI_NPU, APPLE_NPU, default is ARM.";
 
 static const char input_path_message[] = "(optional) input file path";
 

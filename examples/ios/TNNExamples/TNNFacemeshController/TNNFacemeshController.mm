@@ -32,7 +32,6 @@ using namespace TNN_NS;
 @property (weak, nonatomic) IBOutlet UIButton *btnExample;
 @property (weak, nonatomic) IBOutlet UILabel *labelResult;
 @property (weak, nonatomic) IBOutlet UILabel *labelGPU;
-@property (weak, nonatomic) IBOutlet UISwitch *switchGPU;
 @property (weak, nonatomic) IBOutlet UIImageView *imageView;
 
 @property NSMutableArray *result;
@@ -129,13 +128,14 @@ using namespace TNN_NS;
 
     auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
 
-    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     auto option = std::make_shared<BlazeFaceDetectorOption>();
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
 
         //min_score_thresh
         option->min_score_threshold = 0.75;
@@ -187,13 +187,14 @@ using namespace TNN_NS;
         return predictor;
     }
 
-    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     auto option = std::make_shared<FacemeshOption>();
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
 
         //TODO: set parameters
         option->face_presence_threshold = 0.1;
@@ -217,8 +218,8 @@ using namespace TNN_NS;
 - (void) predictOnImageList:(std::shared_ptr<TNNSDKSample>)face_detector: (std::shared_ptr<TNNSDKSample>)face_mesh {
     //clear result
     self.labelResult.text = nil;
-
-    TNNComputeUnits compute_units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    
+    auto compute_units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
@@ -264,7 +265,7 @@ using namespace TNN_NS;
                                     mipmapLevel:0
                                       withBytes:image_data.get()
                                     bytesPerRow:orig_image_dims[3] * 4];
-                } else if (compute_units == TNNComputeUnitsCPU) {
+                } else if (compute_units == TNNComputeUnitsCPU || compute_units == TNNComputeUnitsAppleNPU) {
                     image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, orig_image_dims, image_data.get());
                 }
                 // preprocess
@@ -377,7 +378,7 @@ using namespace TNN_NS;
     // update perf
     float avg_time = sum_time / (idx * bench_option.forward_count);
     self.labelResult.text = [NSString stringWithFormat:@"device: %@\ntotal %d images\ntime per frame:%.3f ms", \
-                             compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm", idx, avg_time];
+                             [self getNSSTringForComputeUnits:compute_units], idx, avg_time];
 }
 
 - (void) predictOnImage:(std::shared_ptr<TNNSDKSample>)predictor_face_detector:(std::shared_ptr<TNNSDKSample>)predictor_face_mesh {
@@ -385,8 +386,8 @@ using namespace TNN_NS;
     
     DimsVector target_face_detector_dims = predictor_face_detector->GetInputShape();
     DimsVector target_face_mesh_dims = predictor_face_mesh->GetInputShape();
-
-    auto units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);
     const int image_orig_width  = (int)CGImageGetWidth(self.image_orig.CGImage);
@@ -394,7 +395,7 @@ using namespace TNN_NS;
     
     auto image_data_for_detector = utility::UIImageGetData(self.image_orig);
     std::shared_ptr<TNN_NS::Mat> image_mat = nullptr;
-    if (units == TNNComputeUnitsCPU) {
+    if (units == TNNComputeUnitsCPU || units == TNNComputeUnitsAppleNPU) {
         image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_ARM, TNN_NS::N8UC4, image_dims, image_data_for_detector.get());
     } else {
         image_mat = std::make_shared<TNN_NS::Mat>(DEVICE_METAL, TNN_NS::N8UC4, image_dims);
@@ -439,7 +440,7 @@ using namespace TNN_NS;
         }
 
         auto bench_result     = predictor_face_detector->GetBenchResult();
-        self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s", units == TNNComputeUnitsGPU ? @"gpu" : @"arm", (int)face_info.size(), bench_result.Description().c_str()];
+        self.labelResult.text = [NSString stringWithFormat:@"device: %@      face count:%d\ntime:\n%s", [self getNSSTringForComputeUnits:units], (int)face_info.size(), bench_result.Description().c_str()];
     }
 
     //face mesh
