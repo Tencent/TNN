@@ -18,6 +18,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "tnn/core/macro.h"
 
@@ -163,6 +164,9 @@ struct PUBLIC NetworkConfig {
 
     // cache path to store possible cache models or opt kernel
     std::string cache_path = "";
+
+    // set config for specific layer name
+    std::map<std::string, std::string> layer_param_config;
 
     // network init or reshape may cost more time to select opt kernel implement if enable tune kernel
     // cache_path can set to store tune kernel info.

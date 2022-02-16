@@ -233,6 +233,19 @@ int ArmConvLayer3x3::SelectWinograd(ConvLayerParam *param, const std::vector<Blo
         return 0;
     }
 
+    int arm_conv_fp32_algo = 0;
+    auto get_algo = param->extra_config.find("arm_conv_fp32_algo");
+    if (get_algo != param->extra_config.end()) {
+        arm_conv_fp32_algo = stoi(get_algo->second);
+    }
+    // 2: not use winograd
+    // 1: use winograd f(2,3)
+    // 0: use winograd f(4,3) or f(2,3)
+    // others: invalid
+    if (arm_conv_fp32_algo == 2) {
+        return 0;
+    }
+
     int ic          = inputs[0]->GetBlobDesc().dims[1];
     int oc          = outputs[0]->GetBlobDesc().dims[1];
     int kernel_size = param->kernels[0];
@@ -268,6 +281,10 @@ int ArmConvLayer3x3::SelectWinograd(ConvLayerParam *param, const std::vector<Blo
     // 10% penalty, winograd will result in more cache miss
     if (max_rate < 1.1f) {
         return 0;
+    }
+
+    if (arm_conv_fp32_algo == 1) {
+        dst_unit = 2;
     }
 
     return dst_unit;

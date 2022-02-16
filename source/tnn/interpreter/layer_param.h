@@ -49,6 +49,8 @@ struct LayerParam {
     bool quantized = false;
     // weight data size for ncnn param
     size_t weight_data_size = 0;
+    // extra config map, such as arm conv algo (gemm or winograd)
+    std::map<std::string, std::string> extra_config;
 
     PARAM_COPY(LayerParam)
 };

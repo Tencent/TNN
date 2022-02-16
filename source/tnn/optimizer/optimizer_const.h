@@ -46,6 +46,9 @@ static const std::string kNetOptimizerRemoveLayers =
 static const std::string kNetOptimizerConvertInt8Layers =
     "net_optimizer_convert_int8_layers";
 
+static const std::string kNetOptimizerConfigLayerParam =
+    "net_optimizer_config_layer_param";
+
 }
 
 #endif // TNN_SOURCE_TNN_OPTIMIZER_OPTIMIZER_CONST_H_
