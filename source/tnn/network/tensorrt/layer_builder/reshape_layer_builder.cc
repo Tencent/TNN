@@ -1,4 +1,3 @@
-
 // Tencent is pleased to support the open source community by making TNN available.
 //
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
@@ -31,10 +30,11 @@ ILayer* ReshapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     IShuffleLayer* layer = network->addShuffle(*input_tensors[0]);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
-        if (input_tensors.size() == 1) {
-            layer->setReshapeDimensions(reshape_dims);
+
+        if (input_tensors.size() > 1 && paramlist->shape.size() == 0) {
+            layer->setInput(1, *input_tensors[1]);            
         } else {
-            layer->setInput(1, *input_tensors[1]);
+            layer->setReshapeDimensions(reshape_dims);
         }
         if (paramlist->reshape_type != 0 && output_dims.size() <= 4) {
             Permutation CHW2HWC;
