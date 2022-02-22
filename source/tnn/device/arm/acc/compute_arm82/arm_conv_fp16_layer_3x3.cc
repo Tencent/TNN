@@ -267,16 +267,11 @@ int ArmConvFp16Layer3x3::SelectWinograd(ConvLayerParam *param, const std::vector
         return 0;
     }
 
-    int arm_conv_fp16_algo = 0;
-    auto get_algo = param->extra_config.find("arm_conv_fp16_algo");
-    if (get_algo != param->extra_config.end()) {
-        arm_conv_fp16_algo = stoi(get_algo->second);
-    }
-    // 2: not use winograd
-    // 1: use winograd f(2,3)
-    // 0: use winograd f(4,3) or f(2,3)
-    // others: invalid
-    if (arm_conv_fp16_algo == 2) {
+    // gemm: only use gemm
+    // winograd_unit2: use winograd f(2,3)
+    // winograd_unit4 or others:
+    // use winograd f(4,3) or f(2,3)
+    if (param->extra_config.count("arm_fp16_gemm")) {
         return 0;
     }
 
@@ -317,7 +312,7 @@ int ArmConvFp16Layer3x3::SelectWinograd(ConvLayerParam *param, const std::vector
         return 0;
     }
 
-    if (arm_conv_fp16_algo == 1) {
+    if (param->extra_config.count("arm_fp16_winograd_unit2")) {
         dst_unit = 2;
     }
 

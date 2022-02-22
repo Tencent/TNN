@@ -165,9 +165,6 @@ struct PUBLIC NetworkConfig {
     // cache path to store possible cache models or opt kernel
     std::string cache_path = "";
 
-    // set config for specific layer name
-    std::map<std::string, std::string> layer_param_config;
-
     // network init or reshape may cost more time to select opt kernel implement if enable tune kernel
     // cache_path can set to store tune kernel info.
     bool enable_tune_kernel = false;
@@ -184,6 +181,14 @@ struct PUBLIC ModelConfig {
     // hiai model need two params: order is model name, model_file_path.
     // atlas model need one param: config string.
     std::vector<std::string> params = {};
+
+    // add extra config for specific layer
+    // tnn model use [layer_name:string] as key-value pair,
+    // to add extra config for some layer.
+    // for example: "Conv_0" : "arm_fp16_winograd_unit2"
+    // set Conv_0 layer to run winograd_unit2 conv if precision is fp16
+    // the config format is: device_type + precision + option
+    std::map<std::string, std::string> extra_config;
 };
 
 typedef enum {

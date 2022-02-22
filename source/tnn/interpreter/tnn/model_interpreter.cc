@@ -105,6 +105,32 @@ Status ModelInterpreter::Interpret(std::vector<std::string> &params) {
     return status;
 }
 
+// Interpret the extra config map
+Status ModelInterpreter::InterpretConfig(std::map<std::string, std::string>& config_map) {
+    NetStructure *structure = GetNetStructure();
+    std::vector<std::shared_ptr<LayerInfo>> layers_orig = structure->layers;
+    const int count                                     = (const int)layers_orig.size();
+
+    for (int index = 0; index < count; index++) {
+        auto layer_info = layers_orig[index];
+        auto layer_param = layer_info->param.get();
+
+        auto layer_search = config_map.find(layer_info->name);
+        if (layer_search != config_map.end()) {
+            auto config_str = layer_search->second;
+            // config_str format is [key1,key2]
+            // store this string to map<str, str>
+            std::stringstream ss(config_str);
+            while (ss.good()) {
+                std::string sub_str;
+                getline(ss, sub_str, ',');
+                layer_param->extra_config.emplace(sub_str);
+            }
+        }
+    }
+    return TNN_OK;
+}
+
 // Copy Interpreter
 std::shared_ptr<AbstractModelInterpreter> ModelInterpreter::Copy() {
     std::shared_ptr<AbstractModelInterpreter> interp(new ModelInterpreter(*this));
