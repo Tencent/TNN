@@ -66,7 +66,6 @@ Status CoreMLMatMulLayer::BuildLayerParam() {
                 }
             }
             RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(matrix_b_column_),weight_param_, rawbuffer_fp32_weight_), TNN_OK);
-//            RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(resource->weight),weight_param_, rawbuffer_fp32_weight_), TNN_OK);
             coreml_layer_->batchedmatmul->weights = weight_param_.get();
         }
     }
