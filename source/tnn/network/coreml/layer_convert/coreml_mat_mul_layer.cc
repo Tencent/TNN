@@ -18,6 +18,7 @@
 namespace TNN_NS {
 
 DECLARE_COREML_LAYER_WITH_DATA(MatMul, LAYER_MATMUL,
+                                    RawBuffer matrix_b_column_;
                                     std::shared_ptr<CoreML__Specification__WeightParams> weight_param_;
                                     std::shared_ptr<RawBuffer> rawbuffer_fp32_weight_;);
 
@@ -54,7 +55,18 @@ Status CoreMLMatMulLayer::BuildLayerParam() {
         if (param->weight_position == 0) {
             return Status(TNNERR_MODEL_ERR, "CoreMLMatMulLayer dont support constant matrix a");
         } else {
-            RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(resource->weight),weight_param_, rawbuffer_fp32_weight_), TNN_OK);
+            int weight_count = resource->weight.GetDataCount();
+            matrix_b_column_ = RawBuffer(weight_count*4, {matrix_b_dims[1], matrix_b_dims[0]});
+            matrix_b_column_.SetDataType(DATA_TYPE_FLOAT);
+            auto matrix_b_ptr = resource->weight.force_to<float *>();
+            auto matrix_b_column_ptr = matrix_b_column_.force_to<float *>();
+            for (int i=0; i<matrix_b_dims[1]; i++) {
+                for (int j=0; j<matrix_b_dims[0]; j++) {
+                    *(matrix_b_column_ptr++) = matrix_b_ptr[j*matrix_b_dims[1] + i];
+                }
+            }
+            RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(matrix_b_column_),weight_param_, rawbuffer_fp32_weight_), TNN_OK);
+//            RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(resource->weight),weight_param_, rawbuffer_fp32_weight_), TNN_OK);
             coreml_layer_->batchedmatmul->weights = weight_param_.get();
         }
     }
