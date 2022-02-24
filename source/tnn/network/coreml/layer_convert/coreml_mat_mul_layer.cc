@@ -56,15 +56,30 @@ Status CoreMLMatMulLayer::BuildLayerParam() {
             return Status(TNNERR_MODEL_ERR, "CoreMLMatMulLayer dont support constant matrix a");
         } else {
             int weight_count = resource->weight.GetDataCount();
-            matrix_b_column_ = RawBuffer(weight_count*4, {matrix_b_dims[1], matrix_b_dims[0]});
-            matrix_b_column_.SetDataType(DATA_TYPE_FLOAT);
-            auto matrix_b_ptr = resource->weight.force_to<float *>();
-            auto matrix_b_column_ptr = matrix_b_column_.force_to<float *>();
-            for (int i=0; i<matrix_b_dims[1]; i++) {
-                for (int j=0; j<matrix_b_dims[0]; j++) {
-                    *(matrix_b_column_ptr++) = matrix_b_ptr[j*matrix_b_dims[1] + i];
+            auto matrix_b_data_type = resource->weight.GetDataType();
+            
+            if (matrix_b_data_type == DATA_TYPE_FLOAT) {
+                matrix_b_column_ = RawBuffer(weight_count*4, {matrix_b_dims[1], matrix_b_dims[0]});
+                matrix_b_column_.SetDataType(DATA_TYPE_FLOAT);
+                auto matrix_b_ptr = resource->weight.force_to<float *>();
+                auto matrix_b_column_ptr = matrix_b_column_.force_to<float *>();
+                for (int i=0; i<matrix_b_dims[1]; i++) {
+                    for (int j=0; j<matrix_b_dims[0]; j++) {
+                        *(matrix_b_column_ptr++) = matrix_b_ptr[j*matrix_b_dims[1] + i];
+                    }
+                }
+            } else if (matrix_b_data_type == DATA_TYPE_HALF) {
+                matrix_b_column_ = RawBuffer(weight_count*2, {matrix_b_dims[1], matrix_b_dims[0]});
+                matrix_b_column_.SetDataType(DATA_TYPE_HALF);
+                auto matrix_b_ptr = resource->weight.force_to<uint16_t *>();
+                auto matrix_b_column_ptr = matrix_b_column_.force_to<uint16_t *>();
+                for (int i=0; i<matrix_b_dims[1]; i++) {
+                    for (int j=0; j<matrix_b_dims[0]; j++) {
+                        *(matrix_b_column_ptr++) = matrix_b_ptr[j*matrix_b_dims[1] + i];
+                    }
                 }
             }
+            
             RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(matrix_b_column_),weight_param_, rawbuffer_fp32_weight_), TNN_OK);
             coreml_layer_->batchedmatmul->weights = weight_param_.get();
         }
