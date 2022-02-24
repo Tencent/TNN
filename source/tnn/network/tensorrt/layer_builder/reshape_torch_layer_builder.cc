@@ -19,6 +19,12 @@ namespace TNN_NS {
 
 DECLARE_TENSORRT_LAYER_BUILDER(ReshapeTorch, LAYER_RESHAPETORCH);
 
+// In TorchScript model, there may be multiple Reshapes that share the same shape.
+// E.g., there are two inputs input_0 and input_1, the input size of input_0 is (1, 3, 16, 16) and
+// the input size of input_1 is (1, 3, 32, 32), the shared shape is (1, 3, -1). When inferencing,
+// the -1 in shape will be converted to the real value. In LAYER_RESHAPE,
+// there is a problem with using input_tensors[1] as shape. Therefore, add LAYER_RESHAPETORCH,
+// use the shape stored in param first.
 ILayer* ReshapeTorchTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto paramlist = dynamic_cast<ReshapeLayerParam*>(param_);
 
