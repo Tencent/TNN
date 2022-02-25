@@ -94,7 +94,7 @@ public:
     virtual void OnSharedForwardMemoryChanged(void *memory);
 
     // @brief get network forward for all blob memory size
-    virtual Status GetForwardMemorySize(int &memory_size);
+    virtual Status GetForwardMemorySize(size_t &memory_size);
 
     // @brief set forward memory when share memory mode is set from external
     virtual Status SetForwardMemory(void *memory);

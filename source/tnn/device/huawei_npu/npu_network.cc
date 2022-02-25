@@ -557,7 +557,7 @@ Blob *NpuNetwork::CreateNpuBlob(hiai::TensorDimension dims, std::string name, vo
     return new Blob(desc, handle);
 }
 
-Status NpuNetwork::GetForwardMemorySize(int &memory_size) {
+Status NpuNetwork::GetForwardMemorySize(size_t &memory_size) {
     memory_size = 0;
     return TNNERR_NPU_UNSUPPORT_ERROR;
 }

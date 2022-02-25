@@ -122,6 +122,14 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         // DumpDeviceBlob(output_blobs[output_names[i]], cmd_queue, "tnn-output-"+output_names[i]);
     }
 
+    auto desc = output_blobs[output_names[0]]->GetBlobDesc();
+    size_t shared_memory_size = 0;
+    c10::Device device(c10::kCUDA);
+    ConvertToTorchDevice(device, desc.device_type);
+    compiled_engine->instance_->GetForwardMemorySize(shared_memory_size);
+    LOGE("tnn engine call SetForwardMemory before Forward, size: %lu\n", shared_memory_size);
+    compiled_engine->instance_->SetForwardMemory((at::empty(shared_memory_size, {device.type()}).to(scalar_type).contiguous());
+
     // use torch memory management
     compiled_engine->instance_->Forward();
 

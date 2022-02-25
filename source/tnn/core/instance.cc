@@ -132,7 +132,7 @@ Status Instance::DeInit() {
     return TNN_OK;
 }
 
-Status Instance::GetForwardMemorySize(int &memory_size) {
+Status Instance::GetForwardMemorySize(size_t &memory_size) {
     return network_->GetForwardMemorySize(memory_size);
 }
 

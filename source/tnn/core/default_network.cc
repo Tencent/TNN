@@ -426,7 +426,7 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
     return TNN_OK;
 }
 
-Status DefaultNetwork::GetForwardMemorySize(int &memory_size) {
+Status DefaultNetwork::GetForwardMemorySize(size_t &memory_size) {
     memory_size = blob_manager_->GetAllBlobMemorySize();
     return TNN_OK;
 }
