@@ -612,10 +612,15 @@ Status OpenCLRuntime::SaveProgramCache() {
             auto program_name = key.first;
             auto build_option = key.second;
             struct ProgramCacheInfo info;
-            RETURN_VALUE_ON_NEQ(program_name.size() < PROGRAM_NAME_MAX_LEN, true,
-                                TNNERR_OUTOFMEMORY);
-            RETURN_VALUE_ON_NEQ(build_option.size() < BUILD_OPTION_MAX_LEN, true,
-                                TNNERR_OUTOFMEMORY);
+            if(program_name.size() >= PROGRAM_NAME_MAX_LEN) {
+                ret = Status(TNNERR_OUTOFMEMORY, "check program name size error");
+                continue;
+            }
+
+            if(build_option.size() >= BUILD_OPTION_MAX_LEN) {
+                ret = Status(TNNERR_OUTOFMEMORY, "check build option size error");
+                continue;
+            }
             strcpy(info.program_name, program_name.c_str());
             strcpy(info.build_option, build_option.c_str());
 
@@ -628,8 +633,10 @@ Status OpenCLRuntime::SaveProgramCache() {
                     kernel_key_list_stream << kernel_name << " ";
                 }
             }
-            RETURN_VALUE_ON_NEQ(kernel_key_list_stream.str().size() < KERNEL_KEY_LIST_MAX_LEN, true,
-                                TNNERR_OUTOFMEMORY);
+            if(kernel_key_list_stream.str().size() >= KERNEL_KEY_LIST_MAX_LEN) {
+                ret = Status(TNNERR_OUTOFMEMORY, "check kernel key list stream size error");
+                continue;
+            }
             strcpy(info.kernel_key_list, kernel_key_list_stream.str().c_str());
             info.buffer_size = buffer_size;
             int fwsize = fwrite(&info, sizeof(struct ProgramCacheInfo), 1, program_cache_fout);
