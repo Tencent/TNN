@@ -30,10 +30,12 @@ std::map<SharedMemoryId, std::vector<ISharedMemoryChangeListener *>> SharedMemor
 
 DimsVector SplitMemorySizeToDims(size_t memory_size) {
     DimsVector dims;
-    while (memory_size > INT_MAX) {
-        int dim = (memory_size - 1) / INT_MAX + 1;
-        dims.push_back(dim);
-        memory_size /= dim;
+    if (memory_size > INT_MAX) {
+        int dim1 = sqrt(memory_size) + 1;
+        int dim2 = dim1;
+        dims.push_back(dim1);
+        dims.push_back(dim2);
+        LOGE("SplitMemorySizeToDims dim: %d\n", dim1);
     }
     dims.push_back(memory_size);
     return dims;
@@ -51,7 +53,10 @@ SharedMemory SharedMemoryManager::GetSharedMemory(size_t forward_memory_size, st
     std::vector<ISharedMemoryChangeListener *> &shared_instances = s_shared_memory_instances[memory_id];
     if (forward_memory_size > share_memory.shared_memory_size) {
         void *new_shared_memory = NULL;
-        status = device->Allocate(&new_shared_memory, forward_memory_size);
+        BlobMemorySizeInfo info;
+        info.data_type = DATA_TYPE_INT8;
+        info.dims = SplitMemorySizeToDims(forward_memory_size);
+        status = device->Allocate(&new_shared_memory, info);
         if (status != TNN_OK) {
             return SharedMemory();
         }
