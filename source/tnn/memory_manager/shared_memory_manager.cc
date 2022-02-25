@@ -51,10 +51,7 @@ SharedMemory SharedMemoryManager::GetSharedMemory(size_t forward_memory_size, st
     std::vector<ISharedMemoryChangeListener *> &shared_instances = s_shared_memory_instances[memory_id];
     if (forward_memory_size > share_memory.shared_memory_size) {
         void *new_shared_memory = NULL;
-        BlobMemorySizeInfo info;
-        info.data_type = DATA_TYPE_INT8; 
-        info.dims = SplitMemorySizeToDims(forward_memory_size);
-        status = device->Allocate(&new_shared_memory, info);
+        status = device->Allocate(&new_shared_memory, forward_memory_size);
         if (status != TNN_OK) {
             return SharedMemory();
         }
