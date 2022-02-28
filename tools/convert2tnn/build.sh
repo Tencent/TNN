@@ -38,6 +38,7 @@ function build_model_check_and_tnn_converter_and_onnx2tnn() {
         -DTNN_MODEL_CHECK_ENABLE:BOOL="ON" \
         -DTNN_CONVERTER_ENABLE:BOOL="ON" \
         -DTNN_ONNX2TNN_ENABLE:BOOL="ON" \
+        -DTNN_FAKE_QUANTIZATION_ENABLE:BOOL="ON" \
         -DTNN_BUILD_SHARED="OFF"
 
     make -j4
@@ -45,6 +46,14 @@ function build_model_check_and_tnn_converter_and_onnx2tnn() {
     if [ -f "model_check" ]; then
         cp model_check ../${BIN_DIR}/
         echo "Compiled model_check successfully !"
+    else
+
+        echo "Compiled model_check failed !!!"
+    fi
+
+    if [ -f "fake_quantization" ]; then
+        cp fake_quantization ../${BIN_DIR}/
+        echo "Compiled fake_quantization successfully !"
     else
 
         echo "Compiled model_check failed !!!"

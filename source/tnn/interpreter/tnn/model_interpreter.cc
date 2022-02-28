@@ -404,6 +404,34 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
 
         const_map[key] = buffer;
     }
+
+    // dequant fake int8 data in const_map
+    for (auto &it : const_map) {
+        auto name       = it.first;
+        auto weight_buf = it.second;
+        if (weight_buf->GetDataType() != DATA_TYPE_FAKE_INT8) {
+            continue;
+        }
+        const int weight_data_size = weight_buf->GetDataCount();
+        const auto weight_data_ptr = weight_buf->force_to<int8_t *>();
+        const auto scale_buf       = const_map[name + FakeInt8ScaleSuffix];
+        const auto scale_value     = scale_buf->force_to<float *>()[0];
+        std::vector<float> weight_data(weight_data_size, 0);
+        for (int i = 0; i < weight_data_size; i++) {
+            weight_data[i] = (float)(weight_data_ptr[i]) * scale_value;
+        }
+
+        auto new_weight_buf = std::make_shared<RawBuffer>(weight_data_size * sizeof(float));
+        memcpy(new_weight_buf->force_to<float *>(), weight_data.data(), weight_data_size * sizeof(float));
+        new_weight_buf->SetDataType(DATA_TYPE_FLOAT);
+        new_weight_buf->SetBufferDims(weight_buf->GetBufferDims());
+
+        const_map[name] = new_weight_buf;
+
+        // delete scale buffer
+        const_map.erase(name + FakeInt8ScaleSuffix);
+    }
+
     net_resource->constant_map = const_map;
 
     return TNN_OK;

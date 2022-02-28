@@ -53,6 +53,7 @@ option(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE "Enable Build Benchmark Test Lib" OFF
 option(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE "Enable Use CXX11 ABI" ON)
 option(TNN_METAL_FLOAT32 "Enable Metal Float32" OFF)
 option(TNN_COREML_FLOAT32 "Enable Float32 CoreML Model" ON)
+option(TNN_FAKE_QUANTIZATION_ENABLE "Enable Fake Quantization" OFF)
 
 set(TNN_USE_GFLAGS OFF)
 
@@ -260,6 +261,7 @@ message(STATUS "\tModel Converter:\t${TNN_CONVERTER_ENABLE}")
 message(STATUS "\tONNX2TNN Converter:\t${TNN_ONNX2TNN_ENABLE}")
 message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 message(STATUS "\tBENCHMARK Test Lib:\t${TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE}")
+message(STATUS "\tFake Quantization:\t${TNN_FAKE_QUANTIZATION_ENABLE}")
 
 include_directories(include)
 include_directories(source)
@@ -450,4 +452,8 @@ endif()
 
 if(TNN_EVALUATION_ENABLE)
     add_subdirectory(tools/evaluation)
+endif()
+
+if(TNN_FAKE_QUANTIZATION_ENABLE)
+    add_subdirectory(tools/fake_quantization)
 endif()

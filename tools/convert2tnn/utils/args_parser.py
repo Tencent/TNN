@@ -94,6 +94,12 @@ def parse_args():
                                  action='store_true',
                                  required=False,
                                  help="Turn on the switch to debug the model.")
+    onnx2tnn_parser.add_argument('-int8',
+                                 dest='int',
+                                 default=False,
+                                 action='store_true',
+                                 required=False,
+                                 help="save model using fake quantization")
 
     # convert caff2onnx -pp proto_path -mp model_path -o
     caffe2tnn_parser = subparsers.add_parser('caffe2tnn',
@@ -159,6 +165,12 @@ def parse_args():
                                   action='store_true',
                                   required=False,
                                   help="Turn on the switch to debug the model.")
+    caffe2tnn_parser.add_argument('-int8',
+                                  dest='int',
+                                  default=False,
+                                  action='store_true',
+                                  required=False,
+                                  help="save model using fake quantization")
 
     tf2tnn_parser = subparsers.add_parser('tf2tnn',
                                           help="convert tensorflow model to tnn model")
@@ -246,6 +258,13 @@ def parse_args():
                                action='store_true',
                                required=False,
                                help="Turn on the switch to debug the model.")
+    tf2tnn_parser.add_argument('-int8',
+                               dest='int',
+                               default=False,
+                               action='store_true',
+                               required=False,
+                               help="save model using fake quantization")
+
     # tflie parser
     tflite2tnn_parser = subparsers.add_parser('tflite2tnn',
                                               help="convert tensorflow-lite model to tnn model")
@@ -301,4 +320,11 @@ def parse_args():
                                    action='store_true',
                                    required=False,
                                    help="Turn on the switch to debug the model.")
+    tflite2tnn_parser.add_argument('-int8',
+                                   dest='int',
+                                   default=False,
+                                   action='store_true',
+                                   required=False,
+                                   help="save model using fake quantization")
+
     return parser

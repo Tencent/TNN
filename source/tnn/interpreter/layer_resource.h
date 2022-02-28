@@ -29,6 +29,8 @@ typedef std::map<std::string, DataType> BlobDataTypeMap;
 typedef std::map<std::string, std::shared_ptr<RawBuffer> > ConstantResource;
 typedef std::map<std::string, int > ConstantResourceFlag;
 
+const std::string FakeInt8ScaleSuffix = "_fake_int8_scale";
+
 struct LayerResource {
     std::string name = "";
     // default virtual destructor
@@ -159,6 +161,7 @@ struct UnsqueezeLayerResource : public SqueezeLayerResource {};
 
 struct MatMulLayerResource : public LayerResource {
     RawBuffer weight;
+    RawBuffer scale_handle;
 };
 
 struct BiasAddLayerResource : public LayerResource {

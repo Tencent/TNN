@@ -47,6 +47,7 @@ struct LayerParam {
     /**layer name*/
     std::string name;
     bool quantized = false;
+    bool fake_quantized = false;
     // weight data size for ncnn param
     size_t weight_data_size = 0;
 
