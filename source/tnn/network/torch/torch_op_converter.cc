@@ -1188,8 +1188,8 @@ class ReshapeTorchConverter : public TorchOpConverter {
 public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-        layer_info->type                      = LAYER_RESHAPE;
-        layer_info->type_str                  = "Reshape";
+        layer_info->type                      = LAYER_RESHAPETORCH;
+        layer_info->type_str                  = "ReshapeTorch";
         layer_info->name                      = node->output(0)->debugName();
 
         for (const auto &input : node->inputs()) {

@@ -62,5 +62,6 @@ Status ReshapeLayerInterpreter::SaveResource(Serializer& serializer, LayerParam*
 }
 
 REGISTER_LAYER_INTERPRETER(Reshape, LAYER_RESHAPE);
+REGISTER_LAYER_INTERPRETER(Reshape, LAYER_RESHAPETORCH);
 
 }  // namespace TNN_NS

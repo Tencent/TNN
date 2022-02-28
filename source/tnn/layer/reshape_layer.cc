@@ -91,5 +91,6 @@ Status ReshapeLayer::FillLayerParamWithConstantResource() {
 }
 
 REGISTER_LAYER(Reshape, LAYER_RESHAPE);
+REGISTER_LAYER(Reshape, LAYER_RESHAPETORCH);
 
 }  // namespace TNN_NS
