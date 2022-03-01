@@ -95,7 +95,7 @@ def parse_args():
                                  required=False,
                                  help="Turn on the switch to debug the model.")
     onnx2tnn_parser.add_argument('-int8',
-                                 dest='int',
+                                 dest='int8',
                                  default=False,
                                  action='store_true',
                                  required=False,
@@ -166,7 +166,7 @@ def parse_args():
                                   required=False,
                                   help="Turn on the switch to debug the model.")
     caffe2tnn_parser.add_argument('-int8',
-                                  dest='int',
+                                  dest='int8',
                                   default=False,
                                   action='store_true',
                                   required=False,
@@ -259,7 +259,7 @@ def parse_args():
                                required=False,
                                help="Turn on the switch to debug the model.")
     tf2tnn_parser.add_argument('-int8',
-                               dest='int',
+                               dest='int8',
                                default=False,
                                action='store_true',
                                required=False,
@@ -321,7 +321,7 @@ def parse_args():
                                    required=False,
                                    help="Turn on the switch to debug the model.")
     tflite2tnn_parser.add_argument('-int8',
-                                   dest='int',
+                                   dest='int8',
                                    default=False,
                                    action='store_true',
                                    required=False,

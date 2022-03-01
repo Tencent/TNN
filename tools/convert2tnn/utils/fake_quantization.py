@@ -26,6 +26,9 @@ def quantization(src_model_path: str, model_type: str, output_dir: str, optimize
     if model_type not in support_model_type:
         logging.error("{} is not support in fake quantization".format(model_type))
 
+    if output_dir is None:
+        output_dir = os.path.dirname(src_model_path)
+
     model_name = src_model_name[:-len("." + model_type)]
     if optimize:
         model_name += ".opt"
