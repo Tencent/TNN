@@ -38,14 +38,7 @@ Status TNNImplDefault::Init(ModelConfig& config) {
         return Status(TNNERR_NET_ERR, "interpreter is nil");
     }
     interpreter_ = std::shared_ptr<AbstractModelInterpreter>(interpreter);
-    status = interpreter_->Interpret(config.params);
-    if (status != TNN_OK) {
-        return status;
-    }
-    if (!config.extra_config.empty()) {
-        status = interpreter_->InterpretConfig(config.extra_config);
-    }
-    return status;
+    return interpreter_->Interpret(config.params);
 }
 
 Status TNNImplDefault::DeInit() {

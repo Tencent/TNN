@@ -182,13 +182,13 @@ struct PUBLIC ModelConfig {
     // atlas model need one param: config string.
     std::vector<std::string> params = {};
 
-    // add extra config for specific layer
+    // params can also add extra config for specific layer
     // tnn model use [layer_name:string] as key-value pair,
     // to add extra config for some layer.
-    // for example: "Conv_0" : "arm_fp16_winograd_unit2"
+    // for example: "ExtraConfig:Conv_0:arm_fp16_winograd_unit2,arm_fp32_gemm;Conv_1:arm_fp32_gemm"
     // set Conv_0 layer to run winograd_unit2 conv if precision is fp16
+    // set Conv_1 layer to run gemm conv if precision is fp32
     // the config format is: device_type + precision + option
-    std::map<std::string, std::string> extra_config;
 };
 
 typedef enum {
