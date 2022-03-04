@@ -120,7 +120,22 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
         auto dims       = desc.dims;
 
         if (dims.size() < 2) {
-            memcpy(GetBlobHandlePtr(blob->GetHandle()), buffer->force_to<void *>(), buffer->GetBytesSize());
+            if (buff_dtype == blob_dtype) {
+                memcpy(GetBlobHandlePtr(blob->GetHandle()), buffer->force_to<void *>(), buffer->GetBytesSize());
+            } else {
+                if (buff_dtype == DATA_TYPE_FLOAT && blob_dtype == DATA_TYPE_HALF) {
+                    ConvertFromFloatToHalf(buffer->force_to<float *>(),
+                                           GetBlobHandlePtr(blob->GetHandle()),
+                                           buffer->GetBytesSize() / sizeof(float));
+                } else if (buff_dtype == DATA_TYPE_HALF && blob_dtype == DATA_TYPE_FLOAT) {
+                    ConvertFromHalfToFloat(buffer->force_to<void *>(),
+                                           reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())),
+                                           buffer->GetBytesSize() / sizeof(fp16_t));
+                } else {
+                    LOGE("RawBuffer2ArmBlob:: unsupported buffer and blob data type: %d, %d\n", buff_dtype, blob_dtype);
+                    return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: unsupported buffer and blob data type");
+                }
+            }
             return TNN_OK;
         }
 

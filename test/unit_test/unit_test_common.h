@@ -37,7 +37,8 @@ std::shared_ptr<AbstractModelInterpreter> GenerateInterpreter(std::string layer_
                                                               std::vector<std::vector<int>> input_vec,
                                                               std::shared_ptr<LayerParam> param,
                                                               std::shared_ptr<LayerResource> resource = nullptr,
-                                                              int output_count                        = 1);
+                                                              int output_count                        = 1,
+                                                              std::vector<DataType> input_dtype       = {});
 
 }  // namespace TNN_NS
 

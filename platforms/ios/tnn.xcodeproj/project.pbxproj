@@ -833,6 +833,7 @@
 		E4D05BF9259F161000921502 /* arm_prelu_fp16_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = E4D05BF6259F161000921502 /* arm_prelu_fp16_layer.cc */; };
 		E4D05BFA259F161000921502 /* arm_relu_fp16_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = E4D05BF7259F161000921502 /* arm_relu_fp16_layer.cc */; };
 		E4D05C03259F1BA700921502 /* arm_add_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = E4D05C02259F1BA700921502 /* arm_add_layer_acc.cc */; };
+		E4F8F98E278BD01C005F7B63 /* arm_roialign_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = E4F8F98D278BD01C005F7B63 /* arm_roialign_layer_acc.cc */; };
 		EC0BE13725144B5E009BD69A /* detection_post_process_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = EC0BE13425144B5D009BD69A /* detection_post_process_utils.h */; };
 		EC0BE13825144B5E009BD69A /* detection_post_process_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE13525144B5D009BD69A /* detection_post_process_utils.cc */; };
 		EC0BE13925144B5E009BD69A /* string_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = EC0BE13625144B5D009BD69A /* string_utils.cc */; };
@@ -1925,6 +1926,7 @@
 		E4D05BF6259F161000921502 /* arm_prelu_fp16_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_prelu_fp16_layer.cc; sourceTree = "<group>"; };
 		E4D05BF7259F161000921502 /* arm_relu_fp16_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_relu_fp16_layer.cc; sourceTree = "<group>"; };
 		E4D05C02259F1BA700921502 /* arm_add_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_add_layer_acc.cc; sourceTree = "<group>"; };
+		E4F8F98D278BD01C005F7B63 /* arm_roialign_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_roialign_layer_acc.cc; sourceTree = "<group>"; };
 		EC0BE13425144B5D009BD69A /* detection_post_process_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = detection_post_process_utils.h; sourceTree = "<group>"; };
 		EC0BE13525144B5D009BD69A /* detection_post_process_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = detection_post_process_utils.cc; sourceTree = "<group>"; };
 		EC0BE13625144B5D009BD69A /* string_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = string_utils.cc; sourceTree = "<group>"; };
@@ -3065,6 +3067,7 @@
 				3620403D26E8D4E000935711 /* arm_layer_norm_layer_acc.cc */,
 				3620403E26E8D4E000935711 /* arm_layer_norm_layer_acc.h */,
 				4E187D262672030500804FDF /* arm_concat_layer_acc.h */,
+				E4F8F98D278BD01C005F7B63 /* arm_roialign_layer_acc.cc */,
 				4E187D252672030500804FDF /* arm_grid_sample_layer_acc.cc */,
 				4E187D222672030500804FDF /* arm_inverse_layer_acc.cc */,
 				4E187D232672030500804FDF /* arm_padv2_layer_acc.cc */,
@@ -4558,6 +4561,7 @@
 				9D32FCF524557EEC002DCDAB /* reduce_l2_layer.cc in Sources */,
 				9DF543F9258B1366006CEC97 /* arm_detection_output_layer_acc.cc in Sources */,
 				9D32FF0E24557EED002DCDAB /* flatten_layer_interpreter.cc in Sources */,
+				E4F8F98E278BD01C005F7B63 /* arm_roialign_layer_acc.cc in Sources */,
 				EC0BE15525144BB8009BD69A /* rsqrt_layer.cc in Sources */,
 				E4D05BB8259DCB2E00921502 /* arm_sigmoid_fp16_layer.cc in Sources */,
 				9DD1FB7D247CE9BE00800139 /* metal_relu6_layer_acc.metal in Sources */,
