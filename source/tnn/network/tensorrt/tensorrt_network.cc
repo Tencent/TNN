@@ -30,7 +30,7 @@
 
 namespace TNN_NS {
 
-#define MAX_SCRATCH_MEMORY (1<<31 - 1)
+#define MAX_SCRATCH_MEMORY (1<<29 - 1)
 #define TENSORRT_SERIALIZE_VERSION "v1.5"
 
 NetworkImplFactoryRegister<NetworkImplFactory<TensorRTNetwork_>>
