@@ -31,11 +31,9 @@ std::map<SharedMemoryId, std::vector<ISharedMemoryChangeListener *>> SharedMemor
 DimsVector SplitMemorySizeToDims(size_t memory_size) {
     DimsVector dims;
     if (memory_size > INT_MAX) {
-        int dim1 = sqrt(memory_size) + 1;
-        int dim2 = dim1;
-        dims.push_back(dim1);
-        dims.push_back(dim2);
-        LOGE("SplitMemorySizeToDims dim: %d\n", dim1);
+        int sqrt_dim = sqrt(memory_size) + 1;
+        dims.push_back(sqrt_dim);
+        dims.push_back(sqrt_dim);
     }
     dims.push_back(memory_size);
     return dims;

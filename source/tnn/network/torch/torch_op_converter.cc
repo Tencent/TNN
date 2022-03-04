@@ -1299,15 +1299,6 @@ public:
 // func: upsample_bilinear2d(Tensor self, int[2] output_size, bool align_corners, float? scales_h=None, float? scales_w=None) -> Tensor
 class UpsampleTorchConverter : public TorchOpConverter {
 public:
-    bool IsSupported(const torch::jit::Node *node) {
-        // in this mode, upsample param dims will be calc runtime
-        // Todo: trt shape tensor should expand hw tensor to nchw tensor
-        if (!toIValue(node->input(1))) {
-            return false;
-        }
-        return true;
-    }
-
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
         layer_info->type = LAYER_UPSAMPLE;
@@ -1322,8 +1313,15 @@ public:
             case at::aten::upsample_nearest2d:
                 layer_param->mode = 1;
                 if (node->inputs().size() == 3) {
-                    auto scales = getValue<std::vector<double>>(node->input(2));
-                    layer_param->scales = {(float)scales[1], (float)scales[0]};
+                    if (node->input(2)->type()->kind() == c10::TypeKind::NoneType) {
+                        // scale is none, use dims
+                        layer_info->inputs.push_back(node->input(1)->debugName());
+                        layer_param->scales = {0.f, 0.f};
+                    } else {
+                        // scale is not none, use scale
+                        auto scales = getValue<std::vector<double>>(node->input(2));
+                        layer_param->scales = {(float)scales[1], (float)scales[0]};
+                    }
                 } else if (node->inputs().size() == 4) {
                     if (!toIValue(node->input(1))) {
                         layer_info->inputs.push_back(node->input(1)->debugName() + "_roi");

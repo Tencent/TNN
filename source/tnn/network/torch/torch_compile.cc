@@ -146,6 +146,10 @@ torch::jit::Module CompileTorch(torch::jit::Module &mod, InputShapesMap &min_inp
         mod.to(torch::kHalf);
     }
 
+    if (config.device_type == DEVICE_CUDA) {
+        config.share_memory_mode = TNN_NS::SHARE_MEMORY_MODE_SET_FROM_EXTERNAL;
+    }
+
     TorchOptPass(mod);
 
     // std::cout << c10::toString(mod.get_method("forward").function().getSchema()) << std::endl;
