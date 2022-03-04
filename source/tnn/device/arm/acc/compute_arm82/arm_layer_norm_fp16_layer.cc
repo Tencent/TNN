@@ -70,7 +70,7 @@ Status ArmLayerNormLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const s
         float sum     = 0.0f;
         float sum_var = 0.0f;
         for (int hw = f4_round_down * 4; hw < f4_round_down * 4 + f4_remainder; hw += 1) {
-            float v = half_float::detail::half2float<float>(*(half_float::detail::uint16 *)(input_ptr + hw));
+            float v = (float)input_ptr[hw];
             sum     = sum + v;
             sum_var = sum_var + v * v;
         }
