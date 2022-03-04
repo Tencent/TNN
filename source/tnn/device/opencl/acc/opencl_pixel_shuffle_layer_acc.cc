@@ -36,7 +36,7 @@ Status OpenCLPixelShuffleLayerAcc::Init(Context *context, LayerParam *param, Lay
     // create kernel
     std::string kernel_name = "PixelShuffle";
 
-    ret = CreateExecuteUnit(execute_units_[0], "pixel_shuffle", kernel_name);
+    ret = CreateExecuteUnit(execute_units_[0], "pixel_shuffle", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

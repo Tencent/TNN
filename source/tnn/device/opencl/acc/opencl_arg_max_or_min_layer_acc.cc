@@ -72,6 +72,7 @@ Status OpenCLArgMaxOrMinLayerAcc::Init(Context *context, LayerParam *param, Laye
     }
 
     build_options.emplace(" -DOPERATOR=" + operator_func + " -DBINARY_OPERATOR=" + compute);
+    build_options.insert(build_options_.begin(), build_options_.end());
 
     ret = CreateExecuteUnit(execute_units_[0], "arg", kernel_name, build_options);
     if (ret != TNN_OK) {

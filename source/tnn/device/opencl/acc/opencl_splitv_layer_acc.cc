@@ -103,16 +103,16 @@ Status OpenCLSplitVLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     if (use_buffer_) {
         // use buffer, convert image to buffer first.
         OpenCLExecuteUnit exec_unit;
-        ret = CreateExecuteUnit(exec_unit, "image_to_buffer", "ImageToNCHWBufferFLOAT");
+        ret = CreateExecuteUnit(exec_unit, "image_to_buffer", "ImageToNCHWBufferFLOAT", build_options_);
         CHECK_TNN_OK(ret)
         execute_units_.push_back(exec_unit);
     }
     for (auto unit : splitv_units_) {
         OpenCLExecuteUnit exec_unit;
         if (SPLITV_IMAGE == unit.type) {
-            ret = CreateExecuteUnit(exec_unit, "copy", "CopyImage");
+            ret = CreateExecuteUnit(exec_unit, "copy", "CopyImage", build_options_);
         } else {
-            ret = CreateExecuteUnit(exec_unit, "copy", "CopyBufferToImage");
+            ret = CreateExecuteUnit(exec_unit, "copy", "CopyBufferToImage", build_options_);
         }
         CHECK_TNN_OK(ret)
         execute_units_.push_back(exec_unit);

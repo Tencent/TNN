@@ -49,19 +49,19 @@ Status OpenCLSqueezeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     // image->buffer
     {
         if (input_dims.size() == 5) {  // 5d image to buffer
-            ret = CreateExecuteUnit(execute_units_[0], "image_5d_to_buffer", "Image5DToNCHWBuffer");
+            ret = CreateExecuteUnit(execute_units_[0], "image_5d_to_buffer", "Image5DToNCHWBuffer", build_options_);
             if (ret != TNN_OK) {
                 LOGE("create execute unit failed!\n");
                 return ret;
             }
         } else if (input_dims.size() == 6) {
-            ret = CreateExecuteUnit(execute_units_[0], "image_6d_to_buffer", "Image6DToNCHWBuffer");
+            ret = CreateExecuteUnit(execute_units_[0], "image_6d_to_buffer", "Image6DToNCHWBuffer", build_options_);
             if (ret != TNN_OK) {
                 LOGE("create execute unit failed!\n");
                 return ret;
             }
         } else {
-            ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", "ImageToNCHWBuffer");
+            ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", "ImageToNCHWBuffer", build_options_);
             if (ret != TNN_OK) {
                 LOGE("create execute unit failed!\n");
                 return ret;
@@ -72,19 +72,19 @@ Status OpenCLSqueezeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     // buffer->image
     {
         if (output_dims.size() == 5) {  // buffer to imgae5d
-            ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image_5d", "NCHWBufferToImage5D");
+            ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image_5d", "NCHWBufferToImage5D", build_options_);
             if (ret != TNN_OK) {
                 LOGE("create execute unit failed!\n");
                 return ret;
             }
         } else if (output_dims.size() == 6) {
-            ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image_6d", "NCHWBufferToImage6D");
+            ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image_6d", "NCHWBufferToImage6D", build_options_);
             if (ret != TNN_OK) {
                 LOGE("create execute unit failed!\n");
                 return ret;
             }
         } else {
-            ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", "NCHWBufferToImage");
+            ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", "NCHWBufferToImage", build_options_);
             if (ret != TNN_OK) {
                 LOGE("create execute unit failed!\n");
                 return ret;
