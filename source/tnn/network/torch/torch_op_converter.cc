@@ -1340,24 +1340,27 @@ public:
                 break;
             case at::aten::upsample_bilinear2d:
                 layer_param->mode = 2;
-                if (!toIValue(node->input(1))) {
-                    // calc in runtime
-                    layer_info->inputs.push_back(node->input(1)->debugName() + "_roi");
-                    layer_info->inputs.push_back(node->input(1)->debugName() + "_scale");
-                    layer_info->inputs.push_back(node->input(1)->debugName());
-                    layer_param->scales = {0.f, 0.f};
-                    // empty raw buffer just makes tnn not crash
-                    net_resource->constant_map[layer_info->inputs[1]] = std::make_shared<RawBuffer>();
-                    net_resource->constant_map[layer_info->inputs[2]] = std::make_shared<RawBuffer>();
-                } else {
-                    auto output_size = getValue<std::vector<int64_t>>(node->input(1));
-                    layer_param->dims = {(int)output_size[0], (int)output_size[1]};
-                }
-                layer_param->align_corners = getValue<bool>(node->input(2));
-                layer_param->scales = {0.f, 0.f};
-                if (node->inputs().size() == 5) {
-                    layer_param->scales.push_back(getValue<float>(node->input(4)));
-                    layer_param->scales.push_back(getValue<float>(node->input(3)));
+                if (node->inputs().size() == 4) {
+                    layer_param->align_corners = getValue<bool>(node->input(2));
+                    if (node->input(3)->type()->kind() == c10::TypeKind::NoneType) {
+                        // scale is none, use dims
+                        layer_info->inputs.push_back(node->input(1)->debugName());
+                        layer_param->scales = {0.f, 0.f};
+                    } else {
+                        // scale is not none, use scale
+                        auto scales = getValue<std::vector<double>>(node->input(3));
+                        layer_param->scales = {(float)scales[1], (float)scales[0]};
+                    }
+                } else if (node->inputs().size() == 5) {
+                    layer_param->align_corners = getValue<bool>(node->input(2));
+                    if (node->input(3)->type()->kind() == c10::TypeKind::NoneType) {
+                        // scale is none, use dims
+                        layer_info->inputs.push_back(node->input(1)->debugName());
+                        layer_param->scales = {0.f, 0.f};
+                    } else {
+                        layer_param->scales.push_back(getValue<float>(node->input(4)));
+                        layer_param->scales.push_back(getValue<float>(node->input(3)));
+                    }
                 }
 
                 break;
@@ -1747,7 +1750,7 @@ REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
 REGISTER_TORCH_OP_CONVERTER(To, aten, to)
 REGISTER_TORCH_OP_CONVERTER(TopK, aten, topk)
 REGISTER_TORCH_OP_CONVERTER(Transpose, aten, transpose)
-// REGISTER_TORCH_OP_CONVERTER(Upsample, aten, upsample_bilinear2d)
+REGISTER_TORCH_OP_CONVERTER(Upsample, aten, upsample_bilinear2d)
 REGISTER_TORCH_OP_CONVERTER(Upsample, aten, upsample_nearest2d)
 REGISTER_TORCH_OP_CONVERTER(Unsqueeze, aten, unsqueeze)
 REGISTER_TORCH_OP_CONVERTER(Reduce, aten, mean)
