@@ -29,7 +29,8 @@ typedef std::map<std::string, DataType> BlobDataTypeMap;
 typedef std::map<std::string, std::shared_ptr<RawBuffer> > ConstantResource;
 typedef std::map<std::string, int > ConstantResourceFlag;
 
-const std::string FakeInt8ScaleSuffix = "_fake_int8_scale";
+// used to name scale obtained after dynamic range quantization constant weights
+const std::string DynamicRangeQuantScaleSuffix = "_dynamic_range_quant_scale";
 
 struct LayerResource {
     std::string name = "";
@@ -161,6 +162,7 @@ struct UnsqueezeLayerResource : public SqueezeLayerResource {};
 
 struct MatMulLayerResource : public LayerResource {
     RawBuffer weight;
+    // extra scale handle for different precision
     RawBuffer scale_handle;
 };
 

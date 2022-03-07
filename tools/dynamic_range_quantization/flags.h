@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_TOOLS_FLAGS_H
-#define TNN_TOOLS_FLAGS_H
+#ifndef TNN_TOOLS_DYNAMIC_RANGE_FLAGS_H
+#define TNN_TOOLS_DYNAMIC_RANGE_FLAGS_H
 
 #include "gflags/gflags.h"
 #include "tnn/core/macro.h"
@@ -42,4 +42,4 @@ DECLARE_string(qm);
 
 }  // namespace TNN_NS
 
-#endif  // TNN_TOOLS_FLAGS_H
+#endif  // TNN_TOOLS_DYNAMIC_RANGE_FLAGS_H

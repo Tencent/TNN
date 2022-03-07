@@ -35,24 +35,10 @@ Status MatMulLayerInterpreter::InterpretResource(Deserializer& deserializer, Lay
     deserializer.GetRaw(buf);
     layer_res->weight = buf;
 
-    if (layer_res->weight.GetDataType() == DATA_TYPE_FAKE_INT8) {
-        RawBuffer scale_buf;
-        deserializer.GetRaw(scale_buf);
-
-        const int data_size = layer_res->weight.GetDataCount();
-        auto weight_ptr = layer_res->weight.force_to<int8_t*>();
-        auto scale_value = scale_buf.force_to<float *>()[0];
-        std::vector<float> weight_data(data_size, 0);
-        for (int i = 0; i < data_size; i++) {
-            weight_data[i] = scale_value * (float)(weight_ptr[i]);
-        }
-
-        RawBuffer weight_buf(data_size * sizeof(float));
-        memcpy(weight_buf.force_to<float *>(), weight_data.data(), data_size * sizeof(float));
-        weight_buf.SetDataType(DATA_TYPE_FLOAT);
-        weight_buf.SetBufferDims(layer_res->weight.GetBufferDims());
-
-        layer_res->weight = weight_buf;
+    if (layer_res->weight.GetDataType() == DATA_TYPE_INT8) {
+        RawBuffer scale;
+        deserializer.GetRaw(scale);
+        layer_res->scale_handle = scale;
     }
 
     return TNN_OK;
@@ -70,7 +56,7 @@ Status MatMulLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerPara
 Status MatMulLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
     CAST_OR_RET_ERROR(layer_res, MatMulLayerResource, "invalid layer res to save", resource);
     serializer.PutRaw(layer_res->weight);
-    if (param->fake_quantized) {
+    if (param->dynamic_range_quantized) {
         serializer.PutRaw(layer_res->scale_handle);
     }
     return TNN_OK;

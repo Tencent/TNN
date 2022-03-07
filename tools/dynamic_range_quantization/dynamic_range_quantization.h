@@ -12,22 +12,24 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_TOOLS_FAKE_QUANTIZATION_H
-#define TNN_TOOLS_FAKE_QUANTIZATION_H
+#ifndef TNN_TOOLS__DYNAMIC_RANGE_DYNAMIC_RANGE_QUANTIZATION_H
+#define TNN_TOOLS__DYNAMIC_RANGE_DYNAMIC_RANGE_QUANTIZATION_H
 
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/interpreter/raw_buffer.h"
 #include "tnn/interpreter/tnn/model_packer.h"
 
-class FakeQuantizer {
+class DynamicRangeQuantizer {
 public:
-    FakeQuantizer() = delete;
-    FakeQuantizer(const std::shared_ptr<NetStructure>& net_structure, const std::shared_ptr<NetResource>& net_resource);
+    DynamicRangeQuantizer() = delete;
+    DynamicRangeQuantizer(const std::shared_ptr<NetStructure>& net_structure,
+                          const std::shared_ptr<NetResource>& net_resource);
 
-    ~FakeQuantizer() {}
+    ~DynamicRangeQuantizer() {}
 
 public:
-    Status GetFakeQuantModel(std::shared_ptr<NetStructure>& net_structure, std::shared_ptr<NetResource>& net_resource);
+    Status GetDynamicRangeQuantModel(std::shared_ptr<NetStructure>& net_structure,
+                                     std::shared_ptr<NetResource>& net_resource);
 
 private:
     Status QuantConvolution(std::shared_ptr<LayerInfo>& layer,
@@ -50,4 +52,4 @@ private:
     const float threshold_                       = (float)(1 << (bits_ - 1)) - 1.0f;
 };
 
-#endif  // TNN_TOOLS_FAKE_QUANTIZATION_H
+#endif  // TNN_TOOLS__DYNAMIC_RANGE_DYNAMIC_RANGE_QUANTIZATION_H

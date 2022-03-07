@@ -99,7 +99,7 @@ def parse_args():
                                  default=False,
                                  action='store_true',
                                  required=False,
-                                 help="save model using fake quantization")
+                                 help="save model using dynamic range quantization. use int8 save, fp32 interpreting")
 
     # convert caff2onnx -pp proto_path -mp model_path -o
     caffe2tnn_parser = subparsers.add_parser('caffe2tnn',
@@ -170,7 +170,7 @@ def parse_args():
                                   default=False,
                                   action='store_true',
                                   required=False,
-                                  help="save model using fake quantization")
+                                  help="save model using dynamic range quantization. use int8 save, fp32 interpreting")
 
     tf2tnn_parser = subparsers.add_parser('tf2tnn',
                                           help="convert tensorflow model to tnn model")
@@ -263,7 +263,7 @@ def parse_args():
                                default=False,
                                action='store_true',
                                required=False,
-                               help="save model using fake quantization")
+                               help="save model using dynamic range quantization. use int8 save, fp32 interpreting")
 
     # tflie parser
     tflite2tnn_parser = subparsers.add_parser('tflite2tnn',
@@ -325,6 +325,6 @@ def parse_args():
                                    default=False,
                                    action='store_true',
                                    required=False,
-                                   help="save model using fake quantization")
+                                   help="save model using dynamic range quantization. use int8 save, fp32 interpreting")
 
     return parser

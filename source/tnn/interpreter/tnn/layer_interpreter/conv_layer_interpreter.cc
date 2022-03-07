@@ -89,29 +89,6 @@ Status ConvLayerInterpreter::InterpretResource(Deserializer& deserializer, Layer
             LOGE("invalid quantized layer Resource\n");
             return -1;
         }
-    } else if (layer_res->filter_handle.GetDataType() == DATA_TYPE_FAKE_INT8) {
-        RawBuffer scale_buf;
-        deserializer.GetRaw(scale_buf);
-
-        const auto filter_dims = layer_res->filter_handle.GetBufferDims();
-        const int num_kernel   = filter_dims.at(0);
-        const int filter_size  = layer_res->filter_handle.GetDataCount();
-        const int kernel_size  = filter_size / num_kernel;
-        auto filter_ptr        = layer_res->filter_handle.force_to<int8_t*>();
-        auto scale_ptr         = scale_buf.force_to<float*>();
-        std::vector<float> weight_data(filter_size, 0);
-        for (int k = 0; k < num_kernel; k++) {
-            int begin_index = k * kernel_size;
-            for (int i = 0; i < kernel_size; i++) {
-                weight_data[begin_index + i] = scale_ptr[k] * (float)(filter_ptr[begin_index + i]);
-            }
-        }
-        RawBuffer weight_buf(filter_size * sizeof(float));
-        memcpy(weight_buf.force_to<float*>(), weight_data.data(), filter_size * sizeof(float));
-        weight_buf.SetDataType(DATA_TYPE_FLOAT);
-        weight_buf.SetBufferDims(filter_dims);
-
-        layer_res->filter_handle = weight_buf;
     }
     return TNN_OK;
 }
@@ -162,7 +139,8 @@ Status ConvLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* pa
         serializer.PutRaw(layer_res->zero_point_handle);
         serializer.PutRaw(layer_res->scale_handle);
     }
-    if (layer_param->fake_quantized) {
+    if (layer_param->dynamic_range_quantized) {
+        // now dynamic range quantization is to use symmetric quantization, only save scale
         serializer.PutRaw(layer_res->scale_handle);
     }
 

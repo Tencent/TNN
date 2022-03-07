@@ -45,9 +45,7 @@ typedef enum {
     // int64
     DATA_TYPE_INT64 = 5,
     // uint32
-    DATA_TYPE_UINT32 = 6,
-    // fake int8 (This type is designed for weights that use int8 for saving and fp32 for interpreting)
-    DATA_TYPE_FAKE_INT8 = 7
+    DATA_TYPE_UINT32 = 6
 } DataType;
 
 typedef enum {
