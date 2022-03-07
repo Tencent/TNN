@@ -31,8 +31,6 @@ int DataTypeUtils::GetBytesSize(DataType data_type) {
         return 4;
     } else if (data_type == DATA_TYPE_UINT32) {
         return 4;
-    } else if (data_type == DATA_TYPE_FAKE_INT8) {
-        return 1;
     } else {
         LOGE("GetBytes Undefined \n");
         return -1;

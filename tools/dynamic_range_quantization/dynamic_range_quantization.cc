@@ -12,16 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "fake_quantization.h"
+#include "dynamic_range_quantization.h"
 
-FakeQuantizer::FakeQuantizer(const std::shared_ptr<NetStructure>& net_structure,
-                             const std::shared_ptr<NetResource>& net_resource) {
+DynamicRangeQuantizer::DynamicRangeQuantizer(const std::shared_ptr<NetStructure>& net_structure,
+                                             const std::shared_ptr<NetResource>& net_resource) {
     net_structure_ = net_structure;
     net_resource_  = net_resource;
 }
 
-Status FakeQuantizer::GetFakeQuantModel(std::shared_ptr<NetStructure>& net_structure,
-                                        std::shared_ptr<NetResource>& net_resource) {
+Status DynamicRangeQuantizer::GetDynamicRangeQuantModel(std::shared_ptr<NetStructure>& net_structure,
+                                                        std::shared_ptr<NetResource>& net_resource) {
     net_structure  = std::make_shared<NetStructure>();
     *net_structure = *net_structure_;
     net_resource   = std::make_shared<NetResource>();
@@ -52,11 +52,11 @@ Status FakeQuantizer::GetFakeQuantModel(std::shared_ptr<NetStructure>& net_struc
     return TNN_OK;
 }
 
-Status FakeQuantizer::QuantConvolution(std::shared_ptr<LayerInfo>& layer,
-                                       std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
-                                       std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
+Status DynamicRangeQuantizer::QuantConvolution(std::shared_ptr<LayerInfo>& layer,
+                                               std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
+                                               std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
     auto conv_param                               = std::dynamic_pointer_cast<ConvLayerParam>(layer->param);
-    conv_param->fake_quantized                    = true;
+    conv_param->dynamic_range_quantized           = true;
     std::shared_ptr<LayerResource> layer_resource = nullptr;
     if (resource_map.find(layer->name) != resource_map.end()) {
         layer_resource = resource_map[layer->name];
@@ -73,9 +73,11 @@ Status FakeQuantizer::QuantConvolution(std::shared_ptr<LayerInfo>& layer,
     return TNN_OK;
 }
 
-Status FakeQuantizer::QuantLSTM(std::shared_ptr<LayerInfo>& layer,
-                                std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
-                                std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
+Status DynamicRangeQuantizer::QuantLSTM(std::shared_ptr<LayerInfo>& layer,
+                                        std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
+                                        std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
+    layer->param->dynamic_range_quantized = true;
+
     RawBuffer weight_buf;
     RawBuffer recurrence_buf;
     auto weight_name     = layer->inputs.at(1);
@@ -94,20 +96,19 @@ Status FakeQuantizer::QuantLSTM(std::shared_ptr<LayerInfo>& layer,
     PerTensorQuant(weight_buf, *quant_weight_buf, *scale_weight_buf);
     PerTensorQuant(recurrence_buf, *quant_recurrence_buf, *scale_recurrence_buf);
 
-    const std::string suffix               = FakeInt8ScaleSuffix;
-    constant_map[weight_name]              = quant_weight_buf;
-    constant_map[weight_name + suffix]     = scale_weight_buf;
-    constant_map[recurrence_name]          = quant_recurrence_buf;
-    constant_map[recurrence_name + suffix] = scale_recurrence_buf;
+    constant_map[weight_name]                                    = quant_weight_buf;
+    constant_map[recurrence_name]                                = quant_recurrence_buf;
+    constant_map[weight_name + DynamicRangeQuantScaleSuffix]     = scale_weight_buf;
+    constant_map[recurrence_name + DynamicRangeQuantScaleSuffix] = scale_recurrence_buf;
 
     return TNN_OK;
 }
 
-Status FakeQuantizer::QuantMatMul(std::shared_ptr<LayerInfo>& layer,
-                                  std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
-                                  std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
-    auto matmul_param            = std::dynamic_pointer_cast<MatMulLayerParam>(layer->param);
-    matmul_param->fake_quantized = true;
+Status DynamicRangeQuantizer::QuantMatMul(std::shared_ptr<LayerInfo>& layer,
+                                          std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
+                                          std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
+    auto matmul_param                     = std::dynamic_pointer_cast<MatMulLayerParam>(layer->param);
+    matmul_param->dynamic_range_quantized = true;
     if (matmul_param->weight_position != 1) {
         return TNN_OK;
     }
@@ -127,8 +128,8 @@ Status FakeQuantizer::QuantMatMul(std::shared_ptr<LayerInfo>& layer,
     return TNN_OK;
 }
 
-Status FakeQuantizer::PerChannelQuant(RawBuffer& weight_buf, RawBuffer& quant_buf, RawBuffer& scale_buf,
-                                      int num_kernel) {
+Status DynamicRangeQuantizer::PerChannelQuant(RawBuffer& weight_buf, RawBuffer& quant_buf, RawBuffer& scale_buf,
+                                              int num_kernel) {
     const int weight_size = weight_buf.GetDataCount();
     const int kernel_size = weight_size / num_kernel;
     auto weight_data_ptr  = weight_buf.force_to<float*>();
@@ -148,7 +149,7 @@ Status FakeQuantizer::PerChannelQuant(RawBuffer& weight_buf, RawBuffer& quant_bu
 
     quant_buf = RawBuffer(weight_size * sizeof(int8_t));
     memcpy(quant_buf.force_to<int8_t*>(), quant_data.data(), weight_size * sizeof(int8_t));
-    quant_buf.SetDataType(DATA_TYPE_FAKE_INT8);
+    quant_buf.SetDataType(DATA_TYPE_INT8);
     quant_buf.SetBufferDims(weight_buf.GetBufferDims());
 
     scale_buf = RawBuffer(num_kernel * sizeof(float));
@@ -158,7 +159,7 @@ Status FakeQuantizer::PerChannelQuant(RawBuffer& weight_buf, RawBuffer& quant_bu
 
     return TNN_OK;
 }
-Status FakeQuantizer::PerTensorQuant(RawBuffer& weight_buf, RawBuffer& quant_buf, RawBuffer& scale_buf) {
+Status DynamicRangeQuantizer::PerTensorQuant(RawBuffer& weight_buf, RawBuffer& quant_buf, RawBuffer& scale_buf) {
     const int weight_size = weight_buf.GetDataCount();
     auto weight_data_ptr  = weight_buf.force_to<float*>();
     auto max_value        = GetAbsMax(weight_data_ptr, weight_size);
@@ -172,7 +173,7 @@ Status FakeQuantizer::PerTensorQuant(RawBuffer& weight_buf, RawBuffer& quant_buf
     int x     = sizeof(int8_t);
     quant_buf = RawBuffer(weight_size * x);
     memcpy(quant_buf.force_to<int8_t*>(), quant_data.data(), weight_size * sizeof(int8_t));
-    quant_buf.SetDataType(DATA_TYPE_FAKE_INT8);
+    quant_buf.SetDataType(DATA_TYPE_INT8);
     quant_buf.SetBufferDims(weight_buf.GetBufferDims());
 
     scale_buf = RawBuffer(sizeof(float));
@@ -183,7 +184,7 @@ Status FakeQuantizer::PerTensorQuant(RawBuffer& weight_buf, RawBuffer& quant_buf
     return TNN_OK;
 }
 
-float FakeQuantizer::GetAbsMax(float* data, int data_size) {
+float DynamicRangeQuantizer::GetAbsMax(float* data, int data_size) {
     float max_value = fabs(data[0]);
     for (int i = 1; i < data_size; i++) {
         float value = fabs(data[i]);

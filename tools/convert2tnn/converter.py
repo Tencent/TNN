@@ -15,7 +15,7 @@
 import logging
 
 from utils import args_parser
-from utils import fake_quantization
+from utils import dynamic_range_quantization
 from onnx_converter import onnx2tnn
 from caffe_converter import caffe2tnn
 from tf_converter import tf2tnn
@@ -60,7 +60,7 @@ def main():
             onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, align_batch, input_file, ref_file, input_names,
                              debug_mode=debug_mode)
             if int8:
-                fake_quantization.quantization(onnx_path, "onnx", output_dir, optimize)
+                dynamic_range_quantization.quantization(onnx_path, "onnx", output_dir, optimize)
         except Exception as err:
             logging.error("Conversion to  tnn failed :(\n")
             logging.error(err)
@@ -84,7 +84,7 @@ def main():
             caffe2tnn.convert(proto_path, model_path, output_dir, version, optimize, half, align, input_file, ref_file,
                               debug_mode=debug_mode)
             if int8:
-                fake_quantization.quantization(proto_path, "prototxt", output_dir, optimize)
+                dynamic_range_quantization.quantization(proto_path, "prototxt", output_dir, optimize)
         except Exception as err:
             logging.error("Conversion to  tnn failed :(\n")
             logging.error(err)
@@ -110,7 +110,7 @@ def main():
             tf2tnn.convert(tf_path, input_names, output_names, output_dir, version, optimize, half, align, not_fold_const,
                         input_file, ref_file, debug_mode=debug_mode)
             if int8:
-                fake_quantization.quantization(tf_path, "pb", output_dir, optimize)
+                dynamic_range_quantization.quantization(tf_path, "pb", output_dir, optimize)
         except Exception as err:
             logging.error("\nConversion to  tnn failed :(\n")
             logging.error(err)
@@ -128,7 +128,7 @@ def main():
         try:
             tflite2tnn.convert(tf_path, output_dir, version, half, align, input_file, ref_file, debug_mode=debug_mode)
             if int8:
-                fake_quantization.quantization(tf_path, "tflite", output_dir, False)
+                dynamic_range_quantization.quantization(tf_path, "tflite", output_dir, False)
         except Exception as err:
            logging.error("\n Conversion to  tnn failed :(\n")
            logging.error(err)

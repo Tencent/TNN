@@ -24,7 +24,8 @@ def quantization(src_model_path: str, model_type: str, output_dir: str, optimize
 
     support_model_type = ("prptotxt", "onnx", "pb", "tflite")
     if model_type not in support_model_type:
-        logging.error("{} is not support in fake quantization".format(model_type))
+        logging.error("{} is not support in dynamic range quantization".format(model_type))
+        return
 
     if output_dir is None:
         output_dir = os.path.dirname(src_model_path)
@@ -36,12 +37,12 @@ def quantization(src_model_path: str, model_type: str, output_dir: str, optimize
     tnnproto = os.path.join(output_dir, model_name + ".tnnproto")
     tnnmodel = os.path.join(output_dir, model_name + ".tnnmodel")
 
-    relative_path = "bin/fake_quantization"
-    fake_quantization_path = parse_path.parse_path(relative_path)
-    checker.check_file_exist(fake_quantization_path)
-    command = "{} -p {} -m {} -qp {} -qm {}".format(fake_quantization_path, tnnproto, tnnmodel, tnnproto, tnnmodel)
+    relative_path = "bin/dynamic_range_quantization"
+    dynamic_range_quantization_path = parse_path.parse_path(relative_path)
+    checker.check_file_exist(dynamic_range_quantization_path)
+    command = "{} -p {} -m {} -qp {} -qm {}".format(dynamic_range_quantization_path, tnnproto, tnnmodel, tnnproto, tnnmodel)
 
-    logging.debug("fake quantization command: " + command)
+    logging.debug("dynamic range quantization command: " + command)
 
     cmd.run(command)
 

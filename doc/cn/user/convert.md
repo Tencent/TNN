@@ -137,7 +137,8 @@ optional arguments:
                         the reference file path which contains the reference
                         data to compare the results.
   -debug                Turn on the switch to debug the model.
-  -int8                 save model using fake quantization
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 通过上面的输出，可以发现针对 TF 模型的转换，convert2tnn 工具提供了很多参数，我们一次对下面的参数进行解释：
 
@@ -387,7 +388,8 @@ optional arguments:
                         the reference file path which contains the reference
                         data to compare the results.
   -debug                Turn on the switch to debug the model.
-  -int8                 save model using fake quantization
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 示例：
 ```shell script
@@ -460,7 +462,8 @@ optional arguments:
                         the reference file path which contains the reference
                         data to compare the results.
   -debug                Turn on the switch to debug the model.
-  -int8                 save model using fake quantization
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 示例：
 ```shell script
@@ -517,7 +520,8 @@ optional arguments:
                         the reference file path which contains the reference
                         data to compare the results.
   -debug                Turn on the switch to debug the model.
-  -int8                 save model using fake quantization
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 - tensorflow-lite2tnn
 
@@ -551,7 +555,8 @@ optional arguments:
                         the reference file path which contains the reference
                         data to compare the results.
   -debug                Turn on the switch to debug the model.
-  -int8                 save model using fake quantization
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 示例：
 ```shell script

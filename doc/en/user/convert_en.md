@@ -143,7 +143,8 @@ optional arguments:
                         the reference file path which contains the reference
                         data to compare the results.
   -debug                Turn on the switch to debug the model.
-  -int8                 save model using fake quantization
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 Here are the explanations for each parameter:
 
@@ -380,7 +381,8 @@ optional arguments:
                         the reference file path which contains the reference
                         data to compare the results.
   -debug                Turn on the switch to debug the model.
-  -int8                 save model using fake quantization
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 Example:
 ```shell script
@@ -448,7 +450,8 @@ optional arguments:
                         the reference file path which contains the reference
                         data to compare the results.
   -debug                Turn on the switch to debug the model.
-  -int8                 save model using fake quantization
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 Example：
 ```shell script
@@ -497,7 +500,8 @@ optional arguments:
                         the reference file path which contains the reference
                         data to compare the results.
   -debug                Turn on the switch to debug the model.
-  -int8                 save model using fake quantization
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 Example：
 ```shell script
@@ -535,7 +539,8 @@ optional arguments:
                         the reference file path which contains the reference
                         data to compare the results.
   -debug                Turn on the switch to debug the model.
-  -int8                 save model using fake quantization
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 Example：
 ```shell script

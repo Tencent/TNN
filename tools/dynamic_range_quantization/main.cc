@@ -12,7 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "fake_quantization.h"
+#include "dynamic_range_quantization.h"
 #include "flags.h"
 #include "tnn/interpreter/tnn/model_packer.h"
 
@@ -78,8 +78,8 @@ int main(int argc, char* argv[]) {
     std::shared_ptr<NetStructure> quant_structure = nullptr;
     std::shared_ptr<NetResource> quant_resource   = nullptr;
 
-    auto fake_quanter = FakeQuantizer(net_structure, net_resource);
-    fake_quanter.GetFakeQuantModel(quant_structure, quant_resource);
+    auto dynamic_range_quanter = DynamicRangeQuantizer(net_structure, net_resource);
+    dynamic_range_quanter.GetDynamicRangeQuantModel(quant_structure, quant_resource);
 
     auto packer = std::make_shared<ModelPacker>(quant_structure.get(), quant_resource.get());
 
