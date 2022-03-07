@@ -30,6 +30,7 @@ Status OpenCLSeluLayerAcc::Init(Context *context, LayerParam *param, LayerResour
 
     std::set<std::string> build_options;
     AdjustBuildOptionForFp32(build_options);
+    build_options.insert(build_options_.begin(), build_options_.end());
 
     // create kernel
     std::string kernel_name = "Selu";

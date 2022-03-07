@@ -73,7 +73,8 @@ Status OpenCLGatherLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         execute_units_.resize(3);
         // image->buffer
         {
-            ret = CreateExecuteUnit(execute_units_[0], img_to_buf_program_name, src_format + "ToNCHWBuffer");
+            ret = CreateExecuteUnit(execute_units_[0], img_to_buf_program_name, src_format + "ToNCHWBuffer",
+                                    build_options_);
             if (ret != TNN_OK) {
                 LOGE("create execute unit failed!\n");
                 return ret;
@@ -82,7 +83,7 @@ Status OpenCLGatherLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 
         // gather
         {
-            ret = CreateExecuteUnit(execute_units_[1], "gather", "GatherCommon");
+            ret = CreateExecuteUnit(execute_units_[1], "gather", "GatherCommon", build_options_);
             if (ret != TNN_OK) {
                 LOGE("create execute unit failed!\n");
                 return ret;
@@ -91,7 +92,8 @@ Status OpenCLGatherLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 
         // buffer->image
         {
-            ret = CreateExecuteUnit(execute_units_[2], buf_to_img_program_name, "NCHWBufferTo" + dst_format);
+            ret = CreateExecuteUnit(execute_units_[2], buf_to_img_program_name, "NCHWBufferTo" + dst_format,
+                                    build_options_);
             if (ret != TNN_OK) {
                 LOGE("create execute unit failed!\n");
                 return ret;
@@ -117,7 +119,8 @@ Status OpenCLGatherLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         execute_units_.resize(3);
         // image->buffer
         {
-            ret = CreateExecuteUnit(execute_units_[0], img_to_buf_program_name, src_format + "ToNCHWBuffer");
+            ret = CreateExecuteUnit(execute_units_[0], img_to_buf_program_name, src_format + "ToNCHWBuffer",
+                                    build_options_);
             if (ret != TNN_OK) {
                 LOGE("create execute unit failed!\n");
                 return ret;
@@ -126,7 +129,7 @@ Status OpenCLGatherLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 
         // gather
         {
-            ret = CreateExecuteUnit(execute_units_[1], "gather", "GatherCommon");
+            ret = CreateExecuteUnit(execute_units_[1], "gather", "GatherCommon", build_options_);
             if (ret != TNN_OK) {
                 LOGE("create execute unit failed!\n");
                 return ret;
@@ -135,7 +138,8 @@ Status OpenCLGatherLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 
         // buffer->image
         {
-            ret = CreateExecuteUnit(execute_units_[2], buf_to_img_program_name, "NCHWBufferTo" + dst_format);
+            ret = CreateExecuteUnit(execute_units_[2], buf_to_img_program_name, "NCHWBufferTo" + dst_format,
+                                    build_options_);
             if (ret != TNN_OK) {
                 LOGE("create execute unit failed!\n");
                 return ret;
