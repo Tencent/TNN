@@ -146,7 +146,7 @@ bool Onnx2Tnn::ReadModel() {
     }
     google::protobuf::io::IstreamInputStream input(&input_stream);
     google::protobuf::io::CodedInputStream coded_input_stream(&input);
-    coded_input_stream.SetTotalBytesLimit(INT_MAX, INT_MAX / 2);
+    coded_input_stream.SetTotalBytesLimit(INT_MAX);
     bool success = this->onnx_model_->ParseFromCodedStream(&coded_input_stream);
     input_stream.close();
     return success;
