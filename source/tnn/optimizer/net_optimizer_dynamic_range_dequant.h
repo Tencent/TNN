@@ -27,7 +27,7 @@ namespace TNN_NS {
 
 namespace optimizer {
 
-    //@brief net optimize: fuse conv and add into conv op
+    //@brief net optimize: interpret the dynamic range quantized model into a fp32 model
     class NetOptimizerDynamicRangeDequant : public NetOptimizer {
     public:
         virtual std::string Strategy();
