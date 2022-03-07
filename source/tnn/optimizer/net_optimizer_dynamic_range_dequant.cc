@@ -25,7 +25,6 @@ namespace TNN_NS {
 
 namespace optimizer {
 
-    // P1 priority: should be fuse after bn scale fuse
     NetOptimizerRegister<NetOptimizerDynamicRangeDequant> g_net_optimizer_dynamic_range_dequant(OptPriority::P1);
 
     std::string NetOptimizerDynamicRangeDequant::Strategy() {
