@@ -65,6 +65,9 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         int output_index_b = b * output_slice_count * slice_size;
         for (int i = 0; i < output_slice_count; i++) {
             int slice_index = indices_data_ptr[i];
+            if (slice_index < 0) {
+                slice_index += input_slice_count;
+            }
             if (slice_index < 0 || slice_index >= input_slice_count) {
                 LOGE("ArmGatherLayerAcc::Forward invalid slice_index\n");
                 return Status(TNNERR_MODEL_ERR, "ArmGatherLayerAcc::Forward invalid slice_index");

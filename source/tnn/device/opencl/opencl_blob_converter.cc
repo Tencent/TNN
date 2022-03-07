@@ -104,6 +104,9 @@ Status OpenCLBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param
             return ret;
         }
         convert_to_mat_map_[to_mat_key] = unit;
+        //only try save once, ignore fail
+        auto opencl_runtime   = OpenCLRuntime::GetInstance();
+        opencl_runtime->SaveProgramCache();
     }
 
     OpenCLExecuteUnit unit = convert_to_mat_map_[to_mat_key];
