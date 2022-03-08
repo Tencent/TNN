@@ -75,7 +75,7 @@ Status OpenCLPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     // image->buffer
     {
         std::string kernel_name = "Copy" + src_format + "ToBuffer";
-        ret = CreateExecuteUnit(execute_units_[0], copy_program_name, kernel_name);
+        ret = CreateExecuteUnit(execute_units_[0], copy_program_name, kernel_name, build_options_);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -85,7 +85,7 @@ Status OpenCLPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     // buffer->image
     {
         std::string kernel_name = "CopyBufferTo" + dst_format;
-        ret = CreateExecuteUnit(execute_units_[1], copy_program_name, kernel_name);
+        ret = CreateExecuteUnit(execute_units_[1], copy_program_name, kernel_name, build_options_);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;

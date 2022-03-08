@@ -35,6 +35,11 @@ public:
     // @brief different interpreter has different order param
     virtual Status Interpret(std::vector<std::string>& params) = 0;
 
+    // @brief interpret extra config, such as conv winograd for specific conv layer
+    virtual Status InterpretConfig(std::map<std::string, std::string>& config_map) {
+        return TNN_OK;
+    };
+
     // @brief copy interpreter
     virtual std::shared_ptr<AbstractModelInterpreter> Copy() {
         return nullptr;
