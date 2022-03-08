@@ -87,7 +87,7 @@ Status OpenCLStrideSliceLayerAcc::Init(Context *context, LayerParam *param, Laye
         execute_units_.resize(1);
         program_name = "copy";
         kernel_name  = "CopyImage";
-        ret          = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);
+        ret          = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);
         if (ret != TNN_OK) {
             return ret;
         }
@@ -95,7 +95,7 @@ Status OpenCLStrideSliceLayerAcc::Init(Context *context, LayerParam *param, Laye
         execute_units_.resize(1);
         program_name = "stride_slice";
         kernel_name  = "StrideSliceC4Unite";
-        ret          = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);
+        ret          = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);
         if (ret != TNN_OK) {
             return ret;
         }
@@ -103,13 +103,13 @@ Status OpenCLStrideSliceLayerAcc::Init(Context *context, LayerParam *param, Laye
         execute_units_.resize(2);
         program_name = "image_to_buffer";
         kernel_name  = "ImageToNCHWBufferFLOAT";
-        ret          = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);
+        ret          = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);
         if (ret != TNN_OK) {
             return ret;
         }
         program_name = "stride_slice";
         kernel_name  = "StrideSliceC4Separate";
-        ret          = CreateExecuteUnit(execute_units_[1], program_name, kernel_name);
+        ret          = CreateExecuteUnit(execute_units_[1], program_name, kernel_name, build_options_);
         if (ret != TNN_OK) {
             return ret;
         }
