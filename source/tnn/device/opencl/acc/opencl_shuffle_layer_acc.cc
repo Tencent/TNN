@@ -30,7 +30,7 @@ Status OpenCLShuffleLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
     // create kernel
     std::string kernel_name = "ShuffleChannel";
-    ret                     = CreateExecuteUnit(execute_units_[0], "shuffle", kernel_name);
+    ret                     = CreateExecuteUnit(execute_units_[0], "shuffle", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

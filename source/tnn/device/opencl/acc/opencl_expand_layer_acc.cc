@@ -51,7 +51,8 @@ Status OpenCLExpandLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     execute_units_.resize(3);
     // image->buffer
     {
-        ret = CreateExecuteUnit(execute_units_[0], img_to_buf_program_name, src_format + "ToNCHWBuffer");
+        ret =
+            CreateExecuteUnit(execute_units_[0], img_to_buf_program_name, src_format + "ToNCHWBuffer", build_options_);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -64,6 +65,7 @@ Status OpenCLExpandLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         std::ostringstream oss;
         oss << "-DINNER_DIMS=" << output_dims.size();
         build_options.emplace(oss.str());
+        build_options.insert(build_options_.begin(), build_options_.end());
         ret = CreateExecuteUnit(execute_units_[1], "expand", "Expand", build_options);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
@@ -73,7 +75,8 @@ Status OpenCLExpandLayerAcc::Init(Context *context, LayerParam *param, LayerReso
 
     // buffer->image
     {
-        ret = CreateExecuteUnit(execute_units_[2], buf_to_img_program_name, "NCHWBufferTo" + dst_format);
+        ret =
+            CreateExecuteUnit(execute_units_[2], buf_to_img_program_name, "NCHWBufferTo" + dst_format, build_options_);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;

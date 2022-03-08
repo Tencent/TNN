@@ -72,6 +72,7 @@ Status OpenCLPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     if (pooling_param->pool_type != 0) {  // 0:max_pooling  other:average pooling
         build_options.emplace("-DPOOL_AVG");
     }
+    build_options.insert(build_options_.begin(), build_options_.end());
     ret = CreateExecuteUnit(execute_units_[0], "pooling", kernel_name, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");

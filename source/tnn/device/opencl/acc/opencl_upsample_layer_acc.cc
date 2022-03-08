@@ -86,7 +86,7 @@ Status OpenCLUpsampleLayerAcc::Init(Context *context, LayerParam *param, LayerRe
         kernel_name += "GS3D";
     }
 
-    ret = CreateExecuteUnit(execute_units_[0], "upsample", kernel_name);
+    ret = CreateExecuteUnit(execute_units_[0], "upsample", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
