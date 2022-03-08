@@ -14,6 +14,7 @@
 
 #include "dynamic_range_quantization.h"
 
+namespace TNN_NS {
 DynamicRangeQuantizer::DynamicRangeQuantizer(const std::shared_ptr<NetStructure>& net_structure,
                                              const std::shared_ptr<NetResource>& net_resource) {
     net_structure_ = net_structure;
@@ -195,3 +196,4 @@ float DynamicRangeQuantizer::GetAbsMax(float* data, int data_size) {
 
     return max_value;
 }
+}  // namespace TNN_NS

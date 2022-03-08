@@ -16,6 +16,8 @@
 #include "flags.h"
 #include "tnn/interpreter/tnn/model_packer.h"
 
+using namespace TNN_NS;
+
 void ShowUsage() {
     printf(
         "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-qp] <quant_tnnproto> [-qm] <quant_tnnmodel> \n");

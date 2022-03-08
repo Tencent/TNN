@@ -19,6 +19,7 @@
 #include "tnn/interpreter/raw_buffer.h"
 #include "tnn/interpreter/tnn/model_packer.h"
 
+namespace TNN_NS {
 class DynamicRangeQuantizer {
 public:
     DynamicRangeQuantizer() = delete;
@@ -51,5 +52,6 @@ private:
     const int bits_                              = 8;
     const float threshold_                       = (float)(1 << (bits_ - 1)) - 1.0f;
 };
+}  // namespace TNN_NS
 
 #endif  // TNN_TOOLS__DYNAMIC_RANGE_DYNAMIC_RANGE_QUANTIZATION_H
