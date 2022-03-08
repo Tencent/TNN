@@ -622,7 +622,11 @@ int read_proto_from_binary(const char* filepath,
     google::protobuf::io::IstreamInputStream input(&fs);
     google::protobuf::io::CodedInputStream codedstr(&input);
 
-    codedstr.SetTotalBytesLimit(INT_MAX, INT_MAX/2);
+#if GOOGLE_PROTOBUF_VERSION >= 3002000
+    codedstr.SetTotalBytesLimit(INT_MAX);
+#else
+    codedstr.SetTotalBytesLimit(INT_MAX, INT_MAX / 2);
+#endif
 
     bool success = message->ParseFromCodedStream(&codedstr);
 
