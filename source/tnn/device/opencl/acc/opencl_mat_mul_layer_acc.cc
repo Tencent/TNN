@@ -93,7 +93,7 @@ Status OpenCLMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     if (outputs[0]->GetBlobDesc().dims.size() == 6) {
         kernel_name = "MatMul6D";
     }
-    ret = CreateExecuteUnit(execute_units_[0], "matmul", kernel_name);
+    ret = CreateExecuteUnit(execute_units_[0], "matmul", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
