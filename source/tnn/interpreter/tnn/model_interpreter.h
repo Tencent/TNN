@@ -98,6 +98,9 @@ public:
     // model contents.
     virtual Status Interpret(std::vector<std::string>& params);
 
+    // @brief interpret extra config, such as conv winograd for specific conv layer
+    virtual Status InterpretConfig(std::map<std::string, std::string>& config_map);
+
     static Status RegisterLayerInterpreter(LayerType type, AbstractLayerInterpreter* creator);
 
     // @brief get layer interpreter by layer type
