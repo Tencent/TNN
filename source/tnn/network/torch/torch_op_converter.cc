@@ -123,10 +123,17 @@ public:
 
         // set param accroding to real value, just test here
         layer_param->name = layer_info->name;
-        layer_param->pad_type = -1;
-        layer_param->output_channel = shape[0];
-        layer_param->input_channel = shape[1];
-        layer_param->kernels = {shape[3], shape[2]};
+        if(transposed) {
+		layer_param->pad_type = 3;
+		layer_param->output_channel = shape[1];
+		layer_param->input_channel = shape[0];
+	}
+	else{
+		layer_param->pad_type = -1;
+		layer_param->output_channel = shape[0];
+		layer_param->input_channel = shape[1];
+	}
+	layer_param->kernels = {shape[3], shape[2]};
         layer_param->dialations = {(int)dialation[1], (int)dialation[0]};
         layer_param->strides = {(int)stride[1], (int)stride[0]};
         layer_param->pads = {(int)padding[1], (int)padding[1], (int)padding[0], (int)padding[0]};
