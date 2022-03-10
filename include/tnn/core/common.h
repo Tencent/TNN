@@ -112,6 +112,7 @@ typedef enum {
     DEVICE_HUAWEI_NPU = 0x1050,
     DEVICE_RK_NPU     = 0x1060,
     DEVICE_APPLE_NPU  = 0x1070,
+    DEVICE_DIRECTX    = 0x1080,
 } DeviceType;
 
 typedef enum {

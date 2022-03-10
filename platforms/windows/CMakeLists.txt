@@ -52,3 +52,7 @@ if(TNN_CUDA_ENABLE)
     message($ENV{CUDNN_ROOT_DIR}\\lib\\x64\\cudnn${LIB_EXT})
     target_link_libraries(TNN nvinfer nvinfer_plugin cudnn cublas)
 endif()
+
+if(TNN_DIRECTX_ENABLE)
+    target_link_libraries(TNN "d3d11.lib" "d3dcompiler.lib" "dxguid.lib")
+endif()
