@@ -73,6 +73,34 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
         }
     }
 
+    {
+        // When the GPU used is PowerVR Rogue GE8320, the calculation result of Conv2D_CB2 is incorrect,
+        // so use Conv2D for calculation.
+        //
+        // The problem is that in Conv2D_CB2, use the following code to read the weights,
+        // weights_c0_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.x, weights_y_idx.x));
+        // weights_c0_s1 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.x, weights_y_idx.y));
+        // The expected behavior is that weights_c0_s0 and weights_c0_s1 read different values using different indices.
+        // However, on the PowerVR Rogue GE8320, the value of weights_c0_s0 and weights_c0_s1 read using different
+        // indexes are the same, which is not as expected, so the calculation result is incorrect.
+        // (both weights_c0_s0 and weights_c0_s1 indexes have correct values)
+        //
+        // Use Conv2D for calculations on the PowerVR Rogue GE8320 to avoid this problem.
+        if (kernel_name == "Conv2D_CB2") {
+            std::vector<cl::Device> devices;
+            std::vector<cl::Platform> platforms;
+            cl::Platform::get(&platforms);
+            if (platforms.size() == 1) {
+                platforms.begin()->getDevices(CL_DEVICE_TYPE_GPU, &devices);
+                std::string device_name = devices.begin()->getInfo<CL_DEVICE_NAME>();
+                if (device_name == "PowerVR Rogue GE8320") {
+                    kernel_name          = "Conv2D";
+                    is_channel_blocking_ = false;
+                }
+            }
+        }
+    }
+
     ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
