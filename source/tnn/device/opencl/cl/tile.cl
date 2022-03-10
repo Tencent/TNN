@@ -140,9 +140,9 @@ __kernel void Tile6D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_onl
     int in_d5             = index % input_shape.data[5];
     int ix                = (in_channel >> 2) * in_d4xd5 + in_d4 * input_shape.data[5] + in_d5;
     int iy                = in_batch * in_d2xd3 + in_d2 * input_shape.data[3] + in_d3;
-    FLOAT4 in             = RI_F(input, SAMPLER, (int2)(ix, iy));
+    float4 in             = read_imagef(input, SAMPLER, (int2)(ix, iy));
     int in_channel_remain = in_channel % 4;
-    FLOAT out0 =
+    float out0 =
         in_channel_remain == 0 ? in.x : (in_channel_remain == 1 ? in.y : (in_channel_remain == 2 ? in.z : in.w));
 
     // 1 index
@@ -155,11 +155,11 @@ __kernel void Tile6D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_onl
     in_d5             = index % input_shape.data[5];
     ix                = (in_channel >> 2) * in_d4xd5 + in_d4 * input_shape.data[5] + in_d5;
     iy                = in_batch * in_d2xd3 + in_d2 * input_shape.data[3] + in_d3;
-    in                = RI_F(input, SAMPLER, (int2)(ix, iy));
+    in                = read_imagef(input, SAMPLER, (int2)(ix, iy));
     in_channel_remain = in_channel % 4;
-    FLOAT out1 =
+    float out1 =
         in_channel_remain == 0 ? in.x : (in_channel_remain == 1 ? in.y : (in_channel_remain == 2 ? in.z : in.w));
-    out1 = (out_channel * 4 + 1) >= output_shape.data[1] ? (FLOAT)0 : out1;
+    out1 = (out_channel * 4 + 1) >= output_shape.data[1] ? (float)0 : out1;
 
     // 2 index
     index             = index + out_d2xd3xd4xd5;
@@ -171,11 +171,11 @@ __kernel void Tile6D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_onl
     in_d5             = index % input_shape.data[5];
     ix                = (in_channel >> 2) * in_d4xd5 + in_d4 * input_shape.data[5] + in_d5;
     iy                = in_batch * in_d2xd3 + in_d2 * input_shape.data[3] + in_d3;
-    in                = RI_F(input, SAMPLER, (int2)(ix, iy));
+    in                = read_imagef(input, SAMPLER, (int2)(ix, iy));
     in_channel_remain = in_channel % 4;
-    FLOAT out2 =
+    float out2 =
         in_channel_remain == 0 ? in.x : (in_channel_remain == 1 ? in.y : (in_channel_remain == 2 ? in.z : in.w));
-    out2 = (out_channel * 4 + 2) >= output_shape.data[1] ? (FLOAT)0 : out2;
+    out2 = (out_channel * 4 + 2) >= output_shape.data[1] ? (float)0 : out2;
 
     // 3 index
     index             = index + out_d2xd3xd4xd5;
@@ -187,12 +187,12 @@ __kernel void Tile6D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __write_onl
     in_d5             = index % input_shape.data[5];
     ix                = (in_channel >> 2) * in_d4xd5 + in_d4 * input_shape.data[5] + in_d5;
     iy                = in_batch * in_d2xd3 + in_d2 * input_shape.data[3] + in_d3;
-    in                = RI_F(input, SAMPLER, (int2)(ix, iy));
+    in                = read_imagef(input, SAMPLER, (int2)(ix, iy));
     in_channel_remain = in_channel % 4;
-    FLOAT out3 =
+    float out3 =
         in_channel_remain == 0 ? in.x : (in_channel_remain == 1 ? in.y : (in_channel_remain == 2 ? in.z : in.w));
-    out3 = (out_channel * 4 + 3) >= output_shape.data[1] ? (FLOAT)0 : out3;
+    out3 = (out_channel * 4 + 3) >= output_shape.data[1] ? (float)0 : out3;
 
-    FLOAT4 out = (FLOAT4)(out0, out1, out2, out3);
-    WI_F(output, (int2)(image_width_idx, image_height_idx), out);
+    float4 out = (float4)(out0, out1, out2, out3);
+    write_imagef(output, (int2)(image_width_idx, image_height_idx), out);
 }
