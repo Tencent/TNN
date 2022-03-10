@@ -110,6 +110,7 @@ public:
         const auto stride = getValue<std::vector<int64_t>>(inputs[3]);
         const auto padding = getValue<std::vector<int64_t>>(inputs[4]);
         const auto dialation = getValue<std::vector<int64_t>>(inputs[5]);
+	const auto output_pads = getValue<std::vector<int64_t>>(inputs[7]);
         const auto group = getValue<int64_t>(inputs[8]);
         // const auto transposed = getValue<bool>(inputs[6]);
 
@@ -123,7 +124,7 @@ public:
 
         // set param accroding to real value, just test here
         layer_param->name = layer_info->name;
-        if(transposed) {
+        if(output_pads.size()>0 && output_pads[0] != 0) {
 		layer_param->pad_type = 3;
 		layer_param->output_channel = shape[1];
 		layer_param->input_channel = shape[0];
