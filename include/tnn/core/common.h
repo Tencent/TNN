@@ -192,6 +192,8 @@ struct PUBLIC ModelConfig {
     // "ExtraConfig:Conv_0:opencl_force_fp32;Conv_1:opencl_force_fp32;"
     // set Conv_0 layer to use fp32 inference
     // set Conv_1 layer to use fp32 inference
+    // in OpenCL, the result of conv is incorrect on some chips, you can use the unoptimized conv with following config,
+    // "ExtraConfig:Conv_0:opencl_use_unoptimized_conv;"
 };
 
 typedef enum {
