@@ -73,6 +73,11 @@ Status OpenCLConvLayerCommonAcc::Init(Context *context, LayerParam *param, Layer
         }
     }
 
+    if (param->extra_config.count("opencl_use_unoptimized_conv")) {
+        kernel_name          = "Conv2D";
+        is_channel_blocking_ = false;
+    }
+
     ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
