@@ -128,8 +128,7 @@ public:
 		layer_param->pad_type = 3;
 		layer_param->output_channel = shape[1];
 		layer_param->input_channel = shape[0];
-	}
-	else{
+	} else {
 		layer_param->pad_type = -1;
 		layer_param->output_channel = shape[0] * group;
 		layer_param->input_channel = shape[1] / group;
