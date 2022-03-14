@@ -372,6 +372,11 @@ Status ModelInterpreter::InterpretLayer(const std::string &layer_str) {
         param->quantized = true;
     }
 
+    // is dynamic range quantized
+    if (type_str.compare(0, 21, "DynamicRangeQuantized") == 0) {
+        param->dynamic_range_quantized = true;
+    }
+
     // type
     if (param && layer_cfg_arr.size() >= 1) {
         param->type = cur_layer->type_str;
@@ -464,6 +469,7 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
 
         const_map[key] = buffer;
     }
+
     net_resource->constant_map = const_map;
 
     return TNN_OK;
