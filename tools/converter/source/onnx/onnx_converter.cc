@@ -146,7 +146,11 @@ bool Onnx2Tnn::ReadModel() {
     }
     google::protobuf::io::IstreamInputStream input(&input_stream);
     google::protobuf::io::CodedInputStream coded_input_stream(&input);
+#if GOOGLE_PROTOBUF_VERSION >= 3002000
+    coded_input_stream.SetTotalBytesLimit(INT_MAX);
+#else
     coded_input_stream.SetTotalBytesLimit(INT_MAX, INT_MAX / 2);
+#endif
     bool success = this->onnx_model_->ParseFromCodedStream(&coded_input_stream);
     input_stream.close();
     return success;
