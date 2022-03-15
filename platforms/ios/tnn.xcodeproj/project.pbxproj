@@ -714,11 +714,6 @@
 		9DF54450258B162F006CEC97 /* random_data_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DF54449258B162F006CEC97 /* random_data_utils.cc */; };
 		DE14B57A275C87C700379D4F /* coreml_network.mm in Sources */ = {isa = PBXBuildFile; fileRef = DE14B45A275C87C700379D4F /* coreml_network.mm */; };
 		DE14B57B275C87C700379D4F /* coreml_network.h in Headers */ = {isa = PBXBuildFile; fileRef = DE14B45B275C87C700379D4F /* coreml_network.h */; };
-		DE14B57C275C87C700379D4F /* NeuralNetwork.proto in Sources */ = {isa = PBXBuildFile; fileRef = DE14B45E275C87C700379D4F /* NeuralNetwork.proto */; };
-		DE14B57D275C87C700379D4F /* DataStructures.proto in Sources */ = {isa = PBXBuildFile; fileRef = DE14B45F275C87C700379D4F /* DataStructures.proto */; };
-		DE14B57E275C87C700379D4F /* FeatureTypes.proto in Sources */ = {isa = PBXBuildFile; fileRef = DE14B460275C87C700379D4F /* FeatureTypes.proto */; };
-		DE14B57F275C87C700379D4F /* Parameters.proto in Sources */ = {isa = PBXBuildFile; fileRef = DE14B461275C87C700379D4F /* Parameters.proto */; };
-		DE14B580275C87C700379D4F /* Model.proto in Sources */ = {isa = PBXBuildFile; fileRef = DE14B462275C87C700379D4F /* Model.proto */; };
 		DE14B581275C87C700379D4F /* Model.pb-c.h in Headers */ = {isa = PBXBuildFile; fileRef = DE14B464275C87C700379D4F /* Model.pb-c.h */; };
 		DE14B582275C87C700379D4F /* protobuf-c.h in Headers */ = {isa = PBXBuildFile; fileRef = DE14B466275C87C700379D4F /* protobuf-c.h */; };
 		DE14B583275C87C700379D4F /* FeatureTypes.pb-c.h in Headers */ = {isa = PBXBuildFile; fileRef = DE14B467275C87C700379D4F /* FeatureTypes.pb-c.h */; };
@@ -1807,11 +1802,6 @@
 		9DF54449258B162F006CEC97 /* random_data_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = random_data_utils.cc; sourceTree = "<group>"; };
 		DE14B45A275C87C700379D4F /* coreml_network.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = coreml_network.mm; sourceTree = "<group>"; };
 		DE14B45B275C87C700379D4F /* coreml_network.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coreml_network.h; sourceTree = "<group>"; };
-		DE14B45E275C87C700379D4F /* NeuralNetwork.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.protobuf; path = NeuralNetwork.proto; sourceTree = "<group>"; };
-		DE14B45F275C87C700379D4F /* DataStructures.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.protobuf; path = DataStructures.proto; sourceTree = "<group>"; };
-		DE14B460275C87C700379D4F /* FeatureTypes.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.protobuf; path = FeatureTypes.proto; sourceTree = "<group>"; };
-		DE14B461275C87C700379D4F /* Parameters.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.protobuf; path = Parameters.proto; sourceTree = "<group>"; };
-		DE14B462275C87C700379D4F /* Model.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.protobuf; path = Model.proto; sourceTree = "<group>"; };
 		DE14B464275C87C700379D4F /* Model.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Model.pb-c.h"; sourceTree = "<group>"; };
 		DE14B466275C87C700379D4F /* protobuf-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "protobuf-c.h"; sourceTree = "<group>"; };
 		DE14B467275C87C700379D4F /* FeatureTypes.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "FeatureTypes.pb-c.h"; sourceTree = "<group>"; };
@@ -3317,23 +3307,10 @@
 		DE14B45C275C87C700379D4F /* mlmodel */ = {
 			isa = PBXGroup;
 			children = (
-				DE14B45D275C87C700379D4F /* proto */,
 				DE14B463275C87C700379D4F /* include */,
 				DE14B46B275C87C700379D4F /* src */,
 			);
 			path = mlmodel;
-			sourceTree = "<group>";
-		};
-		DE14B45D275C87C700379D4F /* proto */ = {
-			isa = PBXGroup;
-			children = (
-				DE14B45E275C87C700379D4F /* NeuralNetwork.proto */,
-				DE14B45F275C87C700379D4F /* DataStructures.proto */,
-				DE14B460275C87C700379D4F /* FeatureTypes.proto */,
-				DE14B461275C87C700379D4F /* Parameters.proto */,
-				DE14B462275C87C700379D4F /* Model.proto */,
-			);
-			path = proto;
 			sourceTree = "<group>";
 		};
 		DE14B463275C87C700379D4F /* include */ = {
@@ -4125,7 +4102,6 @@
 				9DD1FBC0247CE9BE00800139 /* metal_conv_layer_1x1.metal in Sources */,
 				9D32FCFC24557EEC002DCDAB /* upsample_layer.cc in Sources */,
 				9DE4CBD927859F0700FCEF95 /* coreml_softsign_layer.cc in Sources */,
-				DE14B57E275C87C700379D4F /* FeatureTypes.proto in Sources */,
 				9D32FC9F24557EEC002DCDAB /* memory_mode_state_factory.cc in Sources */,
 				32BFADEB2684AAEE00502FAC /* GEMM_INT8_SDOT_4X8.S in Sources */,
 				9D32FCCE24557EEC002DCDAB /* flatten_layer.cc in Sources */,
@@ -4315,7 +4291,6 @@
 				9D32FC9224557EEC002DCDAB /* blob_memory.cc in Sources */,
 				9DD1FB76247CE9BE00800139 /* metal_deconv_layer_depthwise.mm in Sources */,
 				ECCDCF2825E0F97500D7D297 /* bitshift_layer.cc in Sources */,
-				DE14B57C275C87C700379D4F /* NeuralNetwork.proto in Sources */,
 				9D32FF5424557EED002DCDAB /* permute_layer_interpreter.cc in Sources */,
 				9D32FD0124557EEC002DCDAB /* asin_layer.cc in Sources */,
 				9D32FF3424557EED002DCDAB /* unary_op_layer_interpreter.cc in Sources */,
@@ -4440,7 +4415,6 @@
 				9DF543AB258B1366006CEC97 /* arm_selu_layer_acc.cc in Sources */,
 				9DD1FB43247CE9BE00800139 /* metal_floor_layer_acc.mm in Sources */,
 				9DD1FBC8247CE9BE00800139 /* metal_sqrt_layer_acc.metal in Sources */,
-				DE14B580275C87C700379D4F /* Model.proto in Sources */,
 				9D32FCFF24557EEC002DCDAB /* cos_layer.cc in Sources */,
 				9DF543C8258B1366006CEC97 /* arm_clip_layer_acc.cc in Sources */,
 				9DD1FB98247CE9BE00800139 /* metal_softmax_layer_acc.metal in Sources */,
@@ -4459,7 +4433,6 @@
 				9DE4CBDB27859F0700FCEF95 /* coreml_div_layer.cc in Sources */,
 				9DD1FB4F247CE9BE00800139 /* metal_instance_norm_layer_acc.mm in Sources */,
 				9DF543C0258B1366006CEC97 /* arm_hard_sigmoid_acc.cc in Sources */,
-				DE14B57F275C87C700379D4F /* Parameters.proto in Sources */,
 				9DF543D9258B1366006CEC97 /* CONV_DW_5X5_FLOAT_SLIDEW.S in Sources */,
 				ECCDCF1B25E0F97500D7D297 /* size_layer.cc in Sources */,
 				9D32FC9C24557EEC002DCDAB /* blob_2d_memory.cc in Sources */,
@@ -4773,7 +4746,6 @@
 				EC0BE16025144BE4009BD69A /* detection_post_process_layer_interpreter.cc in Sources */,
 				9D32FCF624557EEC002DCDAB /* normalize_layer.cc in Sources */,
 				EC2CF7822511F80500EE3899 /* metal_arg_max_or_min_layer_acc.mm in Sources */,
-				DE14B57D275C87C700379D4F /* DataStructures.proto in Sources */,
 				9D32FD0624557EEC002DCDAB /* split_layer.cc in Sources */,
 				ECCDCE9725DF536000D7D297 /* cpu_clip_layer_acc.cc in Sources */,
 				9D32FCFE24557EEC002DCDAB /* multidir_broadcast_layer.cc in Sources */,
@@ -5009,6 +4981,7 @@
 					"-Wunused-function",
 					"-march=armv8.2-a+fp16+nolse",
 					"-DTNN_ARM82=defined(__aarch64__)",
+					"-Wno-shorten-64-to-32",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.tencent.youtu.tnn.tnn;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
@@ -5068,6 +5041,7 @@
 					"-Wunused-function",
 					"-march=armv8.2-a+fp16+nolse",
 					"-DTNN_ARM82=defined(__aarch64__)",
+					"-Wno-shorten-64-to-32",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.tencent.youtu.tnn.tnn;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
