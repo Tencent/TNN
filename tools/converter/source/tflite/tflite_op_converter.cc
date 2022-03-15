@@ -73,6 +73,8 @@ TNN_NS::Status TFLiteOpConverter::SeparateActivation(TNN_NS::NetStructure& net_s
         activation_param->type      = activation_layer->type_str;
         activation_param->name      = layer->name + activation_suffix;
         activation_param->quantized = false;
+        //inset blobs before insert new layer
+        InsertBlobs(net_structure);
         // insert activation layer
         layers.push_back(std::shared_ptr<TNN_NS::LayerInfo>(activation_layer));
     } else {

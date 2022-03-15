@@ -191,14 +191,15 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam para
                 fused_int8_bias[i]  = 0;
             }
         }
-    } else if (desc.data_type == DATA_TYPE_INT32) {
-        int count = DimsVectorUtils::Count(blob_->GetBlobDesc().dims);
-        int ele_size = DataTypeUtils::GetBytesSize(desc.data_type);
-        if (image.GetMatType() == NC_INT32) {
-            memcpy(GetBlobHandlePtr(blob_->GetHandle()), image.GetData(), count * ele_size);
-        }
-        return ret;
-    }
+    } 
+    // else if (desc.data_type == DATA_TYPE_INT32) {
+    //     int count = DimsVectorUtils::Count(blob_->GetBlobDesc().dims);
+    //     int ele_size = DataTypeUtils::GetBytesSize(desc.data_type);
+    //     if (image.GetMatType() == NC_INT32) {
+    //         memcpy(GetBlobHandlePtr(blob_->GetHandle()), image.GetData(), count * ele_size);
+    //     }
+    //     return ret;
+    // }
 
     auto cvt_data_type  = desc.data_type;
     auto cvt_handle_ptr = handle_ptr;
