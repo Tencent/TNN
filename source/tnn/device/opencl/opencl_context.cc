@@ -13,13 +13,23 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/opencl_context.h"
+
+#include <fstream>
+#include <chrono>
+#include <thread>
+#include <future>
+
 #include "tnn/core/profile.h"
 #include "tnn/device/opencl/opencl_utils.h"
 #include "tnn/utils/string_format.h"
 
-#include <fstream>
 
 namespace TNN_NS {
+
+using std::chrono::time_point;
+using std::chrono::system_clock;
+using std::chrono::duration_cast;
+using std::chrono::microseconds;
 
 std::mutex OpenCLContext::s_mutex_;
 
@@ -247,10 +257,51 @@ Status OpenCLContext::OnInstanceReshapeEnd() {
     return TNN_OK;
 }
 
+void OpenCLContext::UpdateSynchronizationStrategy(std::chrono::microseconds time_cost_of_sync) {
+    // TODO : update to OpenCL 2.2.
+    // OpenCL 2.2 provides cl_khr_throttle_hints extention 
+    //     which provides a CL_QUEUE_THROTTLE_LOW property for CommandQueue, and 
+    //     it has a event based clFinish() implementation rather than busy waiting.
+    //     Curruntly, we adope this sleep-based workaround to avoid CPU busy-waiting.
+    // This workaround works on INTEL OpenCL Driver, and may slow down the execution on NVIDIA GPU.
+    // So, we only tune on this on INTEL_GPU.
+
+    avg_clfinish_cost_time_ = (avg_clfinish_cost_time_ * clfinish_count_ + time_cost_of_sync) / (clfinish_count_ + 1);
+    clfinish_count_++;
+    microseconds weighted_total_cost_time = (avg_clfinish_cost_time_ + time_cost_of_sync) / 2;
+    next_clfinish_wait_time_ = (weighted_total_cost_time + next_clfinish_wait_time_ ) / 2;
+    next_clfinish_wait_time_ = next_clfinish_wait_time_ > microseconds(100) ? next_clfinish_wait_time_ : microseconds(0);
+
+    if (clfinish_count_ % 500 == 0) {
+        LOGD("CL finish cur time:%lluus avg:%lluus next_wait:%lluus\n", delta.count(), avg_clfinish_cost_time_.count(), next_clfinish_wait_time_.count());
+    }
+}
+
 // synchronize will wait until the command queue finish
 Status OpenCLContext::Synchronize() {
+
+    command_queue_->flush();
+
+    if (opencl_runtime_->GetGpuInfo().type == INTEL_GPU) {
+        std::future<int> f = std::async(std::launch::async, [&](){ 
+            if (next_clfinish_wait_time_ > microseconds(0)) {
+                std::this_thread::sleep_for(next_clfinish_wait_time_);
+            } 
+            return 0; 
+        });
+
+        f.wait();
+    }
+
+    time_point<system_clock> start = system_clock::now();
+
     cl_int result = command_queue_->finish();
+
+    time_point<system_clock> stop = system_clock::now();
+
     if (result == 0) {
+        microseconds delta = duration_cast<microseconds>(stop - start);
+        UpdateSynchronizationStrategy(delta) ;
         return TNN_OK;
     } else {
         return Status(TNNERR_OPENCL_FINISH_ERROR, "command queue finish failed");

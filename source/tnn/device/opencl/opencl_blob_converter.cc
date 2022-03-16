@@ -13,6 +13,10 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/opencl/opencl_blob_converter.h"
+
+#include <chrono>
+#include <thread>
+
 #include "tnn/core/macro.h"
 #include "tnn/device/opencl/opencl_utils.h"
 #include "tnn/memory_manager/blob_memory_size_info.h"

@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <thread>
+#include <chrono>
 #include <mutex>
 
 #include "tnn/core/context.h"
@@ -113,10 +114,16 @@ private:
 
     bool ReadStatusCheck(std::ifstream& is);
 
+    void UpdateSynchronizationStrategy(std::chrono::microseconds time_cost_of_sync);
+
     std::map<std::string, std::vector<uint32_t>> local_size_tune_map_;
     uint32_t tune_map_size_;
 
     static std::mutex s_mutex_;
+
+    std::chrono::microseconds avg_clfinish_cost_time_ = std::chrono::microseconds(0);
+    std::chrono::microseconds next_clfinish_wait_time_= std::chrono::microseconds(0);
+    int64_t clfinish_count_ = 0;
 
 };
 
