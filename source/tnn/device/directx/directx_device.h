@@ -19,14 +19,16 @@
 #include <memory>
 #include <cstring>
 
+#define NOMINMAX
 #include <d3dcommon.h>
 #include <d3d11.h>
-#undef min
-#undef max
+#undef LoadLibrary
 
 #include "tnn/core/abstract_device.h"
 
 namespace TNN_NS {
+
+namespace directx {
 
 // @brief DirectXDevice create memory and layer acc
 
@@ -64,23 +66,43 @@ public:
 
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
 
+    static Status RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout);
+
+    std::shared_ptr<ID3D11Device>  GetID3DDevice() {
+        return device_;
+    }
+
+    std::shared_ptr<ID3D11DeviceContext> GetID3DContext() {
+        return context_;
+    }
+
 private:
     BlobMemorySizeInfo Calculate1DMemorySize(BlobDesc& desc);
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>> &GetLayerCreatorMap();
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>>& GetLayerLayoutMap();
 
     std::shared_ptr<ID3D11Device>               device_ = nullptr;
     std::shared_ptr<ID3D11DeviceContext>        context_ = nullptr;
 
 };
 
-// @brief DirectXTypeLayerAccRegister register DirectXTypeLayerAccCreator
+// @brief DirectXLayerAccRegister register DirectXLayerAccCreator
 template <typename T>
-class DirectXTypeLayerAccRegister {
+class DirectXLayerAccRegister {
 public:
-    explicit DirectXTypeLayerAccRegister(LayerType type) {
+    explicit DirectXLayerAccRegister(LayerType type) {
         DirectXDevice::RegisterLayerAccCreator(type, new T());
     }
 };
+
+class DirectXLayerLayoutRegister {
+public:
+    explicit DirectXLayerLayoutRegister(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+        DirectXDevice::RegisterLayerLayout(type, layout);
+    }
+};
+
+} // namespace directx 
 
 } // namespace TNN_NS
 

@@ -40,6 +40,8 @@ DeviceType ConvertDeviceType(std::string device_type) {
         return DEVICE_RK_NPU;
     } else if ("APPLE_NPU" == device_type) {
         return DEVICE_APPLE_NPU;
+    } else if ("DIRECTX" == device_type) {
+        return DEVICE_DIRECTX;
     } else {
         return DEVICE_ARM;
     }

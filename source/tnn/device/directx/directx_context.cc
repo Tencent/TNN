@@ -14,16 +14,18 @@
 
 #include "tnn/device/directx/directx_context.h"
 
+#define NOMINMAX
 #include <d3dcommon.h>
 #include <d3d11.h>
-#undef max
-#undef min
+#undef LoadLibrary
 
 #include "tnn/core/macro.h"
 #include "tnn/utils/omp_utils.h"
 #include "tnn/device/directx/directx_macro.h"
 
 namespace TNN_NS {
+
+namespace directx {
 
 DirectXContext::DirectXContext() {
 }
@@ -82,5 +84,7 @@ void* DirectXContext::GetSharedWorkSpace(size_t size, int index) {
     }
     return work_space_[index].force_to<void*>();
 }
+
+} // namespace directx
 
 }  // namespace TNN_NS

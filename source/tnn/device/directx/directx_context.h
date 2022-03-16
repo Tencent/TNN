@@ -19,15 +19,17 @@
 #include <string>
 #include <vector>
 
+#define NOMINMAX
 #include <d3dcommon.h>
 #include <d3d11.h>
-#undef min
-#undef max
+#undef LoadLibrary
 
 #include "tnn/core/context.h"
 #include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
+
+namespace directx {
 
 class DirectXContext : public Context {
 public:
@@ -73,6 +75,8 @@ private:
     std::shared_ptr<ID3D11DeviceContext>        context_ = nullptr;
 
 };
+
+} // namespace directx
 
 }  // namespace TNN_NS
 

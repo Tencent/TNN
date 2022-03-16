@@ -18,10 +18,14 @@
 #include "tnn/device/directx/directx_context.h"
 #include "tnn/device/directx/directx_macro.h"
 #include "tnn/device/directx/directx_runtime.h"
+#include "tnn/device/directx/directx_memory.h"
+#include "tnn/device/directx/directx_util.h"
 #include "tnn/utils/blob_memory_size_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
 namespace TNN_NS {
+
+namespace directx {
 
 #define LAZY_INIT()                                     \
 do {                                                    \
@@ -127,17 +131,16 @@ BlobMemorySizeInfo DirectXDevice::Calculate1DMemorySize(BlobDesc &desc) {
 }
 
 BlobMemorySizeInfo DirectXDevice::Calculate(BlobDesc &desc) {
-    DirectXRuntime* directx_runtime = DirectXRuntime::GetInstance();
-    std::vector<size_t> texture_2d_max_size = directx_runtime->GetTexture2DMaxSize();
-    ASSERT(texture_2d_max_size.size() == 2);
-    BlobMemorySizeInfo info = Calculate2DCLImageMemorySize(desc);
-    ASSERT(info.dims.size() == 2);
-    if (info.dims[0] > texture_2d_max_size[0] || info.dims[1] > texture_2d_max_size[1]) {
-        LOGD("Exceed DirectX Texture2D limit, dims: [%d, %d]\n", info.dims[0], info.dims[1]);
+    DirectXMemoryType mem_type = GetMemoryType(desc);
+
+    if (TNN_DX_BUFFER == mem_type) {
+        BlobMemorySizeInfo info = Calculate1DMemorySize(desc);
         desc.data_format = DATA_FORMAT_NCHW;
-        info = Calculate1DMemorySize(desc);
+        return info;
+    } else {
+        BlobMemorySizeInfo info = Calculate2DCLImageMemorySize(desc);
+        return info;
     }
-    return info;
 }
 
 Status DirectXDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
@@ -164,7 +167,7 @@ Status DirectXDevice::Allocate(void** handle, MatType mat_type, DimsVector dims)
 Status DirectXDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
     LAZY_INIT();
 
-    DirectXRuntime* opencl_runtime = DirectXRuntime::GetInstance();
+    DirectXRuntime* directx_runtime = DirectXRuntime::GetInstance();
 
     if (DATA_TYPE_HALF != desc.data_type && DATA_TYPE_FLOAT != desc.data_type && DATA_TYPE_INT32 != desc.data_type) {
         LOGE("opencl allocator not support this data type: %d\n", desc.data_type);
@@ -173,6 +176,7 @@ Status DirectXDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
 
     size_t type_size = 4;
     DXGI_FORMAT format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
     if (DATA_TYPE_HALF == desc.data_type) {
         type_size = 2;
         format = DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -182,7 +186,9 @@ Status DirectXDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
         format = DXGI_FORMAT_R8G8B8A8_UINT;
     }
 
-    if (desc.dims.size() == 2) {
+    DirectXMemoryType mem_type = GetMemoryType(desc);
+
+    if (TNN_DX_TEXTURE == mem_type) {
         D3D11_TEXTURE2D_DESC texture_desc;
         ZeroMemory(&texture_desc, sizeof(texture_desc));
         texture_desc.Width = (UINT)(desc.dims[0]);
@@ -196,6 +202,7 @@ Status DirectXDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
 
         ID3D11Texture2D * texture;
 
+        LOGI("DirectX create texture of shape %u x %u\n", desc.dims[0], desc.dims[1] );
         HRESULT hr = device_->CreateTexture2D(&texture_desc, NULL, &texture);
         if (FAILED(hr)) {
             *handle = nullptr;
@@ -204,24 +211,24 @@ Status DirectXDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
         }
         *handle = (void *) texture;
 
-    } else if (desc.dims.size() == 1) {
+    } else if (TNN_DX_BUFFER == mem_type) {
         // allocate Buffer
         ID3D11Buffer * buffer;
 
-        D3D11_BUFFER_DESC desc = {};
-        desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
-        desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-        desc.Usage = D3D11_USAGE_DEFAULT;
-        desc.ByteWidth = type_size; 
+        D3D11_BUFFER_DESC buffer_desc = {};
+        buffer_desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+        buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+        buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        buffer_desc.ByteWidth = type_size * desc.dims[0]; 
 
-        HRESULT hr = device_->CreateBuffer( &desc, nullptr, &buffer);
+        LOGI("DirectX create buffer of len %u \n", type_size * desc.dims[0]);
+        HRESULT hr = device_->CreateBuffer( &buffer_desc, nullptr, &buffer);
         if (FAILED(hr)) {
             *handle = nullptr;
             LOGE("DirectX createbuffer failed. erro code %d", (long) hr);
             return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX buffer allocation failed.");
         }
         *handle = (void *)  buffer;
-
     } else {
         char error_str[128];
         sprintf(error_str, "DirecX not support Allocate (dims=%d)", (int)desc.dims.size());
@@ -234,20 +241,15 @@ Status DirectXDevice::Free(void* handle) {
     if (handle) {
         IUnknown * p = static_cast<IUnknown *>(handle);
         p->Release();
-        free(handle);
     }
     return TNN_OK;
-}
-
-std::shared_ptr<const ImplementedLayout> DirectXDevice::GetImplementedLayout(LayerType type) {
-    auto layouts = new ImplementedLayout();
-    layouts->layouts.push_back(DATA_FORMAT_NCHW);
-    return std::shared_ptr<ImplementedLayout>(layouts);
 }
 
 Status DirectXDevice::CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobDesc& blob_desc, void* command_queue) {
     auto size_info       = Calculate(blob_desc);
     size_t size_in_bytes = GetBlobMemoryBytesSize(size_info);
+
+    LOGI("Copy Data to Device now, size in bytes:%lu shape:%d %d ...\n", size_in_bytes,  blob_desc.dims[0], blob_desc.dims[1]);
 
     // TODO: Judge blob memory type (texture or buffer ) from blob_desc.format
     // TODO: Add texture to buffer converter
@@ -294,6 +296,7 @@ Status DirectXDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, Blo
 
     auto size_info       = Calculate(blob_desc);
     size_t size_in_bytes = GetBlobMemoryBytesSize(size_info);
+    LOGI("Copy Data From Device now, size in bytes:%lu\n", size_in_bytes);
 
     // TODO: Judge blob memory type (texture or buffer ) from blob_desc.format
     // TODO: Add texture to buffer converter
@@ -371,6 +374,26 @@ std::map<LayerType, std::shared_ptr<LayerAccCreator>>& DirectXDevice::GetLayerCr
     return layer_creator_map;
 }
 
+std::shared_ptr<const ImplementedLayout> DirectXDevice::GetImplementedLayout(LayerType type) {
+    auto &map = GetLayerLayoutMap();
+    if (map.find(type) != map.end()) {
+        return GetLayerLayoutMap()[type];
+    }
+    return std::make_shared<ImplementedLayout>();
+}
+
+Status DirectXDevice::RegisterLayerLayout(LayerType type, std::shared_ptr<ImplementedLayout> layout) {
+    GetLayerLayoutMap()[type] = layout;
+    return TNN_OK;
+}
+
+std::map<LayerType, std::shared_ptr<ImplementedLayout>> & DirectXDevice::GetLayerLayoutMap() {
+    static std::map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
+    return layer_layout_map;
+}
+
 TypeDeviceRegister<DirectXDevice> g_directx_device_register(DEVICE_DIRECTX);
+
+} // namespace directx
 
 } // namespace TNN_NS

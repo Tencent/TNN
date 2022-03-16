@@ -23,13 +23,9 @@ namespace TNN_NS {
 namespace directx {
 
 typedef Status (*DirectXBlobConvertFunc)(Mat& image,
-                                     char* handle_ptr,
-                                     const MatConvertParam& param,
-                                     const DimsVector& dims,
-                                     const int hw,
-                                     const int c_r4,
-                                     std::vector<float>& fused_int8_scale,
-                                     std::vector<float>& fused_int8_bias);
+                                        Blob * blob,
+                                        const MatConvertParam& param,
+                                        void * command_queue);
 
 typedef enum {
     CVT_DIR_MAT2BLOB = 0,
@@ -53,7 +49,7 @@ public:
 private:
     std::vector<float> fused_int8_scale;
     std::vector<float> fused_int8_bias;
-    DirectXBlobConvertFunc cvt_func_;
+    DirectXBlobConvertFunc cvt_func_ = nullptr;
 
     static Status GetBlobConvertFunc(MatType mat_type, DataType data_type, BlobConvertDirection cvt_dir,
                                      DirectXBlobConvertFunc& cvt_func);

@@ -27,5 +27,6 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     
     BufferOut.Store( DTid.x*8, asuint(i0 + i1) );
     BufferOut.Store( DTid.x*8+4, asuint(f0 + f1) );
+    
 }
 

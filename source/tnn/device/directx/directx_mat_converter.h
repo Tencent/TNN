@@ -20,10 +20,14 @@
 
 namespace TNN_NS {
 
+namespace directx {
+
 class DirectXMatConverterAcc : public MatConverterAcc {
 public:
     virtual Status Copy(Mat& src, Mat& dst, void* command_queue = NULL);
 };
+
+} // namespace directx
 
 }  // namespace TNN_NS
 

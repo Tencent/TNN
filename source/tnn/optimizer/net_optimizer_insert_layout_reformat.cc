@@ -84,6 +84,8 @@ namespace optimizer {
             return DATA_FORMAT_NC4HW4;
         } else if (type == DEVICE_OPENCL) {
             return DATA_FORMAT_NHC4W4;
+        } else if (type == DEVICE_DIRECTX) {
+            return DATA_FORMAT_NCHW;
         } else {
             return DATA_FORMAT_AUTO;
         }

@@ -20,15 +20,17 @@
 #include <mutex>
 #include <algorithm>
 
+#define NOMINMAX
 #include <d3dcommon.h>
 #include <d3d11.h>
-#undef min
-#undef max
+#undef LoadLibrary
 
 #include "tnn/core/macro.h"
 #include "tnn/utils/md5.h"
 
 namespace TNN_NS {
+
+namespace directx {
 
 std::shared_ptr<DirectXRuntime> DirectXRuntime::g_singleton_ = nullptr;
 std::mutex DirectXRuntime::g_mutex_;
@@ -70,5 +72,7 @@ std::shared_ptr<ID3D11DeviceContext> DirectXRuntime::Context() {
 std::vector<size_t> DirectXRuntime::GetTexture2DMaxSize() {
     return {4096, 4096};
 }
+
+} // namespace directx
 
 }  // namespace TNN_NS

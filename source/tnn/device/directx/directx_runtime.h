@@ -21,23 +21,24 @@
 #include <set>
 #include <string>
 
+#define NOMINMAX
 #include <d3dcommon.h>
 #include <d3d11.h>
-#undef min
-#undef max
+#undef LoadLibrary
 
 #include "tnn/core/status.h"
 #include "tnn/core/common.h"
 
 namespace TNN_NS {
 
-// enum GpuType { OTHER = 0, ADRENO = 1, MALI = 2, MALI_T = 3, MALI_G = 4, INTEL_GPU = 5, NVIDIA_GPU = 6};
+namespace directx {
 
-// struct GpuInfo {
-//     GpuType type = OTHER;
-//     int model_num = 0;
-//     float opencl_version = 0;
-// };
+enum GpuType { OTHER = 0, INTEL_GPU = 1, NVIDIA_GPU = 2, AMD_GPU = 3};
+
+struct GpuInfo {
+    GpuType type = OTHER;
+    int computer_shader_version = 0;
+};
 
 // // Base GPU cache size used for computing local work group size.
 // const int32_t g_base_gpu_mem_cachesize = 16384;
@@ -77,6 +78,8 @@ private:
 
     std::vector<size_t> texture_2d_max_size_;
 };
+
+} // namespace directx
 
 }  // namespace TNN_NS
 

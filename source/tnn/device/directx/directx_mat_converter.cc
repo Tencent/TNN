@@ -20,6 +20,8 @@
 
 namespace TNN_NS {
 
+namespace directx {
+
 Status DirectXMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret = TNN_OK;
 
@@ -39,5 +41,7 @@ Status DirectXMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     }
     return ret;
 }
+
+} // namespace directx
 
 }

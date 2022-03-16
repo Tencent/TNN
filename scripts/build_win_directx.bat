@@ -4,6 +4,7 @@ SETLOCAL EnableDelayedExpansion
 set TNN_DIR=%~dp0..\
 set BUILD_DIR=%~dp0build_win_directx
 set TNN_INSTALL_DIR=%~dp0win_directx_msvc_release
+set BUILD_TYPE=RelWithDebInfo
 
 if not exist %BUILD_DIR% (
     mkdir %BUILD_DIR%
@@ -12,7 +13,7 @@ if not exist %BUILD_DIR% (
 echo Building TNN ...
 cd %BUILD_DIR%
 cmake -G "Visual Studio 16 2019" -A Win32 ^
--DCMAKE_BUILD_TYPE=Release ^
+-DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
 -DCMAKE_SYSTEM_NAME=Windows ^
 -DCMAKE_SYSTEM_VERSION="10.0" ^
 -DTNN_DIRECTX_ENABLE=ON ^
@@ -21,7 +22,7 @@ cmake -G "Visual Studio 16 2019" -A Win32 ^
 -DINTTYPES_FORMAT=C99 ^
 ../..
 
-cmake --build . --config Release -j8
+cmake --build . --config %BUILD_TYPE% -j8
 if !errorlevel! == 1 (
     echo Building TNN Failed
     goto errorHandle
@@ -46,11 +47,11 @@ goto :eof
     xcopy /s/e/y %TNN_DIR%\include %TNN_INSTALL_DIR%\include
 
     :: lib
-    copy %BUILD_DIR%\Release\TNN.lib %TNN_INSTALL_DIR%\lib\
+    copy %BUILD_DIR%\%BUILD_TYPE%\TNN.lib %TNN_INSTALL_DIR%\lib\
 
     :: bin
-    copy %BUILD_DIR%\Release\TNN.dll %TNN_INSTALL_DIR%\bin\
-    copy %BUILD_DIR%\test\Release\TNNTest.exe %TNN_INSTALL_DIR%\bin\
+    copy %BUILD_DIR%\%BUILD_TYPE%\TNN.dll %TNN_INSTALL_DIR%\bin\
+    copy %BUILD_DIR%\test\%BUILD_TYPE%\TNNTest.exe %TNN_INSTALL_DIR%\bin\
 
     goto :returnOk
 

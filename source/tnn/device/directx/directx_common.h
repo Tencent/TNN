@@ -17,10 +17,10 @@
 
 #include <memory>
 
+#define NOMINMAX
 #include <d3dcommon.h>
 #include <d3d11.h>
-#undef min
-#undef max
+#undef LoadLibrary
 
 #include "tnn/core/macro.h"
 #include "tnn/device/directx/directx_macro.h"

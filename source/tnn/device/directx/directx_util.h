@@ -17,12 +17,20 @@
 
 #include <string.h>
 #include <cstdlib>
+
 #if TNN_PROFILE
 #include <chrono>
 #endif
 
+#define NOMINMAX
+#include <d3dcommon.h>
+#include <d3d11.h>
+#undef LoadLibrary
+
 #include "tnn/core/blob.h"
 #include "tnn/core/macro.h"
+#include "tnn/device/directx/directx_memory.h"
+#include "tnn/memory_manager/blob_memory_size_info.h"
 
 namespace TNN_NS {
 namespace directx {
@@ -48,18 +56,16 @@ private:
 };
 #endif
 
-int PackC4(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel);
+// Tell the memory type from a blob Description sruct
+DirectXMemoryType GetMemoryType(BlobDesc desc);
 
-int PackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel);
+// Tell the memory type from a blob memory size info, which is used by the AbstactDevice::Allocate function
+DirectXMemoryType GetMemoryType(BlobMemorySizeInfo size_info);
 
-int UnpackC4(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel);
-
-int UnpackC8(float *dst, const float *src, size_t hw, size_t src_hw_stride, size_t dst_hw_stride, size_t channel);
-
-template<typename T>
-int MatTranspose(T *dst, const T *src, size_t M, size_t N);
-
-int PackINT8Weight(int8_t *src, int8_t *dst, int input_channel, int output_channel, int height, int width);
+Status DispatchShader(std::shared_ptr<ID3D11ComputeShader> cs, 
+                      std::vector<std::shared_ptr<ID3D11ShaderResourceView>> srvs,  
+                      std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavx,  
+                      std::vector<unsigned int> grid);
 
 }
 }  // namespace TNN_NS
