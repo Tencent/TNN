@@ -191,7 +191,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam para
                 fused_int8_bias[i]  = 0;
             }
         }
-    } else if (desc.data_type == DATA_TYPE_INT32) {
+    } else if (desc.data_type == DATA_TYPE_INT32 && desc.data_format == DATA_FORMAT_NCHW) {
         int count = DimsVectorUtils::Count(blob_->GetBlobDesc().dims);
         int ele_size = DataTypeUtils::GetBytesSize(desc.data_type);
         if (image.GetMatType() == NC_INT32) {
