@@ -267,6 +267,59 @@ public:
     }
 };
 
+class Pool3DTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = LAYER_POOLING_3D;
+        layer_info->type_str = "Pooling3D";
+        layer_info->name = node->output(0)->debugName();
+
+        const auto& inputs = node->inputs();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        auto layer_param = std::make_shared<PoolingLayerParam>();
+        layer_param->name = layer_info->name;
+        std::string op_type = node->kind().toUnqualString();
+
+        if (op_type.find("adaptive") == std::string::npos) {
+            const auto kernel_size = getValue<std::vector<int64_t>>(inputs[1]);
+            const auto stride = getValue<std::vector<int64_t>>(inputs[2]);
+            const auto padding = getValue<std::vector<int64_t>>(inputs[3]);
+            const auto dialation = getValue<std::vector<int64_t>>(inputs[4]);
+            const auto ceil_mode = getValue<bool>(inputs[5]);
+            
+            layer_param->pad_type = -1;
+            layer_param->kernels_params = {(int)kernel_size[2], (int)kernel_size[1], (int)kernel_size[0]};
+            layer_param->strides = {(int)stride[2], (int)stride[1], (int)stride[0]};
+            layer_param->pads = {(int)padding[2], (int)padding[2], (int)padding[1], (int)padding[1], (int)padding[0], (int)padding[0]};
+            layer_param->kernel_indexs = {-1, -1, -1};
+            layer_param->kernels = {-1, -1, -1};
+            layer_param->output_shape = {-1, -1, -1};
+            layer_param->ceil_mode = ceil_mode;
+        } else {
+            const auto output_shape = getValue<std::vector<int64_t>>(inputs[1]);
+            layer_param->is_adaptive_pool = 1;
+            layer_param->output_shape = {(int)output_shape[2], (int)output_shape[1], (int)output_shape[0]};
+            layer_param->kernels_params = {-1, -1, -1};
+            layer_param->strides = {1, 1, 1};
+            layer_param->pads = {0, 0, 0, 0, 0, 0};
+            layer_param->kernel_indexs = {-1, -1, -1};
+            layer_param->kernels = {-1, -1, -1};
+        }
+
+        layer_info->param = layer_param;
+
+        net_structure->layers.push_back(layer_info);
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        return TNN_OK;
+    }
+};
+
 // func: avg_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, bool ceil_mode=False, bool count_include_pad=True, int? divisor_override=None) -> Tensor
 class AvgPoolTorchConverter : public TorchOpConverter {
 public:
@@ -1795,6 +1848,7 @@ REGISTER_TORCH_OP_CONVERTER(Linear, aten, linear)
 REGISTER_TORCH_OP_CONVERTER(MatMul, aten, matmul)
 REGISTER_TORCH_OP_CONVERTER(Permute, aten, permute)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)
+REGISTER_TORCH_OP_CONVERTER(Pool3D, aten, adaptive_avg_pool3d)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, max_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Power, aten, pow)
 REGISTER_TORCH_OP_CONVERTER(ReflectionPad, aten, reflection_pad2d)
