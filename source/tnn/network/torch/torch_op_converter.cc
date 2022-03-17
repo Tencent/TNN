@@ -126,12 +126,12 @@ public:
         layer_param->name = layer_info->name;
         if(output_pads.size()>0 && output_pads[0] != 0) {
 		layer_param->pad_type = 3;
-		layer_param->output_channel = shape[1];
-		layer_param->input_channel = shape[0];
+		layer_param->output_channel = shape[1] * group;
+		layer_param->input_channel = shape[0] / group;
 	} else {
 		layer_param->pad_type = -1;
-		layer_param->output_channel = shape[0] * group;
-		layer_param->input_channel = shape[1] / group;
+		layer_param->output_channel = shape[0];
+		layer_param->input_channel = shape[1];
 	}
 	layer_param->kernels = {shape[3], shape[2]};
         layer_param->dialations = {(int)dialation[1], (int)dialation[0]};
