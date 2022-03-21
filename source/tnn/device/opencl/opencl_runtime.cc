@@ -705,8 +705,8 @@ std::vector<size_t> OpenCLRuntime::GetImage2dMaxSize() {
 
 Status OpenCLRuntime::CheckOpenCLVersion(const float opencl_version) {
     if (opencl_version < 1.1) {
-        char error_message[30];
-        sprintf(error_message, "OpenCL %.1f is not supported\n", opencl_version);
+        char error_message[100];
+        sprintf(error_message, "OpenCL %.1f is not supported, minimum version required is 1.1\n", opencl_version);
         return Status(TNNERR_DEVICE_NOT_SUPPORT, error_message);
     }
     return TNN_NS::TNN_OK;
