@@ -136,6 +136,8 @@ Status OpenCLRuntime::Init() {
 
         gpu_info_ = ParseGpuInfo(device_name, device_version);
 
+        RETURN_ON_NEQ(CheckOpenCLVersion(gpu_info_.opencl_version), TNN_OK);
+
         cl_int err;
 #if defined(SHARING_MEM_WITH_OPENGL) && (CL_HPP_TARGET_OPENCL_VERSION >= 120)
         // create context from glcontext
@@ -390,6 +392,7 @@ GpuInfo OpenCLRuntime::ParseGpuInfo(std::string device_name, std::string device_
     } else if (device_name.find("Intel") != std::string::npos) {
         LOGD("GPU type is Intel GPU\n");
         info.type = INTEL_GPU;
+        sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
     } else if (device_name.find("GeForce") != std::string::npos) {
         LOGD("GPU type is Nvidia GPU\n");
         info.type = NVIDIA_GPU;
@@ -698,6 +701,15 @@ Status OpenCLRuntime::SaveProgramCache() {
 
 std::vector<size_t> OpenCLRuntime::GetImage2dMaxSize() {
     return image_2d_max_size_;
+}
+
+Status OpenCLRuntime::CheckOpenCLVersion(const float opencl_version) {
+    if (opencl_version < 1.1) {
+        char error_message[30];
+        sprintf(error_message, "OpenCL %.1f is not supported\n", opencl_version);
+        return Status(TNNERR_DEVICE_NOT_SUPPORT, error_message);
+    }
+    return TNN_NS::TNN_OK;
 }
 
 }  // namespace TNN_NS
