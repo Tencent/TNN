@@ -79,6 +79,8 @@ private:
 
     Status LoadProgramCache();
 
+    Status CheckOpenCLVersion(const float opencl_version);
+
 private:
     static std::shared_ptr<OpenCLRuntime> opencl_runtime_singleton_;
     static bool enable_increase_count_;
