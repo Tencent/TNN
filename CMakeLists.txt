@@ -53,7 +53,7 @@ option(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE "Enable Build Benchmark Test Lib" OFF
 option(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE "Enable Use CXX11 ABI" ON)
 option(TNN_METAL_FLOAT32 "Enable Metal Float32" OFF)
 option(TNN_COREML_FLOAT32 "Enable Float32 CoreML Model" ON)
-option(TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE "Enable Dynamic Range Quantization" ON)
+option(TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE "Enable Dynamic Range Quantization" OFF)
 
 set(TNN_USE_GFLAGS OFF)
 
@@ -294,6 +294,10 @@ if(SYSTEM.Linux AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND ANDROID_API_LEVAL)
     add_definitions(-D__ANDROID_API__=${ANDROID_API_LEVAL})
 endif()
 
+if(SYSTEM.Windows AND TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
+    set(TNN_BUILD_SHARED OFF)
+endif()
+
 if(TNN_X86_ENABLE)
     add_subdirectory(source/tnn/device/x86)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86>")
@@ -418,7 +422,7 @@ elseif(SYSTEM.Windows)
     include(platforms/windows/CMakeLists.txt)
 endif()
 
-if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE OR TNN_MODEL_CHECK_ENABLE)
+if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE OR TNN_MODEL_CHECK_ENABLE OR TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
     set(TNN_USE_GFLAGS ON)
 endif ()
 
