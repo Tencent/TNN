@@ -154,7 +154,7 @@ Status DirectXDevice::Allocate(void** handle, MatType mat_type, DimsVector dims)
     BlobDesc desc;
     desc.dims        = dims;
     desc.device_type = GetDeviceType();
-    desc.data_type   = DATA_TYPE_HALF; // try to use half precision
+    // desc.data_type   = DATA_TYPE_HALF; // try to use half precision
     if (mat_type == N8UC4) {
         auto size_info = Calculate(desc);
         return Allocate(handle, size_info);
@@ -170,8 +170,8 @@ Status DirectXDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
     DirectXRuntime* directx_runtime = DirectXRuntime::GetInstance();
 
     if (DATA_TYPE_HALF != desc.data_type && DATA_TYPE_FLOAT != desc.data_type && DATA_TYPE_INT32 != desc.data_type) {
-        LOGE("opencl allocator not support this data type: %d\n", desc.data_type);
-        return Status(TNNERR_PARAM_ERR, "opencl not support this data type");
+        LOGE("directx allocator not support this data type: %d\n", desc.data_type);
+        return Status(TNNERR_PARAM_ERR, "directx not support this data type");
     }
 
     size_t type_size = 4;
@@ -249,7 +249,7 @@ Status DirectXDevice::CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobD
     auto size_info       = Calculate(blob_desc);
     size_t size_in_bytes = GetBlobMemoryBytesSize(size_info);
 
-    LOGI("Copy Data to Device now, size in bytes:%lu shape:%d %d ...\n", size_in_bytes,  blob_desc.dims[0], blob_desc.dims[1]);
+    LOGI("Copy Data to Device now, size in bytes:%lu shape:%d %d %d %d\n", size_in_bytes,  blob_desc.dims[0], blob_desc.dims[1], blob_desc.dims[2], blob_desc.dims[3]);
 
     // TODO: Judge blob memory type (texture or buffer ) from blob_desc.format
     // TODO: Add texture to buffer converter
@@ -281,12 +281,14 @@ Status DirectXDevice::CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobD
         return Status(TNNERR_DX_MAP_ERR, "DirectX map failed.");
     }
 
+    LOGI("memcpy 0x%X -> 0x%X\n", reinterpret_cast<char*>(src->base) + dst->bytes_offset, mapped_resource.pData);
     memcpy(mapped_resource.pData, 
            reinterpret_cast<char*>(src->base) + dst->bytes_offset, 
            size_in_bytes);
 
     context_->Unmap(debug_buffer, 0);
 
+    LOGI("CopyResource 0x%X -> 0x%X\n", debug_buffer, dst_buffer);
     context_->CopyResource(dst_buffer, debug_buffer);
 
     return TNN_OK;
@@ -321,6 +323,7 @@ Status DirectXDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, Blo
         return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX create debug Buffer failed.");
     }
 
+    LOGI("CopyResource 0x%X -> 0x%X\n", src_buffer, debug_buffer);
     context_->CopyResource(debug_buffer, src_buffer);
 
     D3D11_MAPPED_SUBRESOURCE mapped_resource;
@@ -330,6 +333,7 @@ Status DirectXDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, Blo
         return Status(TNNERR_DX_MAP_ERR, "DirectX map failed.");
     }
 
+    LOGI("memcpy 0x%X -> 0x%X\n", mapped_resource.pData, reinterpret_cast<char*>(src->base) + dst->bytes_offset);
     memcpy(reinterpret_cast<char*>(dst->base) + dst->bytes_offset, 
            mapped_resource.pData, 
            size_in_bytes);

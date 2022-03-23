@@ -50,7 +50,7 @@ Status DirectXLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
         }
     };
 
-    if (context->GetPrecision() != PRECISION_HIGH) {
+    if (context->GetPrecision() == PRECISION_LOW) {
         LOGD("OpenCL Blob Pricision is Half!\n");
         set_data_type(inputs, DATA_TYPE_HALF);
         set_data_type(outputs, DATA_TYPE_HALF);
@@ -80,13 +80,15 @@ Status DirectXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
     auto context = GetID3DContext();
 
     auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]); 
-    auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]); 
+    auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]); 
 
     auto in_srv = in_memory->GetSRV();
     auto out_uav = out_memory->GetUAV();
 
     auto in_buffer = (ID3D11Buffer *) in_memory->GetData();
     auto out_buffer = (ID3D11Buffer *) out_memory->GetData();
+
+    LOGI("layer acc Copy Resource 0x%X -> 0x%X\n", in_buffer, out_buffer);
 
     // Dummy impl, copy only.
     // TODO, add kernel and launch by DispatchShader funtion in direct_util.h
