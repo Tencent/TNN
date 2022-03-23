@@ -17,7 +17,8 @@
 #include <vector>
 #include <set>
 
-// #include "tnn/device/directx/imagebuffer_convertor.h"
+#include "tnn/device/directx/directx_device.h"
+#include "tnn/device/directx/directx_memory.h"
 #include "tnn/utils/string_utils_inner.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/data_type_utils.h"
@@ -76,23 +77,21 @@ Status DirectXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 
 Status DirectXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
-    Status ret   = TNN_OK;
-/*
-    int unit_idx = 0;
-    for (auto execute_unit : execute_units_) {
-        if (unactive_unit_ids_.find(unit_idx) != unactive_unit_ids_.end()) {
-            unit_idx++;
-            continue;
-        }
-        ret = RunKernel(execute_unit.ocl_kernel, execute_unit.global_work_size, execute_unit.local_work_size,
-                        ocl_context_->CommandQueue(), op_name_);
-        CHECK_TNN_OK(ret)
+    auto context = GetID3DContext();
 
-        unit_idx++;
-    }
+    auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]); 
+    auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]); 
 
+    auto in_srv = in_memory->GetSRV();
+    auto out_uav = out_memory->GetUAV();
 
-*/
+    auto in_buffer = (ID3D11Buffer *) in_memory->GetData();
+    auto out_buffer = (ID3D11Buffer *) out_memory->GetData();
+
+    // Dummy impl, copy only.
+    // TODO, add kernel and launch by DispatchShader funtion in direct_util.h
+    context->CopyResource(out_buffer, in_buffer);
+
     return TNN_OK;
 }
 std::vector<DataFormat> DirectXLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
@@ -416,6 +415,36 @@ Status DirectXLayerAcc::ResolveBlobDataType(Blob *blob, BlobType blob_type) {
             return Status(TNNERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT, "unsupported data type for device acc");
         }
     }
+}
+
+std::shared_ptr<ID3D11DeviceContext> DirectXLayerAcc::GetID3DContext() {
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return std::shared_ptr<ID3D11DeviceContext>(nullptr);
+    }
+    auto context = tnn_device->GetID3DContext();
+    if (!context) {
+        LOGE("Got null ID3DDeviceContext");
+        return std::shared_ptr<ID3D11DeviceContext>(nullptr);
+    }
+    return context;
+}
+
+std::shared_ptr<ID3D11Device> DirectXLayerAcc::GetID3DDevice() {
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return std::shared_ptr<ID3D11Device>(nullptr);
+    }
+    auto device = tnn_device->GetID3DDevice();
+    if (!device) {
+        LOGE("Got null ID3Ddevice");
+        return std::shared_ptr<ID3D11Device>(nullptr);
+    }
+    return device ;
 }
 
 } // namespace directx

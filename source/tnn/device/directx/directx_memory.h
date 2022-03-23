@@ -80,6 +80,8 @@ public:
     // @brief Create UAV
     std::shared_ptr<ID3D11UnorderedAccessView> GetUAV();
 
+    static std::shared_ptr<DirectXMemory> CreateRefMemoryFromBlob(Blob *);
+
 private:
     // remove all assignment operator
     DirectXMemory(const DirectXMemory& memory)  = delete;

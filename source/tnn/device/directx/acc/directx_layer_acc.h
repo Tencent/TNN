@@ -80,7 +80,11 @@ private:
     // @brief decide Blob Data Type based on support data type list
     virtual Status ResolveBlobDataType(Blob *blob, BlobType blob_type);
 
-    // std::set<int> unactive_unit_ids_ = {};
+    // @brief Get the ID3DDeviceContext
+    std::shared_ptr<ID3D11DeviceContext> GetID3DContext();
+
+    // @brief Get the ID3DDevice
+    std::shared_ptr<ID3D11Device> GetID3DDevice();
 };
 
 #define DECLARE_DIRECTX_ACC(type_string)                                                                               \

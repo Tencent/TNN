@@ -187,6 +187,14 @@ std::shared_ptr<ID3D11UnorderedAccessView> DirectXMemory::GetUAV() {
     return uav_;
 }
 
+std::shared_ptr<DirectXMemory> DirectXMemory::CreateRefMemoryFromBlob(Blob * blob) {
+    DirectXMemoryType mem_type = TNN_NS::directx::GetMemoryType(blob->GetBlobDesc());
+    DirectXMemory * ret = new DirectXMemory(mem_type);
+    ret->SetMemoryInfo(blob->GetBlobDesc());
+    ret->SetData(blob->GetHandle().base, false);
+    return std::shared_ptr<DirectXMemory>(ret);
+};
+
 } // namespace directx
 
 }  // namespace TNN_NS
