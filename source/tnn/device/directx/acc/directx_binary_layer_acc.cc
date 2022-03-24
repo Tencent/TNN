@@ -17,6 +17,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/device/directx/directx_memory.h"
 // #include "tnn/device/opencl/imagebuffer_convertor.h"
 
 namespace TNN_NS {
@@ -84,16 +85,15 @@ Status DirectXBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerRes
             param_dims_.insert(param_dims_.begin(), 1);
         }
 
-        if (layer_res->element_handle.GetDataType() == DATA_TYPE_FLOAT) {
-            float *data_ptr = layer_res->element_handle.force_to<float *>();
-            RETURN_ON_NEQ(ConvertParam(data_ptr, param_dims_), TNN_OK);
-        } else {
-            auto float_data_ptr = GetFloatFromRawBuffer(layer_res->element_handle);  // handle the memory
-            if (float_data_ptr == nullptr) {
-                return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "convert res to float failed");
+        float *data_ptr = layer_res->element_handle.force_to<float *>();
+        std::shared_ptr<float> data = std::shared_ptr<float>(data_ptr, [](float *){});
+        if (layer_res->element_handle.GetDataType() != DATA_TYPE_FLOAT) {
+            data = GetFloatFromRawBuffer(layer_res->element_handle);  
+            if (data == nullptr) {
+                return Status(TNNERR_DX_ACC_INIT_ERR, "convert res to float failed");
             }
-            RETURN_ON_NEQ(ConvertParam(float_data_ptr.get(), param_dims_), TNN_OK);
-        }
+        } 
+        RETURN_ON_NEQ(ConvertParam(data.get(), param_dims_), TNN_OK);
     }
 
     kernel_name_ = GetKernelName(broadcast_param_);
@@ -271,68 +271,17 @@ std::string DirectXBinaryLayerAcc::GetKernelName(const MultidirBroadcastLayerPar
 }
 
 Status DirectXBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int> param_dims) {
-    DirectXRuntime *directx_runtime = DirectXRuntime::GetInstance();
 
     // copy param data into DirectX Buffer
-    shared_ptr<DirectXMemory> param_buffer(new DirectXMemory(TNN_DX_BUFFER));
-    int param_size  = DimsVectorUtils::Count(param_dims);
-    int buffer_size = DimsFunctionUtils::GetDim(param_dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(param_dims, 1), 4) *
-                      DimsFunctionUtils::GetDim(param_dims, 2) * DimsFunctionUtils::GetDim(param_dims, 3);
-    if (param_dims.size() > 4) {
-        for (int i = 4; i < param_dims.size(); i++) {
-            buffer_size *= DimsFunctionUtils::GetDim(param_dims, i);
-        }
+    // TODO: to DirectX Texture2D 
+    shared_ptr<DirectXMemory> param_buffer = DirectXMemory::CreateBufferMemoryFromHost(
+                                                param_data_ptr, param_dims, DATA_TYPE_FLOAT, DATA_FORMAT_NCHW);
+    if (!param_buffer) {
+        LOGE("param transfer to GPU failed.");
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "param transfer to GPU failed.");
     }
+    binary_params_ = std::move(param_buffer);
     return TNN_OK;
-    /*
-    cl_int ret = CL_SUCCESS;
-    cl::Buffer param_clbuffer(*opencl_runtime->Context(), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                              buffer_size * sizeof(float), nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
-    }
-    param_buffer->SetData(&param_clbuffer);
-    auto param_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
-        param_clbuffer, true, CL_MAP_WRITE, 0, buffer_size * sizeof(float), nullptr, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
-    }
-    memset(param_clbuffer_ptr, 0, buffer_size * sizeof(float));
-    memcpy(param_clbuffer_ptr, param_data_ptr, param_size * sizeof(float));
-    ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(param_clbuffer, param_clbuffer_ptr);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
-    }
-
-    // create binary_param_
-    int climage_w = UP_DIV(DimsFunctionUtils::GetDim(param_dims, 1), 4) * DimsFunctionUtils::GetDim(param_dims, 3);
-    int climage_h = DimsFunctionUtils::GetDim(param_dims, 0) * DimsFunctionUtils::GetDim(param_dims, 2);
-    if (param_dims.size() == 5) {
-        climage_w = UP_DIV(DimsFunctionUtils::GetDim(param_dims, 1), 4) * DimsFunctionUtils::GetDim(param_dims, 4);
-        climage_h = DimsFunctionUtils::GetDim(param_dims, 0) * DimsFunctionUtils::GetDim(param_dims, 2) *
-                    DimsFunctionUtils::GetDim(param_dims, 3);
-    }
-    cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
-        data_type = CL_HALF_FLOAT;
-    cl::Image2D *image = new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
-                                         cl::ImageFormat(CL_RGBA, data_type), climage_w, climage_h, 0, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        if (nullptr != image)
-            delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
-    }
-    binary_params_.reset(new DirectXMemory(TNN_CL_IMAGE));
-    binary_params_->SetData(image, true);
-
-    // convert nchw buffer to Image
-    ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
-    return convertor.ConvertBufferToImage(param_buffer.get(), NCHW_BUFFER, param_dims, binary_params_.get(), true);
-    */
 }
 
 Status DirectXBinaryLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs,

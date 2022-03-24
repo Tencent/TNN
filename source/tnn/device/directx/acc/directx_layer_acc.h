@@ -49,7 +49,7 @@ protected:
     // Status ConvertChannelWeights(RawBuffer &raw_handle, shared_ptr<DirectXMemory> &ocl_handle, int output_channel,
     //                              bool has_value = true, bool share_channel = false, bool use_buffer = false);
 
-    Status RawBuffer2DirectXBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format = DATA_FORMAT_NHC4W4);
+    Status RawBuffer2DirectXBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format = DATA_FORMAT_NCHW);
 
     DirectXContext *dx_context_ = nullptr;
     // std::vector<OpenCLExecuteUnit> execute_units_ = {};

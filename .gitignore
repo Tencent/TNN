@@ -500,3 +500,4 @@ platforms/mac/tnn.xcodeproj/project.xcworkspace/xcuserdata/darrenyao.xcuserdatad
 platforms/mac/tnn.xcodeproj/xcuserdata/darrenyao.xcuserdatad/xcschemes/xcschememanagement.plist
 
 source/tnn/device/directx/kernels/*.h
+source/tnn/device/directx/directx_kernels.cc

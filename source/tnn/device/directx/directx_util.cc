@@ -29,6 +29,8 @@
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/blob_memory_size_utils.h"
 
+#include "tnn/device/directx/directx_kernels.h"
+
 namespace TNN_NS {
 namespace directx {
 
@@ -58,10 +60,11 @@ DirectXMemoryType GetMemoryType(BlobMemorySizeInfo size_info) {
     return TNN_DX_BUFFER;
 }
 
-Status DispatchShader(std::shared_ptr<ID3D11ComputeShader> cs, 
-                      std::vector<std::shared_ptr<ID3D11ShaderResourceView>> srvs,  
-                      std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavs,  
-                      std::vector<unsigned int> grid) {
+Status DispatchShader(const std::shared_ptr<ID3D11ComputeShader> cs, 
+                      const std::vector<std::shared_ptr<ID3D11ShaderResourceView>> srvs,  
+                      const std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavs,  
+                      const std::vector<ID3D11Buffer*> constant_buffers,
+                      const std::vector<int> grid) {
     
     auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
     if (!tnn_device) {
@@ -70,6 +73,10 @@ Status DispatchShader(std::shared_ptr<ID3D11ComputeShader> cs,
     }
 
     auto context = tnn_device->GetID3DContext();
+    if (!context) {
+        LOGE("Got null d3d device");
+        return Status(TNNERR_DX_UNSUPPORTED_DEVICE, "got null d3d context");
+    }
 
     context->CSSetShader( cs.get(), nullptr, 0 );
     std::vector<ID3D11ShaderResourceView*> srv_ptrs; 
@@ -81,6 +88,9 @@ Status DispatchShader(std::shared_ptr<ID3D11ComputeShader> cs,
     context->CSSetShaderResources( 0, srv_ptrs.size(), srv_ptrs.data());
     context->CSSetUnorderedAccessViews( 0, uav_ptrs.size(), uav_ptrs.data(), nullptr );
 
+    if (constant_buffers.size() > 0) {
+        context->CSSetConstantBuffers(0, constant_buffers.size(), constant_buffers.data());
+    }
 
     UINT X = grid.size() > 0 ? grid[0] : 1;
     UINT Y = grid.size() > 1 ? grid[1] : 1;
@@ -89,14 +99,56 @@ Status DispatchShader(std::shared_ptr<ID3D11ComputeShader> cs,
 
     context->CSSetShader( nullptr, nullptr, 0 );
 
-    ID3D11UnorderedAccessView* ppUAViewnullptr[1] = { nullptr };
-    context->CSSetUnorderedAccessViews( 0, 1, ppUAViewnullptr, nullptr );
+    for(size_t i=0;i<srv_ptrs.size();i++) { srv_ptrs[i] = nullptr; }
+    for(size_t i=0;i<uav_ptrs.size();i++) { uav_ptrs[i] = nullptr; }
 
-    ID3D11ShaderResourceView* ppSRVnullptr[2] = { nullptr, nullptr };
-    context->CSSetShaderResources( 0, 2, ppSRVnullptr );
+    context->CSSetShaderResources( 0, srv_ptrs.size(), srv_ptrs.data());
+    context->CSSetUnorderedAccessViews( 0, uav_ptrs.size(), uav_ptrs.data(), nullptr );
 
-    ID3D11Buffer* ppCBnullptr[1] = { nullptr };
-    context->CSSetConstantBuffers( 0, 1, ppCBnullptr ); 
+    if (constant_buffers.size() > 0) {
+        std::vector<ID3D11Buffer *> null_cbs(constant_buffers.size(), nullptr);
+        context->CSSetConstantBuffers(0, null_cbs.size(), null_cbs.data());
+    }
+
+    return TNN_OK;
+}
+
+Status GetShaderByName(const std::string kernel_name, std::shared_ptr<ID3D11ComputeShader> &shader ) {
+
+
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_DX_UNSUPPORTED_DEVICE, "got null directx device");
+    }
+
+    auto device= tnn_device->GetID3DDevice();
+    if (!device) {
+        LOGE("Got null d3d device");
+        return Status(TNNERR_DX_UNSUPPORTED_DEVICE, "got null d3d device");
+    }
+
+    auto kernel_map = get_kernel_map();
+    auto kernel_size_map = get_kernel_size_map();
+
+    // LOGI("kenrel %s len:%lu lastbyte:<%c>\n", kernel_name.c_str(), kernel_size_map[kernel_name], kernel_map[kernel_name][kernel_size_map[kernel_name] - 1]);
+    // const BYTE * ptr = kernel_map[kernel_name];
+    // for(int i=0;i<kernel_size_map[kernel_name];i++)
+    // {
+    //     printf("%c", ptr[i]);
+    // }
+    // printf("\n");
+
+    ID3D11ComputeShader * p_shader;
+    // Create the Matrix Transpose Compute Shader
+    HRESULT hr = device->CreateComputeShader(kernel_map[kernel_name], kernel_size_map[kernel_name], nullptr, &p_shader);
+    if( FAILED( hr ) ) {
+        LOGE("create compute shader failed");
+        return Status(TNNERR_DX_SHADER_CREATE_ERR, "create shader failed");
+    }
+
+    shader = std::shared_ptr<ID3D11ComputeShader>(p_shader, [](ID3D11ComputeShader * p) {p->Release();} );
 
     return TNN_OK;
 }

@@ -12,21 +12,34 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-ByteAddressBuffer Buffer0 : register(t0);
-ByteAddressBuffer Buffer1 : register(t1);
-RWByteAddressBuffer BufferOut : register(u0);
+ByteAddressBuffer in_buf: register(t0);
+RWByteAddressBuffer out_buf: register(u0);
 
-[numthreads(1, 1, 1)]
-void CSMain( uint3 DTid : SV_DispatchThreadID )
+cbuffer CB : register( b0 )
 {
+    unsigned int c_n;
+    unsigned int c_c;
+    unsigned int c_h;
+    unsigned int c_w;
+};
 
-    int i0 = asint( Buffer0.Load( DTid.x*8 ) );
-    float f0 = asfloat( Buffer0.Load( DTid.x*8+4 ) );
-    int i1 = asint( Buffer1.Load( DTid.x*8 ) );
-    float f1 = asfloat( Buffer1.Load( DTid.x*8+4 ) );
+#define THREADS_PER_BLOCK 128
+#define ELE_PER_THREAD 4
+
+[numthreads(THREADS_PER_BLOCK, 1, 1)]
+void CSMain( uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    uint buf_len;
+    buf_len = c_n * c_c * c_h * c_w;
     
-    BufferOut.Store( DTid.x*8, asuint(i0 + i1) );
-    BufferOut.Store( DTid.x*8+4, asuint(f0 + f1) );
+
+    [unroll(ELE_PER_THREAD)] for(uint i=0;i<ELE_PER_THREAD;i++) {
+        uint idx = groupIndex.x + i * THREADS_PER_BLOCK +  ELE_PER_THREAD  * THREADS_PER_BLOCK * groupID.x;
+        if (idx < buf_len) {
+            float f0 = asfloat( in_buf.Load(idx * 4)) + 1.1f;
+            out_buf.Store(idx * 4, asuint(f0));
+        }
+    }
     
 }
 

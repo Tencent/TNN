@@ -24,6 +24,7 @@
 
 #include "tnn/core/common.h"
 #include "tnn/core/blob.h"
+#include "tnn/core/macro.h"
 
 namespace TNN_NS {
 
@@ -80,7 +81,12 @@ public:
     // @brief Create UAV
     std::shared_ptr<ID3D11UnorderedAccessView> GetUAV();
 
+    // @brief Create Reference DirectXMemory to a TNN Blob
     static std::shared_ptr<DirectXMemory> CreateRefMemoryFromBlob(Blob *);
+
+    // @brief Create Reference DirectXMemory to a TNN Blob
+    static std::shared_ptr<DirectXMemory> CreateBufferMemoryFromHost(void * ptr, 
+                            DimsVector dims, DataType data_type, DataFormat data_format = DATA_FORMAT_NCHW);
 
 private:
     // remove all assignment operator

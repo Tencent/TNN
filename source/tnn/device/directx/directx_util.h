@@ -62,10 +62,48 @@ DirectXMemoryType GetMemoryType(BlobDesc desc);
 // Tell the memory type from a blob memory size info, which is used by the AbstactDevice::Allocate function
 DirectXMemoryType GetMemoryType(BlobMemorySizeInfo size_info);
 
-Status DispatchShader(std::shared_ptr<ID3D11ComputeShader> cs, 
-                      std::vector<std::shared_ptr<ID3D11ShaderResourceView>> srvs,  
-                      std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavx,  
-                      std::vector<unsigned int> grid);
+Status DispatchShader(const std::shared_ptr<ID3D11ComputeShader> cs, 
+                      const std::vector<std::shared_ptr<ID3D11ShaderResourceView>> srvs,  
+                      const std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavx,  
+                      const std::vector<ID3D11Buffer*> const_bufs,  
+                      const std::vector<int> grid);
+
+Status GetShaderByName(const std::string, std::shared_ptr<ID3D11ComputeShader> &shader );
+
+template<typename T>
+Status CreateConstBuffer(const T &host_value, 
+                        std::shared_ptr<ID3D11Device> device, 
+                        std::shared_ptr<ID3D11Buffer> &buf) {
+
+    D3D11_SUBRESOURCE_DATA init_data;
+    init_data.pSysMem = &host_value;
+    init_data.SysMemPitch = 0;
+    init_data.SysMemSlicePitch = 0;
+
+    D3D11_BUFFER_DESC constant_buffer_desc = {};
+    constant_buffer_desc.ByteWidth = ROUND_UP(sizeof(T), 16);
+    constant_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+    constant_buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    constant_buffer_desc.CPUAccessFlags = 0;
+
+    ID3D11Buffer * p_d3d_const_buffer;
+    HRESULT hr = device->CreateBuffer( &constant_buffer_desc, &init_data, &p_d3d_const_buffer);
+    if (FAILED(hr)) {
+        LOGE("Create const buffer failed, err code:0x%X", hr);
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "Create const buffer failed");
+    }
+
+    /*
+    D3D11_MAPPED_SUBRESOURCE maped_res;
+    pd3dImmediateContext->Map(p_d3d_const_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &maped_res);
+    memcpy( maped_res.pData, &host_value, sizeof(T));
+    pd3dImmediateContext->Unmap( p_d3d_const_buffer, 0 );
+    */
+
+    buf = std::shared_ptr<ID3D11Buffer>(p_d3d_const_buffer, [](ID3D11Buffer* p) {p->Release();} );
+
+    return TNN_OK;
+}
 
 }
 }  // namespace TNN_NS
