@@ -62,9 +62,9 @@ DirectXMemoryType GetMemoryType(BlobDesc desc);
 // Tell the memory type from a blob memory size info, which is used by the AbstactDevice::Allocate function
 DirectXMemoryType GetMemoryType(BlobMemorySizeInfo size_info);
 
-Status DispatchShader(std::shared_ptr<ID3D11ComputeShader> cs, 
+Status DispatchShader(ID3D11ComputeShader* cs,
                       std::vector<std::shared_ptr<ID3D11ShaderResourceView>> srvs,  
-                      std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavx,  
+                      std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavs,
                       std::vector<unsigned int> grid);
 
 }

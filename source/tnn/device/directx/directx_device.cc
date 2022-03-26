@@ -257,39 +257,8 @@ Status DirectXDevice::CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobD
 
     context_->Flush();
 
-    D3D11_BUFFER_DESC desc;
-    ZeroMemory(&desc, sizeof(desc));
-
     ID3D11Buffer * dst_buffer = (ID3D11Buffer*) (dst->base);
-    dst_buffer->GetDesc(&desc);
-    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    desc.Usage = D3D11_USAGE_STAGING;
-    desc.BindFlags = 0;
-    desc.MiscFlags = 0;
-
-    ID3D11Buffer* debug_buffer;
-    HRESULT hr = device_->CreateBuffer(&desc, NULL, &debug_buffer);
-    if (FAILED(hr)) {
-        LOGE("DirectX create debug Buffer failed ret:0x%X", hr);
-        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX create debug Buffer failed.");
-    }
-
-    D3D11_MAPPED_SUBRESOURCE mapped_resource;
-    hr = context_->Map(debug_buffer, 0, D3D11_MAP_READ, 0, &mapped_resource);
-    if (FAILED(hr)) {
-        LOGE("DirectX map failed ret:0x%X", hr);
-        return Status(TNNERR_DX_MAP_ERR, "DirectX map failed.");
-    }
-
-    LOGI("memcpy 0x%X -> 0x%X\n", reinterpret_cast<char*>(src->base) + dst->bytes_offset, mapped_resource.pData);
-    memcpy(mapped_resource.pData, 
-           reinterpret_cast<char*>(src->base) + dst->bytes_offset, 
-           size_in_bytes);
-
-    context_->Unmap(debug_buffer, 0);
-
-    LOGI("CopyResource 0x%X -> 0x%X\n", debug_buffer, dst_buffer);
-    context_->CopyResource(dst_buffer, debug_buffer);
+    context_->UpdateSubresource(dst_buffer, 0, 0, src->base, 0, 0);
 
     return TNN_OK;
 }

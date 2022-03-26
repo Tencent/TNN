@@ -58,7 +58,7 @@ DirectXMemoryType GetMemoryType(BlobMemorySizeInfo size_info) {
     return TNN_DX_BUFFER;
 }
 
-Status DispatchShader(std::shared_ptr<ID3D11ComputeShader> cs, 
+Status DispatchShader(ID3D11ComputeShader* cs,
                       std::vector<std::shared_ptr<ID3D11ShaderResourceView>> srvs,  
                       std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavs,  
                       std::vector<unsigned int> grid) {
@@ -71,7 +71,7 @@ Status DispatchShader(std::shared_ptr<ID3D11ComputeShader> cs,
 
     auto context = tnn_device->GetID3DContext();
 
-    context->CSSetShader( cs.get(), nullptr, 0 );
+    context->CSSetShader( cs, nullptr, 0 );
     std::vector<ID3D11ShaderResourceView*> srv_ptrs; 
     std::vector<ID3D11UnorderedAccessView*> uav_ptrs; 
 
