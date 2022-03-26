@@ -146,6 +146,8 @@ enum StatusCode {
     TNNERR_DX_BUFFER_ALOCATE_ERR   = 0x40002,
     TNNERR_DX_TEXTURE_ALOCATE_ERR  = 0x40003,
     TNNERR_DX_MAP_ERR              = 0x40004,
+    TNNERR_DX_LAYER_ERR            = 0x40005,
+
 
 };
 

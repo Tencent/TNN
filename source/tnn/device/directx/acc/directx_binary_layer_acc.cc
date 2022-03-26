@@ -19,6 +19,8 @@
 #include "tnn/utils/dims_utils.h"
 // #include "tnn/device/opencl/imagebuffer_convertor.h"
 
+#include "tnn/device/directx/kernels/buffer_add.h"
+
 namespace TNN_NS {
 
 namespace directx {
@@ -102,6 +104,44 @@ Status DirectXBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 }
 
 DirectXBinaryLayerAcc::~DirectXBinaryLayerAcc() {}
+
+Status DirectXBinaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+
+    Status status = DirectXLayerAcc::Forward(inputs, outputs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    auto device = GetID3DDevice();
+    ID3D11Device* pDevice = device.get();
+
+    auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]);
+    auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]);
+
+    auto in_srv = in_memory->GetSRV();
+    auto out_uav = out_memory->GetUAV();
+    auto param_srv = binary_params_->GetSRV();
+
+    std::shared_ptr<ID3D11ComputeShader> ComputerShader;
+    ID3D11ComputeShader* pComputerShader = ComputerShader.get();
+
+    HRESULT hr;
+
+    if (op_name_== "Add" && kernel_name_ == "BinarySingle") {
+        hr = pDevice->CreateComputeShader(g_buffer_add, sizeof(g_buffer_add), NULL, &pComputerShader);
+    } else {
+        LOGE("DirectX binary layer can not support this binary layer or broadcast type.");
+        return Status(TNNERR_DX_LAYER_ERR, "DirectX binary layer failed.");
+    }
+
+    if (FAILED(hr))
+    {
+        LOGE("DirectX CreateComputeShader failed. erro code");
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX CreateComputeShader failed.");
+    }
+
+    Status  ret = DispatchShader(pComputerShader,{in_srv,param_srv},{out_uav},{16*16*3,1,1});
+
+    return ret;
+}
 
 Status DirectXBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Binary Acc Reshape\n");
@@ -283,56 +323,76 @@ Status DirectXBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<in
             buffer_size *= DimsFunctionUtils::GetDim(param_dims, i);
         }
     }
+
+    size_t type_size = 4;
+    DXGI_FORMAT format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+    DirectXMemoryType mem_type = param_buffer->GetMemoryType();
+
+    auto device = GetID3DDevice();
+    ID3D11Device* pDevice = device.get();
+
+    if (TNN_DX_TEXTURE == mem_type) {
+        D3D11_TEXTURE2D_DESC texture_desc;
+        ZeroMemory(&texture_desc, sizeof(texture_desc));
+        texture_desc.Width = (UINT)(param_dims[0]);
+        texture_desc.Height = (UINT)(param_dims[1]);
+        texture_desc.MipLevels = 1;
+        texture_desc.Format = format;
+        texture_desc.Usage = D3D11_USAGE_DEFAULT;
+        texture_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+        texture_desc.CPUAccessFlags = 0;
+        texture_desc.MiscFlags = 0;
+
+        D3D11_SUBRESOURCE_DATA srd = {};
+        srd.pSysMem = param_data_ptr;
+        srd.SysMemPitch = 0;
+        srd.SysMemSlicePitch = 0;
+
+        ID3D11Texture2D * texture;
+
+        LOGI("DirectX create texture of shape %u x %u\n", param_dims[0], param_dims[1] );
+        HRESULT hr = pDevice->CreateTexture2D(&texture_desc, &srd, &texture);
+        if (FAILED(hr)) {
+            param_buffer->SetData(nullptr, false);
+            LOGE("DirectX create texture failed. erro code %d", (long) hr);
+            return Status(TNNERR_DX_TEXTURE_ALOCATE_ERR, "DirectX texture allocation failed.");
+        }
+        param_buffer->SetData(texture, false);
+
+    } else if (TNN_DX_BUFFER == mem_type) {
+        // allocate Buffer
+        ID3D11Buffer * buffer;
+
+        D3D11_BUFFER_DESC buffer_desc = {};
+        buffer_desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+        buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+        buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        buffer_desc.ByteWidth = type_size * param_dims[0];
+
+        D3D11_SUBRESOURCE_DATA srd = {};
+        srd.pSysMem = param_data_ptr;
+        srd.SysMemPitch = 0;
+        srd.SysMemSlicePitch = 0;
+
+        LOGI("DirectX create buffer of len %u \n", type_size * param_dims[0]);
+        HRESULT hr = pDevice->CreateBuffer( &buffer_desc, &srd, &buffer);
+        if (FAILED(hr)) {
+            param_buffer->SetData(nullptr, false);
+            LOGE("DirectX createbuffer failed. erro code %d", (long) hr);
+            return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX buffer allocation failed.");
+        }
+        param_buffer->SetData(buffer, true);
+
+    } else {
+        char error_str[128];
+        sprintf(error_str, "DirecX not support Allocate (dims=%d)", (int)param_dims.size());
+        return Status(TNNERR_PARAM_ERR, error_str);
+    }
+
+    binary_params_= param_buffer;
+
     return TNN_OK;
-    /*
-    cl_int ret = CL_SUCCESS;
-    cl::Buffer param_clbuffer(*opencl_runtime->Context(), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                              buffer_size * sizeof(float), nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
-    }
-    param_buffer->SetData(&param_clbuffer);
-    auto param_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
-        param_clbuffer, true, CL_MAP_WRITE, 0, buffer_size * sizeof(float), nullptr, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
-    }
-    memset(param_clbuffer_ptr, 0, buffer_size * sizeof(float));
-    memcpy(param_clbuffer_ptr, param_data_ptr, param_size * sizeof(float));
-    ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(param_clbuffer, param_clbuffer_ptr);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
-    }
-
-    // create binary_param_
-    int climage_w = UP_DIV(DimsFunctionUtils::GetDim(param_dims, 1), 4) * DimsFunctionUtils::GetDim(param_dims, 3);
-    int climage_h = DimsFunctionUtils::GetDim(param_dims, 0) * DimsFunctionUtils::GetDim(param_dims, 2);
-    if (param_dims.size() == 5) {
-        climage_w = UP_DIV(DimsFunctionUtils::GetDim(param_dims, 1), 4) * DimsFunctionUtils::GetDim(param_dims, 4);
-        climage_h = DimsFunctionUtils::GetDim(param_dims, 0) * DimsFunctionUtils::GetDim(param_dims, 2) *
-                    DimsFunctionUtils::GetDim(param_dims, 3);
-    }
-    cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
-        data_type = CL_HALF_FLOAT;
-    cl::Image2D *image = new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
-                                         cl::ImageFormat(CL_RGBA, data_type), climage_w, climage_h, 0, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        if (nullptr != image)
-            delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
-    }
-    binary_params_.reset(new DirectXMemory(TNN_CL_IMAGE));
-    binary_params_->SetData(image, true);
-
-    // convert nchw buffer to Image
-    ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
-    return convertor.ConvertBufferToImage(param_buffer.get(), NCHW_BUFFER, param_dims, binary_params_.get(), true);
-    */
 }
 
 Status DirectXBinaryLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs,
