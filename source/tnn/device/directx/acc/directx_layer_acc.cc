@@ -24,6 +24,8 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/blob_transfer_utils.h"
 
+#include "tnn/device/directx/kernels/buffer_add.h"
+
 namespace TNN_NS {
 
 namespace directx {
@@ -78,6 +80,10 @@ Status DirectXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 Status DirectXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
     auto context = GetID3DContext();
+    ID3D11DeviceContext* pContext = context.get();
+
+    auto device = GetID3DDevice();
+    ID3D11Device* pDevice = device.get();
 
     auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]); 
     auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]); 
@@ -87,14 +93,23 @@ Status DirectXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
 
     auto in_buffer = (ID3D11Buffer *) in_memory->GetData();
     auto out_buffer = (ID3D11Buffer *) out_memory->GetData();
+//
+//    LOGI("layer acc Copy Resource 0x%X -> 0x%X\n", in_buffer, out_buffer);
+//
+//    // Dummy impl, copy only.
+//    // TODO, add kernel and launch by DispatchShader funtion in direct_util.h
+//    context->CopyResource(out_buffer, in_buffer);
+    std::shared_ptr<ID3D11ComputeShader> ComputerShader;
+    ID3D11ComputeShader* pComputerShader = ComputerShader.get();
+    if (FAILED(pDevice->CreateComputeShader(g_buffer_add, sizeof(g_buffer_add), NULL, &pComputerShader)))
+    {
+        LOGE("DirectX CreateComputeShader failed. erro code");
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX CreateComputeShader failed.");
+    }
 
-    LOGI("layer acc Copy Resource 0x%X -> 0x%X\n", in_buffer, out_buffer);
+    Status  ret = DispatchShader(pComputerShader,{in_srv},{out_uav},{16*16*3,1,1});
 
-    // Dummy impl, copy only.
-    // TODO, add kernel and launch by DispatchShader funtion in direct_util.h
-    context->CopyResource(out_buffer, in_buffer);
-
-    return TNN_OK;
+    return ret;
 }
 std::vector<DataFormat> DirectXLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
