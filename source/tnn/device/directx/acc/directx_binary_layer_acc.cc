@@ -335,8 +335,8 @@ Status DirectXBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<in
     if (TNN_DX_TEXTURE == mem_type) {
         D3D11_TEXTURE2D_DESC texture_desc;
         ZeroMemory(&texture_desc, sizeof(texture_desc));
-        texture_desc.Width = (UINT)(param_dims[0]);
-        texture_desc.Height = (UINT)(param_dims[1]);
+        texture_desc.Width = (UINT)(param_dims[3]);
+        texture_desc.Height = (UINT)(param_dims[2]);
         texture_desc.MipLevels = 1;
         texture_desc.Format = format;
         texture_desc.Usage = D3D11_USAGE_DEFAULT;
@@ -368,14 +368,14 @@ Status DirectXBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<in
         buffer_desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
         buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
         buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-        buffer_desc.ByteWidth = type_size * param_dims[0];
+        buffer_desc.ByteWidth = type_size * param_size;
 
         D3D11_SUBRESOURCE_DATA srd = {};
         srd.pSysMem = param_data_ptr;
         srd.SysMemPitch = 0;
         srd.SysMemSlicePitch = 0;
 
-        LOGI("DirectX create buffer of len %u \n", type_size * param_dims[0]);
+        LOGI("DirectX create buffer of len %u \n", type_size * param_size);
         HRESULT hr = pDevice->CreateBuffer( &buffer_desc, &srd, &buffer);
         if (FAILED(hr)) {
             param_buffer->SetData(nullptr, false);
