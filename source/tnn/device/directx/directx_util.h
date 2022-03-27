@@ -56,6 +56,24 @@ private:
 };
 #endif
 
+struct ParamCB
+    {
+    float scale0;
+    float scale1;
+    float scale2;
+    float scale3;
+
+    float bias0;
+    float bias1;
+    float bias2;
+    float bias3;
+
+    int n;
+    int c;
+    int h;
+    int w;
+    };
+
 // Tell the memory type from a blob Description sruct
 DirectXMemoryType GetMemoryType(BlobDesc desc);
 
@@ -63,15 +81,17 @@ DirectXMemoryType GetMemoryType(BlobDesc desc);
 DirectXMemoryType GetMemoryType(BlobMemorySizeInfo size_info);
 
 Status DispatchShader(ID3D11ComputeShader* cs,
-                      std::vector<std::shared_ptr<ID3D11ShaderResourceView>> srvs,  
-                      std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavs,
-                      std::vector<unsigned int> grid);
-
-Status DispatchShader(ID3D11ComputeShader* cs,
                       std::vector<std::shared_ptr<ID3D11ShaderResourceView>> srvs,
                       std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavs,
-                      ID3D11Buffer* pInputCBBuffer,
+                      std::vector<ID3D11Buffer*> InputCBBuffer_ptrs,
                       std::vector<unsigned int> grid);
+
+Status AllocateBuffer(std::shared_ptr<DirectXMemory> buffer_out,
+                      BlobMemorySizeInfo& desc,
+                      const void * inital_data);
+
+Status AllocateConstantBuffer(ID3D11Buffer* &pInputCBBuffer,
+                              ParamCB &paramCB_data);
 
 }
 }  // namespace TNN_NS

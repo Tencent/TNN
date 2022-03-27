@@ -140,7 +140,7 @@ Status DirectXBinaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
 
     unsigned int grid_x = DimsFunctionUtils::GetDim(output_dims_, 0) * DimsFunctionUtils::GetDim(output_dims_, 1) *
                           DimsFunctionUtils::GetDim(output_dims_, 2) * DimsFunctionUtils::GetDim(output_dims_, 3);
-    Status  ret = DispatchShader(pComputerShader,{in_srv,param_srv},{out_uav},{grid_x,1,1});
+    Status  ret = DispatchShader(pComputerShader,{in_srv,param_srv},{out_uav}, {nullptr},{grid_x,1,1});
 
     return ret;
 }
@@ -313,84 +313,13 @@ std::string DirectXBinaryLayerAcc::GetKernelName(const MultidirBroadcastLayerPar
 }
 
 Status DirectXBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int> param_dims) {
-    DirectXRuntime *directx_runtime = DirectXRuntime::GetInstance();
 
-    // copy param data into DirectX Buffer
+    BlobMemorySizeInfo desc;
+    desc.data_type = DATA_TYPE_FLOAT;
+    desc.dims = {DimsVectorUtils::Count(param_dims)};
     shared_ptr<DirectXMemory> param_buffer(new DirectXMemory(TNN_DX_BUFFER));
-    int param_size  = DimsVectorUtils::Count(param_dims);
-    int buffer_size = DimsFunctionUtils::GetDim(param_dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(param_dims, 1), 4) *
-                      DimsFunctionUtils::GetDim(param_dims, 2) * DimsFunctionUtils::GetDim(param_dims, 3);
-    if (param_dims.size() > 4) {
-        for (int i = 4; i < param_dims.size(); i++) {
-            buffer_size *= DimsFunctionUtils::GetDim(param_dims, i);
-        }
-    }
-
-    size_t type_size = 4;
-    DXGI_FORMAT format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-
-    DirectXMemoryType mem_type = param_buffer->GetMemoryType();
-
-    auto device = GetID3DDevice();
-    ID3D11Device* pDevice = device.get();
-
-    if (TNN_DX_TEXTURE == mem_type) {
-        D3D11_TEXTURE2D_DESC texture_desc;
-        ZeroMemory(&texture_desc, sizeof(texture_desc));
-        texture_desc.Width = (UINT)(param_dims[3]);
-        texture_desc.Height = (UINT)(param_dims[2]);
-        texture_desc.MipLevels = 1;
-        texture_desc.Format = format;
-        texture_desc.Usage = D3D11_USAGE_DEFAULT;
-        texture_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-        texture_desc.CPUAccessFlags = 0;
-        texture_desc.MiscFlags = 0;
-
-        D3D11_SUBRESOURCE_DATA srd = {};
-        srd.pSysMem = param_data_ptr;
-        srd.SysMemPitch = 0;
-        srd.SysMemSlicePitch = 0;
-
-        ID3D11Texture2D * texture;
-
-        LOGI("DirectX create texture of shape %u x %u\n", param_dims[0], param_dims[1] );
-        HRESULT hr = pDevice->CreateTexture2D(&texture_desc, &srd, &texture);
-        if (FAILED(hr)) {
-            param_buffer->SetData(nullptr, false);
-            LOGE("DirectX create texture failed. erro code %d", (long) hr);
-            return Status(TNNERR_DX_TEXTURE_ALOCATE_ERR, "DirectX texture allocation failed.");
-        }
-        param_buffer->SetData(texture, false);
-
-    } else if (TNN_DX_BUFFER == mem_type) {
-        // allocate Buffer
-        ID3D11Buffer * buffer;
-
-        D3D11_BUFFER_DESC buffer_desc = {};
-        buffer_desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
-        buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-        buffer_desc.Usage = D3D11_USAGE_DEFAULT;
-        buffer_desc.ByteWidth = type_size * param_size;
-
-        D3D11_SUBRESOURCE_DATA srd = {};
-        srd.pSysMem = param_data_ptr;
-        srd.SysMemPitch = 0;
-        srd.SysMemSlicePitch = 0;
-
-        LOGI("DirectX create buffer of len %u \n", type_size * param_size);
-        HRESULT hr = pDevice->CreateBuffer( &buffer_desc, &srd, &buffer);
-        if (FAILED(hr)) {
-            param_buffer->SetData(nullptr, false);
-            LOGE("DirectX createbuffer failed. erro code %d", (long) hr);
-            return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX buffer allocation failed.");
-        }
-        param_buffer->SetData(buffer, false);
-
-    } else {
-        char error_str[128];
-        sprintf(error_str, "DirecX not support Allocate (dims=%d)", (int)param_dims.size());
-        return Status(TNNERR_PARAM_ERR, error_str);
-    }
+    Status status = AllocateBuffer(param_buffer, desc, param_data_ptr);
+    RETURN_ON_NEQ(status, TNN_OK);
 
     binary_params_= param_buffer;
 
