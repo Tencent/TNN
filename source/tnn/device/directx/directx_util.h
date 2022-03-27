@@ -67,6 +67,12 @@ Status DispatchShader(ID3D11ComputeShader* cs,
                       std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavs,
                       std::vector<unsigned int> grid);
 
+Status DispatchShader(ID3D11ComputeShader* cs,
+                      std::vector<std::shared_ptr<ID3D11ShaderResourceView>> srvs,
+                      std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavs,
+                      ID3D11Buffer* pInputCBBuffer,
+                      std::vector<unsigned int> grid);
+
 }
 }  // namespace TNN_NS
 

@@ -101,6 +101,50 @@ Status DispatchShader(ID3D11ComputeShader* cs,
     return TNN_OK;
 }
 
+Status DispatchShader(ID3D11ComputeShader* cs,
+                      std::vector<std::shared_ptr<ID3D11ShaderResourceView>> srvs,
+                      std::vector<std::shared_ptr<ID3D11UnorderedAccessView>> uavs,
+                      ID3D11Buffer* pInputCBBuffer,
+                      std::vector<unsigned int> grid) {
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_DX_UNSUPPORTED_DEVICE, "got null directx device");
+    }
+
+    auto context = tnn_device->GetID3DContext();
+
+    context->CSSetShader( cs, nullptr, 0 );
+    std::vector<ID3D11ShaderResourceView*> srv_ptrs;
+    std::vector<ID3D11UnorderedAccessView*> uav_ptrs;
+
+    for(auto p : srvs) {srv_ptrs.push_back(p.get());};
+    for(auto p : uavs) {uav_ptrs.push_back(p.get());};
+
+    context->CSSetShaderResources( 0, srv_ptrs.size(), srv_ptrs.data());
+    context->CSSetUnorderedAccessViews( 0, uav_ptrs.size(), uav_ptrs.data(), nullptr );
+    context->CSSetConstantBuffers(0, 1, &pInputCBBuffer);
+
+    UINT X = grid.size() > 0 ? grid[0] : 1;
+    UINT Y = grid.size() > 1 ? grid[1] : 1;
+    UINT Z = grid.size() > 2 ? grid[2] : 1;
+    context->Dispatch( X, Y, Z );
+
+    context->CSSetShader( nullptr, nullptr, 0 );
+
+    ID3D11UnorderedAccessView* ppUAViewnullptr[1] = { nullptr };
+    context->CSSetUnorderedAccessViews( 0, 1, ppUAViewnullptr, nullptr );
+
+    ID3D11ShaderResourceView* ppSRVnullptr[2] = { nullptr, nullptr };
+    context->CSSetShaderResources( 0, 2, ppSRVnullptr );
+
+    ID3D11Buffer* ppCBnullptr[1] = { nullptr };
+    context->CSSetConstantBuffers( 0, 1, ppCBnullptr );
+
+    return TNN_OK;
+}
+
 }
 }  // namespace TNN_NS
 
