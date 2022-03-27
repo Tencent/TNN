@@ -53,11 +53,11 @@ Status DirectXLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     };
 
     if (context->GetPrecision() == PRECISION_LOW) {
-        LOGD("OpenCL Blob Pricision is Half!\n");
+        LOGD("DirectX Blob Pricision is Half!\n");
         set_data_type(inputs, DATA_TYPE_HALF);
         set_data_type(outputs, DATA_TYPE_HALF);
     } else {
-        LOGD("OpenCL Blob Pricision is Float!\n");
+        LOGD("DirectX Blob Pricision is Float!\n");
         set_data_type(inputs, DATA_TYPE_FLOAT);
         set_data_type(outputs, DATA_TYPE_FLOAT);
     }

@@ -138,7 +138,9 @@ Status DirectXBinaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
         return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX CreateComputeShader failed.");
     }
 
-    Status  ret = DispatchShader(pComputerShader,{in_srv,param_srv},{out_uav},{16*16*3,1,1});
+    unsigned int grid_x = DimsFunctionUtils::GetDim(output_dims_, 0) * DimsFunctionUtils::GetDim(output_dims_, 1) *
+                          DimsFunctionUtils::GetDim(output_dims_, 2) * DimsFunctionUtils::GetDim(output_dims_, 3);
+    Status  ret = DispatchShader(pComputerShader,{in_srv,param_srv},{out_uav},{grid_x,1,1});
 
     return ret;
 }
@@ -382,7 +384,7 @@ Status DirectXBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<in
             LOGE("DirectX createbuffer failed. erro code %d", (long) hr);
             return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX buffer allocation failed.");
         }
-        param_buffer->SetData(buffer, true);
+        param_buffer->SetData(buffer, false);
 
     } else {
         char error_str[128];
