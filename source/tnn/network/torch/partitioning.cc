@@ -378,7 +378,7 @@ std::vector<SegmentedBlock> RemoveUnnessaryBlocks(std::vector<SegmentedBlock>& s
     };
 
     std::set<std::string> compute_node_set = {"aten::conv2d", "aten::_convolution", "aten::matmul", "aten::linear",
-                                              "aten::addmm"};
+                                              "aten::addmm", "aten::conv3d"};
     auto is_compute_block                  = [&](SegmentedBlock& seg_block) {
         for (auto& node : seg_block.raw_nodes()) {
             if (compute_node_set.count(node->kind().toQualString())) {
