@@ -79,8 +79,8 @@ Status DispatchShader(const std::shared_ptr<ID3D11ComputeShader> cs,
     }
 
     context->CSSetShader( cs.get(), nullptr, 0 );
-    std::vector<ID3D11ShaderResourceView*> srv_ptrs; 
-    std::vector<ID3D11UnorderedAccessView*> uav_ptrs; 
+    std::vector<ID3D11ShaderResourceView*> srv_ptrs;
+    std::vector<ID3D11UnorderedAccessView*> uav_ptrs;
 
     for(auto p : srvs) {srv_ptrs.push_back(p.get());};
     for(auto p : uavs) {uav_ptrs.push_back(p.get());};
@@ -153,6 +153,138 @@ Status GetShaderByName(const std::string kernel_name, std::shared_ptr<ID3D11Comp
     return TNN_OK;
 }
 
+
+Status AllocateBuffer(std::shared_ptr<DirectXMemory> buffer_out,
+                      BlobMemorySizeInfo& desc,
+                      const void * inital_data){
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_DX_UNSUPPORTED_DEVICE, "got null directx device");
+    }
+
+    auto device = tnn_device->GetID3DDevice();
+    ID3D11Device* pDevice = device.get();
+
+    if (DATA_TYPE_HALF != desc.data_type && DATA_TYPE_FLOAT != desc.data_type && DATA_TYPE_INT32 != desc.data_type && DATA_TYPE_INT8 != desc.data_type) {
+        LOGE("directx allocator not support this data type: %d\n", desc.data_type);
+        return Status(TNNERR_PARAM_ERR, "directx not support this data type");
+    }
+
+    size_t type_size = sizeof(float);
+    DXGI_FORMAT format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+    if (DATA_TYPE_HALF == desc.data_type) {
+        type_size = 2;
+        format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    }
+    if (DATA_TYPE_INT32 == desc.data_type) {
+        type_size = sizeof(int);
+        format = DXGI_FORMAT_R8G8B8A8_UINT;
+    }
+    if (DATA_TYPE_INT8 == desc.data_type) {
+        type_size = sizeof(uint8_t);
+        format = DXGI_FORMAT_R8G8B8A8_UINT;
+    }
+
+    DirectXMemoryType mem_type = GetMemoryType(desc);
+
+    if (TNN_DX_TEXTURE == mem_type) {
+        D3D11_TEXTURE2D_DESC texture_desc;
+        ZeroMemory(&texture_desc, sizeof(texture_desc));
+        texture_desc.Width = (UINT)(desc.dims[0]);
+        texture_desc.Height = (UINT)(desc.dims[1]);
+        texture_desc.MipLevels = 1;
+        texture_desc.Format = format;
+        texture_desc.Usage = D3D11_USAGE_DEFAULT;
+        texture_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+        texture_desc.CPUAccessFlags = 0;
+        texture_desc.MiscFlags = 0;
+
+        D3D11_SUBRESOURCE_DATA srd = {};
+        srd.pSysMem = inital_data;
+        srd.SysMemPitch = 0;
+        srd.SysMemSlicePitch = 0;
+
+        ID3D11Texture2D * texture;
+
+        LOGI("DirectX create texture of shape %u x %u\n", desc.dims[0], desc.dims[1] );
+        HRESULT hr = pDevice->CreateTexture2D(&texture_desc, &srd, &texture);
+        if (FAILED(hr)) {
+            buffer_out->SetData(nullptr, false);
+            LOGE("DirectX create texture failed. erro code %d", (long) hr);
+            return Status(TNNERR_DX_TEXTURE_ALOCATE_ERR, "DirectX texture allocation failed.");
+        }
+        buffer_out->SetData(texture, false);
+
+    } else if (TNN_DX_BUFFER == mem_type) {
+        // allocate Buffer
+        ID3D11Buffer * buffer;
+
+        D3D11_BUFFER_DESC buffer_desc = {};
+        buffer_desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+        buffer_desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+        buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        buffer_desc.ByteWidth = type_size * desc.dims[0];
+
+        D3D11_SUBRESOURCE_DATA srd = {};
+        srd.pSysMem = inital_data;
+        srd.SysMemPitch = 0;
+        srd.SysMemSlicePitch = 0;
+
+        LOGI("DirectX create buffer of len %u \n", type_size * desc.dims[0]);
+        HRESULT hr = pDevice->CreateBuffer( &buffer_desc, &srd, &buffer);
+        if (FAILED(hr)) {
+            buffer_out->SetData(nullptr, false);
+            LOGE("DirectX createbuffer failed. erro code %d", (long) hr);
+            return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX buffer allocation failed.");
+        }
+        buffer_out->SetData(buffer, false);
+
+    } else {
+        char error_str[128];
+        sprintf(error_str, "DirecX not support Allocate (dims=%d)", (int)desc.dims.size());
+        return Status(TNNERR_PARAM_ERR, error_str);
+    }
+
+    return TNN_OK;
 }
+
+Status AllocateConstantBuffer(ID3D11Buffer* &pInputCBBuffer,
+                              ParamCB &paramCB_data){
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_DX_UNSUPPORTED_DEVICE, "got null directx device");
+    }
+
+    auto device = tnn_device->GetID3DDevice();
+    ID3D11Device* pDevice = device.get();
+
+    D3D11_BUFFER_DESC desc = {};
+    desc.ByteWidth = sizeof(ParamCB);
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    desc.CPUAccessFlags = 0u;
+    desc.StructureByteStride = 0u;
+    desc.MiscFlags = 0u;
+
+    D3D11_SUBRESOURCE_DATA srd = {};
+    srd.pSysMem = &paramCB_data;
+    srd.SysMemPitch = 0;
+    srd.SysMemSlicePitch = 0;
+
+    HRESULT hr = pDevice->CreateBuffer(&desc, &srd, &pInputCBBuffer);
+    if (FAILED(hr)) {
+        LOGE("DirectX create constant buffer failed. erro code %d", (long) hr);
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX constant buffer allocation failed.");
+    }
+
+    return TNN_OK;
+}
+
+}  // namespace directx
 }  // namespace TNN_NS
 

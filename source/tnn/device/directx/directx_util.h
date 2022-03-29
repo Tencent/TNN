@@ -56,6 +56,24 @@ private:
 };
 #endif
 
+struct ParamCB
+    {
+    float scale0;
+    float scale1;
+    float scale2;
+    float scale3;
+
+    float bias0;
+    float bias1;
+    float bias2;
+    float bias3;
+
+    int n;
+    int c;
+    int h;
+    int w;
+    };
+
 // Tell the memory type from a blob Description sruct
 DirectXMemoryType GetMemoryType(BlobDesc desc);
 
@@ -104,6 +122,13 @@ Status CreateConstBuffer(const T &host_value,
 
     return TNN_OK;
 }
+
+Status AllocateBuffer(std::shared_ptr<DirectXMemory> buffer_out,
+                      BlobMemorySizeInfo& desc,
+                      const void * inital_data);
+
+Status AllocateConstantBuffer(ID3D11Buffer* &pInputCBBuffer,
+                              ParamCB &paramCB_data);
 
 }
 }  // namespace TNN_NS

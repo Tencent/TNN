@@ -20,6 +20,7 @@
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/string_utils_inner.h"
 #include "tnn/device/directx/directx_device.h"
+#include "tnn/device/directx/directx_util.h"
 
 namespace TNN_NS {
 namespace directx {
@@ -118,6 +119,105 @@ static Status NCHWToBlob(Mat& image,
     return TNN_OK;
 }
 
+static Status N8UC3ToBlob(Mat& image,
+                         Blob * blob,
+                         const MatConvertParam& param,
+                         void * command_queue) {
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_CONTEXT_ERR, "got null directx device");
+    }
+
+    auto device = tnn_device->GetID3DDevice();
+    if (!device) {
+        LOGE("Got null ID3Ddevice");
+        return  Status(TNNERR_CONTEXT_ERR, "got null directx device");
+    }
+    auto pDevice = device.get();
+
+    auto blob_memory = DirectXMemory::CreateRefMemoryFromBlob(blob);
+    shared_ptr<DirectXMemory> mat_buffer(new DirectXMemory(TNN_DX_BUFFER));
+
+    DimsVector dims = image.GetDims();
+    BlobMemorySizeInfo desc;
+    desc.data_type = DATA_TYPE_INT8;
+    desc.dims = {DimsVectorUtils::Count(dims)};
+    Status status = AllocateBuffer(mat_buffer, desc,  image.GetData());
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    auto mat_srv = mat_buffer->GetSRV();
+    auto blob_uav = blob_memory->GetUAV();
+
+    ParamCB param_cb_host = {param.scale[0], param.scale[1], param.scale[2], param.scale[3],
+                            param.bias[0], param.bias[1],param.bias[2],param.bias[3],
+                            dims[0], dims[1], dims[2], dims[3]};
+
+    std::shared_ptr<ID3D11Buffer> param_cb;
+    status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
+
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    std::shared_ptr<ID3D11ComputeShader> cs;
+    status = GetShaderByName("N8UC3ToNCHW", cs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    int hw = dims[2]*dims[3];
+    Status  ret = DispatchShader(cs, {mat_srv}, {blob_uav}, {param_cb.get()}, {hw/4,1,1});
+
+    return ret;
+}
+
+static Status N8UC4ToBlob(Mat& image,
+                          Blob * blob,
+                          const MatConvertParam& param,
+                          void * command_queue) {
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_CONTEXT_ERR, "got null directx device");
+    }
+
+    auto device = tnn_device->GetID3DDevice();
+    if (!device) {
+        LOGE("Got null ID3Ddevice");
+        return  Status(TNNERR_CONTEXT_ERR, "got null directx device");
+    }
+    auto pDevice = device.get();
+
+    auto blob_memory = DirectXMemory::CreateRefMemoryFromBlob(blob);
+    shared_ptr<DirectXMemory> mat_buffer(new DirectXMemory(TNN_DX_BUFFER));
+
+    DimsVector dims = image.GetDims();
+    BlobMemorySizeInfo desc;
+    desc.data_type = DATA_TYPE_INT8;
+    desc.dims = {DimsVectorUtils::Count(dims)};
+    Status status = AllocateBuffer(mat_buffer, desc,  image.GetData());
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    auto mat_srv = mat_buffer->GetSRV();
+    auto blob_uav = blob_memory->GetUAV();
+
+    ParamCB param_cb_host = {param.scale[0], param.scale[1], param.scale[2], param.scale[3],
+                            param.bias[0], param.bias[1],param.bias[2],param.bias[3],
+                            dims[0], dims[1], dims[2], dims[3]};
+
+    std::shared_ptr<ID3D11Buffer> param_cb;
+    status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    std::shared_ptr<ID3D11ComputeShader> cs;
+    status = GetShaderByName("N8UC4ToNCHW", cs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    int hw = dims[2]*dims[3];
+    Status  ret = DispatchShader(cs,{mat_srv},{blob_uav}, {param_cb.get()},{hw,1,1});
+
+    return ret;
+}
+
 static Status BlobToNCHW(Mat& image,
                        Blob * blob,
                        const MatConvertParam& param,
@@ -142,6 +242,9 @@ static Status BlobToNCHW(Mat& image,
 }
 
 REGISTER_DIRECTX_BLOB_CONVERT_FUNC(NCHW_FLOAT, DATA_TYPE_FLOAT,  CVT_DIR_MAT2BLOB, NCHWToBlob)
+REGISTER_DIRECTX_BLOB_CONVERT_FUNC(N8UC3, DATA_TYPE_FLOAT,  CVT_DIR_MAT2BLOB, N8UC3ToBlob)
+REGISTER_DIRECTX_BLOB_CONVERT_FUNC(N8UC4, DATA_TYPE_FLOAT,  CVT_DIR_MAT2BLOB, N8UC4ToBlob)
+
 REGISTER_DIRECTX_BLOB_CONVERT_FUNC(NCHW_FLOAT, DATA_TYPE_FLOAT,  CVT_DIR_BLOB2MAT, BlobToNCHW)
 
 }

@@ -148,6 +148,8 @@ enum StatusCode {
     TNNERR_DX_MAP_ERR              = 0x40004,
     TNNERR_DX_SHADER_CREATE_ERR    = 0x40005,
     TNNERR_DX_ACC_INIT_ERR         = 0x40006,
+    TNNERR_DX_LAYER_ERR            = 0x40007,
+
 
 };
 

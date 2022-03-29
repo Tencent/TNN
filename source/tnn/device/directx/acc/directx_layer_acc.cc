@@ -25,6 +25,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/blob_transfer_utils.h"
 
+
 namespace TNN_NS {
 
 namespace directx {
@@ -38,6 +39,7 @@ Status DirectXLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     resource_    = resource;
     layer_name_  = param->name;
     dx_context_ = dynamic_cast<DirectXContext *>(context);
+
     if (dx_context_ == nullptr) {
         return Status(TNNERR_NULL_PARAM, "DirectX Context Convert failed");
     }
@@ -52,11 +54,11 @@ Status DirectXLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     };
 
     if (context->GetPrecision() == PRECISION_LOW) {
-        LOGD("OpenCL Blob Pricision is Half!\n");
+        LOGD("DirectX Blob Pricision is Half!\n");
         set_data_type(inputs, DATA_TYPE_HALF);
         set_data_type(outputs, DATA_TYPE_HALF);
     } else {
-        LOGD("OpenCL Blob Pricision is Float!\n");
+        LOGD("DirectX Blob Pricision is Float!\n");
         set_data_type(inputs, DATA_TYPE_FLOAT);
         set_data_type(outputs, DATA_TYPE_FLOAT);
     }
@@ -78,47 +80,9 @@ Status DirectXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 
 Status DirectXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
-    auto d3d_context = GetID3DContext();
-
-    auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]); 
-    auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]); 
-
-    auto in_srv = in_memory->GetSRV();
-    auto out_uav = out_memory->GetUAV();
-
-    auto in_buffer = (ID3D11Buffer *) in_memory->GetData();
-    auto out_buffer = (ID3D11Buffer *) out_memory->GetData();
-    std::shared_ptr<ID3D11ComputeShader> cs;
-    Status ret = GetShaderByName("buffer_add", cs);
-    RETURN_ON_NEQ(ret, TNN_OK);
-
-    typedef struct launch_param {
-        UINT n;
-        UINT c;
-        UINT h;
-        UINT w;
-    } launch_param_t;
-
-    launch_param_t args;
-    args.n = inputs[0]->GetBlobDesc().dims[0];
-    args.c = inputs[0]->GetBlobDesc().dims[1];
-    args.h = inputs[0]->GetBlobDesc().dims[2];
-    args.w = inputs[0]->GetBlobDesc().dims[3];
-
-    std::shared_ptr<ID3D11Buffer> const_buffer;
-    ret = CreateConstBuffer<launch_param_t>(args, GetID3DDevice(), const_buffer);
-    RETURN_ON_NEQ(ret, TNN_OK);
-
-    const int THREADS_PER_BLOCK = 128;
-    const int ELE_PER_THREAD    = 4;
-
-    const int ele_count = DimsVectorUtils::Count(inputs[0]->GetBlobDesc().dims);
-
-    ret = DispatchShader(cs, {in_srv}, {out_uav}, {const_buffer.get()}, {UP_DIV(ele_count, THREADS_PER_BLOCK * ELE_PER_THREAD)});
-    RETURN_ON_NEQ(ret, TNN_OK);
-
     return TNN_OK;
 }
+
 std::vector<DataFormat> DirectXLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (data_type == DATA_TYPE_INT32) {
