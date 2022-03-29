@@ -543,7 +543,7 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
             curr_seg_idx++;
         }
     return segmented_blocks;
-    // return RemoveUnnessaryBlocks(segmented_blocks);
+    return RemoveUnnessaryBlocks(segmented_blocks);
 }
 
 }  // namespace partitioning

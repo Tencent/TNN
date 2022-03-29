@@ -1873,7 +1873,8 @@ public:
         layer_info->inputs.push_back(node->inputs()[0]->debugName());
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
 
-        layer_info->param = std::make_shared<LayerParam>();
+        auto layer_param = std::make_shared<ClampminLayerParam>();
+        layer_info->param = layer_param;
 
         ADD_INPUTS_AND_OUTPUTS;
 
@@ -1913,7 +1914,8 @@ public:
         layer_info->inputs.push_back(node->inputs()[0]->debugName());
         layer_info->outputs.push_back(node->outputs()[0]->debugName());
 
-        layer_info->param = std::make_shared<LayerParam>();
+        auto layer_param = std::make_shared<NormLayerParam>();
+        layer_info->param = layer_param;
 
         ADD_INPUTS_AND_OUTPUTS;
 
