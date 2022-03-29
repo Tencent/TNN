@@ -1799,6 +1799,130 @@ public:
     }
 };
 
+class ExpandasTorchConverter : public TorchOpConverter {
+public:
+    bool IsSupported(const torch::jit::Node *node) {
+        if (node->inputs().size() == 2) {
+            // only support "norm + clampmin + expandas + div"
+            for (int i = 0; i < node->output()->uses().size(); i++) {
+                if (node->output()->uses()[i].user->kind() != at::aten::div) {
+                    return false;
+                } else {
+                    auto& converter = GetGlobalTorchConvertMap()["aten::div"];
+                    if (!converter->IsSupported(node->output()->uses()[i].user)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_EXPANDAS;
+        layer_info->type_str                  = "Expandas";
+        layer_info->name                      = node->output(0)->debugName();
+
+        const auto &inputs = node->inputs();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        layer_info->param = std::make_shared<LayerParam>();
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
+class ClampminTorchConverter : public TorchOpConverter {
+public:
+    bool IsSupported(const torch::jit::Node *node) {
+        if (node->inputs().size() == 1) {
+            // only support "norm + clampmin + expandas + div"
+            for (int i = 0; i < node->output()->uses().size(); i++) {
+                if (node->output()->uses()[i].user->kind() != at::aten::expand_as) {
+                    printf("-------------no support clampmin-----------");
+                    return false;
+                } else {
+                    printf("-------------support clampmin----------");
+                    auto& converter = GetGlobalTorchConvertMap()["aten::expand_as"];
+                    if (!converter->IsSupported(node->output()->uses()[i].user)) {
+                        printf("------------converter not support clampmin----------");
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_CLAMPMIN;
+        layer_info->type_str                  = "Clampmin";
+        layer_info->name                      = node->output(0)->debugName();
+
+        const auto &inputs = node->inputs();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        layer_info->param = std::make_shared<LayerParam>();
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
+class NormTorchConverter : public TorchOpConverter {
+public:
+    bool IsSupported(const torch::jit::Node *node) {
+        if (node->inputs().size() == 1) {
+            // only support "norm + clampmin + expandas + div"
+            for (int i = 0; i < node->output()->uses().size(); i++) {
+                if (node->output()->uses()[i].user->kind() != at::aten::clamp_min) {
+                    return false;
+                } else {
+                    auto& converter = GetGlobalTorchConvertMap()["aten::clamp_min"];
+                    if (!converter->IsSupported(node->output()->uses()[i].user)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_NORM;
+        layer_info->type_str                  = "Norm";
+        layer_info->name                      = node->output(0)->debugName();
+
+        const auto &inputs = node->inputs();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        layer_info->param = std::make_shared<LayerParam>();
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
+
+
 // class QuantConv2DTorchConverter : public TorchOpConverter {
 // public:
 //     Status Convert(const torch::jit::Node *node, LayerInfo *layer_info, LayerResource **layer_resouce) {
@@ -1826,16 +1950,20 @@ REGISTER_TORCH_OP_CONVERTER(AvgPool, aten, avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(BatchNorm, aten, batch_norm)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, add_)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, add)
-REGISTER_TORCH_OP_CONVERTER(Binary, aten, mul)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, div)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, floordiv)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, eq)
 REGISTER_TORCH_OP_CONVERTER(Binary, aten, gt)
+REGISTER_TORCH_OP_CONVERTER(Binary, aten, mul)
+REGISTER_TORCH_OP_CONVERTER(Binary, aten, sub)
 REGISTER_TORCH_OP_CONVERTER(Clip, aten, clamp)
+REGISTER_TORCH_OP_CONVERTER(Clampmin, aten, clampmin)
+REGISTER_TORCH_OP_CONVERTER(Clone, aten, clone)
 REGISTER_TORCH_OP_CONVERTER(Concat, aten, cat)
 REGISTER_TORCH_OP_CONVERTER(Conv2D, aten, conv2d)
 REGISTER_TORCH_OP_CONVERTER(Conv3D, aten, conv3d)
 REGISTER_TORCH_OP_CONVERTER(_Conv, aten, _convolution)
+REGISTER_TORCH_OP_CONVERTER(Expandas, aten, expandas)
 REGISTER_TORCH_OP_CONVERTER(Flatten, aten, flatten)
 REGISTER_TORCH_OP_CONVERTER(Gather, aten, select)
 REGISTER_TORCH_OP_CONVERTER(Gelu, aten, gelu)
@@ -1846,6 +1974,7 @@ REGISTER_TORCH_OP_CONVERTER(HardSwish, aten, hardswish_)
 REGISTER_TORCH_OP_CONVERTER(LayerNorm, aten, layer_norm)
 REGISTER_TORCH_OP_CONVERTER(Linear, aten, linear)
 REGISTER_TORCH_OP_CONVERTER(MatMul, aten, matmul)
+REGISTER_TORCH_OP_CONVERTER(Norm, aten, norm)
 REGISTER_TORCH_OP_CONVERTER(Permute, aten, permute)
 REGISTER_TORCH_OP_CONVERTER(Pool, aten, adaptive_avg_pool2d)
 REGISTER_TORCH_OP_CONVERTER(Pool3D, aten, adaptive_avg_pool3d)
@@ -1861,6 +1990,7 @@ REGISTER_TORCH_OP_CONVERTER(Sigmoid, aten, sigmoid_)
 REGISTER_TORCH_OP_CONVERTER(Size, aten, size)
 REGISTER_TORCH_OP_CONVERTER(Softmax, aten, softmax)
 REGISTER_TORCH_OP_CONVERTER(Split, aten, split)
+REGISTER_TORCH_OP_CONVERTER(Squeeze, aten, squeeze)
 REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
 REGISTER_TORCH_OP_CONVERTER(To, aten, to)
 REGISTER_TORCH_OP_CONVERTER(TopK, aten, topk)
@@ -1872,9 +2002,6 @@ REGISTER_TORCH_OP_CONVERTER(Reduce, aten, mean)
 
 REGISTER_TORCH_OP_CONVERTER(List, prim, ListConstruct)
 REGISTER_TORCH_OP_CONVERTER(ListUnpack, prim, ListUnpack)
-REGISTER_TORCH_OP_CONVERTER(Squeeze, aten, squeeze)
-REGISTER_TORCH_OP_CONVERTER(Binary, aten, sub)
-REGISTER_TORCH_OP_CONVERTER(Clone, aten, clone)
 // REGISTER_TORCH_OP_CONVERTER(QuantConv2D, quantized, conv2d)
 
 } // namespace conversion

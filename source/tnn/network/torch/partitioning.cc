@@ -532,8 +532,18 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
 
     std::for_each(segmented_blocks.begin(), segmented_blocks.end(),
                   [](SegmentedBlock& block) { block.check_raw_nodes(); });
+    
+    segmented_blocks = RemoveUnnessaryBlocks(segmented_blocks);
 
-    return RemoveUnnessaryBlocks(segmented_blocks);
+    int curr_seg_idx = 0;
+    for (auto block : segmented_blocks){
+            printf("====================== subgraph start %d ======================\n", curr_seg_idx);
+            std::cout << block.g()->toString(false);
+            printf("====================== subgraph end   %d ======================\n",curr_seg_idx);
+            curr_seg_idx++;
+        }
+    return segmented_blocks;
+    // return RemoveUnnessaryBlocks(segmented_blocks);
 }
 
 }  // namespace partitioning

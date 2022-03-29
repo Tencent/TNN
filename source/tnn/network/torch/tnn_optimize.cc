@@ -38,8 +38,63 @@ void RemoveSingleConcat(NetStructure* net_structure, NetResource* net_resource) 
     layers.erase(std::remove_if(layers.begin(), layers.end(), remove_single_concat), layers.end());
 }
 
+void RemoveNormClampminExpandasDiv(NetStructure* net_structure, NetResource* net_resource) {
+    auto& layers              = net_structure->layers;
+
+    // Normalize <= Norm - Clampmin - Expandas - Div
+    for (auto iter = layers.begin(); iter + 3 != layers.end(); iter++) {
+        auto& norm_layer = *iter;
+        if (norm_layer->type != TNN_NS::LAYER_NORM || norm_layer->outputs.size() != 1){
+            continue;
+        }
+        auto clampmin_iter = iter + 1;
+        auto expandas_iter = iter + 2;
+        auto div_iter      = iter + 3;
+        auto clampmin_layer = *clampmin_iter;
+        auto expandas_layer = *expandas_iter;
+        auto div_layer      = *div_iter;
+        if (clampmin_layer->type != TNN_NS::LAYER_CLAMPMIN || expandas_layer->type != TNN_NS::LAYER_EXPANDAS || clampmin_layer->outputs.size() != 1){
+            continue;
+        }
+        if (expandas_layer->type != TNN_NS::LAYER_EXPANDAS || div_layer->type != TNN_NS::LAYER_DIV || expandas_layer->outputs.size() != 1){
+            continue;
+        }
+        if (norm_layer->outputs[0] != clampmin_layer->inputs[0] ||
+            clampmin_layer->outputs[0] != expandas_layer->inputs[0] ||
+            expandas_layer->outputs[0] != div_layer->inputs[0]) {
+            continue;
+        }
+
+        auto* norm_param         = dynamic_cast<TNN_NS::NormLayerParam*>(norm_layer->param.get());
+        auto* clampmin_param     = dynamic_cast<TNN_NS::ClampminLayerParam*>(clampmin_layer->param.get());
+        // auto* expandas_param     = dynamic_cast<TNN_NS::ExpandasLayerParam*>(expandas_layer->param.get());
+        // auto* div_param          = dynamic_cast<TNN_NS::DivLayerParam*>(div_layer->param.get());
+        const auto dim           = norm_param->dim;
+        const auto p             = norm_param->p;
+        const auto min           = clampmin_param->min;
+
+        auto normalize_param     = new TNN_NS::NormalizeLayerParam;
+        normalize_param->epsilon = min;
+        normalize_param->axis    = dim;
+        normalize_param->p       = p;
+        norm_layer->param        = std::shared_ptr<TNN_NS::LayerParam>(normalize_param);
+        norm_layer->type         = TNN_NS::LAYER_NORMALIZE;
+        norm_layer->type_str     = "Normalize";
+
+        norm_layer->outputs.clear();
+        norm_layer->outputs = div_layer->outputs;
+        layers.erase(clampmin_iter);
+        printf("-------------------erase clampmin-----------------");
+        expandas_iter -= 1;
+        layers.erase(expandas_iter);
+        div_iter -= 1;
+        layers.erase(div_iter);
+    }
+}
+
 void TNNOptPass(NetStructure* net_structure, NetResource* net_resource) {
     RemoveClone(net_structure, net_resource);
     // RemoveSingleConcat(net_structure, net_resource);
+    RemoveNormClampminExpandasDiv(net_structure, net_resource);
 }
 }  // namespace TNN_NS
