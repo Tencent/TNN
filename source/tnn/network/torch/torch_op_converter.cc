@@ -1801,22 +1801,22 @@ public:
 
 class ExpandasTorchConverter : public TorchOpConverter {
 public:
-    // bool IsSupported(const torch::jit::Node *node) {
-    //     if (node->inputs().size() == 2) {
-    //         // only support "norm + clampmin + expandas + div"
-    //         for (int i = 0; i < node->output()->uses().size(); i++) {
-    //             if (node->output()->uses()[i].user->kind() != at::aten::div) {
-    //                 return false;
-    //             } else {
-    //                 auto& converter = GetGlobalTorchConvertMap()["aten::div"];
-    //                 if (!converter->IsSupported(node->output()->uses()[i].user)) {
-    //                     return false;
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     return true;
-    // }
+    bool IsSupported(const torch::jit::Node *node) {
+        if (node->inputs().size() == 2) {
+            // only support "norm + clampmin + expandas + div"
+            for (int i = 0; i < node->output()->uses().size(); i++) {
+                if (node->output()->uses()[i].user->kind() != at::aten::div) {
+                    return false;
+                } else {
+                    auto& converter = GetGlobalTorchConvertMap()["aten::div"];
+                    if (!converter->IsSupported(node->output()->uses()[i].user)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
@@ -1842,7 +1842,7 @@ public:
 
 class ClampminTorchConverter : public TorchOpConverter {
 public:
-    /*bool IsSupported(const torch::jit::Node *node) {
+    bool IsSupported(const torch::jit::Node *node) {
         if (node->inputs().size() == 1) {
             // only support "norm + clampmin + expandas + div"
             for (int i = 0; i < node->output()->uses().size(); i++) {
@@ -1860,7 +1860,7 @@ public:
             }
         }
         return true;
-    }*/
+    }
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
