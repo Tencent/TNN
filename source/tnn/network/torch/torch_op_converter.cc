@@ -1847,13 +1847,10 @@ public:
             // only support "norm + clampmin + expandas + div"
             for (int i = 0; i < node->output()->uses().size(); i++) {
                 if (node->output()->uses()[i].user->kind() != at::aten::expand_as) {
-                    printf("-------------no support clampmin-----------");
                     return false;
                 } else {
-                    printf("-------------support clampmin----------");
                     auto& converter = GetGlobalTorchConvertMap()["aten::expand_as"];
                     if (!converter->IsSupported(node->output()->uses()[i].user)) {
-                        printf("------------converter not support clampmin----------");
                         return false;
                     }
                 }
