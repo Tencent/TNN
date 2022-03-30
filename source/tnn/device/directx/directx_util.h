@@ -104,6 +104,12 @@ Status CreateConstBuffer(const T &host_value,
     constant_buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     constant_buffer_desc.CPUAccessFlags = 0;
 
+    LOGD("const buffer size_in_bytes:%lu", constant_buffer_desc.ByteWidth);
+    if (constant_buffer_desc.ByteWidth >= D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT ) {
+        LOGE("too large const buffer, size_in_bytes:%lu should less than %lu\n", constant_buffer_desc.ByteWidth, D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT);
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "too large const buffer");
+    }
+
     ID3D11Buffer * p_d3d_const_buffer;
     HRESULT hr = device->CreateBuffer( &constant_buffer_desc, &init_data, &p_d3d_const_buffer);
     if (FAILED(hr)) {

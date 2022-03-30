@@ -16,8 +16,16 @@ echo namespace directx { >> %OUT_FILE_NAME%
 
 for %%f in (%KERNEL_DIR%\*.hlsl) do (
     if "%%~xf"==".hlsl" (
-      echo #include "kernels/%%~nf.h" >> %OUT_FILE_NAME%
-      fxc %%f %COMPILE_FLAGS% /Vn g_%%~nf
+        if exist %KERNEL_DIR%\%%~nf.def (
+            for /F "usebackq tokens=1,2,3" %%A in ("%KERNEL_DIR%\%%~nf.def") do (
+                echo #include "kernels/%%~nf_%%A.h" >> %OUT_FILE_NAME%
+                fxc %%f %COMPILE_FLAGS% /Vn g_%%~nf_%%A /D %%B=%%C
+                move %KERNEL_DIR%\%%~nf.h %KERNEL_DIR%\%%~nf_%%A.h
+            ) 
+        ) else (
+            echo #include "kernels/%%~nf.h" >> %OUT_FILE_NAME%
+            fxc %%f %COMPILE_FLAGS% /Vn g_%%~nf
+        )
     )
 )
 
@@ -27,7 +35,13 @@ echo std::map^<std::string, const unsigned char *^> ^& get_kernel_map^(^){ >> %O
 echo     static std::map^<std::string, const unsigned char *^> s_kernel_map; >> %OUT_FILE_NAME%
 
 for %%f in (%KERNEL_DIR%\*.hlsl) do (
-    echo     s_kernel_map["%%~nf"] = g_%%~nf; >> %OUT_FILE_NAME%
+    if exist %KERNEL_DIR%\%%~nf.def (
+        for /F "usebackq tokens=1,2,3" %%A in ("%KERNEL_DIR%\%%~nf.def") do (
+            echo     s_kernel_map["%%~nf_%%A"] = g_%%~nf_%%A; >> %OUT_FILE_NAME%
+        ) 
+    ) else (
+        echo     s_kernel_map["%%~nf"] = g_%%~nf; >> %OUT_FILE_NAME%
+    )
 )
 
 echo     return s_kernel_map; >> %OUT_FILE_NAME%
@@ -38,7 +52,14 @@ echo std::map^<std::string, size_t^> ^& get_kernel_size_map^(^){ >> %OUT_FILE_NA
 echo     static std::map^<std::string, size_t^> s_kernel_size_map; >> %OUT_FILE_NAME%
 
 for %%f in (%KERNEL_DIR%\*.hlsl) do (
-    echo     s_kernel_size_map["%%~nf"] = sizeof^(g_%%~nf^); >> %OUT_FILE_NAME%
+    if exist %KERNEL_DIR%\%%~nf.def (
+        for /F "usebackq tokens=1,2,3" %%A in ("%KERNEL_DIR%\%%~nf.def") do (
+            echo     s_kernel_size_map["%%~nf_%%A"] = sizeof^(g_%%~nf_%%A^); >> %OUT_FILE_NAME%
+        ) 
+    ) else (
+        echo     s_kernel_size_map["%%~nf"] = sizeof^(g_%%~nf^); >> %OUT_FILE_NAME%
+    )
+
 )
 echo     return s_kernel_size_map; >> %OUT_FILE_NAME%
 echo }  >> %OUT_FILE_NAME%
