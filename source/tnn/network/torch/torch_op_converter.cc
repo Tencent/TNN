@@ -1814,8 +1814,10 @@ public:
                     }
                 }
             }
+            return true;
+        } else {
+            return false;
         }
-        return true;
     }
 
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
@@ -1843,16 +1845,14 @@ public:
 class ClampminTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
-        if (node->inputs().size() == 1) {
-            // only support "norm + clampmin + expandas + div"
-            for (int i = 0; i < node->output()->uses().size(); i++) {
-                if (node->output()->uses()[i].user->kind() != at::aten::expand_as) {
+        // only support "norm + clampmin + expandas + div"
+        for (int i = 0; i < node->output()->uses().size(); i++) {
+            if (node->output()->uses()[i].user->kind() != at::aten::expand_as) {
+                return false;
+            } else {
+                auto& converter = GetGlobalTorchConvertMap()["aten::expand_as"];
+                if (!converter->IsSupported(node->output()->uses()[i].user)) {
                     return false;
-                } else {
-                    auto& converter = GetGlobalTorchConvertMap()["aten::expand_as"];
-                    if (!converter->IsSupported(node->output()->uses()[i].user)) {
-                        return false;
-                    }
                 }
             }
         }
@@ -1884,16 +1884,14 @@ public:
 class NormTorchConverter : public TorchOpConverter {
 public:
     bool IsSupported(const torch::jit::Node *node) {
-        if (node->inputs().size() == 1) {
-            // only support "norm + clamp_min + expand_as + div"
-            for (int i = 0; i < node->output()->uses().size(); i++) {
-                if (node->output()->uses()[i].user->kind() != at::aten::clamp_min) {
+        // only support "norm + clamp_min + expand_as + div"
+        for (int i = 0; i < node->output()->uses().size(); i++) {
+            if (node->output()->uses()[i].user->kind() != at::aten::clamp_min) {
+                return false;
+            } else {
+                auto& converter = GetGlobalTorchConvertMap()["aten::clamp_min"];
+                if (!converter->IsSupported(node->output()->uses()[i].user)) {
                     return false;
-                } else {
-                    auto& converter = GetGlobalTorchConvertMap()["aten::clamp_min"];
-                    if (!converter->IsSupported(node->output()->uses()[i].user)) {
-                        return false;
-                    }
                 }
             }
         }
@@ -1922,6 +1920,26 @@ public:
     }
 };
 
+class TanhTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type = LAYER_TANH;
+        layer_info->type_str = "Tanh";
+        layer_info->name = node->output(0)->debugName();
+
+        layer_info->inputs.push_back(node->inputs()[0]->debugName());
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        layer_info->param = std::make_shared<LayerParam>();
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+
+        return TNN_OK;
+    }
+};
 
 // class QuantConv2DTorchConverter : public TorchOpConverter {
 // public:
@@ -1992,6 +2010,7 @@ REGISTER_TORCH_OP_CONVERTER(Softmax, aten, softmax)
 REGISTER_TORCH_OP_CONVERTER(Split, aten, split)
 REGISTER_TORCH_OP_CONVERTER(Squeeze, aten, squeeze)
 REGISTER_TORCH_OP_CONVERTER(StridedSlice, aten, slice)
+REGISTER_TORCH_OP_CONVERTER(Tanh, aten, tanh)
 REGISTER_TORCH_OP_CONVERTER(To, aten, to)
 REGISTER_TORCH_OP_CONVERTER(TopK, aten, topk)
 REGISTER_TORCH_OP_CONVERTER(Transpose, aten, transpose)

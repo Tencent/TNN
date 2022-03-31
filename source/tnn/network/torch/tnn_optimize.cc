@@ -45,7 +45,7 @@ void RemoveNormClampminExpandasDiv(NetStructure* net_structure, NetResource* net
     // Normalize <= Norm - Clampmin - Expandas - Div
     for (auto iter = layers.begin(); iter + 3 != layers.end(); iter++) {
         auto& norm_layer = *iter;
-        if (norm_layer->type != TNN_NS::LAYER_NORM || norm_layer->outputs.size() != 1){
+        if (norm_layer->type != TNN_NS::LAYER_NORM){
             continue;
         }
         
@@ -55,15 +55,8 @@ void RemoveNormClampminExpandasDiv(NetStructure* net_structure, NetResource* net
         auto clampmin_layer = *clampmin_iter;
         auto expandas_layer = *expandas_iter;
         auto div_layer      = *div_iter;
-
-        if (clampmin_layer->type != TNN_NS::LAYER_CLAMPMIN || expandas_layer->type != TNN_NS::LAYER_EXPANDAS || clampmin_layer->outputs.size() != 1){
-            continue;
-        }
-        if (expandas_layer->type != TNN_NS::LAYER_EXPANDAS || div_layer->type != TNN_NS::LAYER_DIV || expandas_layer->outputs.size() != 1){
-            continue;
-        }
-        if (norm_layer->outputs[0] != clampmin_layer->inputs[0] ||
-            clampmin_layer->outputs[0] != expandas_layer->inputs[0] ||
+        
+        if (clampmin_layer->type != TNN_NS::LAYER_CLAMPMIN || expandas_layer->type != TNN_NS::LAYER_EXPANDAS || div_layer->type != TNN_NS::LAYER_DIV ||
             expandas_layer->outputs[0] != div_layer->inputs[1]) {
             continue;
         }
