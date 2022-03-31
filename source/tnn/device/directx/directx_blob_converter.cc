@@ -20,6 +20,7 @@
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/string_utils_inner.h"
 #include "tnn/device/directx/directx_device.h"
+#include "tnn/device/directx/directx_util.h"
 
 namespace TNN_NS {
 namespace directx {
@@ -149,26 +150,21 @@ static Status N8UC3ToBlob(Mat& image,
     auto mat_srv = mat_buffer->GetSRV();
     auto blob_uav = blob_memory->GetUAV();
 
-    std::shared_ptr<ID3D11Buffer> inputCBBuffer;
-    ID3D11Buffer* pInputCBBuffer = inputCBBuffer.get();
-    ParamCB paramCB_data = {param.scale[0], param.scale[1], param.scale[2], param.scale[3],
+    ParamCB param_cb_host = {param.scale[0], param.scale[1], param.scale[2], param.scale[3],
                             param.bias[0], param.bias[1],param.bias[2],param.bias[3],
                             dims[0], dims[1], dims[2], dims[3]};
 
-    status = AllocateConstantBuffer(pInputCBBuffer,paramCB_data);
+    std::shared_ptr<ID3D11Buffer> param_cb;
+    status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
+
     RETURN_ON_NEQ(status, TNN_OK);
 
-    std::shared_ptr<ID3D11ComputeShader> ComputerShader;
-    ID3D11ComputeShader* pComputerShader = ComputerShader.get();
+    std::shared_ptr<ID3D11ComputeShader> cs;
+    status = GetShaderByName("N8UC3ToNCHW", cs);
+    RETURN_ON_NEQ(status, TNN_OK);
 
-    HRESULT hr = pDevice->CreateComputeShader(g_N8UC3ToNCHW, sizeof(g_N8UC3ToNCHW), NULL, &pComputerShader);
-    if (FAILED(hr))
-    {
-        LOGE("DirectX CreateComputeShader failed. erro code");
-        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX CreateComputeShader failed.");
-    }
-    unsigned int hw = dims[2]*dims[3];
-    Status  ret = DispatchShader(pComputerShader,{mat_srv},{blob_uav}, {pInputCBBuffer},{hw/4,1,1});
+    int hw = dims[2]*dims[3];
+    Status  ret = DispatchShader(cs, {mat_srv}, {blob_uav}, {param_cb.get()}, {hw/4,1,1});
 
     return ret;
 }
@@ -204,26 +200,20 @@ static Status N8UC4ToBlob(Mat& image,
     auto mat_srv = mat_buffer->GetSRV();
     auto blob_uav = blob_memory->GetUAV();
 
-    std::shared_ptr<ID3D11Buffer> inputCBBuffer;
-    ID3D11Buffer* pInputCBBuffer = inputCBBuffer.get();
-    ParamCB paramCB_data = {param.scale[0], param.scale[1], param.scale[2], param.scale[3],
+    ParamCB param_cb_host = {param.scale[0], param.scale[1], param.scale[2], param.scale[3],
                             param.bias[0], param.bias[1],param.bias[2],param.bias[3],
                             dims[0], dims[1], dims[2], dims[3]};
 
-    status = AllocateConstantBuffer(pInputCBBuffer,paramCB_data);
+    std::shared_ptr<ID3D11Buffer> param_cb;
+    status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
-    std::shared_ptr<ID3D11ComputeShader> ComputerShader;
-    ID3D11ComputeShader* pComputerShader = ComputerShader.get();
+    std::shared_ptr<ID3D11ComputeShader> cs;
+    status = GetShaderByName("N8UC4ToNCHW", cs);
+    RETURN_ON_NEQ(status, TNN_OK);
 
-    HRESULT hr = pDevice->CreateComputeShader(g_N8UC4ToNCHW, sizeof(g_N8UC4ToNCHW), NULL, &pComputerShader);
-    if (FAILED(hr))
-    {
-        LOGE("DirectX CreateComputeShader failed. erro code");
-        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX CreateComputeShader failed.");
-    }
-    unsigned int hw = dims[2]*dims[3];
-    Status  ret = DispatchShader(pComputerShader,{mat_srv},{blob_uav}, {pInputCBBuffer},{hw,1,1});
+    int hw = dims[2]*dims[3];
+    Status  ret = DispatchShader(cs,{mat_srv},{blob_uav}, {param_cb.get()},{hw,1,1});
 
     return ret;
 }

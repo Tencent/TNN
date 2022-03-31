@@ -20,23 +20,23 @@ namespace TNN_NS {
 
 namespace directx {
 
-DECLARE_DIRECTX_BINARY_ACC(Add);
+DECLARE_DIRECTX_BINARY_ACC(Sub);
 
-Status DirectXAddLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status DirectXSubLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    LOGD("Init Add Acc\n");
+    LOGD("Init Sub Acc\n");
     Status ret = DirectXBinaryLayerAcc::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(ret, TNN_OK);
 
-    kernel_name_ = "binary_op_add";
+    kernel_name_ = "binary_op_sub";
 
     return TNN_OK;
 }
 
-DirectXAddLayerAcc::~DirectXAddLayerAcc() {}
+DirectXSubLayerAcc::~DirectXSubLayerAcc() {}
 
-REGISTER_DIRECTX_ACC(Add, LAYER_ADD)
-REGISTER_DIRECTX_LAYOUT(LAYER_ADD, DATA_FORMAT_NHC4W4);
+REGISTER_DIRECTX_ACC(Sub, LAYER_SUB)
+REGISTER_DIRECTX_LAYOUT(LAYER_SUB, DATA_FORMAT_NHC4W4);
 
 } // namespace directx
 

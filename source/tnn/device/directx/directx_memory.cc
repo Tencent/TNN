@@ -193,7 +193,43 @@ std::shared_ptr<DirectXMemory> DirectXMemory::CreateRefMemoryFromBlob(Blob * blo
     ret->SetMemoryInfo(blob->GetBlobDesc());
     ret->SetData(blob->GetHandle().base, false);
     return std::shared_ptr<DirectXMemory>(ret);
-};
+}
+
+std::shared_ptr<DirectXMemory> DirectXMemory::CreateBufferMemoryFromHost(
+                                void * ptr, DimsVector dims, DataType data_type, DataFormat data_format) {
+    
+    if (nullptr == ptr){
+        LOGE("Got nullptr");  
+        return std::shared_ptr<DirectXMemory>(nullptr);
+    }
+    
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return std::shared_ptr<DirectXMemory>(nullptr);
+    }
+
+    BlobMemorySizeInfo size_info;
+    size_info.data_type = data_type;
+    // 1D to directx buffer, 2D to Texture2D
+    size_info.dims = {DimsVectorUtils::Count(dims)};
+
+    ID3D11Buffer * buf;
+    Status ret = tnn_device->Allocate((void**)&buf, size_info);
+    RETURN_VALUE_ON_NEQ(ret, TNN_OK, std::shared_ptr<DirectXMemory>(nullptr));
+
+    auto d3d_context = tnn_device->GetID3DContext();
+    if (!d3d_context) {
+        LOGE("Got null d3d context");
+        return std::shared_ptr<DirectXMemory>(nullptr);
+    }
+    d3d_context->UpdateSubresource(buf, 0, nullptr, ptr, 0, 0);
+
+    DirectXMemory * dx_mem = new DirectXMemory(TNN_DX_BUFFER);
+    dx_mem->SetData(buf, true);
+    dx_mem->SetMemoryInfo(data_type, data_format, dims);
+    return std::shared_ptr<DirectXMemory>(dx_mem);
+}
 
 } // namespace directx
 

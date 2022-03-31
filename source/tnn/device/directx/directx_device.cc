@@ -249,7 +249,7 @@ Status DirectXDevice::CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobD
     auto size_info       = Calculate(blob_desc);
     size_t size_in_bytes = GetBlobMemoryBytesSize(size_info);
 
-    LOGI("Copy Data to Device now, size in bytes:%lu shape:%d %d %d %d\n", size_in_bytes,  blob_desc.dims[0], blob_desc.dims[1], blob_desc.dims[2], blob_desc.dims[3]);
+    LOGD("Copy Data to Device now, size in bytes:%lu shape:%d %d %d %d\n", size_in_bytes,  blob_desc.dims[0], blob_desc.dims[1], blob_desc.dims[2], blob_desc.dims[3]);
 
     // TODO: Judge blob memory type (texture or buffer ) from blob_desc.format
     // TODO: Add texture to buffer converter
@@ -267,7 +267,7 @@ Status DirectXDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, Blo
 
     auto size_info       = Calculate(blob_desc);
     size_t size_in_bytes = GetBlobMemoryBytesSize(size_info);
-    LOGI("Copy Data From Device now, size in bytes:%lu\n", size_in_bytes);
+    LOGD("Copy Data From Device now, size in bytes:%lu\n", size_in_bytes);
 
     // TODO: Judge blob memory type (texture or buffer ) from blob_desc.format
     // TODO: Add texture to buffer converter
@@ -292,7 +292,7 @@ Status DirectXDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, Blo
         return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX create debug Buffer failed.");
     }
 
-    LOGI("CopyResource 0x%X -> 0x%X\n", src_buffer, debug_buffer);
+    LOGD("CopyResource 0x%X -> 0x%X\n", src_buffer, debug_buffer);
     context_->CopyResource(debug_buffer, src_buffer);
 
     D3D11_MAPPED_SUBRESOURCE mapped_resource;
@@ -302,12 +302,13 @@ Status DirectXDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, Blo
         return Status(TNNERR_DX_MAP_ERR, "DirectX map failed.");
     }
 
-    LOGI("memcpy 0x%X -> 0x%X\n", mapped_resource.pData, reinterpret_cast<char*>(src->base) + dst->bytes_offset);
+    LOGD("memcpy 0x%X -> 0x%X\n", mapped_resource.pData, reinterpret_cast<char*>(src->base) + dst->bytes_offset);
     memcpy(reinterpret_cast<char*>(dst->base) + dst->bytes_offset, 
            mapped_resource.pData, 
            size_in_bytes);
 
     context_->Unmap(debug_buffer, 0);
+    debug_buffer->Release();
 
     return TNN_OK;
 }

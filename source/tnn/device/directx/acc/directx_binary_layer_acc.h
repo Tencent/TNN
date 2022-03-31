@@ -36,20 +36,27 @@ public:
     virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override;
 
 private:
-    std::string GetKernelName(const MultidirBroadcastLayerParam &param);
+
     Status ConvertParam(float *bias_data_ptr, std::vector<int> param_dims);
+
+    Status CalcStrides(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
     std::string kernel_name_ = "";
     MultidirBroadcastLayerParam broadcast_param_;
-    uint32_t kernel_arg_idx_ = 0;
 
 private:
     std::shared_ptr<DirectXMemory> binary_params_ = nullptr;
+    std::shared_ptr<ID3D11Buffer> const_buffer_;
+
     std::vector<int> param_dims_ = {};
-    int input_idx_ = 0;
-    int param_idx_ = 1;
-    int output_dims_size_ = 0;
+
+    unsigned int input_a_stride_[6];
+    unsigned int input_b_stride_[6];
+    unsigned int param_stride_[6];
+    unsigned int output_dim_[6];
+
+    size_t output_dims_size_;
 };
 
 #define DECLARE_DIRECTX_BINARY_ACC(type_string)                                                                        \

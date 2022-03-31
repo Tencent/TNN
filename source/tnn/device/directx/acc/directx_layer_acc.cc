@@ -19,6 +19,7 @@
 
 #include "tnn/device/directx/directx_device.h"
 #include "tnn/device/directx/directx_memory.h"
+#include "tnn/device/directx/directx_util.h"
 #include "tnn/utils/string_utils_inner.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/data_type_utils.h"
@@ -81,6 +82,7 @@ Status DirectXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
 
     return TNN_OK;
 }
+
 std::vector<DataFormat> DirectXLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (data_type == DATA_TYPE_INT32) {
@@ -252,88 +254,46 @@ Status DirectXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, b
 }
 
 Status DirectXLayerAcc::RawBuffer2DirectXBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format) {
-/*
-    if (!buffer || buffer->GetBufferDims().size() > 5) {
-        return Status(TNNERR_PARAM_ERR, "raw buffer for opencl blob is invalid");
+        
+    if (nullptr == buffer){
+        LOGE("Got null RawBuffer");  
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "Got null Rawbuffer");
     }
-    DirectXRuntime *directx_runtime = DirectXRuntime::GetInstance();
+    
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_DX_ACC_INIT_ERR, "Got null device");
+    }
 
-    float *buffer_data_ptr;
-    if (buffer->GetDataType() == DATA_TYPE_FLOAT) {
-        // get float pointer from raw buffer
-        buffer_data_ptr = buffer->force_to<float *>();
-        if (buffer_data_ptr == nullptr) {
-            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
-        }
-    } else if (buffer->GetDataType() == DATA_TYPE_HALF) {
-        // if handle is half, need convert to float first.
-        auto float_data_ptr = GetFloatFromRawBuffer(*buffer);
-        if (float_data_ptr == nullptr) {
-            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
-        }
-        buffer_data_ptr = float_data_ptr.get();
+    BlobDesc desc;
+    desc.device_type = DEVICE_DIRECTX;
+    desc.data_type = buffer->GetDataType();
+    desc.dims = buffer->GetBufferDims();
+    desc.data_format = format;
+    if (DimsVectorUtils::Count(desc.dims) > 0) {
+        blob = std::make_shared<Blob>(desc, true);
     } else {
-        return Status(TNNERR_PARAM_ERR, "data type for opencl blob is invalid");
+        return Status(TNNERR_PARAM_ERR, "raw buffer for opencl blob is empty");
     }
 
-    if (format == DATA_FORMAT_NHC4W4) {
-        // copy raw buffer data into clBuffer
-        std::shared_ptr<DirectXMemory> blob_buffer(new DirectXMemory(TNN_CL_BUFFER));
-        auto dims = buffer->GetBufferDims();
-        int buffer_size  = DimsVectorUtils::Count(dims);
-        int blob_buffer_size = DimsFunctionUtils::GetDim(dims, 0) *
-                            ALIGN_UP4(DimsFunctionUtils::GetDim(dims, 1)) *
-                            DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
-        if (dims.size() > 4) {
-            for (int idx_dim = 4; idx_dim < dims.size(); idx_dim++) {
-                blob_buffer_size *= DimsFunctionUtils::GetDim(dims, idx_dim);
-            }
-        }
-        cl_int ret      = CL_SUCCESS;
-        cl::Buffer cl_buffer(*opencl_runtime->Context(), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                            blob_buffer_size * sizeof(float), nullptr, &ret);
-        if (ret != CL_SUCCESS) {
-            CHECK_CL_SUCCESS(ret)
-            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
-        }
-        blob_buffer->SetData(&cl_buffer);
-        auto cl_buffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
-            cl_buffer, true, CL_MAP_WRITE, 0, blob_buffer_size * sizeof(float), nullptr, nullptr, &ret);
-        if (ret != CL_SUCCESS) {
-            CHECK_CL_SUCCESS(ret)
-            return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
-        }
-        memset(cl_buffer_ptr, 0, blob_buffer_size * sizeof(float));
-        memcpy(cl_buffer_ptr, buffer_data_ptr, buffer_size * sizeof(float));
-        ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(cl_buffer, cl_buffer_ptr);
-        if (ret != CL_SUCCESS) {
-            CHECK_CL_SUCCESS(ret)
-            return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
-        }
+    if (format != DATA_FORMAT_NCHW) {
+        LOGE("only supported NCHW now");
+        return Status(TNNERR_PARAM_ERR, "only supported NCHW now");
+    }
 
-        BlobDesc desc;
-        desc.device_type = DEVICE_OPENCL;
-        desc.data_type = opencl_runtime->GetPrecision() == PRECISION_HIGH ? DATA_TYPE_FLOAT : DATA_TYPE_HALF;
-        desc.dims = dims;
-        desc.data_format = format;
-        if (buffer_size > 0) {
-            blob = std::make_shared<Blob>(desc, true);
-        } else {
-            return Status(TNNERR_PARAM_ERR, "raw buffer for opencl blob is empty");
-        }
+    auto d3d_context = tnn_device->GetID3DContext();
 
-        // transfer from clBuffer to clImage
-        ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
-        std::shared_ptr<DirectXMemory> blob_memory;
-        blob_memory.reset(new DirectXMemory(TNN_CL_IMAGE));
-        blob_memory->SetData(blob->GetHandle().base, false);
-        Status ret_convert = convertor.ConvertBufferToImage(
-                blob_buffer.get(), NCHW_BUFFER, dims, blob_memory.get(), true);
-        CHECK_TNN_OK(ret_convert)
+    // Only work on DATA_FORMAT_NCHW and TNN_DX_BUFFER now
+    auto mem_type = GetMemoryType(desc);
+    if (TNN_DX_BUFFER == mem_type) {
+        ID3D11Buffer * dx_buf = (ID3D11Buffer*) blob->GetHandle().base;
+        d3d_context->UpdateSubresource(dx_buf, 0, nullptr, buffer->force_to<void *>(), 0, 0);
     } else {
-        return Status(TNNERR_PARAM_ERR, "only NHC4W4 blob is supported for now");
+        LOGE("Directx Texture2D not supported now");
+        return Status(TNNERR_PARAM_ERR, "directx not supported now");
     }
-*/
+
     return TNN_OK;
 }
 
