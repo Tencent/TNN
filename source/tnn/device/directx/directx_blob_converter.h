@@ -20,8 +20,6 @@
 #include "tnn/utils/blob_converter.h"
 #include "tnn/device/directx/directx_memory.h"
 #include "tnn/device/directx/directx_util.h"
-#include "tnn/device/directx/kernels/N8UC3ToNCHW.h"
-#include "tnn/device/directx/kernels/N8UC4ToNCHW.h"
 
 namespace TNN_NS {
 namespace directx {

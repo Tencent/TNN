@@ -31,11 +31,20 @@ cbuffer InputCBBuffer : register(b0)
 ByteAddressBuffer Buffer0 : register(t0);
 RWByteAddressBuffer BufferOut : register(u0);
 
-[numthreads(1, 1, 1)]
+#define THREADS_PER_BLOCK 128
+#define ELE_PER_THREAD 1
+#define STRIDE 4
+
+[numthreads(THREADS_PER_BLOCK, 1, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
+    uint hw0 = h*w*0;
+    uint hw1 = h*w*1;
+    uint hw2 = h*w*2;
+    uint hw3 = h*w*3;
+    uint zchw = DTid.z*c*h*w;
 
-    uint data0 = asuint( Buffer0.Load( DTid.x*4 ) );
+    uint data0 = asuint( Buffer0.Load( (DTid.x + zchw)*STRIDE ) );
   
 	float b0, g0, r0, a0;
 
@@ -44,9 +53,9 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
 	g0 = (data0 & 0x0000ff00) >> 8;
 	b0 = (data0 & 0x000000ff);
 
-    BufferOut.Store( (DTid.x)*4, asuint(b0*scale0+bias0) );
-    BufferOut.Store( (h*w + DTid.x)*4, asuint(g0*scale1+bias1) );
-    BufferOut.Store( (h*w*2 + DTid.x)*4, asuint(r0*scale2+bias2) );
-    BufferOut.Store( (h*w*3 + DTid.x)*4, asuint(a0*scale3+bias3) );
+    BufferOut.Store( (hw0 + DTid.x + zchw)*STRIDE, asuint(b0*scale0+bias0) );
+    BufferOut.Store( (hw1 + DTid.x + zchw)*STRIDE, asuint(g0*scale1+bias1) );
+    BufferOut.Store( (hw2 + DTid.x + zchw)*STRIDE, asuint(r0*scale2+bias2) );
+    BufferOut.Store( (hw3 + DTid.x + zchw)*STRIDE, asuint(a0*scale3+bias3) );
 
 }

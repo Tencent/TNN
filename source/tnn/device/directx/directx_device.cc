@@ -169,7 +169,7 @@ Status DirectXDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
 
     DirectXRuntime* directx_runtime = DirectXRuntime::GetInstance();
 
-    if (DATA_TYPE_HALF != desc.data_type && DATA_TYPE_FLOAT != desc.data_type && DATA_TYPE_INT32 != desc.data_type) {
+    if (DATA_TYPE_HALF != desc.data_type && DATA_TYPE_FLOAT != desc.data_type && DATA_TYPE_INT32 != desc.data_type && DATA_TYPE_INT8 != desc.data_type) {
         LOGE("directx allocator not support this data type: %d\n", desc.data_type);
         return Status(TNNERR_PARAM_ERR, "directx not support this data type");
     }
@@ -183,6 +183,10 @@ Status DirectXDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
     }
     if (DATA_TYPE_INT32 == desc.data_type) {
         type_size = sizeof(int);
+        format = DXGI_FORMAT_R8G8B8A8_UINT;
+    }
+    if (DATA_TYPE_INT8 == desc.data_type) {
+        type_size = sizeof(uint8_t);
         format = DXGI_FORMAT_R8G8B8A8_UINT;
     }
 

@@ -28,17 +28,30 @@ cbuffer InputCBBuffer : register(b0)
      int w;
 };
 
-ByteAddressBuffer Buffer0 : register(t0);
+ByteAddressBuffer BufferIn : register(t0);
 RWByteAddressBuffer BufferOut : register(u0);
 
-[numthreads(1, 1, 1)]
+#define THREADS_PER_BLOCK 128
+#define ELE_PER_THREAD 4
+#define STRIDE 4
+
+[numthreads(THREADS_PER_BLOCK, 1, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
+    // DTid.x <- c*h*w
+    // DTid.z <- n
+    uint hw0 = h*w*0;
+    uint hw1 = h*w*1;
+    uint hw2 = h*w*2;
+    uint xc = DTid.x*c;
+    uint zchw = DTid.z*c*h*w;
+    uint x4 = DTid.x*4;
+    uint nchw = n*c*h*w;
 
-    uint data0 = asuint( Buffer0.Load( (DTid.x*3)*4 ) );
-	uint data1 = asuint( Buffer0.Load( (DTid.x*3 + 1)*4) );
-	uint data2 = asuint( Buffer0.Load( (DTid.x*3 + 2)*4) );
-  
+    uint data0 = asuint( BufferIn.Load( (xc + 0 + zchw)*STRIDE) );
+	uint data1 = asuint( BufferIn.Load( (xc + 1 + zchw)*STRIDE) );
+	uint data2 = asuint( BufferIn.Load( (xc + 2 + zchw)*STRIDE) );
+
 	float b0, g0, r0;
 	float b1, g1, r1;
 	float b2, g2, r2;
@@ -48,30 +61,30 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
 	r0 = (data0 & 0x00ff0000) >> 16;
 	g0 = (data0 & 0x0000ff00) >> 8;
 	b0 = (data0 & 0x000000ff);
-	
+
 	g2 =  data1 >> 24;
 	b2 = (data1 & 0x00ff0000) >> 16;
 	r1 = (data1 & 0x0000ff00) >> 8;
 	g1 = (data1 & 0x000000ff);
-	
+
 	r3 =  data2 >> 24;
 	g3 = (data2 & 0x00ff0000) >> 16;
 	b3 = (data2 & 0x0000ff00) >> 8;
 	r2 = (data2 & 0x000000ff);
-	
-    BufferOut.Store( (DTid.x*4)*4, asuint(b0*scale0+bias0) );
-    BufferOut.Store( (h*w + DTid.x*4)*4, asuint(g0*scale1+bias1) );
-    BufferOut.Store( (h*w*2 + DTid.x*4)*4, asuint(r0*scale2+bias2) );
-	
-	BufferOut.Store( (DTid.x*4 + 1)*4, asuint(b1*scale0+bias0) );
-    BufferOut.Store( (h*w + DTid.x*4 + 1)*4, asuint(g1*scale1+bias1) );
-    BufferOut.Store( (h*w*2 + DTid.x*4 + 1)*4, asuint(r1*scale2+bias2) );
-	
-	BufferOut.Store( (DTid.x*4 + 2)*4, asuint(b2*scale0+bias0) );
-    BufferOut.Store( (h*w + DTid.x*4 + 2)*4, asuint(g2*scale1+bias1) );
-    BufferOut.Store( (h*w*2 + DTid.x*4 + 2)*4, asuint(r2*scale2+bias2) );
-	
-	BufferOut.Store( (DTid.x*4 + 3)*4, asuint(b3*scale0+bias0) );
-    BufferOut.Store( (h*w + DTid.x*4 + 3)*4, asuint(g3*scale1+bias1) );
-    BufferOut.Store( (h*w*2 + DTid.x*4 + 3)*4, asuint(r3*scale2+bias2) );
+
+    BufferOut.Store( (hw0 + x4 + 0 + zchw)*STRIDE, asuint(b0*scale0+bias0) );
+    BufferOut.Store( (hw1 + x4 + 0 + zchw)*STRIDE, asuint(g0*scale1+bias1) );
+    BufferOut.Store( (hw2 + x4 + 0 + zchw)*STRIDE, asuint(r0*scale2+bias2) );
+
+	BufferOut.Store( (hw0 + x4 + 1 + zchw)*STRIDE, asuint(b1*scale0+bias0) );
+    BufferOut.Store( (hw1 + x4 + 1 + zchw)*STRIDE, asuint(g1*scale1+bias1) );
+    BufferOut.Store( (hw2 + x4 + 1 + zchw)*STRIDE, asuint(r1*scale2+bias2) );
+
+	BufferOut.Store( (hw0 + x4 + 2 + zchw)*STRIDE, asuint(b2*scale0+bias0) );
+    BufferOut.Store( (hw1 + x4 + 2 + zchw)*STRIDE, asuint(g2*scale1+bias1) );
+    BufferOut.Store( (hw2 + x4 + 2 + zchw)*STRIDE, asuint(r2*scale2+bias2) );
+
+	BufferOut.Store( (hw0 + x4 + 3 + zchw)*STRIDE, asuint(b3*scale0+bias0) );
+    BufferOut.Store( (hw1 + x4 + 3 + zchw)*STRIDE, asuint(g3*scale1+bias1) );
+    BufferOut.Store( (hw2 + x4 + 3 + zchw)*STRIDE, asuint(r3*scale2+bias2) );
 }
