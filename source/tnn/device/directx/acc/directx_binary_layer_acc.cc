@@ -128,10 +128,7 @@ Status DirectXBinaryLayerAcc::CalcStrides(const std::vector<Blob *> &inputs, con
     return TNN_OK;
 }
 
-Status DirectXBinaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-
-    Status status = DirectXLayerAcc::Forward(inputs, outputs);
-    RETURN_ON_NEQ(status, TNN_OK);
+Status DirectXBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
     auto d3d_context = GetID3DContext();
 

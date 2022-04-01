@@ -40,6 +40,8 @@ public:
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) = 0;
+
     virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override;
 
 protected:
@@ -62,13 +64,11 @@ protected:
 
     LayerParam *param_ = nullptr;
     LayerResource *resource_ = nullptr;
-    std::string op_name_ = "";
     std::string layer_name_ = "";
     DimsVector input_dims_ = {};
     DimsVector output_dims_ = {};
 
     GpuInfo gpu_info_;
-    bool run_3d_ndrange_ = false;
     bool use_buffer_     = false;
 
 private:

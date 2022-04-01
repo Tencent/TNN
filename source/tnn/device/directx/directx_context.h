@@ -67,6 +67,14 @@ public:
     void* GetSharedWorkSpace(size_t size);
     void* GetSharedWorkSpace(size_t size, int index);
 
+
+#if TNN_PROFILE
+public:
+    virtual void StartProfile() override;
+    virtual std::shared_ptr<ProfileResult> FinishProfile() override;
+    
+#endif
+
 private:
     int num_threads_;
     std::vector<RawBuffer> work_space_;

@@ -20,6 +20,7 @@
 #include "tnn/device/directx/directx_device.h"
 #include "tnn/device/directx/directx_memory.h"
 #include "tnn/device/directx/directx_util.h"
+#include "tnn/device/directx/directx_common.h"
 #include "tnn/utils/string_utils_inner.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/data_type_utils.h"
@@ -80,7 +81,21 @@ Status DirectXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 
 Status DirectXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
-    return TNN_OK;
+#if TNN_PROFILE
+    std::shared_ptr<DirectXProfilingData> pdata(new DirectXProfilingData());
+    RETURN_ON_NEQ(pdata->Init(), TNN_OK);
+    pdata->Begin();
+    UpdateProfilingData(pdata.get(), param_, input_dims_, output_dims_);
+#endif
+
+    Status ret = this->DoForward(inputs, outputs);
+
+#if TNN_PROFILE
+    pdata->End();
+    dx_context_->AddProfilingData(pdata);
+#endif
+
+    return ret;
 }
 
 std::vector<DataFormat> DirectXLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {

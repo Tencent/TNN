@@ -23,7 +23,67 @@
 #undef LoadLibrary
 
 #include "tnn/core/macro.h"
+#include "tnn/core/status.h"
 #include "tnn/device/directx/directx_macro.h"
+#include "tnn/core/profile.h"
+
+namespace TNN_NS {
+
+namespace directx {
+
+struct DirectXProfilingData : public ProfilingData {
+    DirectXProfilingData();
+
+    virtual ~DirectXProfilingData();
+
+    // @brief Init the Query struct
+    Status Init();
+
+    // @brief Log the start time point 
+    void Begin();
+
+    // @brief Log the end time point 
+    void End();
+
+    // @brief calc the kernel time, uint64_in d3d timestamp, not unix timestamp
+    uint64_t Finalize();
+
+    ID3D11Query * start_point = nullptr;
+    ID3D11Query * end_point = nullptr;
+
+};
+
+#if TNN_PROFILE
+class DirectXProfilingResult :public ProfileResult {
+public:
+
+    virtual ~DirectXProfilingResult();
+
+    // @brief Init the Query struct
+    Status Init();
+
+    // @brief begin the disjoint query 
+    void Begin();
+
+    // @brief end the disjoint query 
+    void End();
+
+    // @brief This function shows the detailed timing for each layer in the model.
+    virtual std::string GetProfilingDataInfo();
+
+protected:
+
+    // @brief Get timestamp from ID3D11Query struct after kernel execution
+    Status GetD3DQueryData();
+
+    ID3D11Query * disjoint_ = nullptr;
+
+};
+#endif
+
+} // namespace directx
+
+} // namespace TNN_NS
 
 
 #endif
