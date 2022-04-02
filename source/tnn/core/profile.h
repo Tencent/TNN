@@ -65,10 +65,10 @@ public:
     void Reset();
 
     // @brief add profiling data of each layer
-    void AddProfilingData(std::shared_ptr<ProfilingData> pdata);
+    virtual void AddProfilingData(std::shared_ptr<ProfilingData> pdata);
 
     // @brief add profiling result
-    void AddProfileResult(std::shared_ptr<ProfileResult> result);
+    virtual void AddProfileResult(std::shared_ptr<ProfileResult> result);
 
     // @brief get profiling data
     virtual std::vector<std::shared_ptr<ProfilingData>> GetData();

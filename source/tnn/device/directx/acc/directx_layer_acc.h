@@ -16,6 +16,7 @@
 #define TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_LAYER_ACC_H_
 
 #include <vector>
+#include <memory>
 
 #include "tnn/core/abstract_layer_acc.h"
 
@@ -24,6 +25,7 @@
 // #include "tnn/device/directx/directx_execute_unit.h"
 #include "tnn/device/directx/directx_runtime.h"
 #include "tnn/device/directx/directx_util.h"
+#include "tnn/device/directx/directx_common.h"
 
 namespace TNN_NS {
 
@@ -70,6 +72,10 @@ protected:
 
     GpuInfo gpu_info_;
     bool use_buffer_     = false;
+
+#if TNN_PROFILE
+    std::shared_ptr<DirectXProfilingData> profiling_data = nullptr;
+#endif
 
 private:
     // Status ConvertChannelWeights(float *handle_data_ptr, shared_ptr<DirectXMemory> &ocl_handle, int output_channel,

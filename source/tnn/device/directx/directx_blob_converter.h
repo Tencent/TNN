@@ -15,11 +15,14 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_DIRECTX_DIRECTX_BLOB_CONVERTER_H_
 #define TNN_SOURCE_TNN_DEVICE_DIRECTX_DIRECTX_BLOB_CONVERTER_H_
 
+#include <memory>
+
 #include "tnn/core/macro.h"
 #include "tnn/utils/blob_converter_default.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/device/directx/directx_memory.h"
 #include "tnn/device/directx/directx_util.h"
+#include "tnn/device/directx/directx_common.h"
 #include "tnn/device/directx/kernels/N8UC3ToNCHW.h"
 #include "tnn/device/directx/kernels/N8UC4ToNCHW.h"
 
@@ -38,8 +41,8 @@ typedef enum {
 
 class DirectXBlobConverterAcc : public DefaultBlobConverterAcc {
 public:
-    DirectXBlobConverterAcc(Blob *blob) : DefaultBlobConverterAcc(blob) {}
-    ~DirectXBlobConverterAcc() {}
+    DirectXBlobConverterAcc(Blob *blob);
+    ~DirectXBlobConverterAcc();
 
     virtual Status ConvertToMat(Mat& image, MatConvertParam param, void* command_queue = NULL) override;
     virtual Status ConvertToMatAsync(Mat& image, MatConvertParam param, void* command_queue = NULL) override;
@@ -55,6 +58,9 @@ private:
     std::vector<float> fused_int8_bias;
     DirectXBlobConvertFunc cvt_func_ = nullptr;
 
+#if TNN_PROFILE
+    std::shared_ptr<DirectXProfilingData> profiling_data = nullptr;
+#endif
     static Status GetBlobConvertFunc(MatType mat_type, DataType data_type, BlobConvertDirection cvt_dir,
                                      DirectXBlobConvertFunc& cvt_func);
     static std::string GetUniqueBlobConvertKey(MatType mat_type, DataType data_type, BlobConvertDirection cvt_dir);

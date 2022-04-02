@@ -70,6 +70,11 @@ Status DirectXLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     status = ReloadConstantBlobs(inputs, false);
     RETURN_ON_NEQ(status, TNN_OK);
 
+#if TNN_PROFILE
+    profiling_data = std::shared_ptr<DirectXProfilingData>(new DirectXProfilingData());
+    RETURN_ON_NEQ(profiling_data->Init(), TNN_OK);
+#endif
+
     return TNN_OK;
 }
 
@@ -82,17 +87,17 @@ Status DirectXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 Status DirectXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
 #if TNN_PROFILE
-    std::shared_ptr<DirectXProfilingData> pdata(new DirectXProfilingData());
-    RETURN_ON_NEQ(pdata->Init(), TNN_OK);
-    pdata->Begin();
-    UpdateProfilingData(pdata.get(), param_, input_dims_, output_dims_);
+    UpdateProfilingData(profiling_data.get(), param_, input_dims_, output_dims_);
+    // context only accepts profilingdata after the StartProfile() call
+    // DirectXProfilingResult will remove duplicated datas, on worry 
+    dx_context_->AddProfilingData(profiling_data);
+    profiling_data->Begin();
 #endif
 
     Status ret = this->DoForward(inputs, outputs);
 
 #if TNN_PROFILE
-    pdata->End();
-    dx_context_->AddProfilingData(pdata);
+    profiling_data->End();
 #endif
 
     return ret;

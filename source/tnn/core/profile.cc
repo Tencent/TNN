@@ -34,6 +34,8 @@ void ProfilingData::Add(ProfilingData* data) {
     }
 
     kernel_time += data->kernel_time;
+    submit_time += data->submit_time;
+    enqueue_time+= data->enqueue_time;
     count += data->count;
 
     if (input_dims.size() <= 0) {

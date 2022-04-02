@@ -16,6 +16,9 @@
 #define TNN_DIRECTX_COMMON_H_
 
 #include <memory>
+#include <vector>
+#include <unordered_set>
+#include <chrono>
 
 #define NOMINMAX
 #include <d3dcommon.h>
@@ -45,11 +48,26 @@ struct DirectXProfilingData : public ProfilingData {
     // @brief Log the end time point 
     void End();
 
-    // @brief calc the kernel time, uint64_in d3d timestamp, not unix timestamp
-    uint64_t Finalize();
+    // @brief Flush the query events
+    void Flush();
 
-    ID3D11Query * start_point = nullptr;
-    ID3D11Query * end_point = nullptr;
+    // @brief Reset count to zero
+    void Reset();
+
+    // @brief Update the kernel time to walltime by gpu frequency 
+    void Finalize(double frequency);
+
+    // @brief calc the kernel time, uint64_in d3d timestamp, not unix timestamp
+    uint64_t GetLastTics();
+
+    ID3D11Query * begin_query = nullptr;
+    ID3D11Query * end_query = nullptr;
+
+    bool need_flush = false;
+    std::vector<uint64_t> kernel_tics;
+
+    std::chrono::time_point<std::chrono::system_clock> begin_point;
+    std::chrono::time_point<std::chrono::system_clock> end_point;
 
 };
 
@@ -71,12 +89,18 @@ public:
     // @brief This function shows the detailed timing for each layer in the model.
     virtual std::string GetProfilingDataInfo();
 
+    // @brief add profiling data of each layer
+    virtual void AddProfilingData(std::shared_ptr<ProfilingData> pdata);
+
 protected:
 
     // @brief Get timestamp from ID3D11Query struct after kernel execution
-    Status GetD3DQueryData();
+    Status UpdateDatasByFreqency();
 
     ID3D11Query * disjoint_ = nullptr;
+
+    std::vector<std::shared_ptr<DirectXProfilingData>> data_list_;
+    std::unordered_set<DirectXProfilingData *> data_set_;
 
 };
 #endif
