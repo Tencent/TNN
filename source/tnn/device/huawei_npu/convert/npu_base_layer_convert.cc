@@ -128,10 +128,10 @@ std::vector<std::shared_ptr<OperatorInfo>> &NpuBaseLayer::GetOutputOps() {
     return output_ops_;
 }
 
-std::map<LayerType, std::shared_ptr<NpuLayerCreator>> &GetGlobalNpuLayerCreatorMap() {
+thread_safe_map<LayerType, std::shared_ptr<NpuLayerCreator>> &GetGlobalNpuLayerCreatorMap() {
     static std::once_flag once;
-    static std::shared_ptr<std::map<LayerType, std::shared_ptr<NpuLayerCreator>>> creators;
-    std::call_once(once, []() { creators.reset(new std::map<LayerType, std::shared_ptr<NpuLayerCreator>>); });
+    static std::shared_ptr<thread_safe_map<LayerType, std::shared_ptr<NpuLayerCreator>>> creators;
+    std::call_once(once, []() { creators.reset(new thread_safe_map<LayerType, std::shared_ptr<NpuLayerCreator>>); });
     return *creators;
 }
 

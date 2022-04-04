@@ -20,8 +20,8 @@ namespace TNN_NS {
 
 namespace optimizer {
 
-    std::map<std::string, shared_ptr<NetOptimizer>> &NetOptimizerManager::GetNetOptimizerMap() {
-        static std::map<std::string, std::shared_ptr<NetOptimizer>> s_net_optimizer_map;
+    thread_safe_map<std::string, shared_ptr<NetOptimizer>> &NetOptimizerManager::GetNetOptimizerMap() {
+        static thread_safe_map<std::string, std::shared_ptr<NetOptimizer>> s_net_optimizer_map;
         return s_net_optimizer_map;
     }
 

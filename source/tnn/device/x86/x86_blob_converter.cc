@@ -27,8 +27,8 @@ std::string X86BlobConverterAcc::GetUniqueBlobConvertKey(MatType mat_type, DataT
     return ToString(mat_type) + "_" + ToString(data_type) + "_" + ToString(cvt_dir);
 }
 
-std::map<std::string, X86BlobConvertFunc>& X86BlobConverterAcc::GetBlobConvertFuncMap() {
-    static std::map<std::string, X86BlobConvertFunc> cvt_map;
+thread_safe_map<std::string, X86BlobConvertFunc>& X86BlobConverterAcc::GetBlobConvertFuncMap() {
+    static thread_safe_map<std::string, X86BlobConvertFunc> cvt_map;
     return cvt_map;
 }
 

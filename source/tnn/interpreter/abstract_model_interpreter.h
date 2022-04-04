@@ -22,6 +22,7 @@
 
 #include "tnn/core/common.h"
 #include "tnn/core/status.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -62,7 +63,7 @@ class TypeModelInterpreterCreator : public ModelInterpreterCreator {
 };
 
 //@brief TypeModelInterpreterCreator register map
-std::map<ModelType, std::shared_ptr<ModelInterpreterCreator>>& GetGlobalModelInterpreterCreatorMap();
+thread_safe_map<ModelType, std::shared_ptr<ModelInterpreterCreator>>& GetGlobalModelInterpreterCreatorMap();
 
 //@brief TypeModelInterpreterRegister register TypeModelInterpreterCreator
 template <typename T>

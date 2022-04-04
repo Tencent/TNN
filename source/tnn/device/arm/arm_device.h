@@ -16,6 +16,7 @@
 #define TNN_SOURCE_TNN_DEVICE_ARM_ARM_DEVICE_H_
 
 #include "tnn/core/abstract_device.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -59,9 +60,9 @@ public:
 
 private:
     BlobMemorySizeInfo Calculate1DMemorySize(BlobDesc& desc);
-    static std::map<LayerType, std::shared_ptr<LayerAccCreator>>& GetLayerCreatorMap();
-    static std::map<LayerType, std::shared_ptr<ImplementedPrecision>>& GetLayerPrecisionMap();
-    static std::map<LayerType, std::shared_ptr<ImplementedLayout>>& GetLayerLayoutMap();
+    static thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>>& GetLayerCreatorMap();
+    static thread_safe_map<LayerType, std::shared_ptr<ImplementedPrecision>>& GetLayerPrecisionMap();
+    static thread_safe_map<LayerType, std::shared_ptr<ImplementedLayout>>& GetLayerLayoutMap();
 };
 
 //@brief ArmTypeLayerAccRegister register ArmTypeLayerAccCreator

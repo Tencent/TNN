@@ -37,6 +37,7 @@
 #include "tnn/network/tensorrt/tensorrt_tensor.h"
 #include "tnn/extern_wrapper/base_layer_builder.h"
 #include "tnn/extern_wrapper/foreign_blob.h"
+#include "tnn/utils/thread_safe_map.h"
 
 using namespace nvinfer1;
 using namespace plugin;
@@ -106,10 +107,10 @@ class TensorRTLayerPluginBuilder;
 TensorRTBaseLayerBuilder* CreateTensorRTBaseLayerBuilder(LayerType type);
 
 // @brief TensorRTLayerBuilderCreator register map
-std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTLayerBuilderCreatorMap();
+thread_safe_map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTLayerBuilderCreatorMap();
 
 // @brief TensorRTPluginLayerBuilderCreator register map
-std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTPluginLayerBuilderCreatorMap();
+thread_safe_map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTPluginLayerBuilderCreatorMap();
 
 }  //  TNN_NS
 

@@ -165,7 +165,7 @@ namespace ncnn {
     Status NCNNModelInterpreter::AppendCommonLayer(
             str_arr& layer_cfg_arr,
             NetStructure *structure,
-            std::map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map) {
+            thread_safe_map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map) {
         Status ret = TNN_OK;
         auto cur_layer = std::make_shared<LayerInfo>();
         // 0.LayerType;1.layer_name;2.input_count;3.output_count
@@ -296,8 +296,8 @@ namespace ncnn {
         return TNN_OK;
     }
 
-    std::map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &NCNNModelInterpreter::GetLayerInterpreterMap() {
-        static std::map<std::string, std::shared_ptr<AbstractLayerInterpreter>> layer_interpreter_map;
+    thread_safe_map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &NCNNModelInterpreter::GetLayerInterpreterMap() {
+        static thread_safe_map<std::string, std::shared_ptr<AbstractLayerInterpreter>> layer_interpreter_map;
         return layer_interpreter_map;
     }
 

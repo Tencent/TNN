@@ -23,6 +23,7 @@
 #include <vector>
 #include "tnn/core/abstract_device.h"
 #include "tnn/core/common.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -58,8 +59,8 @@ public:
                                     ISharedMemoryChangeListener *listener);
 
 private:
-    static std::map<SharedMemoryId, SharedMemory> s_shared_forward_memory;
-    static std::map<SharedMemoryId, std::vector<ISharedMemoryChangeListener *>>
+    static thread_safe_map<SharedMemoryId, SharedMemory> s_shared_forward_memory;
+    static thread_safe_map<SharedMemoryId, std::vector<ISharedMemoryChangeListener *>>
         s_shared_memory_instances;
 };
 

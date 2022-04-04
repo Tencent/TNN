@@ -27,6 +27,7 @@
 #include "tnn/core/profile.h"
 #include "tnn/utils/half_utils_inner.h"
 #include "tnn/utils/string_utils.h"
+#include "tnn/utils/thread_safe_map.h"
 
 #if (defined __ANDROID_API__) && (__ANDROID_API__ >= 21)
 #include <sys/system_properties.h>
@@ -313,7 +314,7 @@ std::vector<uint32_t> LocalWS2DDefault(const std::vector<uint32_t> &gws, const u
 }
 
 std::vector<uint32_t> LocalTune(OpenCLExecuteUnit &unit, OpenCLContext *context, std::string tune_key) {
-    std::map<std::string, std::vector<uint32_t>> &tune_map = context->GetLocalSizeTuneMap();
+    thread_safe_map<std::string, std::vector<uint32_t>> &tune_map = context->GetLocalSizeTuneMap();
     if (tune_map.count(tune_key) > 0) {
         std::vector<uint32_t> lws = tune_map[tune_key];
         return lws;

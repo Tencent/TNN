@@ -148,7 +148,7 @@ Status MetalDevice::CopyFromDevice(BlobHandle *dst, const BlobHandle *src, BlobD
 }
 
 AbstractLayerAcc *MetalDevice::CreateLayerAcc(LayerType type) {
-    std::map<LayerType, std::shared_ptr<LayerAccCreator>> &layer_creator_map = GetLayerCreatorMap();
+    thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>> &layer_creator_map = GetLayerCreatorMap();
     if (layer_creator_map.count(type) > 0) {
         return layer_creator_map[type]->CreateLayerAcc(type);
     } else {
@@ -174,18 +174,18 @@ std::shared_ptr<const ImplementedLayout> MetalDevice::GetImplementedLayout(Layer
     return std::make_shared<ImplementedLayout>();
 }
 
-std::map<LayerType, std::shared_ptr<LayerAccCreator>> &MetalDevice::GetLayerCreatorMap() {
-    static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
+thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>> &MetalDevice::GetLayerCreatorMap() {
+    static thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;
 }
 
-std::map<LayerType, std::shared_ptr<ImplementedLayout>> &MetalDevice::GetLayerLayoutMap() {
-    static std::map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
+thread_safe_map<LayerType, std::shared_ptr<ImplementedLayout>> &MetalDevice::GetLayerLayoutMap() {
+    static thread_safe_map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
     return layer_layout_map;
 }
 
 Status MetalDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator *creator) {
-    std::map<LayerType, std::shared_ptr<LayerAccCreator>> &layer_creator_map = GetLayerCreatorMap();
+    thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>> &layer_creator_map = GetLayerCreatorMap();
     layer_creator_map[type]                                   = std::shared_ptr<LayerAccCreator>(creator);
     return TNN_OK;
 }

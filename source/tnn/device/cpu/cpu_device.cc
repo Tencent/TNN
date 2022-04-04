@@ -119,8 +119,8 @@ Status CpuDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator* creat
     return TNN_OK;
 }
 
-std::map<LayerType, std::shared_ptr<LayerAccCreator>>& CpuDevice::GetLayerCreatorMap() {
-    static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
+thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>>& CpuDevice::GetLayerCreatorMap() {
+    static thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;
 }
 

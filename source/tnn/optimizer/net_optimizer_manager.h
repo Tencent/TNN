@@ -26,6 +26,7 @@
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/interpreter/net_structure.h"
 #include "tnn/optimizer/net_optimizer.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -52,7 +53,7 @@ namespace optimizer {
         static std::shared_ptr<NetOptimizer> GetNetOptimizerByName(const std::string &k_net_optimizer);
 
     private:
-        static std::map<std::string, std::shared_ptr<NetOptimizer>> &GetNetOptimizerMap();
+        static thread_safe_map<std::string, std::shared_ptr<NetOptimizer>> &GetNetOptimizerMap();
 
         static std::vector<std::pair<OptPriority, std::string>> &GetNetOptimizerSeq();
     };

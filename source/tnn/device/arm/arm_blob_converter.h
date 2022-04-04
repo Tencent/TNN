@@ -19,6 +19,7 @@
 #include "tnn/device/arm/arm_util.h"
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/blob_converter_internal.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -61,7 +62,7 @@ private:
     static Status GetBlobConvertFunc(MatType mat_type, DataType data_type, BlobConvertDirection cvt_dir,
                                      ArmBlobConvertFunc& cvt_func);
     static std::string GetUniqueBlobConvertKey(MatType mat_type, DataType data_type, BlobConvertDirection cvt_dir);
-    static std::map<std::string, ArmBlobConvertFunc>& GetBlobConvertFuncMap();
+    static thread_safe_map<std::string, ArmBlobConvertFunc>& GetBlobConvertFuncMap();
 };
 
 class ArmBlobConvertFuncRegister {

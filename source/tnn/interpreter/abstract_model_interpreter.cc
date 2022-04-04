@@ -17,10 +17,10 @@
 
 namespace TNN_NS {
 
-std::map<ModelType, std::shared_ptr<ModelInterpreterCreator>> &GetGlobalModelInterpreterCreatorMap() {
+thread_safe_map<ModelType, std::shared_ptr<ModelInterpreterCreator>> &GetGlobalModelInterpreterCreatorMap() {
     static std::once_flag once;
-    static std::shared_ptr<std::map<ModelType, std::shared_ptr<ModelInterpreterCreator>>> creators;
-    std::call_once(once, []() { creators.reset(new std::map<ModelType, std::shared_ptr<ModelInterpreterCreator>>); });
+    static std::shared_ptr<thread_safe_map<ModelType, std::shared_ptr<ModelInterpreterCreator>>> creators;
+    std::call_once(once, []() { creators.reset(new thread_safe_map<ModelType, std::shared_ptr<ModelInterpreterCreator>>); });
     return *creators;
 }
 

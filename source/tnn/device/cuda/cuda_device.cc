@@ -165,9 +165,9 @@ Status CudaDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator *crea
     return TNN_OK;
 }
 
-std::map<LayerType, std::shared_ptr<LayerAccCreator>>&
+thread_safe_map::map<LayerType, std::shared_ptr<LayerAccCreator>>&
 CudaDevice::GetLayerCreatorMap() {
-    static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
+    static thread_safe_map::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;
 }
 

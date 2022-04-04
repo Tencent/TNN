@@ -16,6 +16,7 @@
 #define TNN_SOURCE_TNN_DEVICE_CUDA_CUDA_DEVICE_H_
 
 #include "tnn/core/abstract_device.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -55,7 +56,7 @@ public:
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
 
 private:
-    static std::map<LayerType, std::shared_ptr<LayerAccCreator>>& GetLayerCreatorMap();
+    static thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>>& GetLayerCreatorMap();
 };
 
 // @brief CudaTypeLayerAccRegister register CudaTypeLayerAccCreator

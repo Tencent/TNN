@@ -476,13 +476,13 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
 }
 
 Status ModelInterpreter::RegisterLayerInterpreter(LayerType type, AbstractLayerInterpreter *interpreter) {
-    std::map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map = GetLayerInterpreterMap();
+    thread_safe_map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map = GetLayerInterpreterMap();
     layer_interpreter_map[type] = std::shared_ptr<AbstractLayerInterpreter>(interpreter);
     return TNN_OK;
 }
 
-std::map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> &ModelInterpreter::GetLayerInterpreterMap() {
-    static std::map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> layer_interpreter_map;
+thread_safe_map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> &ModelInterpreter::GetLayerInterpreterMap() {
+    static thread_safe_map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> layer_interpreter_map;
     return layer_interpreter_map;
 }
 

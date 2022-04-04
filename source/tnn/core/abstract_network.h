@@ -26,6 +26,7 @@
 #include "tnn/core/profile.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -120,7 +121,7 @@ public:
     static void RegisterNetworkImplFactory(NetworkType type, AbstractNetworkImplFactory *factory);
 
 private:
-    static std::map<NetworkType, std::shared_ptr<AbstractNetworkImplFactory>> &GetNetworkImplFactoryMap();
+    static thread_safe_map<NetworkType, std::shared_ptr<AbstractNetworkImplFactory>> &GetNetworkImplFactoryMap();
 };
 
 template <typename T>

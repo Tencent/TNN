@@ -23,6 +23,7 @@
 #include "tnn/core/status.h"
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/blob_converter.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -103,7 +104,7 @@ private:
 };
 
 // @brief GetGlobalDeviceMap device type map
-std::map<DeviceType, std::shared_ptr<AbstractDevice>>& GetGlobalDeviceMap();
+thread_safe_map<DeviceType, std::shared_ptr<AbstractDevice>>& GetGlobalDeviceMap();
 
 // @brief Get Device
 AbstractDevice* GetDevice(DeviceType type);

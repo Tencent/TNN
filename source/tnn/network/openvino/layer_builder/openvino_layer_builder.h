@@ -34,6 +34,7 @@
 #include "tnn/extern_wrapper/base_layer_builder.h"
 #include "tnn/network/openvino/openvino_types.h"
 #include "tnn/device/x86/x86_device.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -77,7 +78,7 @@ protected:
     virtual LayerResource* GetResource();
     BaseLayer* base_layer_;
 
-    std::map<DataType, ngraph::element::Type_t> dataTypeTransfer = {
+    thread_safe_map<DataType, ngraph::element::Type_t> dataTypeTransfer = {
         {DATA_TYPE_FLOAT, ngraph::element::Type_t::f32},
         {DATA_TYPE_BFP16, ngraph::element::Type_t::bf16},
         {DATA_TYPE_HALF, ngraph::element::Type_t::f16},
@@ -85,12 +86,12 @@ protected:
         {DATA_TYPE_INT8, ngraph::element::Type_t::i8}
     };
 
-    std::map<LayerType, std::shared_ptr<LayerAccCreator>> _x86_map;
+    thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>> _x86_map;
     std::set<LayerType> _ov_custom_type;
 };
 
 //@brief TypeLayerBuilderCreator register map
-std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetOpenVINOLayerBuilderCreatorMap();
+thread_safe_map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetOpenVINOLayerBuilderCreatorMap();
 
 //@brief TypeLayerBuilderRegister register TypeLayerBuilderCreator
 template <typename T>

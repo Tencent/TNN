@@ -179,10 +179,10 @@ void CoreMLBaseLayer::SetLayerOutputs(std::vector<std::string>& outputs) {
      }
 }
 
-std::map<LayerType, std::shared_ptr<CoreMLLayerCreator>> &GetGlobalCoreMLLayerCreatorMap() {
+thread_safe_map<LayerType, std::shared_ptr<CoreMLLayerCreator>> &GetGlobalCoreMLLayerCreatorMap() {
     static std::once_flag once;
-    static std::shared_ptr<std::map<LayerType, std::shared_ptr<CoreMLLayerCreator>>> creators;
-    std::call_once(once, []() { creators.reset(new std::map<LayerType, std::shared_ptr<CoreMLLayerCreator>>); });
+    static std::shared_ptr<thread_safe_map<LayerType, std::shared_ptr<CoreMLLayerCreator>>> creators;
+    std::call_once(once, []() { creators.reset(new thread_safe_map<LayerType, std::shared_ptr<CoreMLLayerCreator>>); });
     return *creators;
 }
 

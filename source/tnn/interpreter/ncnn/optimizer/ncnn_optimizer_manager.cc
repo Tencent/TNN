@@ -27,8 +27,8 @@ namespace TNN_NS {
 
 namespace ncnn {
 
-    std::map<std::string, shared_ptr<NCNNOptimizer>> &NCNNOptimizerManager::GetNetOptimizerMap() {
-        static std::map<std::string, std::shared_ptr<NCNNOptimizer>> s_ncnn_optimizer_map;
+    thread_safe_map<std::string, shared_ptr<NCNNOptimizer>> &NCNNOptimizerManager::GetNetOptimizerMap() {
+        static thread_safe_map<std::string, std::shared_ptr<NCNNOptimizer>> s_ncnn_optimizer_map;
         return s_ncnn_optimizer_map;
     }
 

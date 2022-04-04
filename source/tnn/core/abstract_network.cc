@@ -15,6 +15,7 @@
 #include "tnn/core/abstract_network.h"
 
 #include "tnn/core/profile.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -44,8 +45,8 @@ std::shared_ptr<ProfileResult> AbstractNetwork::FinishProfile() {
 }
 #endif
 
-std::map<NetworkType, std::shared_ptr<AbstractNetworkImplFactory>> &NetworkImplManager::GetNetworkImplFactoryMap() {
-    static std::map<NetworkType, std::shared_ptr<AbstractNetworkImplFactory>> s_network_impl_factory_map;
+thread_safe_map<NetworkType, std::shared_ptr<AbstractNetworkImplFactory>> &NetworkImplManager::GetNetworkImplFactoryMap() {
+    static thread_safe_map<NetworkType, std::shared_ptr<AbstractNetworkImplFactory>> s_network_impl_factory_map;
     return s_network_impl_factory_map;
 }
 

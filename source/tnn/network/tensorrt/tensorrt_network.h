@@ -25,6 +25,7 @@
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 #include "tnn/network/tensorrt/tensorrt_tensor.h"
 #include "tnn/network/tensorrt/tensorrt_blob_manager.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 

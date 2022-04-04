@@ -25,8 +25,8 @@ bool operator<(SharedMemoryId lhs, SharedMemoryId rhs) {
     }
 }
 
-std::map<SharedMemoryId, SharedMemory> SharedMemoryManager::s_shared_forward_memory;
-std::map<SharedMemoryId, std::vector<ISharedMemoryChangeListener *>> SharedMemoryManager::s_shared_memory_instances;
+thread_safe_map<SharedMemoryId, SharedMemory> SharedMemoryManager::s_shared_forward_memory;
+thread_safe_map<SharedMemoryId, std::vector<ISharedMemoryChangeListener *>> SharedMemoryManager::s_shared_memory_instances;
 
 SharedMemory SharedMemoryManager::GetSharedMemory(int forward_memory_size, std::thread::id thread_id,
                                                   AbstractDevice *device, int device_id,

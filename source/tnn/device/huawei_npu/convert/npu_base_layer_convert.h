@@ -31,6 +31,7 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -121,7 +122,7 @@ protected:
 };
 
 //@brief TypeLayerCreator register map
-std::map<LayerType, std::shared_ptr<NpuLayerCreator>> &GetGlobalNpuLayerCreatorMap();
+thread_safe_map<LayerType, std::shared_ptr<NpuLayerCreator>> &GetGlobalNpuLayerCreatorMap();
 
 //@brief TypeLayerRegister register TypeLayerCreator
 template <typename T>

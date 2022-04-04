@@ -19,8 +19,8 @@
 
 namespace TNN_NS {
 
-std::map<std::string, unary2_kernel_avx_func_t> &X86Unary2LayerAcc::GetUnary2KernelMap() {
-    static std::map<std::string, unary2_kernel_avx_func_t> kernel_map;
+thread_safe_map<std::string, unary2_kernel_avx_func_t> &X86Unary2LayerAcc::GetUnary2KernelMap() {
+    static thread_safe_map<std::string, unary2_kernel_avx_func_t> kernel_map;
     return kernel_map;
 }
 

@@ -26,6 +26,7 @@
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/interpreter/net_structure.h"
 #include "tnn/interpreter/ncnn/optimizer/ncnn_optimizer.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -40,7 +41,7 @@ namespace ncnn {
         static void RegisterNetOptimizer(NCNNOptimizer *ptimizer);
 
     private:
-        static std::map<std::string, std::shared_ptr<NCNNOptimizer>>
+        static thread_safe_map<std::string, std::shared_ptr<NCNNOptimizer>>
             &GetNetOptimizerMap();
 
         static std::vector<std::string> &GetNetOptimizerSeq();

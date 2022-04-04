@@ -15,6 +15,7 @@
 #include "tnn/device/huawei_npu/npu_device.h"
 #include "tnn/device/huawei_npu/npu_context.h"
 #include "tnn/utils/blob_memory_size_utils.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -90,8 +91,8 @@ NetworkType NpuDevice::ConvertAutoNetworkType() {
     return NETWORK_TYPE_HUAWEI_NPU;
 }
 
-std::map<LayerType, std::shared_ptr<LayerAccCreator>>& NpuDevice::GetLayerCreatorMap() {
-    static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
+thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>>& NpuDevice::GetLayerCreatorMap() {
+    static thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;
 }
 

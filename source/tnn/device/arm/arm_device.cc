@@ -171,8 +171,8 @@ Status ArmDevice::RegisterLayerAccCreator(LayerType type, LayerAccCreator *creat
     return TNN_OK;
 }
 
-std::map<LayerType, std::shared_ptr<LayerAccCreator>> &ArmDevice::GetLayerCreatorMap() {
-    static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
+thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>> &ArmDevice::GetLayerCreatorMap() {
+    static thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;
 }
 
@@ -186,13 +186,13 @@ Status ArmDevice::RegisterLayerLayout(LayerType type, std::shared_ptr<Implemente
     return TNN_OK;
 }
 
-std::map<LayerType, std::shared_ptr<ImplementedPrecision>> &ArmDevice::GetLayerPrecisionMap() {
-    static std::map<LayerType, std::shared_ptr<ImplementedPrecision>> layer_precision_map;
+thread_safe_map<LayerType, std::shared_ptr<ImplementedPrecision>> &ArmDevice::GetLayerPrecisionMap() {
+    static thread_safe_map<LayerType, std::shared_ptr<ImplementedPrecision>> layer_precision_map;
     return layer_precision_map;
 }
 
-std::map<LayerType, std::shared_ptr<ImplementedLayout>> &ArmDevice::GetLayerLayoutMap() {
-    static std::map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
+thread_safe_map<LayerType, std::shared_ptr<ImplementedLayout>> &ArmDevice::GetLayerLayoutMap() {
+    static thread_safe_map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
     return layer_layout_map;
 }
 

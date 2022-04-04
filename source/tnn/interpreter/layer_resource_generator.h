@@ -25,6 +25,7 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 //@brief random gen layer resource in benchmark mode, save upload model time
@@ -37,8 +38,8 @@ public:
     virtual Status ConvertHalfLayerResource(LayerResource* src_res, LayerResource** dst_res) {return TNN_OK;};
 };
 
-std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerResourceGeneratorMap();
-std::map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerConstantResourceGeneratorMap();
+thread_safe_map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerResourceGeneratorMap();
+thread_safe_map<LayerType, std::shared_ptr<LayerResourceGenerator>>& GetGlobalLayerConstantResourceGeneratorMap();
 
 Status GenerateRandomResource(LayerType type, LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs,
                               ConstantResource* consts=nullptr);

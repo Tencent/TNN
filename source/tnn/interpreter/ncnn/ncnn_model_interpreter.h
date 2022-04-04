@@ -19,6 +19,7 @@
 #include <vector>
 #include <algorithm>
 #include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -39,7 +40,7 @@ namespace ncnn {
         static Status RegisterLayerInterpreter(std::string type_name, AbstractLayerInterpreter* creator);
 
         // @brief get layer interpreter by layer type
-        static std::map<std::string, std::shared_ptr<AbstractLayerInterpreter>>& GetLayerInterpreterMap();
+        static thread_safe_map<std::string, std::shared_ptr<AbstractLayerInterpreter>>& GetLayerInterpreterMap();
 
     private:
         Status InterpretProto(std::string &content);
@@ -47,7 +48,7 @@ namespace ncnn {
         Status InterpretInput();
         Status AppendCommonLayer(
             str_arr& layer_cfg_arr, NetStructure *structure,
-            std::map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map);
+            thread_safe_map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map);
 
         Status FindOutputs();
         Status Convert(shared_ptr<LayerInfo> cur_layer, std::vector<std::shared_ptr<LayerInfo>> output_layers);

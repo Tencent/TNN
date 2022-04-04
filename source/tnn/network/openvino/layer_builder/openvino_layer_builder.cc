@@ -121,11 +121,11 @@ void OpenVINOLayerBuilder::SetConstantResource(ConstantResource* consts) {
     this->base_layer_->SetConstantResource(consts);
 }
 
-std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetOpenVINOLayerBuilderCreatorMap() {
+thread_safe_map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetOpenVINOLayerBuilderCreatorMap() {
     // static shared_ptr of LayerCreatorMap.
     static std::once_flag once;
-    static std::shared_ptr<std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>> creators;
-    std::call_once(once, []() { creators.reset(new std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>); });
+    static std::shared_ptr<thread_safe_map<LayerType, std::shared_ptr<LayerBuilderCreator>>> creators;
+    std::call_once(once, []() { creators.reset(new thread_safe_map<LayerType, std::shared_ptr<LayerBuilderCreator>>); });
     return *creators;
 }
 

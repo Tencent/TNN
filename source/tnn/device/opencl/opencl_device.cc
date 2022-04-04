@@ -227,8 +227,8 @@ NetworkType OpenCLDevice::ConvertAutoNetworkType() {
     return NETWORK_TYPE_DEFAULT;
 }
 
-std::map<LayerType, std::shared_ptr<LayerAccCreator>>& OpenCLDevice::GetLayerCreatorMap() {
-    static std::map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
+thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>>& OpenCLDevice::GetLayerCreatorMap() {
+    static thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>> layer_creator_map;
     return layer_creator_map;
 }
 
@@ -242,8 +242,8 @@ Status OpenCLDevice::RegisterLayerLayout(LayerType type, std::shared_ptr<Impleme
     return TNN_OK;
 }
 
-std::map<LayerType, std::shared_ptr<ImplementedLayout>> &OpenCLDevice::GetLayerLayoutMap() {
-    static std::map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
+thread_safe_map<LayerType, std::shared_ptr<ImplementedLayout>> &OpenCLDevice::GetLayerLayoutMap() {
+    static thread_safe_map<LayerType, std::shared_ptr<ImplementedLayout>> layer_layout_map;
     return layer_layout_map;
 }
 

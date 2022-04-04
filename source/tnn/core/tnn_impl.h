@@ -22,6 +22,7 @@
 #include "tnn/core/common.h"
 #include "tnn/core/instance.h"
 #include "tnn/core/status.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -98,7 +99,7 @@ public:
     static void RegisterTNNImplFactory(ModelType type, AbstractTNNImplFactory* factory);
 
 private:
-    static std::map<ModelType, std::shared_ptr<AbstractTNNImplFactory>>& GetTNNImplFactoryMap();
+    static thread_safe_map<ModelType, std::shared_ptr<AbstractTNNImplFactory>>& GetTNNImplFactoryMap();
 };
 
 template <typename T>

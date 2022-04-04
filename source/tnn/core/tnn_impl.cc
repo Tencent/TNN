@@ -31,8 +31,8 @@ Status TNNImpl::Init(ModelConfig &config) {
     return TNN_OK;
 }
 
-std::map<ModelType, std::shared_ptr<AbstractTNNImplFactory>> &TNNImplManager::GetTNNImplFactoryMap() {
-    static std::map<ModelType, std::shared_ptr<AbstractTNNImplFactory>> s_tnn_impl_factory_map;
+thread_safe_map<ModelType, std::shared_ptr<AbstractTNNImplFactory>> &TNNImplManager::GetTNNImplFactoryMap() {
+    static thread_safe_map<ModelType, std::shared_ptr<AbstractTNNImplFactory>> s_tnn_impl_factory_map;
     return s_tnn_impl_factory_map;
 }
 

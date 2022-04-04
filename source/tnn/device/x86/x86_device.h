@@ -20,6 +20,7 @@
 #include <cstring>
 
 #include "tnn/core/abstract_device.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -60,7 +61,7 @@ public:
 
 private:
     BlobMemorySizeInfo Calculate1DMemorySize(BlobDesc& desc);
-    static std::map<LayerType, std::shared_ptr<LayerAccCreator>> &GetLayerCreatorMap();
+    static thread_safe_map<LayerType, std::shared_ptr<LayerAccCreator>> &GetLayerCreatorMap();
 };
 
 // @brief X86TypeLayerAccRegister register X86TypeLayerAccCreator

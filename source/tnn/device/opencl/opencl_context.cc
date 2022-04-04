@@ -305,7 +305,7 @@ std::shared_ptr<cl::CommandQueue> OpenCLContext::GetCommandQueue() {
     return command_queue_; 
 }
 
-std::map<std::string, std::vector<uint32_t>>& OpenCLContext::GetLocalSizeTuneMap() {
+thread_safe_map<std::string, std::vector<uint32_t>>& OpenCLContext::GetLocalSizeTuneMap() {
     return local_size_tune_map_;
 }
 

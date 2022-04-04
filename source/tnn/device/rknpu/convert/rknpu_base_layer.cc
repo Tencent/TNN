@@ -90,10 +90,10 @@ std::vector<std::shared_ptr<rk::nn::Tensor>> &RknpuBaseLayer::GetOutputOps() {
     return output_ops_;
 }
 
-std::map<LayerType, std::shared_ptr<RknpuLayerCreator>> &GetGlobalRknpuLayerCreatorMap() {
+thread_safe_map<LayerType, std::shared_ptr<RknpuLayerCreator>> &GetGlobalRknpuLayerCreatorMap() {
     static std::once_flag once;
-    static std::shared_ptr<std::map<LayerType, std::shared_ptr<RknpuLayerCreator>>> creators;
-    std::call_once(once, []() { creators.reset(new std::map<LayerType, std::shared_ptr<RknpuLayerCreator>>); });
+    static std::shared_ptr<thread_safe_map<LayerType, std::shared_ptr<RknpuLayerCreator>>> creators;
+    std::call_once(once, []() { creators.reset(new thread_safe_map<LayerType, std::shared_ptr<RknpuLayerCreator>>); });
     return *creators;
 }
 

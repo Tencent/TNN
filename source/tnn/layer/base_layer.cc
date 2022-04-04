@@ -293,11 +293,11 @@ void BaseLayer::SetRuntimeMode(RuntimeMode mode) {
     runtime_model_ = mode;
 }
 
-std::map<LayerType, std::shared_ptr<LayerCreator>>& GetGlobalLayerCreatorMap() {
+thread_safe_map<LayerType, std::shared_ptr<LayerCreator>>& GetGlobalLayerCreatorMap() {
     // static shared_ptr of LayerCreatorMap.
     static std::once_flag once;
-    static std::shared_ptr<std::map<LayerType, std::shared_ptr<LayerCreator>>> creators;
-    std::call_once(once, []() { creators.reset(new std::map<LayerType, std::shared_ptr<LayerCreator>>); });
+    static std::shared_ptr<thread_safe_map<LayerType, std::shared_ptr<LayerCreator>>> creators;
+    std::call_once(once, []() { creators.reset(new thread_safe_map<LayerType, std::shared_ptr<LayerCreator>>); });
     return *creators;
 }
 

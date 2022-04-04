@@ -21,6 +21,7 @@
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/dims_utils.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -98,7 +99,7 @@ protected:
     LayerType type_;
 
     static std::string GetUnaryKernelName(LayerType type, x86_isa_t arch);
-    static std::map<std::string, unary2_kernel_avx_func_t> &GetUnary2KernelMap();
+    static thread_safe_map<std::string, unary2_kernel_avx_func_t> &GetUnary2KernelMap();
 };
 
 class X86Unary2KernelRegister {

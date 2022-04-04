@@ -24,6 +24,7 @@
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/string_utils_inner.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -35,8 +36,8 @@ std::string ArmBlobConverterAcc::GetUniqueBlobConvertKey(MatType mat_type, DataT
     return ToString(mat_type) + "_" + ToString(data_type) + "_" + ToString(cvt_dir);
 }
 
-std::map<std::string, ArmBlobConvertFunc>& ArmBlobConverterAcc::GetBlobConvertFuncMap() {
-    static std::map<std::string, ArmBlobConvertFunc> cvt_map;
+thread_safe_map<std::string, ArmBlobConvertFunc>& ArmBlobConverterAcc::GetBlobConvertFuncMap() {
+    static thread_safe_map<std::string, ArmBlobConvertFunc> cvt_map;
     return cvt_map;
 }
 

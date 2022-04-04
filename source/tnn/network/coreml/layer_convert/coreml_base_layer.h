@@ -28,6 +28,7 @@
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
 #include "tnn/interpreter/default_model_interpreter.h"
+#include "tnn/utils/thread_safe_map.h"
 #include "../mlmodel/include/Model.pb-c.h"
 
 #ifndef TNN_COREML_FULL_PRECISION
@@ -132,7 +133,7 @@ protected:
 };
 
 //@brief TypeLayerCreator register map
-std::map<LayerType, std::shared_ptr<CoreMLLayerCreator>> &GetGlobalCoreMLLayerCreatorMap();
+thread_safe_map<LayerType, std::shared_ptr<CoreMLLayerCreator>> &GetGlobalCoreMLLayerCreatorMap();
 
 //@brief TypeLayerRegister register TypeLayerCreator
 template <typename T>

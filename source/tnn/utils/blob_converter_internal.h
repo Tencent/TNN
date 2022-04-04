@@ -21,6 +21,7 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/common.h"
 #include "tnn/utils/blob_converter.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -53,7 +54,7 @@ public:
     int RegisterBlobConverterAccCreater(DeviceType type, std::shared_ptr<BlobConverterAccCreater> creater);
 
 private:
-    std::map<DeviceType, std::shared_ptr<BlobConverterAccCreater>> converter_creater_map_;
+    thread_safe_map<DeviceType, std::shared_ptr<BlobConverterAccCreater>> converter_creater_map_;
 };
 
 template <typename T>

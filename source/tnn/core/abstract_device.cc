@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/core/abstract_device.h"
+#include "tnn/utils/thread_safe_map.h"
 
 #include <map>
 #include <mutex>
@@ -56,10 +57,10 @@ AbstractDevice* GetDevice(DeviceType type) {
  * All devices are stored in this map.
  * The actual Device is registered as runtime.
  */
-std::map<DeviceType, std::shared_ptr<AbstractDevice>>& GetGlobalDeviceMap() {
+thread_safe_map<DeviceType, std::shared_ptr<AbstractDevice>>& GetGlobalDeviceMap() {
     static std::once_flag once;
-    static std::shared_ptr<std::map<DeviceType, std::shared_ptr<AbstractDevice>>> device_map;
-    std::call_once(once, []() { device_map.reset(new std::map<DeviceType, std::shared_ptr<AbstractDevice>>); });
+    static std::shared_ptr<thread_safe_map<DeviceType, std::shared_ptr<AbstractDevice>>> device_map;
+    std::call_once(once, []() { device_map.reset(new thread_safe_map<DeviceType, std::shared_ptr<AbstractDevice>>); });
     return *device_map;
 }
 

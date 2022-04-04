@@ -57,19 +57,19 @@ void TensorRTBaseLayerBuilder::SetNetwork(TensorRTNetwork_* network) {
     this->m_network = network;
 }
 
-std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTLayerBuilderCreatorMap() {
+thread_safe_map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTLayerBuilderCreatorMap() {
     // static shared_ptr of LayerCreatorMap.
     static std::once_flag once;
-    static std::shared_ptr<std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>> creators;
-    std::call_once(once, []() { creators.reset(new std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>); });
+    static std::shared_ptr<thread_safe_map<LayerType, std::shared_ptr<LayerBuilderCreator>>> creators;
+    std::call_once(once, []() { creators.reset(new thread_safe_map<LayerType, std::shared_ptr<LayerBuilderCreator>>); });
     return *creators;
 }
 
-std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTPluginLayerBuilderCreatorMap() {
+thread_safe_map<LayerType, std::shared_ptr<LayerBuilderCreator>>& GetTRTPluginLayerBuilderCreatorMap() {
     // static shared_ptr of LayerCreatorMap.
     static std::once_flag once;
-    static std::shared_ptr<std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>> creators;
-    std::call_once(once, []() { creators.reset(new std::map<LayerType, std::shared_ptr<LayerBuilderCreator>>); });
+    static std::shared_ptr<thread_safe_map<LayerType, std::shared_ptr<LayerBuilderCreator>>> creators;
+    std::call_once(once, []() { creators.reset(new thread_safe_map<LayerType, std::shared_ptr<LayerBuilderCreator>>); });
     return *creators;
 }
 

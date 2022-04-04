@@ -23,6 +23,7 @@
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/mat_utils.h"
 #include "tnn/utils/omp_utils.h"
+#include "tnn/utils/thread_safe_map.h"
 
 namespace TNN_NS {
 
@@ -55,7 +56,7 @@ public:
     int RegisterMatConverterAccCreater(DeviceType type, std::shared_ptr<MatConverterAccCreater> creater);
 
 private:
-    std::map<DeviceType, std::shared_ptr<MatConverterAccCreater>> converter_creater_map_;
+    thread_safe_map<DeviceType, std::shared_ptr<MatConverterAccCreater>> converter_creater_map_;
 };
 
 template <typename T>
