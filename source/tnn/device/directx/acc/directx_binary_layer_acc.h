@@ -35,6 +35,10 @@ public:
 
     virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override;
 
+#if TNN_PROFILE
+    virtual double GetBandwidth() override;
+#endif
+
 private:
 
     Status ConvertParam(float *bias_data_ptr, std::vector<int> param_dims);
@@ -53,10 +57,11 @@ private:
 
     unsigned int input_a_stride_[6];
     unsigned int input_b_stride_[6];
-    unsigned int param_stride_[6];
     unsigned int output_dim_[6];
 
     size_t output_dims_size_;
+
+    DataType data_type_;
 };
 
 #define DECLARE_DIRECTX_BINARY_ACC(type_string)                                                                        \

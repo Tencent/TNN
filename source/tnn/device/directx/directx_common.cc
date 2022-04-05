@@ -246,6 +246,7 @@ std::string DirectXProfilingResult::GetProfilingDataInfo() {
     // show the time cost of each layer
     std::string title                     = "Profiling Data";
     const std::vector<std::string> header = {"name",         "Op Type","Host time(ms)", "Kernel(ms)", "Input Dims", "Output Dims",
+                                             "GFlops", "Bandwith(GB/s)",
                                              "Filter(OIHW)", "Group", "Stride",  "Pad",        "Dilation"};
 
     std::vector<std::vector<std::string>> data;
@@ -255,6 +256,9 @@ std::string DirectXProfilingResult::GetProfilingDataInfo() {
     for (auto p : profiling_data_) {
         std::vector<std::string> tuple;
         tuple.reserve(16);
+        double kernel_time = p->kernel_time / p->count;
+        double gflops = p->flops / kernel_time / double(1u<<30) * 1000;
+        double gbps = p->bandwidth / kernel_time / double(1u<<30) * 1000;
 
         tuple.push_back(p->layer_name);
         tuple.push_back(p->op_name);
@@ -262,6 +266,8 @@ std::string DirectXProfilingResult::GetProfilingDataInfo() {
         tuple.push_back(DoubleToString(p->kernel_time / p->count));
         tuple.push_back(VectorToString(p->input_dims));
         tuple.push_back(VectorToString(p->output_dims));
+        tuple.push_back(DoubleToString(gflops));
+        tuple.push_back(DoubleToString(gbps));
         tuple.push_back(VectorToString(p->kernel_shape));
         tuple.push_back(IntToStringFilter(p->group));
         tuple.push_back(VectorToString(p->stride_shape));
