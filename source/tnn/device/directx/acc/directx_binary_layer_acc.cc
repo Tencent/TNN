@@ -14,13 +14,6 @@
 
 #include "tnn/device/directx/acc/directx_binary_layer_acc.h"
 
-#include <directxmath.h>
-#include <directxpackedvector.h>
-
-#include "tnn/core/macro.h"
-#include "tnn/device/directx/directx_memory.h"
-#include "tnn/device/directx/directx_util.h"
-
 
 namespace TNN_NS {
 

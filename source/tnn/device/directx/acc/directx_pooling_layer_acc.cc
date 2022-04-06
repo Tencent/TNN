@@ -13,10 +13,6 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/directx/acc/directx_pooling_layer_acc.h"
-#include "tnn/utils/string_utils_inner.h"
-#include "tnn/utils/dims_function_utils.h"
-#include <directxmath.h>
-
 
 namespace TNN_NS {
 
