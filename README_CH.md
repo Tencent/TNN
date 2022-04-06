@@ -1,5 +1,5 @@
 [English Version](README.md)
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
+<div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/TNN.png"/>
 
 ## 简介
 
@@ -68,7 +68,7 @@ demo                                                                            
 
 * TNN架构图：
 
-   <div><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/tnn_architect.jpg"/>
+   <div><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/imgs/tnn_architect.jpg"/>
 
 * 通过 ONNX 支持 TensorFlow， PyTorch， MXNet， Caffe 等多种训练框架，充分利用和融入不断完善的 ONNX 开源生态。当前支持 ONNX 算子100+，覆盖主流CNN, NLP网络。
 * 支持主流安卓、iOS、Embedded Linux 操作系统, Windows, Linux，支持 ARM CPU, x86, Mali GPU, Adreno GPU, NV GPU, 达芬奇NPU，RK NPU。
@@ -127,7 +127,7 @@ TNN参考和借鉴了下列项目：
 
 * 欢迎大家参与，协同共建，打造业界最好的高性能推理框架。
 
-* 技术交流 QQ 群： 913940506 答案：TNN
+* 技术交流 QQ 群： 704900079 答案：TNN
 
 * QQ 群二维码：
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN-QQ.png"/>
+<div align=left ><img src="TNN-QQ.png"/>
