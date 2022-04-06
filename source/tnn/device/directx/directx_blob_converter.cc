@@ -192,6 +192,7 @@ static Status NCHWToBlob(Mat& image,
     Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
+    LOGD("kernel name: NCHWToNHC4W4\n");
     std::shared_ptr<ID3D11ComputeShader> cs;
     status = GetShaderByName("NCHWToNHC4W4", cs);
     RETURN_ON_NEQ(status, TNN_OK);
@@ -249,6 +250,7 @@ static Status N8UC3ToBlob(Mat& image,
     Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
+    LOGD("kernel name: N8UC3ToNHC4W4\n");
     std::shared_ptr<ID3D11ComputeShader> cs;
     status = GetShaderByName("N8UC3ToNHC4W4", cs);
     RETURN_ON_NEQ(status, TNN_OK);
@@ -306,6 +308,7 @@ static Status N8UC4ToBlob(Mat& image,
     Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
+    LOGD("kernel name: N8UC4ToNHC4W4\n");
     std::shared_ptr<ID3D11ComputeShader> cs;
     status = GetShaderByName("N8UC4ToNHC4W4", cs);
     RETURN_ON_NEQ(status, TNN_OK);
@@ -363,6 +366,7 @@ static Status BlobToNCHW(Mat& image,
     Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
+    LOGD("kernel name: NHC4W4ToNCHW\n");
     std::shared_ptr<ID3D11ComputeShader> cs;
     status = GetShaderByName("NHC4W4ToNCHW", cs);
     RETURN_ON_NEQ(status, TNN_OK);

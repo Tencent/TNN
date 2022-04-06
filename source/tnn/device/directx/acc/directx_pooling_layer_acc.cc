@@ -31,7 +31,7 @@ Status DirectXPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerRe
     Status ret = DirectXLayerAcc::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(ret,TNN_OK);
 
-    run_3d_ndrange_ = true;
+//    run_3d_ndrange_ = true;
     kernel_name_    = "pooling";
 
     PoolingLayerParam *pooling_param = dynamic_cast<PoolingLayerParam *>(param);
@@ -73,10 +73,7 @@ Status DirectXPoolingLayerAcc::Reshape(const std::vector<Blob *> &inputs, const 
     return CalcParam(inputs, outputs);
 }
 
-Status DirectXPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-
-    Status status = DirectXLayerAcc::Forward(inputs, outputs);
-    RETURN_ON_NEQ(status, TNN_OK);
+Status DirectXPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
     auto d3d_context = GetID3DContext();
 
@@ -86,6 +83,7 @@ Status DirectXPoolingLayerAcc::Forward(const std::vector<Blob *> &inputs, const 
     auto in_srv = in_memory->GetSRV();
     auto out_uav = out_memory->GetUAV();
 
+    LOGD("kernel name: %s\n",kernel_name_.c_str());
     std::shared_ptr<ID3D11ComputeShader> cs;
     Status ret = GetShaderByName(kernel_name_, cs);
     RETURN_ON_NEQ(ret, TNN_OK);

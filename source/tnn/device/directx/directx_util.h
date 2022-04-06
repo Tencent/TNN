@@ -108,7 +108,7 @@ Status CreateConstBuffer(const T &host_value,
     constant_buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     constant_buffer_desc.CPUAccessFlags = 0;
 
-    LOGD("const buffer size_in_bytes:%lu", constant_buffer_desc.ByteWidth);
+    LOGD("const buffer size_in_bytes:%lu\n", constant_buffer_desc.ByteWidth);
     if (constant_buffer_desc.ByteWidth >= D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT ) {
         LOGE("too large const buffer, size_in_bytes:%lu should less than %lu\n", constant_buffer_desc.ByteWidth, D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT);
         return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "too large const buffer");
@@ -132,13 +132,6 @@ Status CreateConstBuffer(const T &host_value,
 
     return TNN_OK;
 }
-
-Status AllocateBuffer(std::shared_ptr<DirectXMemory> buffer_out,
-                      BlobMemorySizeInfo& desc,
-                      const void * inital_data);
-
-Status AllocateConstantBuffer(ID3D11Buffer* &pInputCBBuffer,
-                              ParamCB &paramCB_data);
 
 }
 }  // namespace TNN_NS
