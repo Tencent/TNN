@@ -4,7 +4,7 @@
 
 ## Overview
 
-<div align=left><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/convert.png"/>
+<div align=left><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/user/resource/convert.png"/>
 
 TNN currently supports the industry's mainstream model file formats, including ONNX, Pytorch, Tensorflow and Caffe. As shown in the figure above, TNN utilizes ONNX as the intermediate port to support multiple model file formats. 
 To convert model file formats such as Pytorch, Tensorflow, TensorFlow-Lite, and Caffe to TNN, you need to use corresponding tool to convert from the original format to ONNX model first, which then will be transferred into a TNN model.

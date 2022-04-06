@@ -18,13 +18,13 @@
 
    如下图点击benchmark工程，找到工程设置`Signing & Capabilities`，点击Team选项卡选择`Add an Account...`
 
-   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/ios_add_account_benchmark.jpg" width = "75%" height = "75%"/>
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/ios_add_account_benchmark.jpg" width = "75%" height = "75%"/>
 
    在如下界面输入Apple ID账号和密码，添加完成后回到`Signing & Capabilities`界面，并在Team选项卡中选中添加的账号。如果没有Apple ID也可以通过`Create Apple ID`选项根据相关提示进行申请。
 
     `PS：申请Apple ID无需付费，可以即时通过，通过后才可在真机上运行APP调试`
 
-   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/ios_set_account.jpg" width = "75%" height = "75%"/>
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/ios_set_account.jpg" width = "75%" height = "75%"/>
 
 
 4. 真机运行  
@@ -33,19 +33,19 @@
 
    如图在现有`Bundle Identifier`后随机添加后缀（限数字和字母），避免个人账户遇到签名冲突。
 
-   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/ios_set_bundleid_benchmark.jpg" width = "75%" height = "75%"/>
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/ios_set_bundleid_benchmark.jpg" width = "75%" height = "75%"/>
 
    4.2 验证授权
 
    首次运行先利用快捷键`Command + Shift + K`对工程进行清理，再执行快捷键`Command + R`运行。如果是首次登陆Apple ID，Xcode会弹框报如下错误，需要在iOS设备上根据提示进行授权验证。一般来说手机上的授权路径为：设置 -> 通用 -> 描述文件与设备管理 -> Apple Development选项 -> 点击信任
 
-   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/ios_verify_certificate_benchmark.jpg" width = "75%" height = "75%"/>
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/ios_verify_certificate_benchmark.jpg" width = "75%" height = "75%"/>
 
    4.3 运行结果
 
    首次运行先利用快捷键`Command + Shift + K`对工程进行清理，再执行快捷键`Command + R`运行。在界面上点击Run按钮，界面会显示model目录下所有模型的CPU和GPU耗时情况。iPhone7真机运行结果如下图。
 
-   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/ios_benchmark_result.jpg" width = "50%" height = "50%"/>
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/ios_benchmark_result.jpg" width = "50%" height = "50%"/>
 
    PS：
 
@@ -104,7 +104,7 @@ P.S. 不指定 -t, 默认跑CPU和GPU, 华为npu benchmark需通过-t HUAWEI_NPU
 ./benchmark_models.sh -c
 ```
 结果如图：
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/android_profiling.jpg" width = "75%" height = "75%"/>
+<div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/android_profiling.jpg" width = "75%" height = "75%"/>
 
 执行结果会保存在`benchmark_models_result.txt`中。
 
@@ -116,7 +116,7 @@ P.S. 不指定 -t, 默认跑CPU和GPU, 华为npu benchmark需通过-t HUAWEI_NPU
 ./benchmark_models.sh -c -f
 ```
 结果如图：
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/opencl_profiling.jpg" width = "75%" height = "75%"/>
+<div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/opencl_profiling.jpg" width = "75%" height = "75%"/>
 
 执行结果会保存在`benchmark_models_result.txt`中。  
 P.S. 华为npu不支持每层分析。
