@@ -109,37 +109,37 @@ public:
 
     thread_safe_map<Key, T, Compare, Alloc>& operator =  (const map& x) {
         rwlock_.lock_write();
-        auto ret = std::map<Key, T, Compare, Alloc>::operator = (x);
+        std::map<Key, T, Compare, Alloc>::operator = (x);
         rwlock_.unlock_write();
-        return (ret);
+        return (*this);
     }
 
     thread_safe_map<Key, T, Compare, Alloc>& operator =  (const thread_safe_map<Key, T, Compare, Alloc>& x) {
         rwlock_.lock_write();
-        auto ret = std::map<Key, T, Compare, Alloc>::operator = (x);
+        std::map<Key, T, Compare, Alloc>::operator = (x);
         rwlock_.unlock_write();
-        return (ret);
+        return (*this);
     }
 
     thread_safe_map<Key, T, Compare, Alloc>& operator =  (map&& x) {
         rwlock_.lock_write();
-        auto ret = std::map<Key, T, Compare, Alloc>::operator = (x);
+        std::map<Key, T, Compare, Alloc>::operator = (x);
         rwlock_.unlock_write();
-        return (ret);
+        return (*this);
     }
 
     thread_safe_map<Key, T, Compare, Alloc>& operator =  (thread_safe_map<Key, T, Compare, Alloc>&& x) {
         rwlock_.lock_write();
-        auto ret = std::map<Key, T, Compare, Alloc>::operator = (x);
+        std::map<Key, T, Compare, Alloc>::operator = (x);
         rwlock_.unlock_write();
-        return (ret);
+        return (*this);
     }
 
     thread_safe_map<Key, T, Compare, Alloc>& operator =  (std::initializer_list<value_type> il) {
         rwlock_.lock_write();
-        auto ret = std::map<Key, T, Compare, Alloc>::operator = (il);
+        std::map<Key, T, Compare, Alloc>::operator = (il);
         rwlock_.unlock_write();
-        return (ret);
+        return (*this);
     }
 
     bool empty() const noexcept {
