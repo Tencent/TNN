@@ -16,7 +16,6 @@
 #define TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_POOLING_LAYER_ACC_H_
 
 #include "tnn/device/directx/acc/directx_layer_acc.h"
-#include "tnn/device/directx/directx_memory.h"
 
 namespace TNN_NS {
 

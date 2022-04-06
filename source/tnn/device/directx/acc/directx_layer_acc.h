@@ -17,17 +17,23 @@
 
 #include <vector>
 #include <memory>
+#include <vector>
+#include <set>
+#include <directxmath.h>
 
+#include "tnn/core/macro.h"
 #include "tnn/core/abstract_layer_acc.h"
 
 #include "tnn/device/directx/directx_context.h"
 #include "tnn/device/directx/directx_device.h"
-// #include "tnn/device/directx/directx_execute_unit.h"
 #include "tnn/device/directx/directx_runtime.h"
 #include "tnn/device/directx/directx_util.h"
 #include "tnn/device/directx/directx_common.h"
+#include "tnn/device/directx/directx_memory.h"
+
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 

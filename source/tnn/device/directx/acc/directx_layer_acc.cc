@@ -14,19 +14,6 @@
 
 #include "tnn/device/directx/acc/directx_layer_acc.h"
 
-#include <vector>
-#include <set>
-
-#include "tnn/device/directx/directx_device.h"
-#include "tnn/device/directx/directx_memory.h"
-#include "tnn/device/directx/directx_util.h"
-#include "tnn/device/directx/directx_common.h"
-#include "tnn/utils/string_utils_inner.h"
-#include "tnn/utils/dims_vector_utils.h"
-#include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/blob_transfer_utils.h"
-
-
 namespace TNN_NS {
 
 namespace directx {

@@ -14,7 +14,6 @@
 
 #include "tnn/device/directx/acc/directx_binary_layer_acc.h"
 
-#include "tnn/core/macro.h"
 
 namespace TNN_NS {
 
