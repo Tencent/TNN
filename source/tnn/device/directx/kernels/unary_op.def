@@ -1,0 +1,2 @@
+relu UNARY_OP max(unary_in,(float4)0)
+relu6 UNARY_OP clamp(unary_in,(float4)0,(float4)6)

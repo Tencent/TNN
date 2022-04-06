@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_BINARY_LAYER_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_BINARY_LAYER_ACC_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_UNARY_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_UNARY_LAYER_ACC_H_
 
 #include "tnn/device/directx/acc/directx_layer_acc.h"
 
@@ -21,12 +21,12 @@ namespace TNN_NS {
 
 namespace directx {
 
-class DirectXBinaryLayerAcc : public DirectXLayerAcc {
+class DirectXUnaryLayerAcc : public DirectXLayerAcc {
 public:
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
                         const std::vector<Blob *> &outputs) override;
 
-    virtual ~DirectXBinaryLayerAcc() override;
+    virtual ~DirectXUnaryLayerAcc() override;
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
@@ -40,9 +40,7 @@ public:
 
 private:
 
-    Status ConvertParam(float *bias_data_ptr, std::vector<int> param_dims);
-
-    Status CalcStrides(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    Status CalcParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 protected:
     std::string kernel_name_ = "";
@@ -62,8 +60,8 @@ private:
 
 };
 
-#define DECLARE_DIRECTX_BINARY_ACC(type_string)                                                                        \
-    class DirectX##type_string##LayerAcc : public DirectXBinaryLayerAcc {                                              \
+#define DECLARE_DIRECTX_UNARY_ACC(type_string)                                                                        \
+    class DirectX##type_string##LayerAcc : public DirectXUnaryLayerAcc {                                              \
     public:                                                                                                            \
         virtual Status Init(Context *context, LayerParam *param, LayerResource *resource,                              \
                             const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;           \
@@ -74,4 +72,4 @@ private:
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_BINARY_LAYER_ACC_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_UNARY_LAYER_ACC_H_

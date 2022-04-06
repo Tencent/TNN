@@ -12,30 +12,30 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/directx/acc/directx_binary_layer_acc.h"
+#include "tnn/device/directx/acc/directx_unary_layer_acc.h"
 
 namespace TNN_NS {
 
 namespace directx {
 
-DECLARE_DIRECTX_BINARY_ACC(Add);
+DECLARE_DIRECTX_UNARY_ACC(Relu);
 
-Status DirectXAddLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status DirectXReluLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    LOGD("Init Add Acc\n");
-    Status ret = DirectXBinaryLayerAcc::Init(context, param, resource, inputs, outputs);
+    LOGD("Init Relu Acc\n");
+    Status ret = DirectXUnaryLayerAcc::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(ret, TNN_OK);
 
 //    kernel_name_ = "binary_op_add";
-    kernel_name_ = "binary_op_add_texture";
+    kernel_name_ = "unary_op_relu";
 
     return TNN_OK;
 }
 
-DirectXAddLayerAcc::~DirectXAddLayerAcc() {}
+DirectXReluLayerAcc::~DirectXReluLayerAcc() {}
 
-REGISTER_DIRECTX_ACC(Add, LAYER_ADD)
-REGISTER_DIRECTX_LAYOUT(LAYER_ADD, DATA_FORMAT_NHC4W4);
+REGISTER_DIRECTX_ACC(Relu, LAYER_RELU)
+REGISTER_DIRECTX_LAYOUT(LAYER_RELU, DATA_FORMAT_NHC4W4);
 
 } // namespace directx
 
