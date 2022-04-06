@@ -16,6 +16,7 @@
 #define TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_LAYER_ACC_H_
 
 #include <vector>
+#include <memory>
 
 #include "tnn/core/abstract_layer_acc.h"
 
@@ -24,6 +25,7 @@
 // #include "tnn/device/directx/directx_execute_unit.h"
 #include "tnn/device/directx/directx_runtime.h"
 #include "tnn/device/directx/directx_util.h"
+#include "tnn/device/directx/directx_common.h"
 
 namespace TNN_NS {
 
@@ -39,6 +41,8 @@ public:
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) = 0;
 
     virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override;
 
@@ -62,14 +66,16 @@ protected:
 
     LayerParam *param_ = nullptr;
     LayerResource *resource_ = nullptr;
-    std::string op_name_ = "";
     std::string layer_name_ = "";
     DimsVector input_dims_ = {};
     DimsVector output_dims_ = {};
 
     GpuInfo gpu_info_;
-    bool run_3d_ndrange_ = false;
     bool use_buffer_     = false;
+
+#if TNN_PROFILE
+    std::shared_ptr<DirectXProfilingData> profiling_data = nullptr;
+#endif
 
 private:
     // Status ConvertChannelWeights(float *handle_data_ptr, shared_ptr<DirectXMemory> &ocl_handle, int output_channel,

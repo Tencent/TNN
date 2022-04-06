@@ -88,6 +88,10 @@ Status DispatchShader(const std::shared_ptr<ID3D11ComputeShader> cs,
 
 Status GetShaderByName(const std::string, std::shared_ptr<ID3D11ComputeShader> &shader );
 
+Status GetID3DDevice(std::shared_ptr<ID3D11Device> &device);
+
+Status GetID3DContext(std::shared_ptr<ID3D11DeviceContext> &context);
+
 template<typename T>
 Status CreateConstBuffer(const T &host_value, 
                         std::shared_ptr<ID3D11Device> device, 

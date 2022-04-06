@@ -22,6 +22,8 @@
 #include "tnn/core/macro.h"
 #include "tnn/utils/omp_utils.h"
 #include "tnn/device/directx/directx_macro.h"
+#include "tnn/device/directx/directx_util.h"
+#include "tnn/device/directx/directx_common.h"
 
 namespace TNN_NS {
 
@@ -84,6 +86,41 @@ void* DirectXContext::GetSharedWorkSpace(size_t size, int index) {
     }
     return work_space_[index].force_to<void*>();
 }
+
+#if TNN_PROFILE
+
+void DirectXContext::StartProfile() {
+
+    auto profiling_res = std::make_shared<DirectXProfilingResult>();
+    Status ret = profiling_res->Init();
+    if (ret != TNN_OK) {
+        LOGE("Init directx profiling result failed\n");
+        return;
+    }
+    
+    // Init the base class and change the profiling_result_ value after it.
+    Context::StartProfile();
+    profiling_result_ = std::dynamic_pointer_cast<ProfileResult>(profiling_res);
+
+    // begin the D3D Disjoint query
+    profiling_res->Begin();
+}
+
+std::shared_ptr<ProfileResult> DirectXContext::FinishProfile() {
+
+    auto profiling_res = std::dynamic_pointer_cast<DirectXProfilingResult>(profiling_result_);
+
+    // end the D3D Disjoint query
+    if (profiling_res) {
+        profiling_res->End();
+    }
+
+    Context::FinishProfile();
+
+    return profiling_result_;
+}
+
+#endif
 
 } // namespace directx
 

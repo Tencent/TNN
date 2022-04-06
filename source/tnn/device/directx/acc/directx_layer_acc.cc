@@ -20,6 +20,7 @@
 #include "tnn/device/directx/directx_device.h"
 #include "tnn/device/directx/directx_memory.h"
 #include "tnn/device/directx/directx_util.h"
+#include "tnn/device/directx/directx_common.h"
 #include "tnn/utils/string_utils_inner.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/data_type_utils.h"
@@ -69,6 +70,11 @@ Status DirectXLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     status = ReloadConstantBlobs(inputs, false);
     RETURN_ON_NEQ(status, TNN_OK);
 
+#if TNN_PROFILE
+    profiling_data = std::shared_ptr<DirectXProfilingData>(new DirectXProfilingData());
+    RETURN_ON_NEQ(profiling_data->Init(), TNN_OK);
+#endif
+
     return TNN_OK;
 }
 
@@ -81,7 +87,21 @@ Status DirectXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::ve
 
 Status DirectXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
-    return TNN_OK;
+#if TNN_PROFILE
+    UpdateProfilingData(profiling_data.get(), param_, input_dims_, output_dims_);
+    // context only accepts profilingdata after the StartProfile() call
+    // DirectXProfilingResult will remove duplicated datas, on worry 
+    dx_context_->AddProfilingData(profiling_data);
+    profiling_data->Begin();
+#endif
+
+    Status ret = this->DoForward(inputs, outputs);
+
+#if TNN_PROFILE
+    profiling_data->End();
+#endif
+
+    return ret;
 }
 
 std::vector<DataFormat> DirectXLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {

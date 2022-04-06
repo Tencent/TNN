@@ -64,6 +64,8 @@ Status DirectXBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerRes
         RETURN_ON_NEQ(ConvertParam(data.get(), param_dims_), TNN_OK);
     }
 
+    data_type_ = inputs[0]->GetBlobDesc().data_type;
+
     return CalcStrides(inputs, outputs);
 }
 
@@ -128,10 +130,7 @@ Status DirectXBinaryLayerAcc::CalcStrides(const std::vector<Blob *> &inputs, con
     return TNN_OK;
 }
 
-Status DirectXBinaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-
-    Status status = DirectXLayerAcc::Forward(inputs, outputs);
-    RETURN_ON_NEQ(status, TNN_OK);
+Status DirectXBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
     auto d3d_context = GetID3DContext();
 
@@ -239,6 +238,27 @@ Status DirectXBinaryLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inp
     const_blob_map_ = const_blob_map;
     return TNN_OK;
 }
+
+#if TNN_PROFILE
+double DirectXBinaryLayerAcc::GetBandwidth() {
+
+    auto get_num_elements = [](unsigned int stride[6], unsigned int out_dim[6]) {
+        for(int i=0;i<6;i++) {
+            if (stride[i] > 0) {
+                return stride[i] * out_dim[i];
+            }
+        }
+        return 1u;
+    };
+
+    size_t a_size_in_elements = get_num_elements(input_a_stride_, output_dim_);
+    size_t b_size_in_elements = get_num_elements(input_b_stride_, output_dim_);
+    size_t c_size_in_elements = DimsVectorUtils::Count(output_dims_);
+    size_t ele_size_in_bytes = DataTypeUtils::GetBytesSize(data_type_);
+
+    return double( a_size_in_elements + b_size_in_elements + c_size_in_elements ) * ele_size_in_bytes;
+}
+#endif // TNN_PROFILE
 
 } // namespace directx
 

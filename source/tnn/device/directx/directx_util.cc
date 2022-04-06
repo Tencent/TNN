@@ -154,6 +154,41 @@ Status GetShaderByName(const std::string kernel_name, std::shared_ptr<ID3D11Comp
     return TNN_OK;
 }
 
+Status GetID3DDevice(std::shared_ptr<ID3D11Device> &device) {
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_DX_UNSUPPORTED_DEVICE, "got null directx device");
+    }
+
+    auto d3d_device= tnn_device->GetID3DDevice();
+    if (!d3d_device) {
+        LOGE("Got null d3d device");
+        return Status(TNNERR_DX_UNSUPPORTED_DEVICE, "got null d3d device");
+    }
+
+    device = d3d_device;
+    return TNN_OK;
+}
+
+Status GetID3DContext(std::shared_ptr<ID3D11DeviceContext> &context) {
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_DX_UNSUPPORTED_DEVICE, "got null directx device");
+    }
+
+    auto d3d_context = tnn_device->GetID3DContext();
+    if (!d3d_context) {
+        LOGE("Got null d3d context");
+        return Status(TNNERR_DX_UNSUPPORTED_DEVICE, "got null d3d context");
+    }
+
+    context = d3d_context;
+    return TNN_OK;
+}
+
 
 Status AllocateBuffer(std::shared_ptr<DirectXMemory> buffer_out,
                       BlobMemorySizeInfo& desc,

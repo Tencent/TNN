@@ -29,11 +29,15 @@ public:
 
     virtual ~DirectXBinaryLayerAcc() override;
 
-    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
     virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override;
+
+#if TNN_PROFILE
+    virtual double GetBandwidth() override;
+#endif
 
 private:
 
@@ -53,10 +57,11 @@ private:
 
     unsigned int input_a_stride_[6];
     unsigned int input_b_stride_[6];
-    unsigned int param_stride_[6];
     unsigned int output_dim_[6];
 
     size_t output_dims_size_;
+
+    DataType data_type_;
 };
 
 #define DECLARE_DIRECTX_BINARY_ACC(type_string)                                                                        \

@@ -344,6 +344,11 @@ Context* DirectXDevice::CreateContext(int device_id) {
     ctx->SetDevice(&device_);
     ctx->SetContext(&context_);
 
+    auto runtime = DirectXRuntime::GetInstance();
+    // Caution : very dangerous here, shred_ptr not own the ptr, and ctx might null and crash in later usage .
+    // Hack for the blob converter to get the DirectXContext.
+    runtime->SetTNNContext(std::shared_ptr<DirectXContext>(ctx, [](DirectXContext * p){}));
+
     return ctx;
 }
 

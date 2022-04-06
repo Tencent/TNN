@@ -28,6 +28,7 @@
 
 #include "tnn/core/status.h"
 #include "tnn/core/common.h"
+#include "tnn/device/directx/directx_context.h"
 
 namespace TNN_NS {
 
@@ -53,8 +54,11 @@ public:
 
     Status Init();
 
-    std::shared_ptr<ID3D11Device> Device();
-    std::shared_ptr<ID3D11DeviceContext> Context();
+    Status SetTNNContext(const std::shared_ptr<DirectXContext> &context);
+    Status GetTNNContext(std::shared_ptr<DirectXContext> &context);
+
+    std::shared_ptr<ID3D11Device> GetID3DDevice();
+    std::shared_ptr<ID3D11DeviceContext> GetID3DContext();
 
     // uint64_t DeviceGlobalMemeryCacheSize() const;
     // uint32_t DeviceComputeUnits() const;
@@ -73,8 +77,7 @@ private:
     static std::shared_ptr<DirectXRuntime> g_singleton_;
     static std::mutex g_mutex_;
 
-    std::shared_ptr<ID3D11Device> device_ = nullptr;
-    std::shared_ptr<ID3D11DeviceContext> context_ = nullptr;
+    std::shared_ptr<DirectXContext> tnn_context_ = nullptr;
 
     std::vector<size_t> texture_2d_max_size_;
 };

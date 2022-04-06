@@ -56,17 +56,29 @@ Status DirectXRuntime::Init() {
 }
 
 DirectXRuntime::~DirectXRuntime() {
-    context_.reset();
-    device_.reset();
+    tnn_context_.reset();
 }
 
-std::shared_ptr<ID3D11Device> DirectXRuntime::Device() {
-    return device_;
+std::shared_ptr<ID3D11Device> DirectXRuntime::GetID3DDevice() {
+    return nullptr;
 }
 
+std::shared_ptr<ID3D11DeviceContext> DirectXRuntime::GetID3DContext() {
+    return nullptr;
+}
 
-std::shared_ptr<ID3D11DeviceContext> DirectXRuntime::Context() {
-    return context_;
+Status DirectXRuntime::SetTNNContext(const std::shared_ptr<DirectXContext> &context) {
+    tnn_context_ = context;
+    return TNN_OK;
+}
+
+Status DirectXRuntime::GetTNNContext(std::shared_ptr<DirectXContext> &context) {
+    if (!tnn_context_) {
+        LOGE("Got null tnn_context");
+        return Status(TNNERR_CONTEXT_ERR, "Got null tnn context");
+    }
+    context = tnn_context_;
+    return TNN_OK;
 }
 
 std::vector<size_t> DirectXRuntime::GetTexture2DMaxSize() {
