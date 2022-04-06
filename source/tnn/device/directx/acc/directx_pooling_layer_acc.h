@@ -35,9 +35,11 @@ public:
 
 //    virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override;
 
-private:
+#if TNN_PROFILE
+    virtual double GetBandwidth() override;
+#endif
 
-    Status ConvertParam(float *bias_data_ptr, std::vector<int> param_dims);
+private:
 
     Status CalcParam(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
@@ -50,8 +52,6 @@ private:
 
     std::vector<int> param_dims_ = {};
 
-    unsigned int intput_dim_[4];
-    unsigned int output_dim_[4];
     unsigned int pad_wh[2];
     unsigned int stride_wh[2];
     unsigned int kernel_wh[2];

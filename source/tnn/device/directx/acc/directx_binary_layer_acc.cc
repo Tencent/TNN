@@ -18,8 +18,6 @@
 #include <directxpackedvector.h>
 
 #include "tnn/core/macro.h"
-#include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_utils.h"
 #include "tnn/device/directx/directx_memory.h"
 #include "tnn/device/directx/directx_util.h"
 

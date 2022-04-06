@@ -61,7 +61,6 @@ private:
 
     size_t output_dims_size_;
 
-    DataType data_type_;
 };
 
 #define DECLARE_DIRECTX_BINARY_ACC(type_string)                                                                        \
