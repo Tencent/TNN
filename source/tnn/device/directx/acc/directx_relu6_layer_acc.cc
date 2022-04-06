@@ -18,23 +18,23 @@ namespace TNN_NS {
 
 namespace directx {
 
-DECLARE_DIRECTX_UNARY_ACC(Relu);
+DECLARE_DIRECTX_UNARY_ACC(Relu6);
 
-Status DirectXReluLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status DirectXRelu6LayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Relu Acc\n");
     Status ret = DirectXUnaryLayerAcc::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(ret, TNN_OK);
 
-    kernel_name_ = "unary_op_relu";
+    kernel_name_ = "unary_op_relu6";
 
     return TNN_OK;
 }
 
 DirectXReluLayerAcc::~DirectXReluLayerAcc() {}
 
-REGISTER_DIRECTX_ACC(Relu, LAYER_RELU)
-REGISTER_DIRECTX_LAYOUT(LAYER_RELU, DATA_FORMAT_NHC4W4);
+REGISTER_DIRECTX_ACC(Relu6, LAYER_RELU6)
+REGISTER_DIRECTX_LAYOUT(LAYER_RELU6, DATA_FORMAT_NHC4W4);
 
 } // namespace directx
 

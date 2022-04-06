@@ -147,12 +147,27 @@ double DirectXUnaryLayerAcc::GetBandwidth() {
         return 1u;
     };
 
-    size_t a_size_in_elements = get_num_elements(input_a_stride_, output_dim_);
-    size_t b_size_in_elements = get_num_elements(input_b_stride_, output_dim_);
+    unsigned int input_stride_[6];
+    unsigned int output_dim_[6];
+    memset(input_stride_, 0u, 6 * sizeof(unsigned int));
+    unsigned int all_one[6] = {1, 1, 1, 1, 1, 1};
+    std::swap(output_dim_, all_one);
+
+    for(int i=0;i<output_dims_.size();i++) {
+        output_dim_[i] = output_dims_[i];
+    }
+
+    for(int i=0;i<input_dims_.size();i++) {
+        if (input_dims_[i] > 1) {
+            input_stride_[i] = DimsVectorUtils::Count(input_dims_, i+1);
+        }
+    }
+
+    size_t a_size_in_elements = get_num_elements(input_stride_, output_dim_);
     size_t c_size_in_elements = DimsVectorUtils::Count(output_dims_);
     size_t ele_size_in_bytes = DataTypeUtils::GetBytesSize(data_type_);
 
-    return double( a_size_in_elements + b_size_in_elements + c_size_in_elements ) * ele_size_in_bytes;
+    return double( a_size_in_elements + c_size_in_elements ) * ele_size_in_bytes;
 }
 #endif // TNN_PROFILE
 
