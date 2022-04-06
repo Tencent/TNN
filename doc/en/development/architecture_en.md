@@ -10,7 +10,7 @@ Considering the maintenance and compatibility of the open-source library, all ex
 
 The interface related to the model interpreter is abstracted, which can support multiple model formats' parsing. See the source/tnn/interpreter module for related codes. 
 
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/model_reinterpreter.png"/> 
+<div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/imgs/model_reinterpreter.png"/> 
 
 AbstractModelInterpreter defines an abstract Interpret interface, and different model parsers parse different types of models. The interface related to DefaultModelInterpreter stores the relevant results in the NetStruture and NetResource structures. Some third-party models which cannot complete the interpretation would need a separate path such as CoreMLModelInterpreter, to complete third-party library adaptation. 
 
@@ -65,7 +65,7 @@ Similar to the previous model registration mechanism, different Layers will regi
 
 The core of Blob node construction is memory allocation and optimization, which is mainly divided into blob memory recycling, blob memory splicing, and monitoring. 
 
-<div align=left><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/blob_memory.png"/> 
+<div align=left><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/imgs/blob_memory.png"/> 
 
 First of all, the memory between the blobs output by different layers will be cyclically reused through an internal algorithm. The memory reuse between different blobs will preferentially select blobs of similar size. 
 
@@ -74,7 +74,7 @@ The memory between multiple instances of the same thread/different threads has t
 
 ## IV. Multi-platform Acceleration Operator Implementation 
 
-<div align=left><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/device.png"/> 
+<div align=left><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/imgs/device.png"/> 
 
 Abstract AbstractDevice interface, used to hide the implementation details of different Devices. Provide an interface for Device Memory size calculation, Device Memory allocation/release, CPU Memory and Device memory copy, Device Layer accelerated operator construction, and instance corresponding Device Context construction. 
 
