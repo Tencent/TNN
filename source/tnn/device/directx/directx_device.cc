@@ -138,6 +138,7 @@ BlobMemorySizeInfo DirectXDevice::Calculate(BlobDesc &desc) {
         desc.data_format = DATA_FORMAT_NCHW;
         return info;
     } else {
+        desc.data_format = DATA_FORMAT_NHC4W4;
         BlobMemorySizeInfo info = Calculate2DCLImageMemorySize(desc);
         return info;
     }
@@ -197,16 +198,21 @@ Status DirectXDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
         ZeroMemory(&texture_desc, sizeof(texture_desc));
         texture_desc.Width = (UINT)(desc.dims[0]);
         texture_desc.Height = (UINT)(desc.dims[1]);
-        texture_desc.MipLevels = 1;
+        texture_desc.MipLevels = 0;
+        texture_desc.ArraySize = 1;
         texture_desc.Format = format;
         texture_desc.Usage = D3D11_USAGE_DEFAULT;
         texture_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
         texture_desc.CPUAccessFlags = 0;
         texture_desc.MiscFlags = 0;
+        DXGI_SAMPLE_DESC sample;
+        sample.Count = 1;
+        sample.Quality = 0;
+        texture_desc.SampleDesc = sample;
 
         ID3D11Texture2D * texture;
 
-        LOGI("DirectX create texture of shape %u x %u\n", desc.dims[0], desc.dims[1] );
+        LOGD("DirectX create texture of shape %u x %u\n", desc.dims[0], desc.dims[1] );
         HRESULT hr = device_->CreateTexture2D(&texture_desc, NULL, &texture);
         if (FAILED(hr)) {
             *handle = nullptr;
@@ -225,7 +231,7 @@ Status DirectXDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
         buffer_desc.Usage = D3D11_USAGE_DEFAULT;
         buffer_desc.ByteWidth = type_size * desc.dims[0]; 
 
-        LOGI("DirectX create buffer of len %u \n", type_size * desc.dims[0]);
+        LOGD("DirectX create buffer of len %u \n", type_size * desc.dims[0]);
         HRESULT hr = device_->CreateBuffer( &buffer_desc, nullptr, &buffer);
         if (FAILED(hr)) {
             *handle = nullptr;
@@ -270,7 +276,10 @@ Status DirectXDevice::CopyToDevice(BlobHandle* dst, const BlobHandle* src, BlobD
 Status DirectXDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, BlobDesc& blob_desc, void* command_queue) {
 
     auto size_info       = Calculate(blob_desc);
-    size_t size_in_bytes = GetBlobMemoryBytesSize(size_info);
+//    size_t size_in_bytes = GetBlobMemoryBytesSize(size_info);
+
+    size_t size_in_bytes =DimsVectorUtils::Count(blob_desc.dims)*4;
+
     LOGD("Copy Data From Device now, size in bytes:%lu\n", size_in_bytes);
 
     // TODO: Judge blob memory type (texture or buffer ) from blob_desc.format

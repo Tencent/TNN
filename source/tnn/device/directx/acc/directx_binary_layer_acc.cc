@@ -22,7 +22,7 @@
 #include "tnn/utils/dims_utils.h"
 #include "tnn/device/directx/directx_memory.h"
 #include "tnn/device/directx/directx_util.h"
-// #include "tnn/device/opencl/imagebuffer_convertor.h"
+
 
 namespace TNN_NS {
 
@@ -149,17 +149,27 @@ Status DirectXBinaryLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     }
 
     std::shared_ptr<ID3D11ComputeShader> cs;
+
+    LOGD("kernel name: %s\n",kernel_name_.c_str());
     Status ret = GetShaderByName(kernel_name_, cs);
     RETURN_ON_NEQ(ret, TNN_OK);
 
-    const int THREADS_PER_BLOCK = 128;
-    const int ELE_PER_THREAD    = 4;
+//    const int THREADS_PER_BLOCK = 128;
+//    const int ELE_PER_THREAD    = 4;
+//
+//    const int ele_count = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims);
+    int batch, channel, height, width;
+    batch            = DimsFunctionUtils::GetDim(output_dims_, 0);
+    channel          = DimsFunctionUtils::GetDim(output_dims_, 1);
+    height           = DimsFunctionUtils::GetDim(output_dims_, 2);
+    width            = DimsFunctionUtils::GetDim(output_dims_, 3);
+    int image_width  = UP_DIV(channel, 4) * width;
+    int image_height = batch * height;
 
-    const int ele_count = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims);
-
-    ret = DispatchShader(cs, in_srvs, {out_uav}, {const_buffer_.get()}, {UP_DIV(ele_count, THREADS_PER_BLOCK * ELE_PER_THREAD)});
+    ret = DispatchShader(cs, in_srvs, {out_uav}, {const_buffer_.get()}, {image_width,image_height,1});
 
     return ret;
+
 }
 
 Status DirectXBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

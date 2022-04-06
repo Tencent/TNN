@@ -36,11 +36,12 @@ namespace directx {
 
 // Tell the memory type from a blob Description sruct
 DirectXMemoryType GetMemoryType(BlobDesc desc) {
-    return TNN_DX_BUFFER;
+//    return TNN_DX_BUFFER;
     DirectXRuntime* directx_runtime = DirectXRuntime::GetInstance();
     std::vector<size_t> texture_2d_max_size = directx_runtime->GetTexture2DMaxSize();
     ASSERT(texture_2d_max_size.size() == 2);
 
+    desc.data_format = DATA_FORMAT_NHC4W4;
     BlobMemorySizeInfo info = Calculate2DCLImageMemorySize(desc);
     ASSERT(info.dims.size() == 2);
 
@@ -53,9 +54,9 @@ DirectXMemoryType GetMemoryType(BlobDesc desc) {
 
 // Tell the memory type from a blob memory size info, which is used by the AbstactDevice::Allocate function
 DirectXMemoryType GetMemoryType(BlobMemorySizeInfo size_info) {
-    return TNN_DX_BUFFER;
+//    return TNN_DX_BUFFER;
     if (size_info.dims.size() == 2) {
-        TNN_DX_TEXTURE;
+        return TNN_DX_TEXTURE;
     }
     return TNN_DX_BUFFER;
 }

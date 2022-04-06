@@ -32,7 +32,7 @@ BlobManager::BlobManager(AbstractDevice *device) {
     device_            = device;
     // create 1d memory pool
     blob_memory_pool_map_[1] = BlobMemoryPoolFactory::CreateBlobMemoryPool(device);
-    if (device->GetDeviceType() == DEVICE_OPENCL) {
+    if (device->GetDeviceType() == DEVICE_OPENCL || device->GetDeviceType() == DEVICE_DIRECTX) {
         // create 2d memory pool
         blob_memory_pool_map_[2] = BlobMemoryPoolFactory::CreateBlobMemoryPool(device, 2);
     }

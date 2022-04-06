@@ -75,7 +75,8 @@ Status DirectXLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
 DirectXLayerAcc::~DirectXLayerAcc() {}
 
 Status DirectXLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return CheckBlob(inputs, outputs);
+//    return CheckBlob(inputs, outputs);
+    return TNN_OK;
 }
 
 Status DirectXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

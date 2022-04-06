@@ -59,7 +59,7 @@ namespace optimizer {
             }
         }
 
-        return device == DEVICE_ARM || device == DEVICE_OPENCL || device == DEVICE_METAL;
+        return device == DEVICE_ARM || device == DEVICE_OPENCL || device == DEVICE_METAL || device == DEVICE_DIRECTX;
     }
 
     static std::shared_ptr<LayerInfo> CreateReformat(std::string name, DataFormat src_fmt, DataFormat dst_fmt) {
@@ -85,7 +85,7 @@ namespace optimizer {
         } else if (type == DEVICE_OPENCL) {
             return DATA_FORMAT_NHC4W4;
         } else if (type == DEVICE_DIRECTX) {
-            return DATA_FORMAT_NCHW;
+            return DATA_FORMAT_NHC4W4;
         } else {
             return DATA_FORMAT_AUTO;
         }
@@ -96,6 +96,8 @@ namespace optimizer {
         if (type == DEVICE_METAL) {
             res->layouts.push_back(DATA_FORMAT_NC4HW4);
         } else if (type == DEVICE_OPENCL) {
+            res->layouts.push_back(DATA_FORMAT_NHC4W4);
+        } else if (type == DEVICE_DIRECTX) {
             res->layouts.push_back(DATA_FORMAT_NHC4W4);
         }
         return res;

@@ -12,24 +12,17 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/memory_manager/blob_memory_pool_factory.h"
-#include "tnn/memory_manager/blob_1d_memory_pool.h"
-#include "tnn/memory_manager/blob_2d_memory_pool.h"
+Texture2D<float4> Buffer0 : register(t0);
+ByteAddressBuffer Buffer1 : register(t1);
+RWTexture2D<float4> BufferOut : register(u0);
 
-namespace TNN_NS {
+[numthreads(1, 1, 1)]
+void CSMain( uint3 DTid : SV_DispatchThreadID )
+{
+    float4 f0 = Buffer0[DTid.xy];
+    float f = asfloat( Buffer1.Load( 0 ) );
+    float4 f1 = {f,f,f,f};
 
-BlobMemoryPool* BlobMemoryPoolFactory::CreateBlobMemoryPool(AbstractDevice* device, int dimensions) {
-    if (DEVICE_OPENCL == device->GetDeviceType() || (DEVICE_DIRECTX == device->GetDeviceType())) {
-        if (dimensions == 2) {
-            return new Blob2DMemoryPool(device);
-        } else if (dimensions == 1) {
-            return new Blob1DMemoryPool(device);
-        } else {
-            return nullptr;
-        }
-    } else {
-        return new Blob1DMemoryPool(device);
-    }
+    BufferOut[DTid.xy] = f0 + f1;
 }
 
-}  // namespace TNN_NS
