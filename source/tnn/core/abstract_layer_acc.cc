@@ -121,6 +121,11 @@ void AbstractLayerAcc::UpdateProfilingData(ProfilingData *pdata, LayerParam *par
     pdata->flops     = GetFlops();
     pdata->bandwidth = GetBandwidth();
 
+    pdata->kernel_shape.clear();
+    pdata->stride_shape.clear();
+    pdata->pad_shape.clear();
+    pdata->dilation_shape.clear();
+
     // for conv/deconv
     {
         auto conv_param = dynamic_cast<ConvLayerParam *>(param);

@@ -133,6 +133,49 @@ Status CreateConstBuffer(const T &host_value,
     return TNN_OK;
 }
 
+
+enum GroupWeightsFormat { GOIHW, GIOHW };
+
+template <typename T, typename Dim>
+inline void GROUP_PADDING(const T *src, T *dst, Dim G, Dim O, Dim I, Dim H, Dim W, GroupWeightsFormat src_format) {
+    int input_channel_per_group = I / G;
+    int group_size_in_o         = O / G;
+
+    for (Dim o = 0; o < O; o++) {
+        for (Dim i = 0; i < I; i++) {
+            for (Dim h = 0; h < H; h++) {
+                for (Dim w = 0; w < W; w++) {
+                    int dst_idx = o * I * H * W + i * H * W + h * W + w;
+
+                    int group_id  = o / group_size_in_o;
+                    int valid_i_b = group_id * input_channel_per_group;
+                    int valid_i_e = valid_i_b + input_channel_per_group;
+                    if (i < valid_i_b || i >= valid_i_e) {
+                        dst[dst_idx] = 0;
+                    } else {
+                        int g_idx = group_id;
+                        int o_idx = o % group_size_in_o;
+                        int i_idx = i % input_channel_per_group;
+                        int h_idx = h;
+                        int w_idx = w;
+                        // src is GOIHW
+                        int src_idx;
+                        if (src_format == GOIHW) {
+                            src_idx = g_idx * group_size_in_o * input_channel_per_group * H * W +
+                                      o_idx * input_channel_per_group * H * W + i_idx * H * W + h_idx * W + w_idx;
+                        } else {
+                            // src is GIOHW
+                            src_idx = g_idx * input_channel_per_group * group_size_in_o * H * W +
+                                      i_idx * group_size_in_o * H * W + o_idx * H * W + h_idx * W + w_idx;
+                        }
+                        dst[dst_idx] = src[src_idx];
+                    }
+                }
+            }
+        }
+    }
+}
+
 Status AllocateBuffer(std::shared_ptr<DirectXMemory> buffer_out,
                       BlobMemorySizeInfo& desc,
                       const void * inital_data);
