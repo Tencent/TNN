@@ -41,11 +41,13 @@ void RemoveSingleConcat(NetStructure* net_structure, NetResource* net_resource) 
 
 void RemoveNormClampminExpandasDiv(NetStructure* net_structure, NetResource* net_resource) {
     auto& layers              = net_structure->layers;
+    std::vector<std::shared_ptr<LayerInfo>> layers_fused;
 
     // Normalize <= Norm - Clampmin - Expandas - Div
-    for (auto iter = layers.begin(); iter + 3 != layers.end(); iter++) {
+    for (auto iter = layers.begin(); iter != layers.end(); iter++) {
         auto& norm_layer = *iter;
         if (norm_layer->type != TNN_NS::LAYER_NORM){
+            layers_fused.push_back(norm_layer);
             continue;
         }
         
@@ -77,10 +79,13 @@ void RemoveNormClampminExpandasDiv(NetStructure* net_structure, NetResource* net
 
         norm_layer->outputs.clear();
         norm_layer->outputs = div_layer->outputs;
-        expandas_iter -= 1;
-        div_iter -= 1;
-        layers.erase(clampmin_iter, clampmin_iter+3);
+        layers_fused.push_back(norm_layer);
+        iter = iter + 3;
+        // expandas_iter -= 1;
+        // div_iter -= 1;
+        // layers.erase(clampmin_iter, clampmin_iter+3);
     }
+    net_structure->layers = layers_fused;
 }
 
 void TNNOptPass(NetStructure* net_structure, NetResource* net_resource) {
