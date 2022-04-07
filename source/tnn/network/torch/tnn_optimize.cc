@@ -81,9 +81,6 @@ void RemoveNormClampminExpandasDiv(NetStructure* net_structure, NetResource* net
         norm_layer->outputs = div_layer->outputs;
         layers_fused.push_back(norm_layer);
         iter = iter + 3;
-        // expandas_iter -= 1;
-        // div_iter -= 1;
-        // layers.erase(clampmin_iter, clampmin_iter+3);
     }
     net_structure->layers = layers_fused;
 }
