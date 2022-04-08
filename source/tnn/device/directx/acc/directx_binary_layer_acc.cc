@@ -136,15 +136,22 @@ Status DirectXBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const
 
     auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]); 
     auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]); 
+    std::shared_ptr<DirectXMemory> in_b_memory;
 
     auto in_srv = in_memory->GetSRV();
     auto out_uav = out_memory->GetUAV();
 
     std::vector<std::shared_ptr<ID3D11ShaderResourceView>> in_srvs;
-    if (broadcast_param_.weight_input_index == 1) {
-        in_srvs = {in_srv,  binary_params_->GetSRV() };
+
+    if (inputs.size() > 1) {
+        in_b_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[1]);
+        in_srvs = {in_srv,  in_b_memory->GetSRV()};
     } else {
-        in_srvs = {binary_params_->GetSRV(), in_srv};
+        if (broadcast_param_.weight_input_index == 1) {
+            in_srvs = {in_srv,  binary_params_->GetSRV() };
+        } else {
+            in_srvs = {binary_params_->GetSRV(), in_srv};
+        }
     }
 
     std::shared_ptr<ID3D11ComputeShader> cs;

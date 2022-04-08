@@ -152,13 +152,14 @@ void precompute_ptr_offsets(
 
             int m = 0;
 
+
             for( int r = 0 ; r < R; ++r ) {
                 for( int s = 0 ; s < S; ++s ) {
                     int ih = h*stride + rStart + r;
                     int iw = w*stride + sStart + s;
                     
-                    int in_image = ih >= 0 && ih < IH && w >= 0 && w < IW;
-                    int flag = in_image ? 1u : 0u;
+                    bool in_image = (ih >= 0) && (ih < IH) && (iw >= 0) && (iw < IW);
+                    int flag = in_image ? 1 : 0;
                     m = m | (flag << (r*R + s));
                 }
             }
@@ -189,6 +190,7 @@ Status DirectXConvLayerCommonAcc::PreCompute(const std::vector<Blob *> &inputs, 
     std::shared_ptr<int> filter_offset = std::shared_ptr<int>(new int[9], [](void *p){delete[] p;});
     std::shared_ptr<int> warp_offset = std::shared_ptr<int>(new int[4], [](void *p){delete[] p;});
 
+    LOGI("layer name:%s\n", layer_name_.c_str());
     precompute_filter_offsets(filter_offset.get(), LOOP_K, conv_params_, in_dims);
     precompute_warp_offsets(warp_offset.get(), LOOP_K, conv_params_, in_dims);
     precompute_ptr_offsets(mask.get(), ptr_offset.get(), conv_params_, in_dims, out_dims);
@@ -207,14 +209,15 @@ Status DirectXConvLayerCommonAcc::PreCompute(const std::vector<Blob *> &inputs, 
         DirectX::XMUINT4 in_shape;
         DirectX::XMUINT4 out_shape;
         DirectX::XMUINT4 filter_kcrs;
-        DirectX::XMUINT4 fused_relu;
+        DirectX::XMUINT4 others;
     } launch_param_t;
 
     launch_param_t args;
     args.in_shape  = DirectX::XMUINT4(in_dims[0], in_dims[1], in_dims[2], in_dims[3]);
     args.out_shape = DirectX::XMUINT4(out_dims[0], out_dims[1], out_dims[2], out_dims[3]);
-    args.filter_kcrs = DirectX::XMUINT4(out_dims[1], in_dims[1], conv_params_.kernel_h, conv_params_.kernel_w);
-    args.fused_relu = DirectX::XMUINT4(0,0,0,0);
+    args.filter_kcrs = DirectX::XMUINT4(conv_params_.output_channel, conv_params_.input_channel, 
+                                        conv_params_.kernel_h, conv_params_.kernel_w);
+    args.others = DirectX::XMUINT4(conv_params_.activation_type, 0,0,0);
 
     return CreateConstBuffer<launch_param_t>(args, GetID3DDevice(), const_buffer_);
 }

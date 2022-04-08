@@ -26,6 +26,7 @@ cbuffer StepsAndShapes: register( b0 )
     // input a shape
     vector<uint, 4> in_nchw;
     vector<uint, 4> out_nchw;
+    vector<uint, 4> fused_relu;
 
 };
 
@@ -143,8 +144,11 @@ void CSMain( uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 
                 uint oc_id = n_start + swizzledB + i;
                 uint store_index = n_id * OUT_NS + oc_id * HW + hw_id;
                 if (nhw_id < NHW && oc_id < OC ) {
-                    float vb = asfloat(bias_buf.Load(oc_id * 4));
-                    out_buf.Store(store_index * 4, asuint(vc + vb));
+                    vc += asfloat(bias_buf.Load(oc_id * 4));
+                    if (fused_relu[0] > 0)  {
+                        vc = vc > 0.f ? vc : 0.f;
+                    }
+                    out_buf.Store(store_index * 4, asuint(vc));
                 }
             }
         }  

@@ -83,11 +83,13 @@ Status DirectXConvLayer1x1Acc::CreateCB(const std::vector<Blob *> &inputs, const
     typedef struct launch_param {
         DirectX::XMUINT4 in_shape;
         DirectX::XMUINT4 out_shape;
+        DirectX::XMUINT4 fused_relu;
     } launch_param_t;
 
     launch_param_t args;
     args.in_shape  = DirectX::XMUINT4(in_dims[0], in_dims[1], in_dims[2], in_dims[3]);
     args.out_shape = DirectX::XMUINT4(out_dims[0], out_dims[1], out_dims[2], out_dims[3]);
+    args.fused_relu= DirectX::XMUINT4(conv_params_.activation_type, 0, 0 ,0);
 
     return CreateConstBuffer<launch_param_t>(args, GetID3DDevice(), const_buffer_);
 }
