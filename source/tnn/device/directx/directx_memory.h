@@ -88,6 +88,8 @@ public:
     static std::shared_ptr<DirectXMemory> CreateBufferMemoryFromHost(void * ptr, 
                             DimsVector dims, DataType data_type, DataFormat data_format = DATA_FORMAT_NCHW);
 
+    Status Dump() const;
+
 private:
     // remove all assignment operator
     DirectXMemory(const DirectXMemory& memory)  = delete;

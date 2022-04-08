@@ -109,7 +109,7 @@ void CSMain( uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 
 
 
             // calc for LOOP_K elements
-            [unroll(2)] for(uint k=0;k<LOOP_K;k++) {
+            for(uint k=0;k<LOOP_K;k++) {
                 // smem to register file
                 [unroll] for(uint a_of=0;a_of<THREAD_BLOCK_A;a_of++){
                     a_rf[a_of] = a_mem[k][swizzledA+a_of];

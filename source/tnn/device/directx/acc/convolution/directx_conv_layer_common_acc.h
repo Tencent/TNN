@@ -34,6 +34,16 @@ public:
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+private:
+    Status PreCompute(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+    std::shared_ptr<ID3D11Buffer> const_buffer_;
+
+    std::shared_ptr<DirectXMemory> ptr_offset_;
+    std::shared_ptr<DirectXMemory> mask_;
+    std::shared_ptr<DirectXMemory> filter_offset_;
+    std::shared_ptr<DirectXMemory> warp_offset_;
 };
 
 }  // namespace directx
