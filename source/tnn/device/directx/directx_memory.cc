@@ -228,7 +228,42 @@ std::shared_ptr<DirectXMemory> DirectXMemory::CreateBufferMemoryFromHost(
     }
 
     DirectXMemory * dx_mem = new DirectXMemory(TNN_DX_BUFFER);
-    dx_mem->SetData(buf, true);
+    if (nullptr != ptr) {
+        dx_mem->SetData(buf, true);
+    } else {
+        dx_mem->SetData(buf, false);
+    }
+    dx_mem->SetMemoryInfo(data_type, data_format, dims);
+    return std::shared_ptr<DirectXMemory>(dx_mem);
+}
+
+std::shared_ptr<DirectXMemory> DirectXMemory::CreateTextureMemoryFromHost(
+    void * ptr, DimsVector dims, DataType data_type, DataFormat data_format) {
+
+    if (nullptr != ptr){
+        LOGE("Cant create Texture2D with data");
+        return std::shared_ptr<DirectXMemory>(nullptr);
+    }
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return std::shared_ptr<DirectXMemory>(nullptr);
+    }
+
+    BlobDesc desc;
+    desc.dims = dims;
+    desc.data_type = data_type;
+    desc.data_format = data_format;
+
+    BlobMemorySizeInfo size_info = Calculate2DCLImageMemorySize(desc);
+
+    ID3D11Texture2D * buf;
+    Status ret = tnn_device->Allocate((void**)&buf, size_info);
+    RETURN_VALUE_ON_NEQ(ret, TNN_OK, std::shared_ptr<DirectXMemory>(nullptr));
+
+    DirectXMemory * dx_mem = new DirectXMemory(TNN_DX_TEXTURE);
+    dx_mem->SetData(buf, false);
     dx_mem->SetMemoryInfo(data_type, data_format, dims);
     return std::shared_ptr<DirectXMemory>(dx_mem);
 }

@@ -26,7 +26,11 @@ Status DirectXSubLayerAcc::Init(Context *context, LayerParam *param, LayerResour
     Status ret = DirectXBinaryLayerAcc::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(ret, TNN_OK);
 
-    kernel_name_ = "binary_op_sub";
+    if (use_buffer_) {
+        kernel_name_ = "binary_op_sub";
+    } else {
+        kernel_name_ = "binary_op_texture_sub";
+    }
 
     return TNN_OK;
 }

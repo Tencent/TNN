@@ -28,6 +28,7 @@
 #include "tnn/device/directx/directx_runtime.h"
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/blob_memory_size_utils.h"
+#include "tnn/utils/dims_utils.h"
 
 #include "tnn/device/directx/directx_kernels.h"
 
@@ -185,6 +186,60 @@ Status GetID3DContext(std::shared_ptr<ID3D11DeviceContext> &context) {
 
     context = d3d_context;
     return TNN_OK;
+}
+
+Status UpdateTexture2D(void* data_ptr,
+                       std::vector<int> dims,
+                       std::shared_ptr<DirectXMemory> &texture_memory) {
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_CONTEXT_ERR, "got null directx device");
+    }
+
+    auto device = tnn_device->GetID3DDevice();
+    if (!device) {
+        LOGE("Got null ID3Ddevice");
+        return  Status(TNNERR_CONTEXT_ERR, "got null directx device");
+    }
+
+    shared_ptr<DirectXMemory> buffer = DirectXMemory::CreateBufferMemoryFromHost(
+        data_ptr, dims, DATA_TYPE_FLOAT, DATA_FORMAT_NCHW);
+    if (!buffer) {
+        LOGE("param transfer to GPU failed.");
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "param transfer to GPU failed.");
+    }
+
+    auto buffer_srv = buffer->GetSRV();
+    auto texture_uav = texture_memory->GetUAV();
+
+    ParamCB param_cb_host = {1, 1, 1, 1,
+                             0, 0, 0, 0,
+                             dims[0], dims[1], dims[2], dims[3]};
+
+    std::shared_ptr<ID3D11Buffer> param_cb;
+    Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    LOGD("kernel name: NCHWToNHC4W4\n");
+    std::shared_ptr<ID3D11ComputeShader> cs;
+    status = GetShaderByName("NCHWToNHC4W4", cs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    const int THREADS_PER_BLOCK = 128;
+    const int ELE_PER_THREAD    = 4;
+
+    int batch, channel, height, width;
+    batch            = DimsFunctionUtils::GetDim(dims, 0);
+    channel          = DimsFunctionUtils::GetDim(dims, 1);
+    height           = DimsFunctionUtils::GetDim(dims, 2);
+    width            = DimsFunctionUtils::GetDim(dims, 3);
+    int image_width  = UP_DIV(channel, 4) * width;
+    int image_height = batch * height;
+    Status  ret = DispatchShader(cs, {buffer_srv}, {texture_uav}, {param_cb.get()}, {image_width,image_height,1});
+
+    return  ret;
 }
 
 }  // namespace directx

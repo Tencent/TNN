@@ -38,6 +38,8 @@ Status DirectXPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerRe
         return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
 
+    use_buffer_ = false; // use Texture2D
+
     const int batch         = DimsFunctionUtils::GetDim(output_dims_, 0);
     const int output_height = DimsFunctionUtils::GetDim(output_dims_, 2);
     const int output_width  = DimsFunctionUtils::GetDim(output_dims_, 3);

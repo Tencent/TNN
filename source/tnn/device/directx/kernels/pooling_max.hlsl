@@ -64,20 +64,12 @@ void CSMain( uint3 DTid : SV_DispatchThreadID)
     float4 output_result = {-FLT_MAX,-FLT_MAX,-FLT_MAX,-FLT_MAX};
     for (int height = 0; height < kernel_wh[1]; height++) {
         int input_height_idx = input_height_start + height;
-        if(input_height_idx < 0 || input_height_idx >= id[2]) { //input_wh.y
-            input_height_idx = -1;
-        } else {
-            input_height_idx = input_start + input_height_idx;
-        }
+        input_height_idx = (input_height_idx < 0 || input_height_idx >= id[2]) ? -1 : input_start + input_height_idx;
 
         if (input_height_idx != -1) {
             for (int width = 0; width < kernel_wh[0]; width++) {
                 int input_width_idx = input_width_start + width;
-                if(input_width_idx < 0 || input_width_idx >= id[3]) { //input_wh.x
-                    input_width_idx = -1;
-                } else {
-                    input_width_idx = input_channel_start + input_width_idx;
-                }
+                input_width_idx =  (input_width_idx < 0 || input_width_idx >= id[3]) ? -1 : input_channel_start + input_width_idx;
                 if (input_width_idx != -1) {
                     int2 pos_in = {input_width_idx, input_height_idx};
                     float4 input_data = input[pos_in];

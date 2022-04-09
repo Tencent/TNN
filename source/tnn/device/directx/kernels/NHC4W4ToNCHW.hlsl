@@ -57,13 +57,37 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
 
     float4 scale_data   = {scale0,scale1,scale2,scale3};
     float4 bias_data    = {bias0,bias1,bias2,bias3};
-    values = values * scale_data + bias_data;
-
     uint offset     = buffer_offset;
-    BufferOut.Store( offset*4, asuint(values.x) );
-    offset += height_width_size;
-    BufferOut.Store( offset*4, asuint(values.y) );
-    offset += height_width_size;
-    BufferOut.Store( offset*4, asuint(values.z) );
+
+    if (remain_channel == 4) {
+        values = values * scale_data + bias_data;
+
+        BufferOut.Store( offset*4, asuint(values.x) );
+        offset += height_width_size;
+        BufferOut.Store( offset*4, asuint(values.y) );
+        offset += height_width_size;
+        BufferOut.Store( offset*4, asuint(values.z) );
+        offset += height_width_size;
+        BufferOut.Store( offset*4, asuint(values.w) );
+    } else if (remain_channel == 3) {
+        values = values * scale_data + bias_data;
+
+        BufferOut.Store( offset*4, asuint(values.x) );
+        offset += height_width_size;
+        BufferOut.Store( offset*4, asuint(values.y) );
+        offset += height_width_size;
+        BufferOut.Store( offset*4, asuint(values.z) );
+    } else if (remain_channel == 2) {
+        values = values * scale_data + bias_data;
+
+        BufferOut.Store( offset*4, asuint(values.x) );
+        offset += height_width_size;
+        BufferOut.Store( offset*4, asuint(values.y) );
+    } else if (remain_channel == 1) {
+        values = values * scale_data + bias_data;
+
+        BufferOut.Store( offset*4, asuint(values.x) );
+    }
+
 
 }

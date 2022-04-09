@@ -30,7 +30,7 @@ cbuffer StepsAndShapes: register( b0 )
     vector<uint, 4> as_0;
     vector<uint, 4> as_3;
 
-    // input a steps
+    // input b steps
     vector<uint, 4> bs_0;
     vector<uint, 4> bs_3;
 

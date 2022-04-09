@@ -32,7 +32,6 @@ Status DirectXBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     CHECK_PARAM_NULL(broadcast_param);
     broadcast_param_ = *broadcast_param;
 
-
     EltwiseLayerResource *layer_res = dynamic_cast<EltwiseLayerResource *>(resource);
     if (layer_res == nullptr) {
         if (inputs.size() != 2) {
@@ -56,6 +55,8 @@ Status DirectXBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     }
 
     data_type_ = inputs[0]->GetBlobDesc().data_type;
+
+    use_buffer_ = false; // use Texture2D
 
     return CalcStrides(inputs, outputs);
 }
@@ -108,12 +109,30 @@ Status DirectXBinaryLayerAcc::CalcStrides(const std::vector<Blob *> &inputs, con
     } launch_param_t;
 
     launch_param_t args;
-    args.sa_0 = DirectX::XMUINT4(input_a_stride_[0], input_a_stride_[1], input_a_stride_[2], 0);
-    args.sa_3 = DirectX::XMUINT4(input_a_stride_[3], input_a_stride_[4], input_a_stride_[5], 0);
-    args.sb_0 = DirectX::XMUINT4(input_b_stride_[0], input_b_stride_[1], input_b_stride_[2], 0);
-    args.sb_3 = DirectX::XMUINT4(input_b_stride_[3], input_b_stride_[4], input_b_stride_[5], 0);
-    args.od_0 = DirectX::XMUINT4(output_dim_[0], output_dim_[1], output_dim_[2], 0);
-    args.od_3 = DirectX::XMUINT4(output_dim_[3], output_dim_[4], output_dim_[5], 0);
+
+    if(use_buffer_) {
+        args.sa_0 = DirectX::XMUINT4(input_a_stride_[0], input_a_stride_[1], input_a_stride_[2], 0);
+        args.sa_3 = DirectX::XMUINT4(input_a_stride_[3], input_a_stride_[4], input_a_stride_[5], 0);
+        args.sb_0 = DirectX::XMUINT4(input_b_stride_[0], input_b_stride_[1], input_b_stride_[2], 0);
+        args.sb_3 = DirectX::XMUINT4(input_b_stride_[3], input_b_stride_[4], input_b_stride_[5], 0);
+        args.od_0 = DirectX::XMUINT4(output_dim_[0], output_dim_[1], output_dim_[2], 0);
+        args.od_3 = DirectX::XMUINT4(output_dim_[3], output_dim_[4], output_dim_[5], 0);
+    } else {
+        args.sa_0 = DirectX::XMUINT4(DimsFunctionUtils::GetDim(in_blob_a_dims, 0),
+                                     DimsFunctionUtils::GetDim(in_blob_a_dims, 1),
+                                     DimsFunctionUtils::GetDim(in_blob_a_dims, 2), 0);
+        args.sa_3 = DirectX::XMUINT4(DimsFunctionUtils::GetDim(in_blob_a_dims, 3),
+                                     DimsFunctionUtils::GetDim(in_blob_a_dims, 4),
+                                     DimsFunctionUtils::GetDim(in_blob_a_dims, 5), 0);
+        args.sb_0 = DirectX::XMUINT4(DimsFunctionUtils::GetDim(in_blob_b_dims, 0),
+                                     DimsFunctionUtils::GetDim(in_blob_b_dims, 1),
+                                     DimsFunctionUtils::GetDim(in_blob_b_dims, 2), 0);
+        args.sb_3 = DirectX::XMUINT4(DimsFunctionUtils::GetDim(in_blob_b_dims, 3),
+                                     DimsFunctionUtils::GetDim(in_blob_b_dims, 4),
+                                     DimsFunctionUtils::GetDim(in_blob_b_dims, 5), 0);
+        args.od_0 = DirectX::XMUINT4(output_dim_[0], output_dim_[1], output_dim_[2], 0);
+        args.od_3 = DirectX::XMUINT4(output_dim_[3], output_dim_[4], output_dim_[5], 0);
+    }
 
     Status ret = CreateConstBuffer<launch_param_t>(args, GetID3DDevice(), const_buffer_);
     RETURN_ON_NEQ(ret, TNN_OK);
@@ -127,15 +146,22 @@ Status DirectXBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const
 
     auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]); 
     auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]); 
+    std::shared_ptr<DirectXMemory> in_b_memory;
 
     auto in_srv = in_memory->GetSRV();
     auto out_uav = out_memory->GetUAV();
 
     std::vector<std::shared_ptr<ID3D11ShaderResourceView>> in_srvs;
-    if (broadcast_param_.weight_input_index == 1) {
-        in_srvs = {in_srv,  binary_params_->GetSRV() };
+
+    if (inputs.size() > 1) {
+        in_b_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[1]);
+        in_srvs = {in_srv,  in_b_memory->GetSRV()};
     } else {
-        in_srvs = {binary_params_->GetSRV(), in_srv};
+        if (broadcast_param_.weight_input_index == 1) {
+            in_srvs = {in_srv,  binary_params_->GetSRV() };
+        } else {
+            in_srvs = {binary_params_->GetSRV(), in_srv};
+        }
     }
 
     std::shared_ptr<ID3D11ComputeShader> cs;
@@ -144,19 +170,24 @@ Status DirectXBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const
     Status ret = GetShaderByName(kernel_name_, cs);
     RETURN_ON_NEQ(ret, TNN_OK);
 
-//    const int THREADS_PER_BLOCK = 128;
-//    const int ELE_PER_THREAD    = 4;
-//
-//    const int ele_count = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims);
-    int batch, channel, height, width;
-    batch            = DimsFunctionUtils::GetDim(output_dims_, 0);
-    channel          = DimsFunctionUtils::GetDim(output_dims_, 1);
-    height           = DimsFunctionUtils::GetDim(output_dims_, 2);
-    width            = DimsFunctionUtils::GetDim(output_dims_, 3);
-    int image_width  = UP_DIV(channel, 4) * width;
-    int image_height = batch * height;
+    if (use_buffer_) {
+        const int THREADS_PER_BLOCK = 128;
+        const int ELE_PER_THREAD    = 4;
 
-    ret = DispatchShader(cs, in_srvs, {out_uav}, {const_buffer_.get()}, {image_width,image_height,1});
+        const int ele_count = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims);
+
+        ret = DispatchShader(cs, in_srvs, {out_uav}, {const_buffer_.get()}, {UP_DIV(ele_count, THREADS_PER_BLOCK * ELE_PER_THREAD)});
+    } else {
+        int batch, channel, height, width;
+        batch            = DimsFunctionUtils::GetDim(output_dims_, 0);
+        channel          = DimsFunctionUtils::GetDim(output_dims_, 1);
+        height           = DimsFunctionUtils::GetDim(output_dims_, 2);
+        width            = DimsFunctionUtils::GetDim(output_dims_, 3);
+        int image_width  = UP_DIV(channel, 4) * width;
+        int image_height = batch * height;
+
+        ret = DispatchShader(cs, in_srvs, {out_uav}, {const_buffer_.get()}, {image_width,image_height,1});
+    }
 
     return ret;
 
@@ -170,17 +201,30 @@ Status DirectXBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     return CalcStrides(inputs, outputs);
 }
 
-Status DirectXBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int> param_dims) {
+Status DirectXBinaryLayerAcc::ConvertParam(void *param_data_ptr, std::vector<int> param_dims) {
 
-    // copy param data into DirectX Buffer
-    // TODO: to DirectX Texture2D 
-    shared_ptr<DirectXMemory> param_buffer = DirectXMemory::CreateBufferMemoryFromHost(
-                                                param_data_ptr, param_dims, DATA_TYPE_FLOAT, DATA_FORMAT_NCHW);
-    if (!param_buffer) {
-        LOGE("param transfer to GPU failed.");
-        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "param transfer to GPU failed.");
+    // copy param data into DirectX Buffer or Texture2D
+    if(use_buffer_) {
+        shared_ptr<DirectXMemory> param_buffer = DirectXMemory::CreateBufferMemoryFromHost(
+            param_data_ptr, param_dims, DATA_TYPE_FLOAT, DATA_FORMAT_NCHW);
+        if (!param_buffer) {
+            LOGE("param transfer to GPU failed.");
+            return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "param transfer to GPU failed.");
+        }
+        binary_params_ = std::move(param_buffer);
+    } else {
+        shared_ptr<DirectXMemory> param_texture = DirectXMemory::CreateTextureMemoryFromHost(
+            nullptr, param_dims, DATA_TYPE_FLOAT, DATA_FORMAT_NHC4W4);
+        if (!param_texture) {
+            LOGE("Create Texture2D failed when param transfer to GPU.");
+            return Status(TNNERR_DX_TEXTURE_ALOCATE_ERR, "Create Texture2D failed when param transfer to GPU.");
+        }
+        Status ret = UpdateTexture2D(param_data_ptr, param_dims, param_texture);
+        RETURN_ON_NEQ(ret, TNN_OK);
+
+        binary_params_ = std::move(param_texture);
     }
-    binary_params_ = std::move(param_buffer);
+
     return TNN_OK;
 }
 

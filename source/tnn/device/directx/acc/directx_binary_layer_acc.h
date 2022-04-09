@@ -40,7 +40,7 @@ public:
 
 private:
 
-    Status ConvertParam(float *bias_data_ptr, std::vector<int> param_dims);
+    Status ConvertParam(void *param_data_ptr, std::vector<int> param_dims);
 
     Status CalcStrides(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 

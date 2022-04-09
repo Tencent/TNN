@@ -55,17 +55,52 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     uint height_width_size = height * width;
     float4 output_values   = 0;
 
-    uint offset     = buffer_offset;
-    output_values.x = asfloat( BufferIn.Load( offset*4 ) );
-    offset += height_width_size;
-    output_values.y = asfloat( BufferIn.Load( offset*4 ) );
-    offset += height_width_size;
-    output_values.z = asfloat( BufferIn.Load( offset*4 ) );
-    output_values.w = 0;
-
     float4 scale_data   = {scale0,scale1,scale2,scale3};
     float4 bias_data    = {bias0,bias1,bias2,bias3};
-    output_values = output_values * scale_data + bias_data;
+    uint offset     = buffer_offset;
 
-    Texture_Blob[DTid.xy] = output_values;
+    if (remain_channel == 4) {
+        output_values.x = asfloat( BufferIn.Load( offset*4 ) );
+        offset += height_width_size;
+        output_values.y = asfloat( BufferIn.Load( offset*4 ) );
+        offset += height_width_size;
+        output_values.z = asfloat( BufferIn.Load( offset*4 ) );
+        offset += height_width_size;
+        output_values.w = asfloat( BufferIn.Load( offset*4 ) );
+
+        output_values = output_values * scale_data + bias_data;
+
+        Texture_Blob[DTid.xy] = output_values;
+    } else if (remain_channel == 3) {
+        output_values.x = asfloat( BufferIn.Load( offset*4 ) );
+        offset += height_width_size;
+        output_values.y = asfloat( BufferIn.Load( offset*4 ) );
+        offset += height_width_size;
+        output_values.z = asfloat( BufferIn.Load( offset*4 ) );
+        output_values.w = 0;
+
+        output_values = output_values * scale_data + bias_data;
+
+        Texture_Blob[DTid.xy] = output_values;
+    } else if (remain_channel == 2) {
+        output_values.x = asfloat( BufferIn.Load( offset*4 ) );
+        offset += height_width_size;
+        output_values.y = asfloat( BufferIn.Load( offset*4 ) );
+        output_values.z = 0;
+        output_values.w = 0;
+
+        output_values = output_values * scale_data + bias_data;
+
+        Texture_Blob[DTid.xy] = output_values;
+    } else if (remain_channel == 1) {
+        output_values.x = asfloat( BufferIn.Load( offset*4 ) );
+        output_values.y = 0;
+        output_values.z = 0;
+        output_values.w = 0;
+
+        output_values = output_values * scale_data + bias_data;
+
+        Texture_Blob[DTid.xy] = output_values;
+    }
+
 }

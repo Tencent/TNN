@@ -31,7 +31,7 @@ Status DirectXRelu6LayerAcc::Init(Context *context, LayerParam *param, LayerReso
     return TNN_OK;
 }
 
-DirectXReluLayerAcc::~DirectXReluLayerAcc() {}
+DirectXRelu6LayerAcc::~DirectXRelu6LayerAcc() {}
 
 REGISTER_DIRECTX_ACC(Relu6, LAYER_RELU6)
 REGISTER_DIRECTX_LAYOUT(LAYER_RELU6, DATA_FORMAT_NHC4W4);

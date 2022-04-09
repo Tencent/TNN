@@ -56,8 +56,7 @@ private:
 };
 #endif
 
-struct ParamCB
-    {
+struct ParamCB {
     float scale0;
     float scale1;
     float scale2;
@@ -72,7 +71,7 @@ struct ParamCB
     int c;
     int h;
     int w;
-    };
+};
 
 // Tell the memory type from a blob Description sruct
 DirectXMemoryType GetMemoryType(BlobDesc desc);
@@ -91,6 +90,10 @@ Status GetShaderByName(const std::string, std::shared_ptr<ID3D11ComputeShader> &
 Status GetID3DDevice(std::shared_ptr<ID3D11Device> &device);
 
 Status GetID3DContext(std::shared_ptr<ID3D11DeviceContext> &context);
+
+Status UpdateTexture2D(void*data_ptr,
+                       std::vector<int> dims,
+                       std::shared_ptr<DirectXMemory> &texture);
 
 template<typename T>
 Status CreateConstBuffer(const T &host_value, 

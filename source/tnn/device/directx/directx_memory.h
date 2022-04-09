@@ -25,6 +25,8 @@
 #include "tnn/core/common.h"
 #include "tnn/core/blob.h"
 #include "tnn/core/macro.h"
+#include "tnn/utils/blob_memory_size_utils.h"
+
 
 namespace TNN_NS {
 
@@ -87,6 +89,9 @@ public:
     // @brief Create Reference DirectXMemory to a TNN Blob
     static std::shared_ptr<DirectXMemory> CreateBufferMemoryFromHost(void * ptr, 
                             DimsVector dims, DataType data_type, DataFormat data_format = DATA_FORMAT_NCHW);
+
+    static std::shared_ptr<DirectXMemory> CreateTextureMemoryFromHost(void * ptr,
+                            DimsVector dims, DataType data_type, DataFormat data_format = DATA_FORMAT_NHC4W4);
 
 private:
     // remove all assignment operator

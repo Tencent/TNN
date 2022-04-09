@@ -61,21 +61,13 @@ void CSMain( uint3 DTid : SV_DispatchThreadID)
     int input_channel_start = mul(output_channel_idx, id[3]);
 
     float4 output_result = 0;
-      for (int height = 0; height < kernel_wh[1]; height++) {
+    for (int height = 0; height < kernel_wh[1]; height++) {
           int input_height_idx = input_height_start + height;
-          if(input_height_idx < 0 || input_height_idx >= id[2]){
-            input_height_idx = -1;
-          } else {
-            input_height_idx = input_start + input_height_idx;
-          }
+          input_height_idx = (input_height_idx < 0 || input_height_idx >= id[2]) ? -1 : input_start + input_height_idx;
+
           for (int width = 0; width < kernel_wh[0]; width++) {
               int input_width_idx = input_width_start + width;
-              if(input_width_idx < 0 || input_width_idx >= id[3]) {
-                input_width_idx = -1;
-              } else {
-                input_width_idx = input_channel_start + input_width_idx;
-              }
-
+              input_width_idx = (input_width_idx < 0 || input_width_idx >= id[3]) ? -1 : input_channel_start + input_width_idx;
               uint2 pos_in = {input_width_idx, input_height_idx};
               float4 input_data = input[pos_in];
               output_result     = output_result + input_data;

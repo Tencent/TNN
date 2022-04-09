@@ -27,7 +27,11 @@ Status DirectXDivLayerAcc::Init(Context *context, LayerParam *param, LayerResour
     Status ret = DirectXBinaryLayerAcc::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(ret, TNN_OK);
 
-    kernel_name_ = "binary_op_div";
+    if (use_buffer_) {
+        kernel_name_ = "binary_op_div";
+    } else {
+        kernel_name_ = "binary_op_texture_div";
+    }
 
     return TNN_OK;
 }
