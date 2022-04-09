@@ -58,8 +58,8 @@ protected:
 
     void ConfigKernelStrategy();
 
-    // Status ConvertChannelWeights(RawBuffer &raw_handle, shared_ptr<DirectXMemory> &ocl_handle, int output_channel,
-    //                              bool has_value = true, bool share_channel = false, bool use_buffer = false);
+    Status ConvertChannelWeights(RawBuffer &raw_handle, shared_ptr<DirectXMemory> &handle, int output_channel,
+                                 bool has_value = true, bool share_channel = false, bool use_buffer = false);
 
     Status RawBuffer2DirectXBlob(RawBuffer *buffer, std::shared_ptr<Blob> &blob, DataFormat format = DATA_FORMAT_NCHW);
 
@@ -81,15 +81,17 @@ protected:
     DataType data_type_;
 
     GpuInfo gpu_info_;
+
     bool use_buffer_     = false;
+    Precision precision_ = PRECISION_HIGH;
 
 #if TNN_PROFILE
     std::shared_ptr<DirectXProfilingData> profiling_data = nullptr;
 #endif
 
 private:
-    // Status ConvertChannelWeights(float *handle_data_ptr, shared_ptr<DirectXMemory> &ocl_handle, int output_channel,
-    //                              bool has_handle = true, bool share_channel = false, bool use_buffer = false);
+    Status ConvertChannelWeights(float *handle_data_ptr, shared_ptr<DirectXMemory> &handle, int output_channel,
+                                 bool has_handle = true, bool share_channel = false, bool use_buffer = false);
 
     Status CheckBlob(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 

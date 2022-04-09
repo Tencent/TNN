@@ -93,6 +93,8 @@ public:
     static std::shared_ptr<DirectXMemory> CreateTextureMemoryFromHost(void * ptr,
                             DimsVector dims, DataType data_type, DataFormat data_format = DATA_FORMAT_NHC4W4);
 
+    Status Dump() const;
+
 private:
     // remove all assignment operator
     DirectXMemory(const DirectXMemory& memory)  = delete;

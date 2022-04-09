@@ -27,6 +27,7 @@ Status DirectXLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     resource_    = resource;
     layer_name_  = param->name;
     dx_context_ = dynamic_cast<DirectXContext *>(context);
+    precision_ = dx_context_->GetPrecision();
 
     if (dx_context_ == nullptr) {
         return Status(TNNERR_NULL_PARAM, "DirectX Context Convert failed");
@@ -107,120 +108,68 @@ std::vector<DataType> DirectXLayerAcc::SupportDataType(int dims_size, BlobType b
     return {DATA_TYPE_FLOAT, DATA_TYPE_HALF};
 }
 
-/*
-Status DirectXLayerAcc::ConvertChannelWeights(RawBuffer &raw_handle, shared_ptr<DirectXMemory> &ocl_handle,
+Status DirectXLayerAcc::ConvertChannelWeights(RawBuffer &raw_handle, shared_ptr<DirectXMemory> &handle,
                                              int output_channel, bool has_handle, bool share_channel, bool use_buffer) {
     // convert first check handle is null and handle data type is float or half,
     // then process with float pointer.
     Status ret = TNN_OK;
     if (!has_handle) {
-        ret = ConvertChannelWeights(nullptr, ocl_handle, output_channel, has_handle, share_channel, use_buffer);
-        CHECK_TNN_OK(ret)
+        ret = ConvertChannelWeights(nullptr, handle, output_channel, has_handle, share_channel, use_buffer);
+        RETURN_ON_NEQ(ret, TNN_OK);
     } else if (raw_handle.GetDataType() == DATA_TYPE_FLOAT) {
         // get float pointer from raw buffer
         float *handle_data_ptr = raw_handle.force_to<float *>();
         if (handle_data_ptr == nullptr) {
-            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_DX_ACC_INIT_ERR, "pointer is null");
         }
-        ret = ConvertChannelWeights(handle_data_ptr, ocl_handle, output_channel, has_handle, share_channel, use_buffer);
-        CHECK_TNN_OK(ret)
+        ret = ConvertChannelWeights(handle_data_ptr, handle, output_channel, has_handle, share_channel, use_buffer);
+        RETURN_ON_NEQ(ret, TNN_OK);
     } else {
         // if handle is half, need convert to float first.
         auto float_data_ptr = GetFloatFromRawBuffer(raw_handle);
         if (float_data_ptr == nullptr) {
-            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
+            return Status(TNNERR_DX_ACC_INIT_ERR, "pointer is null");
         }
-        ret = ConvertChannelWeights(float_data_ptr.get(), ocl_handle, output_channel, has_handle, share_channel,
+        ret = ConvertChannelWeights(float_data_ptr.get(), handle, output_channel, has_handle, share_channel,
                                     use_buffer);
-        CHECK_TNN_OK(ret)
+        RETURN_ON_NEQ(ret, TNN_OK);
     }
 
     return ret;
 }
 
 // ConvertChannelWeights only convert weights dims equal to 1 or output_channel.
-// Convert Weights to clBuffer or ClImage, pack c4.
-Status DirectXLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<DirectXMemory> &ocl_handle,
+// Convert Weights to DirectXBuffer of Texture2D (pack c4)
+Status DirectXLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr<DirectXMemory> &handle,
                                              int output_channel, bool has_handle, bool share_channel, bool use_buffer) {
-    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-
-    // copy weights data into clBuffer
-    int handle_size = UP_DIV(output_channel, 4) * 4;
-    cl_int ret      = CL_SUCCESS;
-    cl::Buffer handle_clbuffer(*opencl_runtime->Context(), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                               handle_size * sizeof(float), nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
-    }
-    float *handle_clbuffer_ptr = (float *)ocl_context_->CommandQueue()->enqueueMapBuffer(
-        handle_clbuffer, true, CL_MAP_WRITE, 0, handle_size * sizeof(float), nullptr, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
-    }
-    memset(handle_clbuffer_ptr, 0, handle_size * sizeof(float));
+    std::shared_ptr<float> host_ptr = std::shared_ptr<float>(new float[output_channel], [](float * p){delete[] p;});
+    memset(host_ptr.get(), 0, output_channel * sizeof(float));
     if (has_handle) {
-        for (int i = 0; i < output_channel; ++i) {
-            handle_clbuffer_ptr[i] = share_channel ? handle_data_ptr[0] : handle_data_ptr[i];
+        for(int i=0;i<output_channel;i++) {
+            host_ptr.get()[i] = share_channel ? handle_data_ptr[0] : handle_data_ptr[i];
         }
     }
-    ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(handle_clbuffer, handle_clbuffer_ptr);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
+
+    auto dx_mem = DirectXMemory::CreateBufferMemoryFromHost(host_ptr.get(), {output_channel}, DATA_TYPE_FLOAT, DATA_FORMAT_NCHW);
+    if (!dx_mem) {
+        LOGE("CreateBufferMemoryFromHost failed\n");
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "craete directx memory failed.");
     }
 
-    // create ocl_handle_
-    if (use_buffer_) {
-        // use clBuffer
-        ocl_handle.reset(new DirectXMemory(TNN_CL_BUFFER));
-        size_t type_size = sizeof(float);
-        if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
-            type_size = 2;
-        cl::Buffer *buffer =
-            new cl::Buffer(*opencl_runtime->Context(), CL_MEM_READ_WRITE, handle_size * type_size, nullptr, &ret);
-        if (ret != CL_SUCCESS) {
-            CHECK_CL_SUCCESS(ret)
-            if (nullptr != buffer)
-                delete buffer;
-            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
-        }
-        ocl_handle->SetData(buffer, true);
+    if (precision_ == PRECISION_LOW) {
+        LOGE("FP16 Weigths not supported now.");
+        return Status(TNNERR_DX_ACC_INIT_ERR, "FP16 weights not supported now.");
+    }
 
-        // convert buffer to buffer
-        shared_ptr<DirectXMemory> input(new DirectXMemory(TNN_CL_BUFFER));
-        input->SetData(&handle_clbuffer);
-        ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
-        return convertor.ConvertBufferToBuffer(input.get(), ARGUMENT, {output_channel}, ocl_handle.get(), true);
-
+    if (use_buffer) {
+        handle = std::move(dx_mem);
     } else {
-        // use clImage
-        int ocl_handle_w          = UP_DIV(output_channel, 4);
-        int ocl_handle_h          = 1;
-        cl_channel_type data_type = CL_FLOAT;
-        if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
-            data_type = CL_HALF_FLOAT;
-        cl::Image2D *image =
-            new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
-                            ocl_handle_w, ocl_handle_h, 0, nullptr, &ret);
-        if (ret != CL_SUCCESS) {
-            CHECK_CL_SUCCESS(ret)
-            if (nullptr != image)
-                delete image;
-            return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
-        }
-        ocl_handle.reset(new DirectXMemory(TNN_CL_IMAGE));
-        ocl_handle->SetData(image, true);
+        LOGE("Convert ChannelWeights to Texture not implemented\n");
+        return Status(TNNERR_DX_ACC_INIT_ERR, "Convert ChannelWeights to Texture not implemented");
+    } 
 
-        // convert buffer to image
-        shared_ptr<DirectXMemory> input_blob(new DirectXMemory(TNN_CL_BUFFER));
-        input_blob->SetData(&handle_clbuffer);
-        ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
-        return convertor.ConvertBufferToImage(input_blob.get(), ARGUMENT, {output_channel}, ocl_handle.get(), true);
-    }
+    return TNN_OK;
 }
-*/
 
 Status DirectXLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob) {
     auto const_resource = const_resource_;

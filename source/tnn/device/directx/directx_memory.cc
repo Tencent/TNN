@@ -22,6 +22,7 @@
 #include "tnn/device/directx/directx_runtime.h"
 #include "tnn/device/directx/directx_util.h"
 #include "tnn/device/directx/directx_device.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
@@ -266,6 +267,79 @@ std::shared_ptr<DirectXMemory> DirectXMemory::CreateTextureMemoryFromHost(
     dx_mem->SetData(buf, false);
     dx_mem->SetMemoryInfo(data_type, data_format, dims);
     return std::shared_ptr<DirectXMemory>(dx_mem);
+}
+
+Status DirectXMemory::Dump() const {
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_DX_RESOURCE_CREATION);
+    }
+
+    auto d3d_device= tnn_device->GetID3DDevice();
+    if (!d3d_device) {
+        LOGE("Got null d3d device");
+        return Status(TNNERR_DX_RESOURCE_CREATION);
+    }
+
+    auto d3d_context = tnn_device->GetID3DContext();
+    if (!d3d_context) {
+        LOGE("Got null d3d context");
+        return Status(TNNERR_DX_RESOURCE_CREATION);
+    }
+
+    if (TNN_DX_BUFFER == mem_type_) {
+
+        size_t size_in_bytes = DimsVectorUtils::Count(dims_) * DataTypeUtils::GetBytesSize(data_type_);
+
+        d3d_context->Flush();
+
+        D3D11_BUFFER_DESC desc;
+        ZeroMemory(&desc, sizeof(desc));
+
+        ID3D11Buffer * src_buffer = (ID3D11Buffer*) data_;
+        src_buffer->GetDesc(&desc);
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.MiscFlags = 0;
+
+        ID3D11Buffer* debug_buffer;
+        HRESULT hr = d3d_device->CreateBuffer(&desc, NULL, &debug_buffer);
+        if (FAILED(hr)) {
+            LOGE("DirectX create debug Buffer failed ret:0x%X", hr);
+            return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX create debug Buffer failed.");
+        }
+
+        d3d_context->CopyResource(debug_buffer, src_buffer);
+
+        D3D11_MAPPED_SUBRESOURCE mapped_resource;
+        hr = d3d_context->Map(debug_buffer, 0, D3D11_MAP_READ, 0, &mapped_resource);
+        if (FAILED(hr)) {
+            LOGE("DirectX map failed ret:0x%X", hr);
+            return Status(TNNERR_DX_MAP_ERR, "DirectX map failed.");
+        }
+
+        if (data_type_ != DATA_TYPE_FLOAT) {
+            LOGE("only float supports dump now");
+            return Status(TNNERR_DX_RESOURCE_CREATION);
+        }
+
+        for(int i=0;i<DimsVectorUtils::Count(dims_);i++) {
+            printf("dumping [%d]:%.6f\n", i, ((const float *)mapped_resource.pData)[i]);
+        }
+
+        d3d_context->Unmap(debug_buffer, 0);
+        debug_buffer->Release();
+
+    } else {
+        char error_str[128];
+        sprintf(error_str, "Dump not support this memory_type");
+        return Status(TNNERR_PARAM_ERR, error_str);
+    }
+
+    return TNN_OK;
 }
 
 } // namespace directx
