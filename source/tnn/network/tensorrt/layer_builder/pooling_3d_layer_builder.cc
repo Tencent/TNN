@@ -47,8 +47,6 @@ ILayer* Pooling3DTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     }
 
     Dims kernelSize(ConvertToTRTDimsReverse(paramlist->kernels));
-    for (auto i : paramlist->kernels) printf("%d ", i);
-    printf("\n");
 
     PoolingType type;
     if (paramlist->pool_type == 0) {
