@@ -134,9 +134,9 @@ Status DirectXBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const
 
     auto d3d_context = GetID3DContext();
 
-    auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]); 
-    auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]); 
-    std::shared_ptr<DirectXMemory> in_b_memory;
+    std::shared_ptr<DirectXMemory> in_memory, out_memory, in_b_memory;
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(inputs[0], in_memory), TNN_OK); 
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(outputs[0], out_memory), TNN_OK); 
 
     auto in_srv = in_memory->GetSRV();
     auto out_uav = out_memory->GetUAV();
@@ -144,7 +144,7 @@ Status DirectXBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const
     std::vector<std::shared_ptr<ID3D11ShaderResourceView>> in_srvs;
 
     if (inputs.size() > 1) {
-        in_b_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[1]);
+        RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(inputs[1], in_b_memory), TNN_OK); 
         in_srvs = {in_srv,  in_b_memory->GetSRV()};
     } else {
         if (broadcast_param_.weight_input_index == 1) {

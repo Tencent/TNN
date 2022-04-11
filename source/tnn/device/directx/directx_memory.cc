@@ -305,6 +305,50 @@ Status DirectXMemory::Dump() const {
     return TNN_OK;
 }
 
+
+std::shared_ptr<DirectXMemoryManager> DirectXMemoryManager::g_singleton_ = nullptr;
+std::mutex DirectXMemoryManager::g_mutex_;
+
+DirectXMemoryManager *DirectXMemoryManager::GetInstance() {
+    std::unique_lock<std::mutex> lck(g_mutex_);
+    if (!g_singleton_) {
+        DirectXMemoryManager * mm = new DirectXMemoryManager(); 
+        g_singleton_ = std::shared_ptr<DirectXMemoryManager>(mm, [](DirectXMemoryManager *p){delete p;});
+    }
+
+    return g_singleton_.get();
+}
+
+DirectXMemoryManager::DirectXMemoryManager() {
+}
+
+DirectXMemoryManager::~DirectXMemoryManager() {
+    memory_map_.clear();
+}
+
+Status DirectXMemoryManager::GetRefMemoryFromBlob(Blob * blob, std::shared_ptr<DirectXMemory> & directx_memory) {
+    std::unique_lock<std::mutex> lck(g_mutex_);
+    auto it = memory_map_.find(blob);
+
+    if (it != memory_map_.end() ) {
+        if (it->second->GetData() == blob->GetHandle().base) {
+            directx_memory = it->second;
+            return TNN_OK;
+        }
+    }
+
+    auto mem = DirectXMemory::CreateRefMemoryFromBlob(blob);
+    if (!mem) {
+        LOGE("Creating DirectXMemory from Blob failed\n");
+        return Status(TNNERR_DX_RESOURCE_CREATION, "Creating directXMmeory from Blob failed");
+    }
+
+    memory_map_.insert(std::make_pair(blob, mem));
+
+    directx_memory = mem;
+    return TNN_OK;
+}
+
 } // namespace directx
 
 }  // namespace TNN_NS
