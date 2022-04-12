@@ -362,7 +362,7 @@ Status ModelInterpreter::InterpretLayer(const std::string &layer_str) {
 
     LayerParam *param      = NULL;
     auto layer_interpreter = layer_interpreter_map[type];
-    if (layer_interpreter != NULL) {
+    if (layer_interpreter != nullptr) {
         layer_interpreter->InterpretProto(layer_cfg_arr, out_end, &param);
     }
 
@@ -437,7 +437,7 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
         LayerResource *layer_resource = NULL;
         auto layer_interpreter        = layer_interpreter_map[ly_head.type_];
         // refactor later, layer_interpreter NULL return error_code.
-        if (layer_interpreter != NULL) {
+        if (layer_interpreter != nullptr) {
             Status result = layer_interpreter->InterpretResource(*deserializer, &layer_resource);
             if (result != TNN_OK) {
                 return result;
@@ -478,13 +478,17 @@ Status ModelInterpreter::InterpretModel(std::string &model_content) {
 }
 
 Status ModelInterpreter::RegisterLayerInterpreter(LayerType type, AbstractLayerInterpreter *interpreter) {
-    std::map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map = GetLayerInterpreterMap();
+    safe_map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map = LayerInterpreterMap();
     layer_interpreter_map[type] = std::shared_ptr<AbstractLayerInterpreter>(interpreter);
     return TNN_OK;
 }
 
-std::map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> &ModelInterpreter::GetLayerInterpreterMap() {
-    static std::map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> layer_interpreter_map;
+const safe_map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> &ModelInterpreter::GetLayerInterpreterMap() {
+    return LayerInterpreterMap();
+}
+
+safe_map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> &ModelInterpreter::LayerInterpreterMap() {
+    static safe_map<LayerType, std::shared_ptr<AbstractLayerInterpreter>> layer_interpreter_map;
     return layer_interpreter_map;
 }
 

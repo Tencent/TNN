@@ -2,7 +2,7 @@
 
 [English Version](../../en/user/convert_en.md)
 
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/convert.png"/>
+<div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/user/resource/convert.png"/>
 
 目前 TNN 支持业界主流的模型文件格式，包括ONNX、PyTorch、TensorFlow、TesorFlow-Lite 以及 Caffe 等。如上图所示，TNN 将 ONNX 作为中间层，借助于ONNX 开源社区的力量，来支持多种模型文件格式。如果要将PyTorch、TensorFlow 以及 Caffe 等模型文件格式转换为 TNN，首先需要使用对应的模型转换工具，统一将各种模型格式转换成为 ONNX 模型格式，然后将 ONNX 模型转换成 TNN 模型。  
 
