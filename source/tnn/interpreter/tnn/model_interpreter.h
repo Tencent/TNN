@@ -18,6 +18,7 @@
 #include <algorithm>
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/interpreter/tnn/objseri.h"
+#include "tnn/utils/safe_map.h"
 
 using namespace TNN_NS;
 namespace TNN_NS {
@@ -104,10 +105,14 @@ public:
     static Status RegisterLayerInterpreter(LayerType type, AbstractLayerInterpreter* creator);
 
     // @brief get layer interpreter by layer type
-    static std::map<LayerType, std::shared_ptr<AbstractLayerInterpreter>>& GetLayerInterpreterMap();
+    static const safe_map<LayerType, std::shared_ptr<AbstractLayerInterpreter>>& GetLayerInterpreterMap();
 
     // @brief copy interpreter
     virtual std::shared_ptr<AbstractModelInterpreter> Copy();
+
+private:
+    // @brief get layer interpreter by layer type
+    static safe_map<LayerType, std::shared_ptr<AbstractLayerInterpreter>>& LayerInterpreterMap();
 
 protected:
     virtual Status InterpretProto(std::string& content);
