@@ -89,7 +89,7 @@ Status CudaConv3DLayerAcc::Init(Context *context, LayerParam *param, LayerResour
 
     size_t weights_size = sizeof(float) * input_dims[1] *
                           output_dims[1] * conv_param->kernels[2] *
-                          conv_param->kernels[1] * conv_param->kernels[0];
+                          conv_param->kernels[1] * conv_param->kernels[0] / conv_param->group;
 
     CUDA_CHECK(cudaMalloc((void **)&weights_, weights_size));
     CUDA_CHECK(cudaMemcpy(weights_, weights, weights_size, cudaMemcpyHostToDevice));
