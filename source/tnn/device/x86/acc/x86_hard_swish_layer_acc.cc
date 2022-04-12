@@ -85,10 +85,17 @@ Status X86HardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
                 tmp12_ = _mm256_loadu_ps(input_ptr1 + index + offset2);
                 tmp13_ = _mm256_loadu_ps(input_ptr1 + index + offset3);
 
+#ifdef __AVX2__
+                tmp10_ = _mm256_fmadd_ps(tmp10_, alpha_, beta_);
+                tmp11_ = _mm256_fmadd_ps(tmp11_, alpha_, beta_);
+                tmp12_ = _mm256_fmadd_ps(tmp12_, alpha_, beta_);
+                tmp13_ = _mm256_fmadd_ps(tmp13_, alpha_, beta_);
+#else
                 tmp10_ = _mm256_add_ps(_mm256_mul_ps(tmp10_, alpha_), beta_);
                 tmp11_ = _mm256_add_ps(_mm256_mul_ps(tmp11_, alpha_), beta_);
                 tmp12_ = _mm256_add_ps(_mm256_mul_ps(tmp12_, alpha_), beta_);
                 tmp13_ = _mm256_add_ps(_mm256_mul_ps(tmp13_, alpha_), beta_);
+#endif
 
                 tmp10_ = _mm256_min_ps(tmp10_, one_);
                 tmp11_ = _mm256_min_ps(tmp11_, one_);
@@ -129,10 +136,17 @@ Status X86HardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
             tmp12_ = _mm256_maskload_ps(input_ptr1 + tail + 16, mask2_);
             tmp13_ = _mm256_maskload_ps(input_ptr1 + tail + 24, mask3_);
 
+#ifdef __AVX2__
+            tmp10_ = _mm256_fmadd_ps(tmp10_, alpha_, beta_);
+            tmp11_ = _mm256_fmadd_ps(tmp11_, alpha_, beta_);
+            tmp12_ = _mm256_fmadd_ps(tmp12_, alpha_, beta_);
+            tmp13_ = _mm256_fmadd_ps(tmp13_, alpha_, beta_);
+#else
             tmp10_ = _mm256_add_ps(_mm256_mul_ps(tmp10_, alpha_), beta_);
             tmp11_ = _mm256_add_ps(_mm256_mul_ps(tmp11_, alpha_), beta_);
             tmp12_ = _mm256_add_ps(_mm256_mul_ps(tmp12_, alpha_), beta_);
             tmp13_ = _mm256_add_ps(_mm256_mul_ps(tmp13_, alpha_), beta_);
+#endif
 
             tmp10_ = _mm256_min_ps(tmp10_, one_);
             tmp11_ = _mm256_min_ps(tmp11_, one_);

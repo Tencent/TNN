@@ -299,6 +299,8 @@ if(SYSTEM.Windows AND TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
 endif()
 
 if(TNN_X86_ENABLE)
+    # compile with avx2 by default
+    option(TNN_X86_AVX2_ENABLE  "Enable X86 AVX2" ON)
     add_subdirectory(source/tnn/device/x86)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86>")
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86ACC>")

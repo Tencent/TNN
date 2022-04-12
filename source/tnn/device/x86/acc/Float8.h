@@ -75,13 +75,25 @@ struct Float8 {
     }
     // mla_231
     static void mla(Float8& v1, const Float8& v2, const Float8& v3) {
+#ifdef __AVX2__
+        v1.value = _mm256_fmadd_ps(v2.value, v3.value, v1.value);
+#else
         v1.value = _mm256_add_ps(_mm256_mul_ps(v2.value, v3.value), v1.value);
+#endif
     }
     static void mla_123(Float8& v1, const Float8& v2, const Float8& v3) {
+#ifdef __AVX2__
+        v1.value = _mm256_fmadd_ps(v1.value, v2.value, v3.value);
+#else
         v1.value = _mm256_add_ps(_mm256_mul_ps(v1.value, v2.value), v3.value);
+#endif
     }
     static void mls(Float8& v1, const Float8& v2, const Float8& v3) {
+#ifdef __AVX2__
+        v1.value = _mm256_fnmadd_ps(v2.value, v3.value, v1.value);
+#else
         v1.value = _mm256_sub_ps(_mm256_mul_ps(v2.value, v3.value), v1.value);
+#endif
     }
     static Float8 bsl_cle(const Float8& c1, const Float8& c2, const Float8& v1, const Float8& v2) {
         Float8 dst;
