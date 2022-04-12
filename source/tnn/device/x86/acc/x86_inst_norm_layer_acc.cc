@@ -52,7 +52,7 @@ Status X86InstanceNormLayerAcc::DoForward(const std::vector<Blob*> &inputs, cons
         for (int b = 0; b < batch; b++) {
             if (1) {
                 for (int c = 0; c < channels; c++) {
-#ifdef __AVX2__
+#ifdef __AVX__
                     __m256 _sum_x, _sum_x2;
                     float buffer[8];
                     _sum_x = _mm256_setzero_ps();
@@ -64,7 +64,7 @@ Status X86InstanceNormLayerAcc::DoForward(const std::vector<Blob*> &inputs, cons
                     for (size_t i = head; i < tail; i += 8) {
                         _temp = _mm256_loadu_ps(input_data + i);
                         _sum_x = _mm256_add_ps(_sum_x, _temp);
-                        _sum_x2 = _mm256_fmadd_ps(_temp, _temp, _sum_x2);
+                        _sum_x2 = _mm256_add_ps(_mm256_mul_ps(_temp, _temp), _sum_x2);
                     }
 
                     float sum_x, sum_x2;
@@ -95,7 +95,7 @@ Status X86InstanceNormLayerAcc::DoForward(const std::vector<Blob*> &inputs, cons
                     for (; output_data < tail_p; output_data += 8, input_data += 8) {
                         // std::cout << i << std::endl;
                         _temp = _mm256_loadu_ps(input_data);
-                        _temp = _mm256_fmadd_ps(_temp, _sum_x, _sum_x2);
+                        _temp = _mm256_add_ps(_mm256_mul_ps(_temp, _sum_x), _sum_x2);
                         _mm256_storeu_ps(output_data, _temp);
                     }
                     for (size_t i = tail; i < area; i++, output_data++, input_data++) {
@@ -155,7 +155,7 @@ Status X86InstanceNormLayerAcc::DoForward(const std::vector<Blob*> &inputs, cons
                 }
             } else {
                 for (int c = 0; c < channels; c += 4) {
-#ifdef __AVX2__
+#ifdef __AVX__
                     float buffer[8];
                     __m256 _sum1_x  = _mm256_setzero_ps();
                     __m256 _sum2_x  = _mm256_setzero_ps();
@@ -187,10 +187,10 @@ Status X86InstanceNormLayerAcc::DoForward(const std::vector<Blob*> &inputs, cons
                         _sum2_x = _mm256_add_ps(_sum2_x, _temp2);
                         _sum3_x = _mm256_add_ps(_sum3_x, _temp3);
                         _sum4_x = _mm256_add_ps(_sum4_x, _temp4);
-                        _sum1_x2 = _mm256_fmadd_ps(_temp1, _temp1, _sum1_x2);
-                        _sum2_x2 = _mm256_fmadd_ps(_temp2, _temp2, _sum2_x2);
-                        _sum3_x2 = _mm256_fmadd_ps(_temp3, _temp3, _sum3_x2);
-                        _sum4_x2 = _mm256_fmadd_ps(_temp4, _temp4, _sum4_x2);
+                        _sum1_x2 = _mm256_add_ps(_mm256_mul_ps(_temp1, _temp1), _sum1_x2);
+                        _sum2_x2 = _mm256_add_ps(_mm256_mul_ps(_temp2, _temp2), _sum2_x2);
+                        _sum3_x2 = _mm256_add_ps(_mm256_mul_ps(_temp3, _temp3), _sum3_x2);
+                        _sum4_x2 = _mm256_add_ps(_mm256_mul_ps(_temp4, _temp4), _sum4_x2);
                     }
 
                     _mm256_storeu_ps(buffer, _sum1_x);
@@ -271,10 +271,10 @@ Status X86InstanceNormLayerAcc::DoForward(const std::vector<Blob*> &inputs, cons
                         _temp2 = _mm256_loadu_ps(input_data2 + i);
                         _temp3 = _mm256_loadu_ps(input_data3 + i);
                         _temp4 = _mm256_loadu_ps(input_data4 + i);
-                        _temp1 = _mm256_fmadd_ps(_temp1, _sum1_x, _sum1_x2);
-                        _temp2 = _mm256_fmadd_ps(_temp2, _sum2_x, _sum2_x2);
-                        _temp3 = _mm256_fmadd_ps(_temp3, _sum3_x, _sum3_x2);
-                        _temp4 = _mm256_fmadd_ps(_temp4, _sum4_x, _sum4_x2);
+                        _temp1 = _mm256_add_ps(_mm256_mul_ps(_temp1, _sum1_x), _sum1_x2);
+                        _temp2 = _mm256_add_ps(_mm256_mul_ps(_temp2, _sum2_x), _sum2_x2);
+                        _temp3 = _mm256_add_ps(_mm256_mul_ps(_temp3, _sum3_x), _sum3_x2);
+                        _temp4 = _mm256_add_ps(_mm256_mul_ps(_temp4, _sum4_x), _sum4_x2);
                         _mm256_storeu_ps(output_data1 + i, _temp1);
                         _mm256_storeu_ps(output_data2 + i, _temp2);
                         _mm256_storeu_ps(output_data3 + i, _temp3);

@@ -301,6 +301,7 @@ endif()
 if(TNN_X86_ENABLE)
     add_subdirectory(source/tnn/device/x86)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86>")
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86ACC>")
 endif()
 
 if(TNN_CPU_ENABLE)

@@ -22,12 +22,6 @@
 
 namespace TNN_NS {
 
-#ifdef __AVX2__
-void X86AVXGemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
-                     const float* scale, const int32_t* bias, long relu, const int8_t* add_input,
-                     const float* add_scale, const int8_t* relu6_max);
-#endif
-
 void X86SSEGemmInt8Unit4x4(const int8_t* src, const int8_t* weight, int8_t* dst, long src_w_step, long dst_depth, long cdiv8,
                      const float* scale, const int32_t* bias, long relu, const int8_t* add_input,
                      const float* add_scale, const int8_t* relu6_max);
