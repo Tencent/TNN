@@ -53,13 +53,13 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
 
     uint remain_channel    = channel - channel_4_idx;
     uint height_width_size = height * width;
-    float4 output_values   = 0;
+    float4 output_values   = {0,0,0,0};
 
     float4 scale_data   = {scale0,scale1,scale2,scale3};
     float4 bias_data    = {bias0,bias1,bias2,bias3};
     uint offset     = buffer_offset;
 
-    if (remain_channel == 4) {
+    if (remain_channel >= 4) {
         output_values.x = asfloat( BufferIn.Load( offset*4 ) );
         offset += height_width_size;
         output_values.y = asfloat( BufferIn.Load( offset*4 ) );
@@ -99,8 +99,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
         output_values.w = 0;
 
         output_values = output_values * scale_data + bias_data;
-
-        Texture_Blob[DTid.xy] = output_values;
     }
 
+    Texture_Blob[DTid.xy] = output_values;
 }

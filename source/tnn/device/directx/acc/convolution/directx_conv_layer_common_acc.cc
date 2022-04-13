@@ -179,82 +179,134 @@ Status DirectXConvLayerCommonAcc::PreCompute(const std::vector<Blob *> &inputs, 
         return Status(TNNERR_DX_LAYER_ERR, "Expect shape lenghts > 4 for input and output.");
     }
 
-    int oh = DimsFunctionUtils::GetDim(out_dims, 2);
-    int ow = DimsFunctionUtils::GetDim(out_dims, 3);
-    int THREADS_PER_BLOCK = 64;
-    int LOOP_K = 4;
-    int elements = ROUND_UP(oh * ow, 64);
+    if (use_buffer_) {
+        int oh = DimsFunctionUtils::GetDim(out_dims, 2);
+        int ow = DimsFunctionUtils::GetDim(out_dims, 3);
+        int THREADS_PER_BLOCK = 64;
+        int LOOP_K = 4;
+        int elements = ROUND_UP(oh * ow, 64);
 
-    std::shared_ptr<int> ptr_offset = std::shared_ptr<int>(new int[elements], [](void *p){delete[] p;});
-    std::shared_ptr<int> mask = std::shared_ptr<int>(new int[elements], [](void *p){delete[] p;});
-    std::shared_ptr<int> filter_offset = std::shared_ptr<int>(new int[9], [](void *p){delete[] p;});
-    std::shared_ptr<int> warp_offset = std::shared_ptr<int>(new int[4], [](void *p){delete[] p;});
+        std::shared_ptr<int> ptr_offset = std::shared_ptr<int>(new int[elements], [](void *p){delete[] p;});
+        std::shared_ptr<int> mask = std::shared_ptr<int>(new int[elements], [](void *p){delete[] p;});
+        std::shared_ptr<int> filter_offset = std::shared_ptr<int>(new int[9], [](void *p){delete[] p;});
+        std::shared_ptr<int> warp_offset = std::shared_ptr<int>(new int[4], [](void *p){delete[] p;});
 
-    LOGI("layer name:%s\n", layer_name_.c_str());
-    precompute_filter_offsets(filter_offset.get(), LOOP_K, conv_params_, in_dims);
-    precompute_warp_offsets(warp_offset.get(), LOOP_K, conv_params_, in_dims);
-    precompute_ptr_offsets(mask.get(), ptr_offset.get(), conv_params_, in_dims, out_dims);
+        LOGI("layer name:%s\n", layer_name_.c_str());
+        precompute_filter_offsets(filter_offset.get(), LOOP_K, conv_params_, in_dims);
+        precompute_warp_offsets(warp_offset.get(), LOOP_K, conv_params_, in_dims);
+        precompute_ptr_offsets(mask.get(), ptr_offset.get(), conv_params_, in_dims, out_dims);
 
-    ptr_offset_ = DirectXMemory::CreateBufferMemoryFromHost(ptr_offset.get(), {elements}, DATA_TYPE_INT32, DATA_FORMAT_NCHW);
-    mask_ = DirectXMemory::CreateBufferMemoryFromHost(mask.get(), {elements}, DATA_TYPE_INT32, DATA_FORMAT_NCHW);
-    filter_offset_ = DirectXMemory::CreateBufferMemoryFromHost(filter_offset.get(), {9}, DATA_TYPE_INT32, DATA_FORMAT_NCHW);
-    warp_offset_ = DirectXMemory::CreateBufferMemoryFromHost(warp_offset.get(), {4}, DATA_TYPE_INT32, DATA_FORMAT_NCHW);
+        ptr_offset_ = DirectXMemory::CreateBufferMemoryFromHost(ptr_offset.get(), {elements}, DATA_TYPE_INT32, DATA_FORMAT_NCHW);
+        mask_ = DirectXMemory::CreateBufferMemoryFromHost(mask.get(), {elements}, DATA_TYPE_INT32, DATA_FORMAT_NCHW);
+        filter_offset_ = DirectXMemory::CreateBufferMemoryFromHost(filter_offset.get(), {9}, DATA_TYPE_INT32, DATA_FORMAT_NCHW);
+        warp_offset_ = DirectXMemory::CreateBufferMemoryFromHost(warp_offset.get(), {4}, DATA_TYPE_INT32, DATA_FORMAT_NCHW);
 
-    if (!ptr_offset_ || !mask_ || !filter_offset_ || !warp_offset_) {
-        LOGE("Create dx buffer from host failed.\n");
-        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "Create dx buffer from host failed.");
+        if (!ptr_offset_ || !mask_ || !filter_offset_ || !warp_offset_) {
+            LOGE("Create dx buffer from host failed.\n");
+            return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "Create dx buffer from host failed.");
+        }
+
+        typedef struct launch_param {
+            DirectX::XMUINT4 in_shape;
+            DirectX::XMUINT4 out_shape;
+            DirectX::XMUINT4 filter_kcrs;
+            DirectX::XMUINT4 others;
+        } launch_param_t;
+
+        launch_param_t args;
+        args.in_shape  = DirectX::XMUINT4(in_dims[0], in_dims[1], in_dims[2], in_dims[3]);
+        args.out_shape = DirectX::XMUINT4(out_dims[0], out_dims[1], out_dims[2], out_dims[3]);
+        args.filter_kcrs = DirectX::XMUINT4(conv_params_.output_channel, conv_params_.input_channel,
+                                            conv_params_.kernel_h, conv_params_.kernel_w);
+        args.others = DirectX::XMUINT4(conv_params_.activation_type, 0,0,0);
+
+        return CreateConstBuffer<launch_param_t>(args, GetID3DDevice(), const_buffer_);
+    } else {
+        typedef struct launch_param {
+            DirectX::XMUINT4 in_shape;
+            DirectX::XMUINT4 out_shape;
+            DirectX::XMUINT4 kernel_wh;
+            DirectX::XMUINT4 stride_wh;
+            DirectX::XMUINT4 padding_wh;
+            DirectX::XMUINT4 dilation_wh;
+            DirectX::XMUINT4 activation_type;
+        } launch_param_t;
+
+        launch_param_t args;
+        args.in_shape  = DirectX::XMUINT4(in_dims[0], in_dims[1], in_dims[2], in_dims[3]);
+        args.out_shape = DirectX::XMUINT4(out_dims[0], out_dims[1], out_dims[2], out_dims[3]);
+        args.kernel_wh = DirectX::XMUINT4(conv_params_.kernel_w, conv_params_.kernel_h, 0, 0);
+        args.stride_wh = DirectX::XMUINT4(conv_params_.stride_w, conv_params_.stride_h, 0, 0);
+        args.padding_wh = DirectX::XMUINT4(conv_params_.pad_w, conv_params_.pad_h, 0, 0);
+        args.dilation_wh = DirectX::XMUINT4(conv_params_.dilation_w, conv_params_.dilation_h, 0, 0);
+        args.activation_type = DirectX::XMUINT4(conv_params_.activation_type, 0,0,0);
+
+        return CreateConstBuffer<launch_param_t>(args, GetID3DDevice(), const_buffer_);
     }
-
-    typedef struct launch_param {
-        DirectX::XMUINT4 in_shape;
-        DirectX::XMUINT4 out_shape;
-        DirectX::XMUINT4 filter_kcrs;
-        DirectX::XMUINT4 others;
-    } launch_param_t;
-
-    launch_param_t args;
-    args.in_shape  = DirectX::XMUINT4(in_dims[0], in_dims[1], in_dims[2], in_dims[3]);
-    args.out_shape = DirectX::XMUINT4(out_dims[0], out_dims[1], out_dims[2], out_dims[3]);
-    args.filter_kcrs = DirectX::XMUINT4(conv_params_.output_channel, conv_params_.input_channel, 
-                                        conv_params_.kernel_h, conv_params_.kernel_w);
-    args.others = DirectX::XMUINT4(conv_params_.activation_type, 0,0,0);
-
-    return CreateConstBuffer<launch_param_t>(args, GetID3DDevice(), const_buffer_);
 }
+
 Status DirectXConvLayerCommonAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
     auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]); 
     auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]); 
 
+    Status ret;
     auto in_srv = in_memory->GetSRV();
     auto weight_srv = weights_->GetSRV();
     auto bias_srv = bias_->GetSRV();
-    auto ptr_of_srv = ptr_offset_->GetSRV();
-    auto mask_srv = mask_->GetSRV();
-    auto filter_of_srv = filter_offset_->GetSRV();
-    auto warp_of_srv = warp_offset_->GetSRV();
-
     auto out_uav = out_memory->GetUAV();
-
-    int BLOCK_A;
-    int BLOCK_B;
     std::string kernel_name;
-
-    BLOCK_A = 64;
-    BLOCK_B = 64;
-    kernel_name = "conv";
-
-
-    std::shared_ptr<ID3D11ComputeShader> cs;
-    Status ret = GetShaderByName(kernel_name, cs);
-    RETURN_ON_NEQ(ret, TNN_OK);
-
     auto &out_dims = outputs[0]->GetBlobDesc().dims;
-    const int OHW = DimsFunctionUtils::GetDim(out_dims, 2) * DimsFunctionUtils::GetDim(out_dims, 3); 
-    const int OC = DimsFunctionUtils::GetDim(out_dims, 1);
 
-    ret = DispatchShader(cs, {in_srv, weight_srv, bias_srv, ptr_of_srv, mask_srv, filter_of_srv, warp_of_srv}, 
+    if (use_buffer_) {
+        auto ptr_of_srv = ptr_offset_->GetSRV();
+        auto mask_srv = mask_->GetSRV();
+        auto filter_of_srv = filter_offset_->GetSRV();
+        auto warp_of_srv = warp_offset_->GetSRV();
+
+        int BLOCK_A;
+        int BLOCK_B;
+
+        BLOCK_A = 64;
+        BLOCK_B = 64;
+        kernel_name = "conv";
+
+        std::shared_ptr<ID3D11ComputeShader> cs;
+        ret = GetShaderByName(kernel_name, cs);
+        RETURN_ON_NEQ(ret, TNN_OK);
+
+        const int OHW = DimsFunctionUtils::GetDim(out_dims, 2) * DimsFunctionUtils::GetDim(out_dims, 3);
+        const int OC = DimsFunctionUtils::GetDim(out_dims, 1);
+
+        ret = DispatchShader(cs, {in_srv, weight_srv, bias_srv, ptr_of_srv, mask_srv, filter_of_srv, warp_of_srv},
                              {out_uav}, {const_buffer_.get()}, {UP_DIV(OHW, BLOCK_A), UP_DIV(OC, BLOCK_B)});
+    } else {
+        int image_width;
+        int image_height;
+        int output_batch = DimsFunctionUtils::GetDim(out_dims, 0);
+        int output_channel = DimsFunctionUtils::GetDim(out_dims, 1);
+        int output_height = DimsFunctionUtils::GetDim(out_dims, 2);
+        int output_width = DimsFunctionUtils::GetDim(out_dims, 3);
+
+        int task_size = output_batch * UP_DIV(output_channel, 4) * output_height * output_width;
+
+        if (task_size > 4096 && conv_params_.output_channel > 4) {
+            kernel_name = "convcb2_texture";
+            image_width = UP_DIV(DimsFunctionUtils::GetDim(out_dims, 1), 8) * UP_DIV(DimsFunctionUtils::GetDim(out_dims, 3), 4);
+            image_height = DimsFunctionUtils::GetDim(out_dims, 0) * DimsFunctionUtils::GetDim(out_dims, 2);
+        } else {
+            kernel_name = "conv_texture";
+            image_width = UP_DIV(DimsFunctionUtils::GetDim(out_dims, 1), 4) * UP_DIV(DimsFunctionUtils::GetDim(out_dims, 3), 4);
+            image_height = DimsFunctionUtils::GetDim(out_dims, 0) * DimsFunctionUtils::GetDim(out_dims, 2);
+        }
+
+        LOGD("kernel name: %s\n",kernel_name.c_str());
+        std::shared_ptr<ID3D11ComputeShader> cs;
+        ret = GetShaderByName(kernel_name, cs);
+        RETURN_ON_NEQ(ret, TNN_OK);
+
+        ret = DispatchShader(cs, {in_srv, weight_srv, bias_srv}, {out_uav}, {const_buffer_.get()}, {image_width, image_height, 1});
+    }
 
     return ret;
 }

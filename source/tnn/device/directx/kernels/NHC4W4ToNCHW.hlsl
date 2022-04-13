@@ -50,6 +50,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     uint width_idx     = image_width_idx % width;
     uint channel_4_idx = (image_width_idx / width) * 4;
     uint buffer_offset = ((batch_idx * channel + channel_4_idx) * height + height_idx) * width + width_idx;
+
     float4 values = Texture_Blob[DTid.xy];
 
     uint height_width_size = height * width;
@@ -59,7 +60,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     float4 bias_data    = {bias0,bias1,bias2,bias3};
     uint offset     = buffer_offset;
 
-    if (remain_channel == 4) {
+    if (remain_channel >= 4) {
         values = values * scale_data + bias_data;
 
         BufferOut.Store( offset*4, asuint(values.x) );

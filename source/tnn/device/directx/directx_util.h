@@ -17,6 +17,7 @@
 
 #include <string.h>
 #include <cstdlib>
+#include <directxmath.h>
 
 #if TNN_PROFILE
 #include <chrono>
@@ -94,6 +95,12 @@ Status GetID3DContext(std::shared_ptr<ID3D11DeviceContext> &context);
 Status UpdateTexture2D(void*data_ptr,
                        std::vector<int> dims,
                        std::shared_ptr<DirectXMemory> &texture);
+
+Status UpdateConv2DFilterTexture2D(void* data_ptr,
+                                   std::vector<int> dims,
+                                   int image_width,
+                                   int image_height,
+                                   std::shared_ptr<DirectXMemory> &texture_memory);
 
 template<typename T>
 Status CreateConstBuffer(const T &host_value, 

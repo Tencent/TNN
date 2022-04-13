@@ -58,7 +58,7 @@ Status DirectXConvLayerAccImpl::Init(Context *context, LayerParam *param, LayerR
         return Status(TNNERR_LAYER_ERR, "invalid group size in Conv layer");
     }
 
-    use_buffer_ = true;
+    use_buffer_ = false;
 
     return TNN_OK;
 }
@@ -112,7 +112,7 @@ Status DirectXConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
         wdata_ptr = weights_data_trans.get();
     }
 
-    // copy weights data into clBuffer
+    // copy weights data into Buffer
     DimsVector filter_shape;
     if (CT_CONV_DEPTHWISE == conv_type_) {
         filter_shape = {1, conv_params_.output_channel, conv_params_.kernel_h, conv_params_.kernel_w};
@@ -125,13 +125,14 @@ Status DirectXConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
         return Status(TNNERR_DX_ACC_INIT_ERR, "FP16 weights not supported now.");
     }
 
-    auto dx_mem = DirectXMemory::CreateBufferMemoryFromHost(wdata_ptr, filter_shape, DATA_TYPE_FLOAT, DATA_FORMAT_NCHW);
-    if (!dx_mem) {
-        LOGE("CreateBufferMemoryFromHost failed\n");
-        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "craete directx memory failed.");
-    }
 
     if (use_buffer_) {
+        auto dx_mem = DirectXMemory::CreateBufferMemoryFromHost(wdata_ptr, filter_shape, DATA_TYPE_FLOAT, DATA_FORMAT_NCHW);
+        if (!dx_mem) {
+            LOGE("CreateBufferMemoryFromHost failed\n");
+            return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "create directx buffer memory failed.");
+        }
+
         weights_ = std::move(dx_mem);
 
         // TODO pad channel.
@@ -145,10 +146,27 @@ Status DirectXConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
                                   conv_params_.kernel_h, conv_params_.kernel_w};
         }
 
-        return TNN_OK;
     } else {
-        LOGE("Convert ChannelWeights to Texture not implemented\n");
-        return Status(TNNERR_DX_ACC_INIT_ERR, "Convert ChannelWeights to Texture not implemented");
+        // create weights use texture2d
+        DimsVector filter_imageshape;
+        if (CT_CONV_DEPTHWISE == conv_type_) {
+            filter_imageshape = {conv_params_.kernel_w * conv_params_.kernel_h,
+                                 (int)(UP_DIV(conv_params_.output_channel, 4))};  // {w,h}
+        } else {
+            filter_imageshape = {conv_params_.input_channel, (int)(UP_DIV(conv_params_.output_channel, 4) *
+                                 conv_params_.kernel_w * conv_params_.kernel_h)};
+        }
+
+        auto dx_mem = DirectXMemory::CreateTextureMemoryFromHost(nullptr, filter_shape, filter_imageshape[0], filter_imageshape[1], DATA_TYPE_FLOAT, DATA_FORMAT_NHC4W4);
+        if (!dx_mem) {
+            LOGE("CreateTextureMemoryFromHost failed\n");
+            return Status(TNNERR_DX_TEXTURE_ALOCATE_ERR, "create directx texture memory failed.");
+        }
+
+        Status ret = UpdateConv2DFilterTexture2D(wdata_ptr, filter_shape, filter_imageshape[0], filter_imageshape[1], dx_mem);
+        RETURN_ON_NEQ(ret, TNN_OK);
+
+        weights_ = std::move(dx_mem);
     }
 
     return TNN_OK;

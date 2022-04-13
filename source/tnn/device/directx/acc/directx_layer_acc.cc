@@ -150,22 +150,30 @@ Status DirectXLayerAcc::ConvertChannelWeights(float *handle_data_ptr, shared_ptr
         }
     }
 
-    auto dx_mem = DirectXMemory::CreateBufferMemoryFromHost(host_ptr.get(), {output_channel}, DATA_TYPE_FLOAT, DATA_FORMAT_NCHW);
-    if (!dx_mem) {
-        LOGE("CreateBufferMemoryFromHost failed\n");
-        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "craete directx memory failed.");
-    }
-
     if (precision_ == PRECISION_LOW) {
         LOGE("FP16 Weigths not supported now.");
         return Status(TNNERR_DX_ACC_INIT_ERR, "FP16 weights not supported now.");
     }
 
     if (use_buffer) {
+        auto dx_mem = DirectXMemory::CreateBufferMemoryFromHost(host_ptr.get(), {output_channel}, DATA_TYPE_FLOAT, DATA_FORMAT_NCHW);
+        if (!dx_mem) {
+            LOGE("CreateBufferMemoryFromHost failed\n");
+            return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "craete directx buffer memory failed.");
+        }
+
         handle = std::move(dx_mem);
     } else {
-        LOGE("Convert ChannelWeights to Texture not implemented\n");
-        return Status(TNNERR_DX_ACC_INIT_ERR, "Convert ChannelWeights to Texture not implemented");
+        auto dx_mem = DirectXMemory::CreateTextureMemoryFromHost(nullptr, {1, output_channel, 1, 1}, DATA_TYPE_FLOAT, DATA_FORMAT_NHC4W4);
+        if (!dx_mem) {
+            LOGE("CreateTextureMemoryFromHost failed\n");
+            return Status(TNNERR_DX_TEXTURE_ALOCATE_ERR, "craete directx texture memory failed.");
+        }
+
+        Status ret = UpdateTexture2D(host_ptr.get(), {1, output_channel, 1, 1}, dx_mem);
+        RETURN_ON_NEQ(ret, TNN_OK);
+
+        handle = std::move(dx_mem);
     } 
 
     return TNN_OK;
@@ -234,21 +242,27 @@ Status DirectXLayerAcc::RawBuffer2DirectXBlob(RawBuffer *buffer, std::shared_ptr
         return Status(TNNERR_PARAM_ERR, "raw buffer for opencl blob is empty");
     }
 
-    if (format != DATA_FORMAT_NCHW) {
-        LOGE("only supported NCHW now");
-        return Status(TNNERR_PARAM_ERR, "only supported NCHW now");
+    if (format != DATA_FORMAT_NCHW && format != DATA_FORMAT_NHC4W4) {
+        LOGE("only supported NCHW and NHC4W4");
+        return Status(TNNERR_PARAM_ERR, "only supported NCHW and NHC4W4");
     }
 
     auto d3d_context = tnn_device->GetID3DContext();
 
-    // Only work on DATA_FORMAT_NCHW and TNN_DX_BUFFER now
     auto mem_type = GetMemoryType(desc);
     if (TNN_DX_BUFFER == mem_type) {
         ID3D11Buffer * dx_buf = (ID3D11Buffer*) blob->GetHandle().base;
         d3d_context->UpdateSubresource(dx_buf, 0, nullptr, buffer->force_to<void *>(), 0, 0);
     } else {
-        LOGE("Directx Texture2D not supported now");
-        return Status(TNNERR_PARAM_ERR, "directx not supported now");
+        ID3D11Texture2D * dx_texture = (ID3D11Texture2D*) blob->GetHandle().base;
+
+        Status ret = UpdateTexture2D((void *) buffer->force_to<void *>(), buffer->GetBufferDims(),
+                                     reinterpret_cast<shared_ptr<DirectXMemory> &>(dx_texture));
+        if(ret != TNN_OK) {
+            LOGE("raw buffer to directx texture blob failed.");
+            return Status(TNNERR_DX_RESOURCE_CREATION, "raw buffer to directx texture blob failed.");
+        }
+//        RETURN_ON_NEQ(ret, TNN_OK);
     }
 
     return TNN_OK;

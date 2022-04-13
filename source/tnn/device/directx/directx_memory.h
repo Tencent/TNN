@@ -93,6 +93,9 @@ public:
     static std::shared_ptr<DirectXMemory> CreateTextureMemoryFromHost(void * ptr,
                             DimsVector dims, DataType data_type, DataFormat data_format = DATA_FORMAT_NHC4W4);
 
+    static std::shared_ptr<DirectXMemory> CreateTextureMemoryFromHost(void * ptr,
+                            DimsVector dims, int image_width, int image_height, DataType data_type, DataFormat data_format = DATA_FORMAT_NHC4W4);
+
     Status Dump() const;
 
 private:

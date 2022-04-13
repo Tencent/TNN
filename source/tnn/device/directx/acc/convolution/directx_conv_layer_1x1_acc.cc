@@ -83,12 +83,14 @@ Status DirectXConvLayer1x1Acc::CreateCB(const std::vector<Blob *> &inputs, const
     typedef struct launch_param {
         DirectX::XMUINT4 in_shape;
         DirectX::XMUINT4 out_shape;
+        DirectX::XMUINT4 stride_wh;
         DirectX::XMUINT4 fused_relu;
     } launch_param_t;
 
     launch_param_t args;
     args.in_shape  = DirectX::XMUINT4(in_dims[0], in_dims[1], in_dims[2], in_dims[3]);
     args.out_shape = DirectX::XMUINT4(out_dims[0], out_dims[1], out_dims[2], out_dims[3]);
+    args.stride_wh = DirectX::XMUINT4(conv_params_.stride_w, conv_params_.stride_h, 0, 0);
     args.fused_relu= DirectX::XMUINT4(conv_params_.activation_type, 0, 0 ,0);
 
     return CreateConstBuffer<launch_param_t>(args, GetID3DDevice(), const_buffer_);
@@ -105,31 +107,54 @@ Status DirectXConvLayer1x1Acc::DoForward(const std::vector<Blob *> &inputs, cons
     auto bias_srv = bias_->GetSRV();
     auto out_uav = out_memory->GetUAV();
 
-
-    int BLOCK_A;
     std::string kernel_name;
+    auto &out_dims = outputs[0]->GetBlobDesc().dims;
+    Status ret;
 
-    auto out_c = DimsFunctionUtils::GetDim(outputs[0]->GetBlobDesc().dims, 1);
-    if (out_c <= 16) {
-        BLOCK_A = 128;
-        kernel_name = "conv1x1_128x16";
-    } else if (out_c <= 64) {
-        BLOCK_A = 64;
-        kernel_name = "conv1x1_64x32";
+    if (use_buffer_) {
+        int BLOCK_A;
+
+        auto out_c = DimsFunctionUtils::GetDim(outputs[0]->GetBlobDesc().dims, 1);
+        if (out_c <= 16) {
+            BLOCK_A = 128;
+            kernel_name = "conv1x1_128x16";
+        } else if (out_c <= 64) {
+            BLOCK_A = 64;
+            kernel_name = "conv1x1_64x32";
+        } else {
+            BLOCK_A = 32;
+            kernel_name = "conv1x1_32x64";
+        }
+
+        std::shared_ptr<ID3D11ComputeShader> cs;
+        ret = GetShaderByName(kernel_name, cs);
+        RETURN_ON_NEQ(ret, TNN_OK);
+
+        auto &in_dims = inputs[0]->GetBlobDesc().dims;
+        const int NHW = DimsVectorUtils::Count(in_dims) / DimsFunctionUtils::GetDim(in_dims, 1);
+
+        ret = DispatchShader(cs, {in_srv, weight_srv, bias_srv}, {out_uav}, {const_buffer_.get()}, {UP_DIV(NHW, BLOCK_A)});
     } else {
-        BLOCK_A = 32;
-        kernel_name = "conv1x1_32x64";
+        int image_width;
+        int image_height;
+
+        if (stride_is_1_) {
+            kernel_name = "conv1x1_s1_texture";
+        } else {
+            kernel_name = "conv1x1_texture";
+        }
+
+        image_width = UP_DIV(DimsFunctionUtils::GetDim(out_dims, 1), 4) * UP_DIV(DimsFunctionUtils::GetDim(out_dims, 3), 4);
+        image_height = DimsFunctionUtils::GetDim(out_dims, 0) * DimsFunctionUtils::GetDim(out_dims, 2);
+
+        LOGD("kernel name: %s\n",kernel_name.c_str());
+        std::shared_ptr<ID3D11ComputeShader> cs;
+        ret = GetShaderByName(kernel_name, cs);
+        RETURN_ON_NEQ(ret, TNN_OK);
+
+        ret = DispatchShader(cs, {in_srv, weight_srv, bias_srv}, {out_uav}, {const_buffer_.get()}, {image_width, image_height, 1});
+
     }
-
-
-    std::shared_ptr<ID3D11ComputeShader> cs;
-    Status ret = GetShaderByName(kernel_name, cs);
-    RETURN_ON_NEQ(ret, TNN_OK);
-
-    auto &in_dims = inputs[0]->GetBlobDesc().dims;
-    const int NHW = DimsVectorUtils::Count(in_dims) / DimsFunctionUtils::GetDim(in_dims, 1); 
-
-    ret = DispatchShader(cs, {in_srv, weight_srv, bias_srv}, {out_uav}, {const_buffer_.get()}, {UP_DIV(NHW, BLOCK_A)});
 
     return ret;
 }

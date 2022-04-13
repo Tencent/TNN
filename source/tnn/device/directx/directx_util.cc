@@ -242,6 +242,56 @@ Status UpdateTexture2D(void* data_ptr,
     return  ret;
 }
 
+Status UpdateConv2DFilterTexture2D(void* data_ptr,
+                       std::vector<int> dims,
+                       int image_width,
+                       int image_height,
+                       std::shared_ptr<DirectXMemory> &texture_memory) {
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_CONTEXT_ERR, "got null directx device");
+    }
+
+    auto device = tnn_device->GetID3DDevice();
+    if (!device) {
+        LOGE("Got null ID3Ddevice");
+        return  Status(TNNERR_CONTEXT_ERR, "got null directx device");
+    }
+
+    shared_ptr<DirectXMemory> buffer = DirectXMemory::CreateBufferMemoryFromHost(
+        data_ptr, dims, DATA_TYPE_FLOAT, DATA_FORMAT_NCHW);
+    if (!buffer) {
+        LOGE("param transfer to GPU failed.");
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "param transfer to GPU failed.");
+    }
+
+    auto buffer_srv = buffer->GetSRV();
+    auto texture_uav = texture_memory->GetUAV();
+
+    typedef struct launch_param {
+        DirectX::XMUINT4 shape;
+    } launch_param_t;
+
+    launch_param_t args;
+    args.shape  = DirectX::XMUINT4(dims[0], dims[1], dims[2], dims[3]);
+
+    std::shared_ptr<ID3D11Buffer> param_cb;
+    Status status = CreateConstBuffer<launch_param_t>(args, device, param_cb);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    LOGD("kernel name: Conv2DFilterToNHC4W4\n");
+    std::shared_ptr<ID3D11ComputeShader> cs;
+    status = GetShaderByName("Conv2DFilterToNHC4W4", cs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    Status  ret = DispatchShader(cs, {buffer_srv}, {texture_uav}, {param_cb.get()}, {image_width,image_height,1});
+
+    return  ret;
+}
+
+
 }  // namespace directx
 }  // namespace TNN_NS
 
