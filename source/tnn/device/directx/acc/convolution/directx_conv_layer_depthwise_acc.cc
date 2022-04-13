@@ -12,12 +12,12 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/opencl/acc/convolution/opencl_conv_layer_depthwise_acc.h"
-#include "tnn/device/opencl/imagebuffer_convertor.h"
+
+#include "tnn/device/directx/acc/convolution/directx_conv_layer_depthwise_acc.h"
 
 namespace TNN_NS {
 
-bool OpenCLConvLayerDepthwiseAcc::IsPrefered(const ConvLayerParam *param, const std::vector<Blob *> &inputs,
+bool DirectXConvLayerDepthwiseAcc::IsPrefered(const ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                              const std::vector<Blob *> &outputs) {
     if (!param) {
         return false;
@@ -27,7 +27,7 @@ bool OpenCLConvLayerDepthwiseAcc::IsPrefered(const ConvLayerParam *param, const 
            param->group == DimsFunctionUtils::GetDim(outputs[0]->GetBlobDesc().dims, 1);
 }
 
-Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status DirectXConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                          const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Conv Depthwise Acc\n");
 
@@ -55,9 +55,9 @@ Status OpenCLConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, La
     return TNN_OK;
 }
 
-OpenCLConvLayerDepthwiseAcc::~OpenCLConvLayerDepthwiseAcc() {}
+DirectXConvLayerDepthwiseAcc::~DirectXConvLayerDepthwiseAcc() {}
 
-Status OpenCLConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status DirectXConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Conv Depthwise Acc Reshape\n");
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;

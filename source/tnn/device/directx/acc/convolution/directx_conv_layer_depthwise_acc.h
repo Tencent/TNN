@@ -12,14 +12,15 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_CONV_LAYER_DEPTHWISE_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_CONV_LAYER_DEPTHWISE_ACC_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_CONV_LAYER_DEPTHWISE_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_CONV_LAYER_DEPTHWISE_ACC_H_
 
-#include "tnn/device/opencl/acc/convolution/opencl_conv_layer_acc_impl.h"
-#include "tnn/device/opencl/opencl_memory.h"
+#include "tnn/device/directx/acc/convolution/directx_conv_layer_acc_impl.h"
+#include "tnn/device/directx/directx_memory.h"
+
 namespace TNN_NS {
 
-class OpenCLConvLayerDepthwiseAcc : public OpenCLConvLayerAccImpl {
+class DirectXConvLayerDepthwiseAcc : public DirectXConvLayerAccImpl {
 public:
     static bool IsPrefered(const ConvLayerParam *param, const std::vector<Blob *> &inputs,
                            const std::vector<Blob *> &outputs);
@@ -27,11 +28,11 @@ public:
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
                         const std::vector<Blob *> &outputs) override;
 
-    virtual ~OpenCLConvLayerDepthwiseAcc() override;
+    virtual ~DirectXConvLayerDepthwiseAcc() override;
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_CONV_LAYER_DEPTHWISE_ACC_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_CONV_LAYER_DEPTHWISE_ACC_H_
