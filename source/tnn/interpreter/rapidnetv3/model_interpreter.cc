@@ -105,7 +105,7 @@ g_default_factory_register_rapidnet_v3(MODEL_TYPE_RAPIDNET);
         return TNN_NS::ModelInterpreter::RegisterLayerInterpreter(type, interpreter);
     }
 
-    std::map<LayerType, std::shared_ptr<TNN_NS::AbstractLayerInterpreter>>
+    const safe_map<LayerType, std::shared_ptr<TNN_NS::AbstractLayerInterpreter>>
         &ModelInterpreter::GetLayerInterpreterMap() {
             return TNN_NS::ModelInterpreter::GetLayerInterpreterMap();
     }

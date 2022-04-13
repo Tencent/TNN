@@ -6,6 +6,7 @@
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
 #include "tnn/interpreter/rapidnetv3/objseri.h"
+#include "tnn/utils/safe_map.h"
 
 
 namespace rapidnetv3 {
@@ -37,7 +38,7 @@ namespace rapidnetv3 {
             LayerType type, TNN_NS::AbstractLayerInterpreter* creator);
 
         // @brief get layer interpreter by layer type
-        static std::map<LayerType, std::shared_ptr<TNN_NS::AbstractLayerInterpreter>>&
+        static const safe_map<LayerType, std::shared_ptr<TNN_NS::AbstractLayerInterpreter>>&
         GetLayerInterpreterMap();
 
     protected:
