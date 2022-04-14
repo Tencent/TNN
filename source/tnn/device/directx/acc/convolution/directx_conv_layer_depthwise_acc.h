@@ -19,6 +19,7 @@
 #include "tnn/device/directx/directx_memory.h"
 
 namespace TNN_NS {
+namespace directx {
 
 class DirectXConvLayerDepthwiseAcc : public DirectXConvLayerAccImpl {
 public:
@@ -31,8 +32,19 @@ public:
     virtual ~DirectXConvLayerDepthwiseAcc() override;
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+private:
+
+    Status CreateCB(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) ;
+
+    bool stride_is_1_ = false;
+
+    std::shared_ptr<ID3D11Buffer> const_buffer_;
 };
 
+}  // namespace directx
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_CONV_LAYER_DEPTHWISE_ACC_H_

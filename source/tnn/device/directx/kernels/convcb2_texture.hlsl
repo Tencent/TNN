@@ -127,12 +127,12 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     float4 out_w2_s1 = out_w0_s1;
     float4 out_w3_s1 = out_w0_s1;
 
-    int in_width0 = mad(out_width_block_idx, stride_wh[0] << 2, 0-padding_wh[0]);
+    int in_width0 = mad(out_width_block_idx, stride_wh[0] << 2, -padding_wh[0]);
     int in_width1 = in_width0 + stride_wh[0];
     int in_width2 = in_width1 + stride_wh[0];
     int in_width3 = in_width2 + stride_wh[0];
 
-    int height_start = mad((output_bh_idx % output_wh.y), stride_wh[1], 0-padding_wh[1]);
+    int height_start = mad((output_bh_idx % output_wh.y), stride_wh[1], -padding_wh[1]);
     int in_height_start = mad(height_start < 0 ? ((0-height_start + dilation_wh[1] - 1) / dilation_wh[1]) : 0 , dilation_wh[1], height_start);
     int in_height_end = min(mad(kernel_wh[1], dilation_wh[1], height_start), input_wh.y);
 
@@ -153,15 +153,8 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
             for (int input_c_block_idx = 0; input_c_block_idx < in_channel_block_length; ++input_c_block_idx) {
                 int in_idx  = mul(input_c_block_idx, input_wh.x);
                 int4 is_w_in_boundary = (in_width >= 0 && in_width < input_wh.x);
-//                 int4 is_w_in_boundary = {(in_width.x >= 0 && in_width.x < input_wh.x),
-//                                          (in_width.y >= 0 && in_width.y < input_wh.x),
-//                                          (in_width.z >= 0 && in_width.z < input_wh.x),
-//                                          (in_width.w >= 0 && in_width.w < input_wh.x)};
+
                 int4 in_cw_value = in_width + in_idx;
-//                 int4 in_cw_value = {in_width.x + in_idx,
-//                                     in_width.y + in_idx,
-//                                     in_width.z + in_idx,
-//                                     in_width.w + in_idx};
 
                 int2 pos_in0 = {is_w_in_boundary.x ? in_cw_value.x : -1, in_hb_value};
                 in0 = input[pos_in0];
@@ -193,15 +186,10 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
                 CALCULATE_SLICE_OUTPUT(0);
                 CALCULATE_SLICE_OUTPUT(1);
 
-//                 int4 four4 = {4, 4, 4, 4};
-//                 weights_x_idx = weights_x_idx + four4;
                 weights_x_idx += 4;
             }
-//             int2 one2 = {1, 1};
-//             weights_y_idx = weights_y_idx + one2;
+
             weights_y_idx++;
-//             int4 dilation_w4 = {dilation_wh[0], dilation_wh[0], dilation_wh[0], dilation_wh[0]};
-//             in_width  = in_width + dilation_w4;
             in_width += dilation_wh[0];
         }
     }

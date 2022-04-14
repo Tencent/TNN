@@ -163,8 +163,13 @@ Status DirectXConvLayerAccImpl::ConvertWeights(float *weights_data_ptr) {
             return Status(TNNERR_DX_TEXTURE_ALOCATE_ERR, "create directx texture memory failed.");
         }
 
-        Status ret = UpdateConv2DFilterTexture2D(wdata_ptr, filter_shape, filter_imageshape[0], filter_imageshape[1], dx_mem);
-        RETURN_ON_NEQ(ret, TNN_OK);
+        if (CT_CONV_DEPTHWISE == conv_type_) {
+            Status ret = UpdateConvDWFilterTexture2D(wdata_ptr, filter_shape, filter_imageshape[0], filter_imageshape[1], dx_mem);
+            RETURN_ON_NEQ(ret, TNN_OK);
+        } else {
+            Status ret = UpdateConv2DFilterTexture2D(wdata_ptr, filter_shape, filter_imageshape[0], filter_imageshape[1], dx_mem);
+            RETURN_ON_NEQ(ret, TNN_OK);
+        }
 
         weights_ = std::move(dx_mem);
     }

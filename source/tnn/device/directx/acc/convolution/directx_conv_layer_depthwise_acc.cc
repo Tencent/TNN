@@ -12,10 +12,10 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-
 #include "tnn/device/directx/acc/convolution/directx_conv_layer_depthwise_acc.h"
 
 namespace TNN_NS {
+namespace directx {
 
 bool DirectXConvLayerDepthwiseAcc::IsPrefered(const ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                              const std::vector<Blob *> &outputs) {
@@ -32,27 +32,18 @@ Status DirectXConvLayerDepthwiseAcc::Init(Context *context, LayerParam *param, L
     LOGD("Init Conv Depthwise Acc\n");
 
     conv_type_ = CT_CONV_DEPTHWISE;
-    op_name_   = "Conv_Depthwise";
 
-    Status ret = OpenCLConvLayerAccImpl::Init(context, param, resource, inputs, outputs);
-    CHECK_TNN_OK(ret)
+    Status ret = DirectXConvLayerAccImpl::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    if (1 == conv_params_.stride_w && 1 == conv_params_.stride_h) {
+        stride_is_1_ = true;
+    }
 
     ret = AllocateWeightsBias(resource);
-    CHECK_TNN_OK(ret)
+    RETURN_ON_NEQ(ret, TNN_OK);
 
-    std::string program_name = "convolution_depthwise";
-    std::string kernel_name = "DepthwiseConv2D";
-    if (conv_params_.stride_x == 1 && conv_params_.stride_y == 1 && conv_params_.dilation_x == 1 &&
-        conv_params_.dilation_y == 1) {
-        kernel_name = "DepthwiseConv2DS1";
-    }
-    ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);
-    if (ret != TNN_OK) {
-        LOGE("create execute unit failed!\n");
-        return ret;
-    }
-
-    return TNN_OK;
+    return CreateCB(inputs, outputs);
 }
 
 DirectXConvLayerDepthwiseAcc::~DirectXConvLayerDepthwiseAcc() {}
@@ -69,47 +60,82 @@ Status DirectXConvLayerDepthwiseAcc::Reshape(const std::vector<Blob *> &inputs, 
     const int input_width    = DimsFunctionUtils::GetDim(input_dims, 3);
     const int input_channels = DimsFunctionUtils::GetDim(input_dims, 1);
 
-    execute_units_[0].global_work_size = {
-        static_cast<uint32_t>(UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4) *
-                              UP_DIV(DimsFunctionUtils::GetDim(output_dims, 3), 4)),
-        static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 0) *
-                              DimsFunctionUtils::GetDim(output_dims, 2))};
-
-    int kernel_shape[2]      = {conv_params_.kernel_x, conv_params_.kernel_y};
-    int stride_shape[2]      = {conv_params_.stride_x, conv_params_.stride_y};
-    int padding_shape[2]     = {conv_params_.pad_x, conv_params_.pad_y};
-    int dilation_shape[2]    = {conv_params_.dilation_x, conv_params_.dilation_y};
-
     int input_imageshape[2]  = {input_width, input_height};
     int output_imageshape[2] = {output_width, output_height};
+    int kernel_shape[2]      = {conv_params_.kernel_w, conv_params_.kernel_h};
+    int stride_shape[2]      = {conv_params_.stride_w, conv_params_.stride_h};
+    int padding_shape[2]     = {conv_params_.pad_w, conv_params_.pad_h};
+    int dilation_shape[2]    = {conv_params_.dilation_w, conv_params_.dilation_h};
 
-    uint32_t idx = 0;
-    execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[0]);
-    execute_units_[0].ocl_kernel.setArg(idx++, execute_units_[0].global_work_size[1]);
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_weights_->GetData()));
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_bias_->GetData()));
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(input_imageshape), input_imageshape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(output_imageshape), output_imageshape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(kernel_shape), kernel_shape);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
-    
-    if (conv_params_.stride_x != 1 || conv_params_.stride_y != 1 || conv_params_.dilation_x != 1 ||
-        conv_params_.dilation_y != 1) {
-        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(dilation_shape), dilation_shape);
-        execute_units_[0].ocl_kernel.setArg(idx++, sizeof(stride_shape), stride_shape);
-    }
-    execute_units_[0].ocl_kernel.setArg(idx++, (int)conv_params_.activation_type);
-
-    execute_units_[0].local_work_size = Conv2dCommonLocalWS2D(
-            execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max, execute_units_[0].sub_group_size);
-
-    if (ocl_context_->GetEnableTuneKernel()) {
-        execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, GenerateTuneKernelKey(execute_units_[0]));
-    }
-
-    return TNN_OK;
+    return CreateCB(inputs, outputs);
 }
 
+Status DirectXConvLayerDepthwiseAcc::CreateCB(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto & in_dims = inputs[0]->GetBlobDesc().dims;
+    auto & out_dims = outputs[0]->GetBlobDesc().dims;
+
+    if (in_dims.size() < 4 || out_dims.size() < 4) {
+        LOGE("Expect shape lenghts > 4 for input and output.\n");
+        return Status(TNNERR_DX_LAYER_ERR, "Expect shape lenghts > 4 for input and output.");
+    }
+    typedef struct launch_param {
+        DirectX::XMUINT4 in_shape;
+        DirectX::XMUINT4 out_shape;
+        DirectX::XMUINT4 kernel_wh;
+        DirectX::XMUINT4 stride_wh;
+        DirectX::XMUINT4 padding_wh;
+        DirectX::XMUINT4 dilation_wh;
+        DirectX::XMUINT4 activation_type;
+    } launch_param_t;
+
+    launch_param_t args;
+    args.in_shape  = DirectX::XMUINT4(in_dims[0], in_dims[1], in_dims[2], in_dims[3]);
+    args.out_shape = DirectX::XMUINT4(out_dims[0], out_dims[1], out_dims[2], out_dims[3]);
+    args.kernel_wh = DirectX::XMUINT4(conv_params_.kernel_w, conv_params_.kernel_h, 0, 0);
+    args.stride_wh = DirectX::XMUINT4(conv_params_.stride_w, conv_params_.stride_h, 0, 0);
+    args.padding_wh = DirectX::XMUINT4(conv_params_.pad_w, conv_params_.pad_h, 0, 0);
+    args.dilation_wh = DirectX::XMUINT4(conv_params_.dilation_w, conv_params_.dilation_h, 0, 0);
+    args.activation_type = DirectX::XMUINT4(conv_params_.activation_type, 0,0,0);
+
+    return CreateConstBuffer<launch_param_t>(args, GetID3DDevice(), const_buffer_);
+}
+
+
+Status DirectXConvLayerDepthwiseAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+
+    auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]);
+    auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]);
+
+    auto in_srv = in_memory->GetSRV();
+    auto weight_srv = weights_->GetSRV();
+    auto bias_srv = bias_->GetSRV();
+    auto out_uav = out_memory->GetUAV();
+
+    std::string kernel_name;
+    auto &out_dims = outputs[0]->GetBlobDesc().dims;
+    Status ret;
+
+    int image_width;
+    int image_height;
+
+    if (stride_is_1_) {
+        kernel_name = "conv_depthwise_s1_texture";
+    } else {
+        kernel_name = "conv_depthwise_texture";
+    }
+
+    image_width = UP_DIV(DimsFunctionUtils::GetDim(out_dims, 1), 4) * UP_DIV(DimsFunctionUtils::GetDim(out_dims, 3), 4);
+    image_height = DimsFunctionUtils::GetDim(out_dims, 0) * DimsFunctionUtils::GetDim(out_dims, 2);
+
+    LOGD("kernel name: %s\n",kernel_name.c_str());
+    std::shared_ptr<ID3D11ComputeShader> cs;
+    ret = GetShaderByName(kernel_name, cs);
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    ret = DispatchShader(cs, {in_srv, weight_srv, bias_srv}, {out_uav}, {const_buffer_.get()}, {image_width, image_height, 1});
+
+    return ret;
+}
+
+}  // namespace directx
 }  // namespace TNN_NS

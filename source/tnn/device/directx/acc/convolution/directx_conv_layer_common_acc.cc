@@ -30,7 +30,7 @@ bool DirectXConvLayerCommonAcc::IsPrefered(const ConvLayerParam *param, const st
     }
 
     return param->pads[0] == param->pads[2] && param->strides[0] == param->strides[1] && 
-            param->dialations[0] == 1 && param->dialations[1] == 1;
+           param->dialations[0] == 1 && param->dialations[1] == 1;
 }
 
 Status DirectXConvLayerCommonAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
