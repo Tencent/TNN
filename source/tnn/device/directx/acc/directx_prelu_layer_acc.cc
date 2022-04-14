@@ -23,16 +23,11 @@ public:
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
                         const std::vector<Blob *> &outputs) override;
 
-    virtual ~OpenCLPReluLayerAcc() override;
+    virtual ~DirectXPReluLayerAcc() override;
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
-
-#if TNN_PROFILE
-    virtual double GetFlops() override;
-    virtual double GetBandwidth() override;
-#endif
 
 private:
     Status ConvertWeights(float *weights_data_ptr, int output_channel);
@@ -41,6 +36,8 @@ private:
 
     bool share_channel_ = false;
     shared_ptr<DirectXMemory> prelu_scope_ = nullptr;
+    std::shared_ptr<ID3D11Buffer> const_buffer_;
+
 };
 
 Status DirectXPReluLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
@@ -130,17 +127,6 @@ Status DirectXPReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     return ret;
 }
 
-#if TNN_PROFILE
-double DirectXPReluLayerAcc::GetFlops() {
-    return 2.0 * DimsVectorUtils::Count(output_dims_) / 1000.0 / 1000.0;
-}
-
-double DirectXPReluLayerAcc::GetBandwidth() {
-    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-    int data_type_size            = opencl_runtime->GetPrecision() != PRECISION_HIGH ? 2 : 4;
-    return 2.0 * DimsVectorUtils::Count(output_dims_) * data_type_size / 1000.0 / 1000.0;
-}
-#endif
 
 REGISTER_DIRECTX_ACC(PRelu, LAYER_PRELU)
 REGISTER_DIRECTX_LAYOUT(LAYER_PRELU, DATA_FORMAT_NHC4W4);
