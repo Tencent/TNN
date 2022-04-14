@@ -393,9 +393,13 @@ GpuInfo OpenCLRuntime::ParseGpuInfo(std::string device_name, std::string device_
         LOGD("GPU type is Intel GPU\n");
         info.type = INTEL_GPU;
         sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
-    } else if (device_name.find("GeForce") != std::string::npos) {
+    } else if (device_version.find("CUDA") != std::string::npos) {
         LOGD("GPU type is Nvidia GPU\n");
         info.type = NVIDIA_GPU;
+        sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
+    } else {
+        // get the opencl version for version checking
+        sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
     }
     LOGD("GPU Type: %d, model_num: %d, opencl version: %f\n", info.type, info.model_num, info.opencl_version);
 
