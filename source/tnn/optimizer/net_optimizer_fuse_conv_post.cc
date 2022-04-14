@@ -48,6 +48,8 @@ namespace optimizer {
         }
         if (device == DEVICE_DIRECTX) {
             kLayerActivationMap[LAYER_RELU] = ActivationType_ReLU;
+            kLayerActivationMap[LAYER_RELU6]   = ActivationType_ReLU6;
+            kLayerActivationMap[LAYER_SIGMOID] = ActivationType_SIGMOID_MUL;
             return true;
         }
         if (device == DEVICE_X86 && net_config.network_type != NETWORK_TYPE_OPENVINO) {
