@@ -186,7 +186,8 @@ static Status NCHWToBlob(Mat& image,
 
     ParamCB param_cb_host = {param.scale[0], param.scale[1], param.scale[2], param.scale[3],
                              param.bias[0], param.bias[1],param.bias[2],param.bias[3],
-                             dims[0], dims[1], dims[2], dims[3]};
+                             DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1),
+                             DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3)};
 
     std::shared_ptr<ID3D11Buffer> param_cb;
     Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
@@ -244,7 +245,8 @@ static Status N8UC3ToBlob(Mat& image,
 
     ParamCB param_cb_host = {param.scale[0], param.scale[1], param.scale[2], param.scale[3],
                              param.bias[0], param.bias[1],param.bias[2],param.bias[3],
-                             dims[0], dims[1], dims[2], dims[3]};
+                             DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1),
+                             DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3)};
 
     std::shared_ptr<ID3D11Buffer> param_cb;
     Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
@@ -302,7 +304,8 @@ static Status N8UC4ToBlob(Mat& image,
 
     ParamCB param_cb_host = {param.scale[0], param.scale[1], param.scale[2], param.scale[3],
                              param.bias[0], param.bias[1],param.bias[2],param.bias[3],
-                             dims[0], dims[1], dims[2], dims[3]};
+                             DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1),
+                             DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3)};
 
     std::shared_ptr<ID3D11Buffer> param_cb;
     Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
@@ -360,7 +363,8 @@ static Status BlobToNCHW(Mat& image,
 
     ParamCB param_cb_host = {param.scale[0], param.scale[1], param.scale[2], param.scale[3],
                              param.bias[0], param.bias[1],param.bias[2],param.bias[3],
-                             dims[0], dims[1], dims[2], dims[3]};
+                             DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1),
+                             DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3)};
 
     std::shared_ptr<ID3D11Buffer> param_cb;
     Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
