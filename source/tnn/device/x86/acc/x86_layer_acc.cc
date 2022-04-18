@@ -29,7 +29,8 @@ Status X86LayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
 
     RETURN_ON_NEQ(ReloadConstantBlobs(inputs, false), TNN_OK);
 
-    if (cpu_with_isa(avx2)) {
+    // for layer use intrinsic, avx2 and avx use the same impl
+    if (cpu_with_isa(avx2) || cpu_with_isa(avx)) {
         arch_ = avx2;
     } else if (cpu_with_isa(sse42)) {
         arch_ = sse42;

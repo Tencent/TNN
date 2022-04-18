@@ -19,32 +19,6 @@
 
 namespace TNN_NS {
 
-std::map<std::string, unary2_kernel_avx_func_t> &X86Unary2LayerAcc::GetUnary2KernelMap() {
-    static std::map<std::string, unary2_kernel_avx_func_t> kernel_map;
-    return kernel_map;
-}
-
-std::string X86Unary2LayerAcc::GetUnaryKernelName(LayerType type, x86_isa_t arch) {
-    return ToString(type) + "_" + ToString(arch);
-}
-
-Status X86Unary2LayerAcc::RegisterUnary2Kernel(LayerType type, x86_isa_t arch, unary2_kernel_avx_func_t kernel) {
-    std::string kernel_name = GetUnaryKernelName(type, arch);
-    auto &kernel_map        = GetUnary2KernelMap();
-    kernel_map[kernel_name] = kernel;
-    return TNN_OK;
-}
-
-Status X86Unary2LayerAcc::GetUnary2Kernel(LayerType type, x86_isa_t arch, unary2_kernel_avx_func_t &kernel) {
-    const auto &kernel_map  = GetUnary2KernelMap();
-    std::string kernel_name = GetUnaryKernelName(type, arch);
-    if (kernel_map.find(kernel_name) == kernel_map.end() || kernel_map.at(kernel_name) == nullptr) {
-        return Status(TNNERR_PARAM_ERR, "X86Unary2LayerAcc can not find unary kernel");
-    }
-    kernel = kernel_map.at(kernel_name);
-    return TNN_OK;
-}
-
 Status X86_UNARY2_CALCULATE(DimsVector &dims, const float *src, float *dst, LayerType type, x86_isa_t arch,
                             LayerParam *param) {
     unary2_kernel_avx_func_t unary2_kernel_func = nullptr;
