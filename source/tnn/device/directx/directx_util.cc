@@ -16,6 +16,7 @@
 
 #include <string.h>
 #include <cstdlib>
+#include <unordered_map>
 #if TNN_PROFILE
 #include <chrono>
 #endif
@@ -117,6 +118,17 @@ Status DispatchShader(const std::shared_ptr<ID3D11ComputeShader> cs,
 
 Status GetShaderByName(const std::string kernel_name, std::shared_ptr<ID3D11ComputeShader> &shader ) {
 
+
+    static std::unordered_map<std::string, std::shared_ptr<ID3D11ComputeShader>> g_shader_map;
+    static std::mutex g_mutex;
+
+    std::unique_lock<std::mutex> lck(g_mutex);
+    auto it = g_shader_map.find(kernel_name);
+    if (it != g_shader_map.end()) {
+        shader = it->second;
+        return TNN_OK;
+    }
+
     auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
     if (!tnn_device) {
         LOGE("Got null directx device");
@@ -149,6 +161,8 @@ Status GetShaderByName(const std::string kernel_name, std::shared_ptr<ID3D11Comp
     }
 
     shader = std::shared_ptr<ID3D11ComputeShader>(p_shader, [](ID3D11ComputeShader * p) {p->Release();} );
+
+    g_shader_map.insert(std::make_pair(kernel_name, shader));
 
     return TNN_OK;
 }

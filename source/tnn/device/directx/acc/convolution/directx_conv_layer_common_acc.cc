@@ -179,6 +179,7 @@ Status DirectXConvLayerCommonAcc::PreCompute(const std::vector<Blob *> &inputs, 
         return Status(TNNERR_DX_LAYER_ERR, "Expect shape lenghts > 4 for input and output.");
     }
 
+
     if (use_buffer_) {
         int oh = DimsFunctionUtils::GetDim(out_dims, 2);
         int ow = DimsFunctionUtils::GetDim(out_dims, 3);
@@ -191,7 +192,6 @@ Status DirectXConvLayerCommonAcc::PreCompute(const std::vector<Blob *> &inputs, 
         std::shared_ptr<int> filter_offset = std::shared_ptr<int>(new int[9], [](void *p){delete[] p;});
         std::shared_ptr<int> warp_offset = std::shared_ptr<int>(new int[4], [](void *p){delete[] p;});
 
-        LOGI("layer name:%s\n", layer_name_.c_str());
         precompute_filter_offsets(filter_offset.get(), LOOP_K, conv_params_, in_dims);
         precompute_warp_offsets(warp_offset.get(), LOOP_K, conv_params_, in_dims);
         precompute_ptr_offsets(mask.get(), ptr_offset.get(), conv_params_, in_dims, out_dims);
@@ -251,8 +251,9 @@ Status DirectXConvLayerCommonAcc::PreCompute(const std::vector<Blob *> &inputs, 
 
 Status DirectXConvLayerCommonAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
-    auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]); 
-    auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]); 
+    std::shared_ptr<DirectXMemory> in_memory, out_memory;
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(inputs[0], in_memory), TNN_OK); 
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(outputs[0], out_memory), TNN_OK); 
 
     Status ret;
     auto in_srv = in_memory->GetSRV();

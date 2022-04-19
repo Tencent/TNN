@@ -16,6 +16,8 @@
 #define TNN_SOURCE_TNN_DEVICE_DIRECTX_DIRECTX_MEMORY_H_
 
 #include <memory>
+#include <unordered_map>
+#include <mutex>
 
 #define NOMINMAX
 #include <d3dcommon.h>
@@ -123,6 +125,29 @@ private:
     std::shared_ptr<ID3D11ShaderResourceView> srv_;
     std::shared_ptr<ID3D11UnorderedAccessView> uav_;
 };
+
+
+class DirectXMemoryManager {
+public:
+    static DirectXMemoryManager *GetInstance();
+
+    ~DirectXMemoryManager();
+    DirectXMemoryManager (const DirectXMemoryManager&) = delete;
+    DirectXMemoryManager&operator=(const DirectXMemoryManager&) = delete;
+
+    Status GetRefMemoryFromBlob(Blob *, std::shared_ptr<DirectXMemory> &);
+
+private:
+    DirectXMemoryManager();
+
+private:
+    static std::shared_ptr<DirectXMemoryManager> g_singleton_;
+    static std::mutex g_mutex_;
+
+    std::unordered_map<Blob *, std::shared_ptr<DirectXMemory>> memory_map_;
+
+};
+
 
 } // namespace directx
 

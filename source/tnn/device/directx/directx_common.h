@@ -34,6 +34,27 @@ namespace TNN_NS {
 
 namespace directx {
 
+using std::chrono::time_point;
+using std::chrono::system_clock;
+
+class DxTimer {
+public:
+    DxTimer(std::string timer_info);
+    void Start();
+    void Stop();
+    void Reset();
+    void Print();
+
+private:
+    float min_;
+    float max_;
+    float sum_;
+    std::string timer_info_;
+    time_point<system_clock> start_;
+    time_point<system_clock> stop_;
+    int count_;
+};
+
 struct DirectXProfilingData : public ProfilingData {
     DirectXProfilingData();
 
