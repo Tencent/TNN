@@ -79,9 +79,9 @@ using namespace TNN_NS;
     // file from tnn framework project to TNNExamples app
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd_tf.tnnmodel"
+    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd_tf_fix_box.tnnmodel"
                                                       ofType:nil];
-    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd_tf.tnnproto"
+    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd_tf_fix_box.tnnproto"
                                                       ofType:nil];
 
     if (proto_path.length <= 0 || model_path.length <= 0) {
