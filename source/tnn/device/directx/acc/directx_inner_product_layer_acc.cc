@@ -76,7 +76,8 @@ Status DirectXInnerProductLayerAcc::Init(Context *context, LayerParam *param, La
         ret = ConvertWeights(weights_data_ptr, weights_width, weights_height);
         RETURN_ON_NEQ(ret, TNN_OK);
     } else {
-        LOGE("directx weight only support float data type now!\n");
+        LOGE("directx weight only support float data type now.\n");
+        return Status(TNNERR_DX_ACC_INIT_ERR, "directx weight only support float data type now.");
     }
 
     // get bias
@@ -103,7 +104,7 @@ Status DirectXInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, c
     // now only support axis is channel, output width and output height is 1.
     if (axis_ != 1 || output_height != 1 || output_width != 1) {
         LOGE("Invalid InnerParameter param or input/output size!\n");
-        return Status(TNNERR_OPENCL_ACC_RESHAPE_ERROR, "Invalid InnerParameter param or input/output size!");
+        return Status(TNNERR_DX_ACC_RESHAPE_ERR, "Invalid InnerParameter param or input/output size!");
     }
 
     return CreateCB(inputs, outputs);
@@ -123,7 +124,8 @@ Status DirectXInnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs,
     auto &out_dims = outputs[0]->GetBlobDesc().dims;
 
     if (use_buffer_) {
-        LOGE("directx innerproduct only support using texture2d now!\n");
+        LOGE("directx innerproduct only support using texture2d now.\n");
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "directx innerproduct only support using texture2d now.\n");
     } else {
 
         int N = num_output_;
@@ -159,7 +161,8 @@ Status DirectXInnerProductLayerAcc::ConvertWeights(float *weights_data_ptr, int 
     DimsVector weight_shape{weight_h, weight_w, 1, 1};
 
     if (use_buffer_) {
-        LOGE("directx innerproduct only support using texture2d now!\n");
+        LOGE("directx innerproduct only support using texture2d now.\n");
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "directx innerproduct only support using texture2d now.\n");
     } else {
 
         DimsVector weight_imageshape{(int)(UP_DIV(weight_w, 4)), weight_h};

@@ -216,7 +216,8 @@ Status UpdateTexture2D(void* data_ptr,
 
     ParamCB param_cb_host = {1, 1, 1, 1,
                              0, 0, 0, 0,
-                             dims[0], dims[1], dims[2], dims[3]};
+                             DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1),
+                             DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3)};
 
     std::shared_ptr<ID3D11Buffer> param_cb;
     Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
@@ -275,7 +276,8 @@ Status UpdateConv2DFilterTexture2D(void* data_ptr,
     } launch_param_t;
 
     launch_param_t args;
-    args.shape  = DirectX::XMUINT4(dims[0], dims[1], dims[2], dims[3]);
+    args.shape  = DirectX::XMUINT4(DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1),
+                                   DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3));
 
     std::shared_ptr<ID3D11Buffer> param_cb;
     Status status = CreateConstBuffer<launch_param_t>(args, device, param_cb);
@@ -324,7 +326,8 @@ Status UpdateConvDWFilterTexture2D(void* data_ptr,
     } launch_param_t;
 
     launch_param_t args;
-    args.shape  = DirectX::XMUINT4(dims[0], dims[1], dims[2], dims[3]);
+    args.shape  = DirectX::XMUINT4(DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1),
+                                   DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3));
 
     std::shared_ptr<ID3D11Buffer> param_cb;
     Status status = CreateConstBuffer<launch_param_t>(args, device, param_cb);

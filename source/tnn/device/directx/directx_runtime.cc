@@ -82,7 +82,8 @@ Status DirectXRuntime::GetTNNContext(std::shared_ptr<DirectXContext> &context) {
 }
 
 std::vector<size_t> DirectXRuntime::GetTexture2DMaxSize() {
-    return {4096, 4096};
+//    return {4096, 4096};
+    return {16384, 16384};
 }
 
 } // namespace directx

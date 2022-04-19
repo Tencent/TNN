@@ -50,11 +50,11 @@ Status DirectXPoolingLayerAcc::Init(Context *context, LayerParam *param, LayerRe
 
     const int channel_blocks = UP_DIV(channels, 4);
 
-    bool run_local_work = batch * output_height * output_width * channel_blocks < LowOpParallelismThre &&
-        kernel_width * kernel_height >= HighOpIntensityThre;
-    if (run_local_work) {
-        kernel_name_ += "Local";
-    }
+//    bool run_local_work = batch * output_height * output_width * channel_blocks < LowOpParallelismThre &&
+//        kernel_width * kernel_height >= HighOpIntensityThre;
+//    if (run_local_work) {
+//        kernel_name_ += "Local";
+//    }
 
     if (pooling_param->pool_type != 0) {  // 0:max_pooling  other:average pooling
         kernel_name_+= "_avg";

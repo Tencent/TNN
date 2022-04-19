@@ -31,7 +31,7 @@ cbuffer Shapes: register( b0 )
 
 };
 
-[numthreads(1, 1, 1)]
+[numthreads(64, 1, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
     int col = DTid.x;

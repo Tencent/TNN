@@ -12,29 +12,24 @@
 
 cbuffer InputCBBuffer : register(b0)
 {
-     float scale0;
-     float scale1;
-     float scale2;
-     float scale3;
+    // input dimension
+    vector<uint, 4> id;
 
-     float bias0;
-     float bias1;
-     float bias2;
-     float bias3;
-
-     int batch;
-     int channel;
-     int height;
-     int width;
-
+    // output dimension
+    vector<uint, 4> od;
 };
 
-ByteAddressBuffer BufferIn : register(t0);
-RWTexture2D<float4> Texture_Blob : register(u0);
+Texture2D<float4> Texture_Blob : register(t0);
+RWByteAddressBuffer BufferOut : register(u0);
 
 [numthreads(1, 1, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
+    uint batch = id[0];
+    uint channel = id[1];
+    uint height = id[2];
+    uint width = id[3];
+
     uint image_width_idx  = DTid.x;
     uint image_height_idx = DTid.y;
 
@@ -51,52 +46,37 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     uint channel_4_idx = (image_width_idx / width) * 4;
     uint buffer_offset = ((batch_idx * channel + channel_4_idx) * height + height_idx) * width + width_idx;
 
-    uint remain_channel    = channel - channel_4_idx;
-    uint height_width_size = height * width;
-    float4 output_values   = {0,0,0,0};
+    float4 values = Texture_Blob[DTid.xy];
 
-    float4 scale_data   = {scale0,scale1,scale2,scale3};
-    float4 bias_data    = {bias0,bias1,bias2,bias3};
+    uint height_width_size = height * width;
+    uint remain_channel = channel - channel_4_idx;
+
     uint offset     = buffer_offset;
 
     if (remain_channel >= 4) {
-        output_values.x = asfloat( BufferIn.Load( offset*4 ) );
-        offset += height_width_size;
-        output_values.y = asfloat( BufferIn.Load( offset*4 ) );
-        offset += height_width_size;
-        output_values.z = asfloat( BufferIn.Load( offset*4 ) );
-        offset += height_width_size;
-        output_values.w = asfloat( BufferIn.Load( offset*4 ) );
 
-        output_values = output_values * scale_data + bias_data;
-
+        BufferOut.Store( offset*4, asuint(values.x) );
+        offset += height_width_size;
+        BufferOut.Store( offset*4, asuint(values.y) );
+        offset += height_width_size;
+        BufferOut.Store( offset*4, asuint(values.z) );
+        offset += height_width_size;
+        BufferOut.Store( offset*4, asuint(values.w) );
     } else if (remain_channel == 3) {
-        output_values.x = asfloat( BufferIn.Load( offset*4 ) );
-        offset += height_width_size;
-        output_values.y = asfloat( BufferIn.Load( offset*4 ) );
-        offset += height_width_size;
-        output_values.z = asfloat( BufferIn.Load( offset*4 ) );
-        output_values.w = 0;
 
-        output_values = output_values * scale_data + bias_data;
-
+        BufferOut.Store( offset*4, asuint(values.x) );
+        offset += height_width_size;
+        BufferOut.Store( offset*4, asuint(values.y) );
+        offset += height_width_size;
+        BufferOut.Store( offset*4, asuint(values.z) );
     } else if (remain_channel == 2) {
-        output_values.x = asfloat( BufferIn.Load( offset*4 ) );
+
+        BufferOut.Store( offset*4, asuint(values.x) );
         offset += height_width_size;
-        output_values.y = asfloat( BufferIn.Load( offset*4 ) );
-        output_values.z = 0;
-        output_values.w = 0;
-
-        output_values = output_values * scale_data + bias_data;
-
+        BufferOut.Store( offset*4, asuint(values.y) );
     } else if (remain_channel == 1) {
-        output_values.x = asfloat( BufferIn.Load( offset*4 ) );
-        output_values.y = 0;
-        output_values.z = 0;
-        output_values.w = 0;
 
-        output_values = output_values * scale_data + bias_data;
+        BufferOut.Store( offset*4, asuint(values.x) );
     }
 
-    Texture_Blob[DTid.xy] = output_values;
 }

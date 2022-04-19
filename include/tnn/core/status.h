@@ -151,7 +151,7 @@ enum StatusCode {
     TNNERR_DX_LAYER_ERR            = 0x40007,
     TNNERR_DX_RESOURCE_CREATION    = 0x40008,
     TNNERR_DX_PROFILING            = 0x40009,
-
+    TNNERR_DX_ACC_RESHAPE_ERR      = 0x4000A,
 
 };
 

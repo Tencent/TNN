@@ -46,7 +46,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID)
     int output_width_idx        = DTid.y;
     int output_batch_height_idx = DTid.x;
 
-    if (output_channel_idx >= od[1]  || output_width_idx >= od[3] || output_batch_height_idx >= od[0]*od[2]) {
+    if (output_channel_idx >= UP_DIV(od[1], 4)  || output_width_idx >= od[3] || output_batch_height_idx >= od[0]*od[2]) {
         return;
     }
 

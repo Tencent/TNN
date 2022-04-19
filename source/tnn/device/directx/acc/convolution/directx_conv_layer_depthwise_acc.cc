@@ -89,8 +89,10 @@ Status DirectXConvLayerDepthwiseAcc::CreateCB(const std::vector<Blob *> &inputs,
     } launch_param_t;
 
     launch_param_t args;
-    args.in_shape  = DirectX::XMUINT4(in_dims[0], in_dims[1], in_dims[2], in_dims[3]);
-    args.out_shape = DirectX::XMUINT4(out_dims[0], out_dims[1], out_dims[2], out_dims[3]);
+    args.in_shape  = DirectX::XMUINT4(DimsFunctionUtils::GetDim(in_dims, 0), DimsFunctionUtils::GetDim(in_dims, 1),
+                                      DimsFunctionUtils::GetDim(in_dims, 2), DimsFunctionUtils::GetDim(in_dims, 3));
+    args.out_shape = DirectX::XMUINT4(DimsFunctionUtils::GetDim(out_dims, 0), DimsFunctionUtils::GetDim(out_dims, 1),
+                                      DimsFunctionUtils::GetDim(out_dims, 2), DimsFunctionUtils::GetDim(out_dims, 3));
     args.kernel_wh = DirectX::XMUINT4(conv_params_.kernel_w, conv_params_.kernel_h, 0, 0);
     args.stride_wh = DirectX::XMUINT4(conv_params_.stride_w, conv_params_.stride_h, 0, 0);
     args.padding_wh = DirectX::XMUINT4(conv_params_.pad_w, conv_params_.pad_h, 0, 0);

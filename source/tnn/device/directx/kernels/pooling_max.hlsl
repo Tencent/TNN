@@ -12,6 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#define UP_DIV(A, B) (((A) + (B) - 1) / B)
+
 Texture2D<float4> input: register(t0);
 RWTexture2D<float4> output: register(u0);
 
@@ -47,7 +49,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID)
     int output_width_idx        = DTid.y;
     int output_batch_height_idx = DTid.x;
 
-    if (output_channel_idx >= od[1] || output_width_idx >= od[3] || output_batch_height_idx >= od[0]*od[2]) {
+    if (output_channel_idx >= UP_DIV(od[1], 4) || output_width_idx >= od[3] || output_batch_height_idx >= od[0]*od[2]) {
         return;
     }
 
