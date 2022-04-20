@@ -166,7 +166,7 @@ Status DirectXBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const
 
     std::shared_ptr<ID3D11ComputeShader> cs;
 
-    LOGD("kernel name: %s\n",kernel_name_.c_str());
+//    LOGD("kernel name: %s\n",kernel_name_.c_str());
     Status ret = GetShaderByName(kernel_name_, cs);
     RETURN_ON_NEQ(ret, TNN_OK);
 

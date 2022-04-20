@@ -61,7 +61,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     uint offset     = buffer_offset;
 
     if (remain_channel >= 4) {
-        values = values * scale_data + bias_data;
+        values = mad(values, scale_data, bias_data);
 
         BufferOut.Store( offset*4, asuint(values.x) );
         offset += height_width_size;
@@ -71,7 +71,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
         offset += height_width_size;
         BufferOut.Store( offset*4, asuint(values.w) );
     } else if (remain_channel == 3) {
-        values = values * scale_data + bias_data;
+        values = mad(values, scale_data, bias_data);
 
         BufferOut.Store( offset*4, asuint(values.x) );
         offset += height_width_size;
@@ -79,13 +79,13 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
         offset += height_width_size;
         BufferOut.Store( offset*4, asuint(values.z) );
     } else if (remain_channel == 2) {
-        values = values * scale_data + bias_data;
+        values = mad(values, scale_data, bias_data);
 
         BufferOut.Store( offset*4, asuint(values.x) );
         offset += height_width_size;
         BufferOut.Store( offset*4, asuint(values.y) );
     } else if (remain_channel == 1) {
-        values = values * scale_data + bias_data;
+        values = mad(values, scale_data, bias_data);
 
         BufferOut.Store( offset*4, asuint(values.x) );
     }

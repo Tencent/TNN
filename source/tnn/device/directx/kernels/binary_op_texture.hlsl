@@ -47,7 +47,7 @@ Texture2D<float4> input0 : register(t0);
 Texture2D<float4> input1 : register(t1);
 RWTexture2D<float4> output : register(u0);
 
-[numthreads(1, 1, 1)]
+[numthreads(16, 16, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
     uint output_cw = DTid.x;

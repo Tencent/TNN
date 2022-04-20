@@ -84,10 +84,10 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     float4 value2 = {b2,g2,r2,0.f};
     float4 value3 = {b3,g3,r3,0.f};
 
-    value0 = value0 * scale + bias;
-    value1 = value1 * scale + bias;
-    value2 = value2 * scale + bias;
-    value3 = value3 * scale + bias;
+    value0 = mad(value0, scale, bias);
+    value1 = mad(value1, scale, bias);
+    value2 = mad(value2, scale, bias);
+    value3 = mad(value3, scale, bias);
 
     uint2 pos0 = {image_width_idx +0, image_height_idx};
     uint2 pos1 = {image_width_idx +1, image_height_idx};

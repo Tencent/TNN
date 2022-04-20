@@ -115,8 +115,9 @@ Status DirectXReshapeLayerAcc::CreateCB(const std::vector<Blob *> &inputs, const
 
 Status DirectXReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
-    auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]);
-    auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]);
+    std::shared_ptr<DirectXMemory> in_memory, out_memory;
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(inputs[0], in_memory), TNN_OK);
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(outputs[0], out_memory), TNN_OK);
 
     shared_ptr<DirectXMemory> inter_buffer = DirectXMemory::CreateBufferMemoryFromHost(
         nullptr, input_dims_, DATA_TYPE_FLOAT, DATA_FORMAT_NCHW);
@@ -155,7 +156,7 @@ Status DirectXReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
 
     kernel_name = "reshape_buffer2image";
 
-    LOGD("kernel name: %s\n",kernel_name.c_str());
+//    LOGD("kernel name: %s\n",kernel_name.c_str());
     ret = GetShaderByName(kernel_name, cs);
     RETURN_ON_NEQ(ret, TNN_OK);
 

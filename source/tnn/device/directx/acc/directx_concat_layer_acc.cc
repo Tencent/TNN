@@ -125,9 +125,10 @@ Status DirectXConcatLayerAcc::CreateCB(const std::vector<Blob *> &inputs, const 
 
 Status DirectXConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
-    auto in0_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]);
-    auto in1_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[1]);
-    auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]);
+    std::shared_ptr<DirectXMemory> in0_memory, in1_memory, out_memory;
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(inputs[0], in0_memory), TNN_OK);
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(inputs[1], in1_memory), TNN_OK);
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(outputs[0], out_memory), TNN_OK);
 
     auto in0_srv = in0_memory->GetSRV();
     auto in1_srv = in1_memory->GetSRV();
@@ -143,7 +144,7 @@ Status DirectXConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const
         kernel_name = "concat_channel_texture";
     }
 
-    LOGD("kernel name: %s\n",kernel_name.c_str());
+//    LOGD("kernel name: %s\n",kernel_name.c_str());
     std::shared_ptr<ID3D11ComputeShader> cs;
     ret = GetShaderByName(kernel_name, cs);
     RETURN_ON_NEQ(ret, TNN_OK);

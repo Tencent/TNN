@@ -77,8 +77,9 @@ Status DirectXPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
 
     auto d3d_context = GetID3DContext();
 
-    auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]);
-    auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]);
+    std::shared_ptr<DirectXMemory> in_memory, out_memory;
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(inputs[0], in_memory), TNN_OK);
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(outputs[0], out_memory), TNN_OK);
 
     auto in_srv = in_memory->GetSRV();
     auto out_uav = out_memory->GetUAV();

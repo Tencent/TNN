@@ -228,18 +228,23 @@ Status UpdateTexture2D(void* data_ptr,
     auto buffer_srv = buffer->GetSRV();
     auto texture_uav = texture_memory->GetUAV();
 
-    ParamCB param_cb_host = {1, 1, 1, 1,
-                             0, 0, 0, 0,
-                             DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1),
-                             DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3)};
+    typedef struct launch_param {
+        DirectX::XMUINT4 in_shape;
+        DirectX::XMUINT4 out_shape;
+    } launch_param_t;
+
+    launch_param_t args;
+    args.in_shape  = DirectX::XMUINT4(0, 0, 0, 0);
+    args.out_shape = DirectX::XMUINT4(DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1),
+                                      DimsFunctionUtils::GetDim(dims, 2), DimsFunctionUtils::GetDim(dims, 3));
 
     std::shared_ptr<ID3D11Buffer> param_cb;
-    Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
+    Status status = CreateConstBuffer<launch_param_t>(args, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
-    LOGD("kernel name: NCHWToNHC4W4\n");
+//    LOGD("kernel name: NCHWToNHC4W4\n");
     std::shared_ptr<ID3D11ComputeShader> cs;
-    status = GetShaderByName("NCHWToNHC4W4", cs);
+    status = GetShaderByName("reshape_buffer2image", cs);
     RETURN_ON_NEQ(status, TNN_OK);
 
     const int THREADS_PER_BLOCK = 128;
@@ -297,7 +302,7 @@ Status UpdateConv2DFilterTexture2D(void* data_ptr,
     Status status = CreateConstBuffer<launch_param_t>(args, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
-    LOGD("kernel name: Conv2DFilterToNHC4W4\n");
+//    LOGD("kernel name: Conv2DFilterToNHC4W4\n");
     std::shared_ptr<ID3D11ComputeShader> cs;
     status = GetShaderByName("Conv2DFilterToNHC4W4", cs);
     RETURN_ON_NEQ(status, TNN_OK);
@@ -347,7 +352,7 @@ Status UpdateConvDWFilterTexture2D(void* data_ptr,
     Status status = CreateConstBuffer<launch_param_t>(args, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
-    LOGD("kernel name: ConvDWFilterToNHC4W4\n");
+//    LOGD("kernel name: ConvDWFilterToNHC4W4\n");
     std::shared_ptr<ID3D11ComputeShader> cs;
     status = GetShaderByName("ConvDWFilterToNHC4W4", cs);
     RETURN_ON_NEQ(status, TNN_OK);

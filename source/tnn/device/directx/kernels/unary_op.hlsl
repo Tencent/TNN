@@ -29,7 +29,7 @@ cbuffer Shapes: register( b0 )
 
 };
 
-[numthreads(1, 1, 1)]
+[numthreads(16, 16, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
     int channel_block_idx = DTid.z;

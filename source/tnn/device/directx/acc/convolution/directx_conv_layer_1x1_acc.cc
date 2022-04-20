@@ -28,7 +28,7 @@ bool DirectXConvLayer1x1Acc::IsPrefered(const ConvLayerParam *param, const std::
         return false;
     }
     return param->group == 1 && param->kernels[0] == 1 && param->kernels[1] == 1 && param->dialations[0] == 1 && 
-            param->dialations[1] == 1 && param->pads[0] == 0 && param->pads[1] == 0;
+           param->dialations[1] == 1 && param->pads[0] == 0 && param->pads[1] == 0;
 }
 
 Status DirectXConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerResource *resource,

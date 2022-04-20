@@ -68,7 +68,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
         offset += height_width_size;
         output_values.w = asfloat( BufferIn.Load( offset*4 ) );
 
-        output_values = output_values * scale_data + bias_data;
+        output_values = mad(output_values, scale_data, bias_data);
 
     } else if (remain_channel == 3) {
         output_values.x = asfloat( BufferIn.Load( offset*4 ) );
@@ -78,7 +78,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
         output_values.z = asfloat( BufferIn.Load( offset*4 ) );
         output_values.w = 0;
 
-        output_values = output_values * scale_data + bias_data;
+        output_values = mad(output_values, scale_data, bias_data);
 
     } else if (remain_channel == 2) {
         output_values.x = asfloat( BufferIn.Load( offset*4 ) );
@@ -87,7 +87,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
         output_values.z = 0;
         output_values.w = 0;
 
-        output_values = output_values * scale_data + bias_data;
+        output_values = mad(output_values, scale_data, bias_data);
 
     } else if (remain_channel == 1) {
         output_values.x = asfloat( BufferIn.Load( offset*4 ) );
@@ -95,7 +95,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
         output_values.z = 0;
         output_values.w = 0;
 
-        output_values = output_values * scale_data + bias_data;
+        output_values = mad(output_values, scale_data, bias_data);
     }
 
     Texture_Blob[DTid.xy] = output_values;

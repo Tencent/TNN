@@ -112,8 +112,9 @@ Status DirectXInnerProductLayerAcc::Reshape(const std::vector<Blob *> &inputs, c
 
 Status DirectXInnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
-    auto in_memory = DirectXMemory::CreateRefMemoryFromBlob(inputs[0]);
-    auto out_memory = DirectXMemory::CreateRefMemoryFromBlob(outputs[0]);
+    std::shared_ptr<DirectXMemory> in_memory, out_memory;
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(inputs[0], in_memory), TNN_OK);
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(outputs[0], out_memory), TNN_OK);
 
     Status ret;
     auto in_srv = in_memory->GetSRV();
@@ -137,7 +138,7 @@ Status DirectXInnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs,
 
         kernel_name = "innerproduct_texture";
 
-        LOGD("kernel name: %s\n",kernel_name.c_str());
+//        LOGD("kernel name: %s\n",kernel_name.c_str());
         std::shared_ptr<ID3D11ComputeShader> cs;
         ret = GetShaderByName(kernel_name, cs);
         RETURN_ON_NEQ(ret, TNN_OK);

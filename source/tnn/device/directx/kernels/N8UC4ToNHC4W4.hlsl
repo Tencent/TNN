@@ -67,7 +67,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     float4 scale = {scale0,scale1,scale2,scale3};
     float4 bias = {bias0,bias1,bias2,bias3};
 
-    values = values * scale + bias;
+    values = mad(values, scale, bias);
     Texture_Blob[DTid.xy] = values;
 }
 

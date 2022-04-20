@@ -93,7 +93,7 @@ Texture2D<float4> weights : register(t1);
 Texture2D<float4> bias : register(t2);
 RWTexture2D<float4> output : register(u0);
 
-[numthreads(1, 1, 1)]
+[numthreads(16, 16, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
     int in_channel_block_length = UP_DIV(in_shape[1], 4);

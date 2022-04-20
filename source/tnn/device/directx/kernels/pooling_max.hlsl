@@ -42,7 +42,7 @@ cbuffer StepsAndShapes: register( b0 )
 
 #define FLT_MAX 3.402823466e+38F
 
-[numthreads(1, 1, 1)]
+[numthreads(16, 16, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID)
 {
     int output_channel_idx      = DTid.z;
