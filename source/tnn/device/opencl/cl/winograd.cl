@@ -15,6 +15,10 @@ __kernel void TransformToMatrixV(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
 
     DEAL_NON_UNIFORM_DIM2(output_cw_idx, output_bh_idx);
 
+#ifdef CHECK_INPUT_COOR
+    int2 input_dims = get_image_dim(input);
+#endif
+
     const int c_block_idx = output_cw_idx / round_w;
     const int w_block_idx = output_cw_idx - mul24(c_block_idx, round_w);
     const int batch = output_bh_idx / round_h;
@@ -51,6 +55,28 @@ __kernel void TransformToMatrixV(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     FLOAT4 in13 = RI_F(input, SAMPLER, (int2)(in_wc_idx.s1, in_bh_idx.s3));
     FLOAT4 in23 = RI_F(input, SAMPLER, (int2)(in_wc_idx.s2, in_bh_idx.s3));
     FLOAT4 in33 = RI_F(input, SAMPLER, (int2)(in_wc_idx.s3, in_bh_idx.s3));
+
+#ifdef CHECK_INPUT_COOR
+    if (!InRange((int2)(in_wc_idx.s0, in_bh_idx.s0), input_dims))   in00 = (FLOAT4)0;
+    if (!InRange((int2)(in_wc_idx.s1, in_bh_idx.s0), input_dims))   in10 = (FLOAT4)0;
+    if (!InRange((int2)(in_wc_idx.s2, in_bh_idx.s0), input_dims))   in20 = (FLOAT4)0;
+    if (!InRange((int2)(in_wc_idx.s3, in_bh_idx.s0), input_dims))   in30 = (FLOAT4)0;
+
+    if (!InRange((int2)(in_wc_idx.s0, in_bh_idx.s1), input_dims))   in01 = (FLOAT4)0;
+    if (!InRange((int2)(in_wc_idx.s1, in_bh_idx.s1), input_dims))   in11 = (FLOAT4)0;
+    if (!InRange((int2)(in_wc_idx.s2, in_bh_idx.s1), input_dims))   in21 = (FLOAT4)0;
+    if (!InRange((int2)(in_wc_idx.s3, in_bh_idx.s1), input_dims))   in31 = (FLOAT4)0;
+
+    if (!InRange((int2)(in_wc_idx.s0, in_bh_idx.s2), input_dims))   in02 = (FLOAT4)0;
+    if (!InRange((int2)(in_wc_idx.s1, in_bh_idx.s2), input_dims))   in12 = (FLOAT4)0;
+    if (!InRange((int2)(in_wc_idx.s2, in_bh_idx.s2), input_dims))   in22 = (FLOAT4)0;
+    if (!InRange((int2)(in_wc_idx.s3, in_bh_idx.s2), input_dims))   in32 = (FLOAT4)0;
+
+    if (!InRange((int2)(in_wc_idx.s0, in_bh_idx.s3), input_dims))   in03 = (FLOAT4)0;
+    if (!InRange((int2)(in_wc_idx.s1, in_bh_idx.s3), input_dims))   in13 = (FLOAT4)0;
+    if (!InRange((int2)(in_wc_idx.s2, in_bh_idx.s3), input_dims))   in23 = (FLOAT4)0;
+    if (!InRange((int2)(in_wc_idx.s3, in_bh_idx.s3), input_dims))   in33 = (FLOAT4)0;
+#endif
 
     FLOAT4 v00 = in00 - in02;
     FLOAT4 v10 = in10 - in12;
