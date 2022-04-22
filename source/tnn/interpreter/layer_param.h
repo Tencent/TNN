@@ -231,6 +231,20 @@ struct NormalizeLayerParam : public LayerParam {
     PARAM_COPY(NormalizeLayerParam)
 };
 
+struct NormLayerParam : public LayerParam {
+    int dim      = 1;
+    bool keepdim = 1;
+    int p         = 2;
+
+    PARAM_COPY(NormLayerParam)
+};
+
+struct ClampminLayerParam : public LayerParam {
+    float min = 1e-12f;
+
+    PARAM_COPY(ClampminLayerParam)
+};
+
 struct ReshapeLayerParam : public LayerParam {
     // reshape_type:
     // onnx caffe reshape(nchw): 0

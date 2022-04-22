@@ -224,6 +224,9 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"NonMaxSuppression", LAYER_NON_MAX_SUPPRESSION},
     {"TopK", LAYER_TOPK},
     {"Scatter", LAYER_SCATTER},
+    {"Norm", LAYER_NORM},
+    {"Clampmin", LAYER_CLAMPMIN},
+    {"Expandas", LAYER_EXPANDAS},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 
@@ -255,6 +258,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"SplitTorch", LAYER_SPLITTORCH},
     {"PermuteV2", LAYER_PERMUTEV2},
     {"Clone", LAYER_CLONE},
+    {"ReshapeTorch", LAYER_RESHAPETORCH},
     {"QuantizedReshape", LAYER_RESHAPE},
     {"QuantizedPermute", LAYER_PERMUTE}
 };

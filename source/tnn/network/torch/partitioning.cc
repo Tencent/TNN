@@ -378,7 +378,7 @@ std::vector<SegmentedBlock> RemoveUnnessaryBlocks(std::vector<SegmentedBlock>& s
     };
 
     std::set<std::string> compute_node_set = {"aten::conv2d", "aten::_convolution", "aten::matmul", "aten::linear",
-                                              "aten::addmm"};
+                                              "aten::addmm", "aten::conv3d"};
     auto is_compute_block                  = [&](SegmentedBlock& seg_block) {
         for (auto& node : seg_block.raw_nodes()) {
             if (compute_node_set.count(node->kind().toQualString())) {
@@ -532,7 +532,7 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
 
     std::for_each(segmented_blocks.begin(), segmented_blocks.end(),
                   [](SegmentedBlock& block) { block.check_raw_nodes(); });
-
+    
     return RemoveUnnessaryBlocks(segmented_blocks);
 }
 
