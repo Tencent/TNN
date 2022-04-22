@@ -78,7 +78,7 @@ Status DeconvOVLayerBuilder::Build() {
     // set weights
     ngraph::Shape weights_shape;
     weights_shape.push_back(paramlist->group);
-    weights_shape.push_back(paramlist->input_channel / paramlist->group);
+    weights_shape.push_back(input_node->get_output_shape(0).at(1) / paramlist->group);
     weights_shape.push_back(paramlist->output_channel / paramlist->group);
     auto kernels = std::vector<int>{paramlist->kernels};
     std::reverse(kernels.begin(), kernels.end());
