@@ -154,6 +154,7 @@ __kernel void Conv2D_CB2(
 #ifdef CHECK_INPUT_COOR
                 if (!InRange((int2)(select(-1, in_cw_value.x, is_w_in_boundary.x), in_hb_value), input_dims)) {
                     in0 = (FLOAT4)0;
+                }
                 if (!InRange((int2)(select(-1, in_cw_value.y, is_w_in_boundary.y), in_hb_value), input_dims)) {
                     in1 = (FLOAT4)0;
                 }

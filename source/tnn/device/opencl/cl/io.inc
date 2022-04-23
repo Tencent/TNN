@@ -7,7 +7,7 @@ inline bool InRange(int2 coor, int2 dims) {
     int in_width_value##i = in_width##i + base;                                                                        \
     in_width_value##i =                                                                                                \
         select(in_idx + in_width_value##i, -1, (in_width_value##i < 0 || in_width_value##i >= input_wh.x));            \
-    if (InRange((int2)(in_width_value##i, in_hb_value), input_dims))                                                  \
+    if (InRange((int2)(in_width_value##i, in_hb_value), input_dims))                                                   \
         in##i = RI_F(input, SAMPLER, (int2)(in_width_value##i, in_hb_value));                                          \
     else                                                                                                               \
         in##i = (FLOAT4)0;
