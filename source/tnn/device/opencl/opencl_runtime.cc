@@ -402,7 +402,7 @@ GpuInfo OpenCLRuntime::ParseGpuInfo(std::string device_name, std::string device_
         LOGD("GPU type is Nvidia GPU\n");
         info.type = NVIDIA_GPU;
         sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
-    } else if (device_name.find("AMD") != std::string::npos) {
+    } else if (device_name.find("AMD") != std::string::npos || device_version.find("AMD") != std::string::npos) {
         LOGD("GPU type is AMD GPU\n");
         info.type = AMD_GPU;
         sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
