@@ -273,7 +273,7 @@ public:
     Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
 
-        auto is_3d = getValue<std::vector<int64_t>>(node->inputs()[3]).size() == 3;
+        auto is_3d = getValue<std::vector<int64_t>>(node->inputs()[1]).size() == 3;
         if (!is_3d) {
             layer_info->type = LAYER_POOLING;
             layer_info->type_str = "Pooling";
