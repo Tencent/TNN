@@ -668,6 +668,42 @@ public:
     }
 };
 
+// func: group_norm(const at::Tensor & input, int num_goups, const c10::optional<at::Tensor> & weight={}, const c10::optional<at::Tensor> & bias={}, double eps=1e-05);
+class GroupNormTorchConverter : public TorchOpConverter {
+public:
+    Status Convert(const torch::jit::Node *node, NetStructure *net_structure, NetResource *net_resource) {
+        std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
+        layer_info->type                      = LAYER_GROUP_NORM;
+        layer_info->type_str                  = "GroupNorm";
+        layer_info->name                      = node->output(0)->debugName();
+
+        const auto &inputs = node->inputs();
+
+        // https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html?highlight=layernorm#torch.nn.LayerNorm
+        // Assume TorchScript is well-formed, weight, bias are present,
+        // weight.shape, bias.shape = normalized_shape
+        layer_info->inputs.push_back(inputs[0]->debugName()); // input
+        layer_info->inputs.push_back(inputs[2]->debugName()); // weight
+        layer_info->inputs.push_back(inputs[3]->debugName()); // bias
+        layer_info->outputs.push_back(node->outputs()[0]->debugName());
+
+        const auto num_groups   = getValue<int>(inputs[1]);
+        const auto eps          = getValue<float>(inputs[4]);
+        auto layer_param = std::make_shared<GroupNormLayerParam>();
+        layer_param->group = num_groups;
+        layer_param->eps = eps;
+        layer_info->param = layer_param;
+
+        ADD_INPUTS_AND_OUTPUTS;
+
+        net_structure->layers.push_back(layer_info);
+        net_resource->constant_map[inputs[2]->debugName()] = std::make_shared<RawBuffer>(getValue(inputs[2])); // weight
+        net_resource->constant_map[inputs[3]->debugName()] = std::make_shared<RawBuffer>(getValue(inputs[3])); // bias
+
+        return TNN_OK;
+    }
+};
+
 // func: layer_norm(const at::Tensor & input, at::IntArrayRef normalized_shape, const c10::optional<at::Tensor> & weight={}, const c10::optional<at::Tensor> & bias={}, double eps=1e-05, bool cudnn_enable=true);
 class LayerNormTorchConverter : public TorchOpConverter {
 public:
@@ -2092,6 +2128,7 @@ REGISTER_TORCH_OP_CONVERTER(Expandas, aten, expand_as)
 REGISTER_TORCH_OP_CONVERTER(Flatten, aten, flatten)
 REGISTER_TORCH_OP_CONVERTER(Gather, aten, select)
 REGISTER_TORCH_OP_CONVERTER(Gelu, aten, gelu)
+REGISTER_TORCH_OP_CONVERTER(GroupNorm, aten, group_norm)
 REGISTER_TORCH_OP_CONVERTER(HardTanh, aten, hardtanh_)
 REGISTER_TORCH_OP_CONVERTER(HardSigmoid, aten, hardsigmoid_)
 REGISTER_TORCH_OP_CONVERTER(HardSigmoid, aten, hardsigmoid)
