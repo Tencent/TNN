@@ -554,7 +554,11 @@ Status OpenCLRuntime::LoadProgramCache() {
             }
             std::string program_cache_bin_file_path = program_cache_file_path_ + "_" + program_name +
                                                         "_" + md5(build_option) + "_" + program_source_md5;
+#if (defined __ANDROID__)
+            FILE* program_binary_stream_fin = fopen(program_cache_bin_file_path.c_str(), "r");
+#elif (defined _WIN32)
             FILE* program_binary_stream_fin = fopen(program_cache_bin_file_path.c_str(), "rb");
+#endif
             if (!program_binary_stream_fin) {
                 ret = Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
                              "open program cache binary file failed, input path: " +
