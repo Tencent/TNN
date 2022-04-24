@@ -55,7 +55,7 @@ public:
     Status DeInit();
 
     //  return memory bytes required for forward
-    Status GetForwardMemorySize(int& memory_size);
+    Status GetForwardMemorySize(size_t& memory_size);
 
     //  set memory to tnn instance. if success, return status code zero.
     //  only instance created with SHARE_MEMORY_MODE_SET_FROM_EXTERNAL can be set from external.

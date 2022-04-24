@@ -524,7 +524,7 @@ Status TensorRTNetwork_::CreateExecuteContext() {
     return TNN_OK;
 }
 
-Status TensorRTNetwork_::GetForwardMemorySize(int &memory_size) {
+Status TensorRTNetwork_::GetForwardMemorySize(size_t &memory_size) {
     memory_size = context_memory_size_;
     return TNN_OK;
 }
