@@ -1,4 +1,5 @@
 #include "base.inc"
+#include "io.inc"
 
 __kernel void Pooling(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
                       __private const int2 input_wh, __private const int output_height, __private const int2 pad_wh,
