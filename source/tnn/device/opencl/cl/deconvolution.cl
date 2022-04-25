@@ -19,6 +19,10 @@ __kernel void Deconv2D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __read_on
     const int output_bh_idx = get_global_id(1);
     DEAL_NON_UNIFORM_DIM2(output_cw_idx, output_bh_idx);
 
+#ifdef CHECK_INPUT_COOR
+    int2 input_dims = get_image_dim(input);
+#endif
+
     const int out_channel_blocks_idx    = output_cw_idx / output_wh.x;
     const int out_width_idx             = output_cw_idx % output_wh.x;
 
@@ -54,6 +58,12 @@ __kernel void Deconv2D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, __read_on
                     select(in_idx + in_width0, -1, (in_width0 < 0 || in_width0 >= input_wh.x));
                 in0 = RI_F(input, SAMPLER, (int2)(in_width_value0, in_hb_value));
 
+#ifdef CHECK_INPUT_COOR
+                if (!InRange((int2)(in_width_value0, in_hb_value), input_dims)) {
+                    in0 = (FLOAT4)0;
+                }
+#endif
+
                 weights0 = RI_F(weights, SAMPLER, (int2)(kernel_x_0, kernel_y));
                 out0 = mad(in0.x, weights0, out0);
                 weights1 = RI_F(weights, SAMPLER, (int2)(kernel_x_1, kernel_y));
@@ -84,6 +94,10 @@ __kernel void Deconv2D4x4s2p1wb4(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     const int output_cw_blocks_idx = get_global_id(0);
     const int output_bh_idx = get_global_id(1);
     DEAL_NON_UNIFORM_DIM2(output_cw_blocks_idx, output_bh_idx);
+
+#ifdef CHECK_INPUT_COOR
+    int2 input_dims = get_image_dim(input);
+#endif
 
     const int out_channel_blocks_idx    = output_cw_blocks_idx / out_width_blocks;
     const int out_width_blocks_idx      = output_cw_blocks_idx % out_width_blocks;
@@ -158,6 +172,21 @@ __kernel void Deconv2D4x4s2p1wb4(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
             in_b2 = RI_F(input, SAMPLER, (int2)(in_width_value_b2, in_hb_value));
             in_b3 = RI_F(input, SAMPLER, (int2)(in_width_value_b3, in_hb_value));
 
+#ifdef CHECK_INPUT_COOR
+            if (!InRange((int2)(in_width_value_b0, in_hb_value), input_dims)) {
+                in_b0 = (FLOAT4)0;
+            }
+            if (!InRange((int2)(in_width_value_b1, in_hb_value), input_dims)) {
+                in_b1 = (FLOAT4)0;
+            }
+            if (!InRange((int2)(in_width_value_b2, in_hb_value), input_dims)) {
+                in_b2 = (FLOAT4)0;
+            }
+            if (!InRange((int2)(in_width_value_b3, in_hb_value), input_dims)) {
+                in_b3 = (FLOAT4)0;
+            }
+#endif
+
             out0 = mad(in_b0.x, weights_c0_b3, out0);
             out0 = mad(in_b1.x, weights_c0_b1, out0);
             out1 = mad(in_b1.x, weights_c0_b2, out1);
@@ -223,6 +252,10 @@ __kernel void DepthwiseDeconv2D(GLOBAL_SIZE_2_DIMS __read_only image2d_t input, 
     const int output_cw_idx = get_global_id(0);
     const int output_bh_idx = get_global_id(1);
     DEAL_NON_UNIFORM_DIM2(output_cw_idx, output_bh_idx);
+
+#ifdef CHECK_INPUT_COOR
+    int2 input_dims = get_image_dim(input);
+#endif
 
     const int out_channel_blocks_idx    = output_cw_idx / output_wh.x;
     const int out_width_idx             = output_cw_idx % output_wh.x;
