@@ -74,6 +74,7 @@ Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         }
 
         std::set<std::string> build_options = CreateBuildOptions();
+        build_options.insert(build_options_.begin(), build_options_.end());
 
         ret = CreateExecuteUnit(execute_units_[0], "reduce", kernel_name, build_options);
         if (ret != TNN_OK) {
@@ -85,6 +86,7 @@ Status OpenCLReduceLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         std::string kernel_name = "ReduceMultiAxis";
 
         std::set<std::string> build_options = CreateBuildOptions();
+        build_options.insert(build_options_.begin(), build_options_.end());
 
         ret = CreateExecuteUnit(execute_units_[0], "reduce", kernel_name, build_options);
         if (ret != TNN_OK) {

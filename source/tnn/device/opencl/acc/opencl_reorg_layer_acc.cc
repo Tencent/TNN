@@ -61,21 +61,21 @@ Status OpenCLReorgLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     execute_units_.resize(3);
     program_name = "image_to_buffer";
     kernel_name  = "ImageToNCHWBufferFLOAT";
-    ret          = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);
+    ret          = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);
     if (ret != TNN_OK) {
         return ret;
     }
 
     program_name = "reorg";
     kernel_name  = "Reorg";
-    ret          = CreateExecuteUnit(execute_units_[1], program_name, kernel_name);
+    ret          = CreateExecuteUnit(execute_units_[1], program_name, kernel_name, build_options_);
     if (ret != TNN_OK) {
         return ret;
     }
 
     program_name = "buffer_to_image";
     kernel_name  = "NCHWBufferToImageFLOAT";
-    ret          = CreateExecuteUnit(execute_units_[2], program_name, kernel_name);
+    ret          = CreateExecuteUnit(execute_units_[2], program_name, kernel_name, build_options_);
     if (ret != TNN_OK) {
         return ret;
     }

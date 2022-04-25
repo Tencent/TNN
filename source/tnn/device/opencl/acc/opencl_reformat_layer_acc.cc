@@ -46,7 +46,7 @@ Status OpenCLReformatLayerAcc::Init(Context *context, LayerParam *param, LayerRe
     const int blob_size = inputs.size();
     execute_units_.resize(blob_size);
     for (int i = 0; i < blob_size; i++) {
-        ret = CreateExecuteUnit(execute_units_[i], "image_to_image", kernel_name_);
+        ret = CreateExecuteUnit(execute_units_[i], "image_to_image", kernel_name_, build_options_);
     }
 
     if (ret != TNN_OK) {

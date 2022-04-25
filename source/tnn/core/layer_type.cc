@@ -260,7 +260,12 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"Clone", LAYER_CLONE},
     {"ReshapeTorch", LAYER_RESHAPETORCH},
     {"QuantizedReshape", LAYER_RESHAPE},
-    {"QuantizedPermute", LAYER_PERMUTE}
+    {"QuantizedPermute", LAYER_PERMUTE},
+
+    // dynamic range quantization layer
+    {"DynamicRangeQuantizedConvolution", LAYER_CONVOLUTION},
+    {"DynamicRangeQuantizedLSTMONNX", LAYER_LSTMONNX},
+    {"DynamicRangeQuantizedMatMul", LAYER_MATMUL},
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

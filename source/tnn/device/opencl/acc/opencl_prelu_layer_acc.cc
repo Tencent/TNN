@@ -74,7 +74,7 @@ Status OpenCLPReluLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     std::string kernel_name = "PRelu";
     if (run_3d_ndrange_)
         kernel_name = "PReluGS3D";
-    ret = CreateExecuteUnit(execute_units_[0], "prelu", kernel_name);
+    ret = CreateExecuteUnit(execute_units_[0], "prelu", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

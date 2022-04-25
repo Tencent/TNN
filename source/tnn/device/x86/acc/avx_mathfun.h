@@ -116,7 +116,7 @@ typedef union imm_xmm_union
     }
 
 #define AVX2_BITOP_USING_SSE2(fn)                            \
-    static inline __m256i _mm256_##fn(__m256i x, int a)      \
+    static inline __m256i avx2_mm256_##fn(__m256i x, int a)      \
     {                                                        \
         /* use SSE2 instruction to perform the bitop AVX2 */ \
         __m128i x1, x2;                                      \
@@ -131,13 +131,13 @@ typedef union imm_xmm_union
 #if _MSC_VER
 #pragma WARNING(Using SSE2 to perform AVX2 bitshift ops)
 #else
-#warning "Using SSE2 to perform AVX2 bitshift ops"
+// #warning "Using SSE2 to perform AVX2 bitshift ops"
 #endif
 AVX2_BITOP_USING_SSE2(slli_epi32)
 AVX2_BITOP_USING_SSE2(srli_epi32)
 
 #define AVX2_INTOP_USING_SSE2(fn)                                         \
-    static inline __m256i _mm256_##fn(__m256i x, __m256i y)               \
+    static inline __m256i avx2_mm256_##fn(__m256i x, __m256i y)               \
     {                                                                     \
         /* use SSE2 instructions to perform the AVX2 integer operation */ \
         __m128i x1, x2;                                                   \
@@ -154,14 +154,23 @@ AVX2_BITOP_USING_SSE2(srli_epi32)
 #if _MSC_VER
 #pragma WARNING(Using SSE2 to perform AVX2 bitshift ops)
 #else
-#warning "Using SSE2 to perform AVX2 integer ops"
+// #warning "Using SSE2 to perform AVX2 integer ops"
 #endif
 AVX2_INTOP_USING_SSE2(and_si128)
 AVX2_INTOP_USING_SSE2(andnot_si128)
 AVX2_INTOP_USING_SSE2(cmpeq_epi32)
 AVX2_INTOP_USING_SSE2(sub_epi32)
 AVX2_INTOP_USING_SSE2(add_epi32)
-
+#define avx2_mm256_and_si256 avx2_mm256_and_si128
+#define avx2_mm256_andnot_si256 avx2_mm256_andnot_si128
+#else // #ifdef __AVX2__
+#define avx2_mm256_slli_epi32 _mm256_slli_epi32
+#define avx2_mm256_srli_epi32 _mm256_srli_epi32
+#define avx2_mm256_and_si256 _mm256_and_si256
+#define avx2_mm256_andnot_si256 _mm256_andnot_si256
+#define avx2_mm256_cmpeq_epi32 _mm256_cmpeq_epi32
+#define avx2_mm256_sub_epi32 _mm256_sub_epi32
+#define avx2_mm256_add_epi32 _mm256_add_epi32
 #endif /* __AVX2__ */
 
 /* natural logarithm computed for 8 simultaneous float
@@ -178,14 +187,14 @@ static inline __m256 log256_ps(__m256 x)
     x = _mm256_max_ps(x, *(__m256*)_ps256_min_norm_pos); /* cut off denormalized stuff */
 
     // can be done with AVX2
-    imm0 = _mm256_srli_epi32(_mm256_castps_si256(x), 23);
+    imm0 = avx2_mm256_srli_epi32(_mm256_castps_si256(x), 23);
 
     /* keep only the fractional part */
     x = _mm256_and_ps(x, *(__m256*)_ps256_inv_mant_mask);
     x = _mm256_or_ps(x, *(__m256*)_ps256_0p5);
 
     // this is again another AVX2 instruction
-    imm0 = _mm256_sub_epi32(imm0, *(__m256i*)_pi32_256_0x7f);
+    imm0 = avx2_mm256_sub_epi32(imm0, *(__m256i*)_pi32_256_0x7f);
     __m256 e = _mm256_cvtepi32_ps(imm0);
 
     e = _mm256_add_ps(e, one);
@@ -303,8 +312,8 @@ static inline __m256 exp256_ps(__m256 x)
     /* build 2^n */
     imm0 = _mm256_cvttps_epi32(fx);
     // another two AVX2 instructions
-    imm0 = _mm256_add_epi32(imm0, *(__m256i*)_pi32_256_0x7f);
-    imm0 = _mm256_slli_epi32(imm0, 23);
+    imm0 = avx2_mm256_add_epi32(imm0, *(__m256i*)_pi32_256_0x7f);
+    imm0 = avx2_mm256_slli_epi32(imm0, 23);
     __m256 pow2n = _mm256_castsi256_ps(imm0);
     y = _mm256_mul_ps(y, pow2n);
     return y;

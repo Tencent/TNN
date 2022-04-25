@@ -56,6 +56,7 @@ option(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE "Enable Use CXX11 ABI" ON)
 option(TNN_PYBIND_ENABLE  "Enable Pybind" OFF)
 option(TNN_METAL_FLOAT32 "Enable Metal Float32" OFF)
 option(TNN_COREML_FLOAT32 "Enable Float32 CoreML Model" ON)
+option(TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE "Enable Dynamic Range Quantization" OFF)
 
 set(TNN_USE_GFLAGS OFF)
 
@@ -148,6 +149,10 @@ endif()
 if(TNN_QUANTIZATION_ENABLE OR TNN_MODEL_CHECK_ENABLE)
     set(TNN_SYMBOL_HIDE OFF)
     add_definitions(-DFORWARD_CALLBACK_ENABLE)
+endif()
+
+if (TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
+    set(TNN_SYMBOL_HIDE OFF)
 endif()
 
 if(TNN_QUANTIZATION_ENABLE OR TNN_UNIT_TEST_ENABLE)
@@ -272,6 +277,7 @@ message(STATUS "\tModel Converter:\t${TNN_CONVERTER_ENABLE}")
 message(STATUS "\tONNX2TNN Converter:\t${TNN_ONNX2TNN_ENABLE}")
 message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 message(STATUS "\tBENCHMARK Test Lib:\t${TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE}")
+message(STATUS "\tDynamic Range Quantization:\t${TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE}")
 
 include_directories(include)
 include_directories(source)
@@ -300,9 +306,16 @@ if(SYSTEM.Linux AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND ANDROID_API_LEVAL)
     add_definitions(-D__ANDROID_API__=${ANDROID_API_LEVAL})
 endif()
 
+if(SYSTEM.Windows AND TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
+    set(TNN_BUILD_SHARED OFF)
+endif()
+
 if(TNN_X86_ENABLE)
+    # compile with avx2 by default
+    option(TNN_X86_AVX2_ENABLE  "Enable X86 AVX2" ON)
     add_subdirectory(source/tnn/device/x86)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86>")
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86ACC>")
 endif()
 
 if(TNN_CPU_ENABLE)
@@ -430,6 +443,7 @@ elseif(SYSTEM.Windows)
     include(platforms/windows/CMakeLists.txt)
 endif()
 
+<<<<<<< HEAD
 if(TNN_PYBIND_ENABLE)
     set(CMAKE_CXX_STANDARD 14)
     include_directories(third_party/pybind11/include)
@@ -443,7 +457,7 @@ if(TNN_PYBIND_ENABLE)
     target_link_libraries(_pytnn TNN)
 endif()
 
-if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE OR TNN_MODEL_CHECK_ENABLE)
+if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE OR TNN_MODEL_CHECK_ENABLE OR TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
     set(TNN_USE_GFLAGS ON)
 endif ()
 
@@ -481,4 +495,8 @@ endif()
 
 if(TNN_EVALUATION_ENABLE)
     add_subdirectory(tools/evaluation)
+endif()
+
+if(TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
+    add_subdirectory(tools/dynamic_range_quantization)
 endif()

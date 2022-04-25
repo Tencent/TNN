@@ -45,7 +45,7 @@ Status OpenCLLayerNormLayerAcc::Init(Context *context, LayerParam *param, LayerR
         return Status(TNNERR_PARAM_ERR, "Error: only support data dim size 3, and reduce dim size 1 \n");
     }
     std::string kernel_name = "LayerNormDim3Reduce1D";
-    ret                     = CreateExecuteUnit(execute_units_[0], "layer_norm", kernel_name);
+    ret                     = CreateExecuteUnit(execute_units_[0], "layer_norm", kernel_name, build_options_);
     if(ret != TNN_OK) {
         LOGD("create execute unit failed!\n");
         return ret;
