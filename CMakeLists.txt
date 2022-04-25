@@ -443,7 +443,6 @@ elseif(SYSTEM.Windows)
     include(platforms/windows/CMakeLists.txt)
 endif()
 
-<<<<<<< HEAD
 if(TNN_PYBIND_ENABLE)
     set(CMAKE_CXX_STANDARD 14)
     include_directories(third_party/pybind11/include)
