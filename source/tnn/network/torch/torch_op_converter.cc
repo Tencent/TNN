@@ -150,7 +150,7 @@ public:
         const auto transposed = getValue<bool>(inputs[6]);
         
         std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
-        const bool is_3d = getValue<std::vector<int64_t>>(inputs[1]).size() == 5;
+        const bool is_3d = getValue<std::vector<int64_t>>(inputs[4]).size() == 3;
         
         if (!is_3d) {
             layer_info->type = transposed ? LAYER_DECONVOLUTION : LAYER_CONVOLUTION;;
