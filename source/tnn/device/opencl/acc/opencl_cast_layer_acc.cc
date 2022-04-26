@@ -53,6 +53,7 @@ Status OpenCLCastLayerAcc::Init(Context *context, LayerParam *param, LayerResour
         } else {
             build_options.emplace(std::string(" -DCONVERT=") + "convert_float4");
         }
+        build_options.insert(build_options_.begin(), build_options_.end());
         ret         = CreateExecuteUnit(execute_units_[0], "cast_int32_to_float", "CastIntToFloat", build_options);
         if(ret != TNN_OK) {
             return ret;

@@ -64,6 +64,7 @@ protected:
     std::string layer_name_ = "";
     DimsVector input_dims_ = {};
     DimsVector output_dims_ = {};
+    std::set<std::string> build_options_ = {};
 
     GpuInfo gpu_info_;
     bool run_3d_ndrange_ = false;

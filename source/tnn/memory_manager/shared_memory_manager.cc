@@ -52,7 +52,7 @@ SharedMemory SharedMemoryManager::GetSharedMemory(size_t forward_memory_size, st
     if (forward_memory_size > share_memory.shared_memory_size) {
         void *new_shared_memory = NULL;
         BlobMemorySizeInfo info;
-        info.data_type = DATA_TYPE_INT8; 
+        info.data_type = DATA_TYPE_INT8;
         info.dims = SplitMemorySizeToDims(forward_memory_size);
         status = device->Allocate(&new_shared_memory, info);
         if (status != TNN_OK) {

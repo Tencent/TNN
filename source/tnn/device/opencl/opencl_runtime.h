@@ -27,7 +27,7 @@
 
 namespace TNN_NS {
 
-enum GpuType { OTHER = 0, ADRENO = 1, MALI = 2, MALI_T = 3, MALI_G = 4, INTEL_GPU = 5, NVIDIA_GPU = 6};
+enum GpuType { OTHER = 0, ADRENO = 1, MALI = 2, MALI_T = 3, MALI_G = 4, INTEL_GPU = 5, NVIDIA_GPU = 6, AMD_GPU = 7 };
 
 struct GpuInfo {
     GpuType type = OTHER;
@@ -79,6 +79,8 @@ private:
 
     Status LoadProgramCache();
 
+    Status CheckOpenCLVersion(const float opencl_version);
+
 private:
     static std::shared_ptr<OpenCLRuntime> opencl_runtime_singleton_;
     static bool enable_increase_count_;
@@ -100,7 +102,8 @@ private:
     std::string cache_path_ = "";
     std::string program_cache_file_path_ = "";
     bool is_program_cache_changed_ = false;
-    std::map<std::pair<std::string, std::string>, std::vector<std::string> > kernel_name_map_ = {};
+    std::map<std::pair<std::string, std::string>, std::vector<std::string>> kernel_name_map_ = {};
+    std::set<std::string> extra_build_options_                                               = {};
 
     std::vector<size_t> image_2d_max_size_;
 };

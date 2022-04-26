@@ -1,8 +1,23 @@
-#define READ_INPUT_IMAGE(i, base) \
-    int in_width_value##i = in_width##i + base; \
-    in_width_value##i = \
-        select(in_idx + in_width_value##i, -1, (in_width_value##i < 0 || in_width_value##i >= input_wh.x)); \
+inline bool InRange(int2 coor, int2 dims) {
+    return 0 <= coor.x && coor.x < dims.x && 0 <= coor.y && coor.y < dims.y;
+}
+
+#ifdef CHECK_INPUT_COOR
+#define READ_INPUT_IMAGE(i, base)                                                                                      \
+    int in_width_value##i = in_width##i + base;                                                                        \
+    in_width_value##i =                                                                                                \
+        select(in_idx + in_width_value##i, -1, (in_width_value##i < 0 || in_width_value##i >= input_wh.x));            \
+    if (InRange((int2)(in_width_value##i, in_hb_value), input_dims))                                                   \
+        in##i = RI_F(input, SAMPLER, (int2)(in_width_value##i, in_hb_value));                                          \
+    else                                                                                                               \
+        in##i = (FLOAT4)0;
+#else
+#define READ_INPUT_IMAGE(i, base)                                                                                      \
+    int in_width_value##i = in_width##i + base;                                                                        \
+    in_width_value##i =                                                                                                \
+        select(in_idx + in_width_value##i, -1, (in_width_value##i < 0 || in_width_value##i >= input_wh.x));            \
     in##i = RI_F(input, SAMPLER, (int2)(in_width_value##i, in_hb_value));
+#endif
 
 inline void WriteOutputAntiOutOfBounds(__write_only image2d_t output, FLOAT4 out0, FLOAT4 out1, FLOAT4 out2, FLOAT4 out3,const int output_w_idx, const int output_h_idx, const int remain)
 { 

@@ -38,7 +38,7 @@ Status OpenCLInverseLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     std::string kernel_name = "Inverse";
 
     // create kernel
-    ret = CreateExecuteUnit(execute_units_[0], "inverse", kernel_name);
+    ret = CreateExecuteUnit(execute_units_[0], "inverse", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

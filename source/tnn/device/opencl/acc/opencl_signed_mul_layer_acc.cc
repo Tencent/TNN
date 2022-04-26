@@ -35,7 +35,7 @@ Status OpenCLSignedMulLayerAcc::Init(Context *context, LayerParam *param, LayerR
 
     // create kernel
     std::string kernel_name = "SignedMul";
-    ret = CreateExecuteUnit(execute_units_[0], "signed_mul", kernel_name);
+    ret = CreateExecuteUnit(execute_units_[0], "signed_mul", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

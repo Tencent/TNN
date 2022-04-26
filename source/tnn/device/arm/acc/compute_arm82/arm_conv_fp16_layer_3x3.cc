@@ -267,6 +267,14 @@ int ArmConvFp16Layer3x3::SelectWinograd(ConvLayerParam *param, const std::vector
         return 0;
     }
 
+    // gemm: only use gemm
+    // winograd_unit2: use winograd f(2,3)
+    // winograd_unit4 or others:
+    // use winograd f(4,3) or f(2,3)
+    if (param->extra_config.count("arm_fp16_gemm")) {
+        return 0;
+    }
+
     int ic          = inputs[0]->GetBlobDesc().dims[1];
     int oc          = outputs[0]->GetBlobDesc().dims[1];
     int kernel_size = param->kernels[0];
@@ -302,6 +310,10 @@ int ArmConvFp16Layer3x3::SelectWinograd(ConvLayerParam *param, const std::vector
     // 10% penalty, winograd will result in more cache miss
     if (max_rate < 1.1f) {
         return 0;
+    }
+
+    if (param->extra_config.count("arm_fp16_winograd_unit2")) {
+        dst_unit = 2;
     }
 
     return dst_unit;

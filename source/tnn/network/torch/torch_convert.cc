@@ -94,7 +94,6 @@ c10::intrusive_ptr<runtime::TNNEngine> ConvertBlockToInstance(partitioning::Segm
         std::string block_proto_str, block_model_str;
         TNN_NS::ModelPacker model_packer(net_structure, net_resource);
         model_packer.GetSerialization(block_proto_str, block_model_str);
-        interpreter->InterpretMd5(g->toString(false));
         interpreter->InterpretMd5(block_proto_str);
         interpreter->InterpretMd5(block_model_str);
 #endif

@@ -20,7 +20,7 @@
 namespace TNN_NS {
 
 template <typename VEC>
-static VEC fast_erf_approximation(VEC x) {
+static VEC fast_erf_approximation(const VEC x) {
     auto t = VEC::div(VEC(1.f), VEC(1.f) + VEC(0.5f) * VEC::abs(x));
     auto t_2 = t * t;
     auto t_3 = t_2 * t;

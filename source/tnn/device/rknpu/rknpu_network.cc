@@ -345,7 +345,7 @@ Status RknpuNetwork::InitCacheGraph(std::string &cache_path, rk::nn::Graph *grap
     return TNN_OK;
 }
 
-Status RknpuNetwork::GetForwardMemorySize(int &memory_size) {
+Status RknpuNetwork::GetForwardMemorySize(size_t &memory_size) {
     memory_size = 0;
     return TNN_OK;
 }

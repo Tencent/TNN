@@ -82,6 +82,8 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
                 LOGE("The model conflict between same input names %s\n", name.c_str());
                 return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
             }
+            // insert input blob net_structure
+            net_structure.blobs.insert(name);
         }
 
         // set output
@@ -97,6 +99,8 @@ TNN_NS::Status TFLite2Tnn::Convert2Tnn(TNN_NS::NetStructure& net_structure, TNN_
                 LOGE("The model conflict between same output names %s\n", name.c_str());
                 return TNN_NS::TNNERR_CONVERT_INVALID_MODEL;
             }
+            // insert output blob for net_structure
+            net_structure.blobs.insert(name);
         }
         // convert layer
         auto& layers = net_structure.layers;

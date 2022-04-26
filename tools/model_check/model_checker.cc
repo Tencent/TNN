@@ -673,7 +673,7 @@ Status ModelChecker::CompareDeviceAndCpu() {
                 LOGE("get blob data failed (%s)\n", ret.description().c_str());
             }
             char* output_data_ptr = device_output_map[blob_name].get();
-            const auto data_type = blob_desc.data_type;
+            const auto data_type  = blob_desc.data_type == DATA_TYPE_HALF ? DATA_TYPE_FLOAT : blob_desc.data_type;
 
             // compare device data with default data
             if (cpu_blobdata_map.count(blob_name) <= 0 && info->type == LAYER_REFORMAT) {
