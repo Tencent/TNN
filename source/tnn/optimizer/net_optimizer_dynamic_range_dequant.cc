@@ -63,6 +63,7 @@ namespace optimizer {
                 default:
                     break;
             }
+            layer->param->dynamic_range_quantized = false;
         }
 
         return TNN_OK;
