@@ -132,7 +132,7 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         execute_units_.resize(inputs.size());
         for (size_t i = 0; i < execute_units_.size(); i++) {
             kernel_name = "CopyImage";
-            ret         = CreateExecuteUnit(execute_units_[i], program_name, kernel_name);
+            ret         = CreateExecuteUnit(execute_units_[i], program_name, kernel_name, build_options_);
             if (ret != TNN_OK) {
                 return ret;
             }
@@ -141,7 +141,7 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         std::string program_name = "concat";
         kernel_name              = "ConcatChannel4X";
         execute_units_.resize(1);
-        ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name);
+        ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);
         if (ret != TNN_OK) {
             return ret;
         }
@@ -152,6 +152,7 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         std::string program_name = "concat";
         kernel_name              = "ConcatChannel";
         execute_units_.resize(1);
+        build_options.insert(build_options_.begin(), build_options_.end());
         ret = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options);
         if (ret != TNN_OK) {
             return ret;
@@ -163,20 +164,20 @@ Status OpenCLConcatLayerAcc::Init(Context *context, LayerParam *param, LayerReso
         for (size_t i = 0; i < inputs.size(); i++) {
             // Image to Buffer
             kernel_name = "CopyImageToBuffer";
-            ret         = CreateExecuteUnit(execute_units_[2 * i], program_name, kernel_name);
+            ret         = CreateExecuteUnit(execute_units_[2 * i], program_name, kernel_name, build_options_);
             if (ret != TNN_OK) {
                 return ret;
             }
             // Merge Buffer to Buffer
             kernel_name = "CopyBuffer";
-            ret         = CreateExecuteUnit(execute_units_[2 * i + 1], program_name, kernel_name);
+            ret         = CreateExecuteUnit(execute_units_[2 * i + 1], program_name, kernel_name, build_options_);
             if (ret != TNN_OK) {
                 return ret;
             }
         }
         // Buffer to Image
         kernel_name = "CopyBufferToImage";
-        ret         = CreateExecuteUnit(execute_units_[2 * inputs.size()], program_name, kernel_name);
+        ret         = CreateExecuteUnit(execute_units_[2 * inputs.size()], program_name, kernel_name, build_options_);
         if (ret != TNN_OK) {
             return ret;
         }

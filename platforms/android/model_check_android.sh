@@ -16,7 +16,7 @@ DEVICE="ARM"
 ARMV82="ON"
 TEST_PROTO_PATH=
 INPUT_PATH=
-OPTION_DUMP_OUTPUT=
+OPTION_DUMP_OUTPUT=""
 OPTION_CHECK_BATCH=
 OPTION_CHECK_OUTPUT=
 SET_PRECISION=
@@ -33,7 +33,7 @@ function usage() {
     echo "        -m    tnnproto"
     echo "        -i    input file (NCHW Float)"
     echo "        -p    Push models to device"
-    echo "        -o    dump output"
+    echo "        -do   specify the dump output path(eg: /data/local/tmp/model_check/output_dump)"
     echo "        -a    check multi batch"
     echo "        -e    only check output(precision: AUTO)"
     echo "        -s    AUTO/NORMAL/HIGH/LOW specify the tnn precision(default: HIGH)"
@@ -209,9 +209,10 @@ while [ "$1" != "" ]; do
             INPUT_PATH="$1"
             shift
             ;;
-        -o)
+        -do)
             shift
-            OPTION_DUMP_OUTPUT=-o
+            OPTION_DUMP_OUTPUT=" -do $1"
+            shift
             ;;
         -a)
             shift

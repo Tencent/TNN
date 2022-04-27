@@ -18,13 +18,13 @@ Analyze the running time of a model.
 
   Click the benchmark project as shown below, find the project setting `Signing & Capabilities`, click the Team tab, and select` Add an Account ...`
 
-  <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource//ios_add_account_benchmark.jpg"/>
+  <div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/ios_add_account_benchmark.jpg"/>
 
   Enter the Apple ID account and password in the following interface. After the addition is complete, return to the `Signing & Capabilities` interface and select the added account in the Team tab. If you don’t have an Apple ID, you can also use the `Create Apple ID` option to apply.
 
   `PS: There is no fee to apply for Apple ID, it can be passed immediately, and the APP can be debugged on the real machine after passing.`
 
-  <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource//ios_set_account.jpg"/>
+  <div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/ios_set_account.jpg"/>
 
 4. Run on real machines
 
@@ -32,20 +32,20 @@ Analyze the running time of a model.
 
    As shown in the figure, after the existing `Bundle Identifier`, a suffix (limited to numbers and letters) is randomly added to prevent personal accounts from encountering signature conflicts.
 
-   <div align=left> <img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource//ios_set_bundleid_benchmark.jpg"/>
+   <div align=left> <img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/ios_set_bundleid_benchmark.jpg"/>
 
    4.2 Verify authorization
 
    For the first time, use the shortcut key `Command + Shift + K` to clean up the project, and then execute the shortcut key` Command + R` to run. If it is the first time to log in with Apple ID, Xcode will pop up a box and report the following error. You need to verify the authorization on the iOS device according to the prompt. Generally speaking, the authorization path on the phone is: Settings-> General-> Profile and Device Management-> Apple Development Options-> Click Trust
 
-   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource//ios_verify_certificate_benchmark.jpg" width = "50%" height = "50%"/>
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/ios_verify_certificate_benchmark.jpg" width = "50%" height = "50%"/>
 
    
    4.3 Result
 
    For the first run, use the shortcut key `Command + Shift + K` to clean up the project, and then execute the shortcut key` Command + R` to run. Click the Run button on the interface, the interface will display the CPU and GPU time consumption of all models in the model directory. The running result of the iPhone7 real machine is shown below.
 
-   <div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource//ios_benchmark_result.jpg" width = "50%" height = "50%"/>
+   <div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/ios_benchmark_result.jpg" width = "50%" height = "50%"/>
 
    
    PS:
@@ -115,7 +115,7 @@ Execute the script：
 
 The result is shown in the figure and saved to `benchmark_models_result.txt`.
 
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/android_profiling.jpg" />
+<div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/android_profiling.jpg" />
 
 #### 4.2 Layer-by-layer Performance Analysis：
 
@@ -126,7 +126,7 @@ Execute script:
 ```
 P.S. Huawei NPU does not support layer by layer analysis.
 The result is shown in the figure and saved to `benchmark_models_result.txt`：
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/development/resource/opencl_profiling.jpg"/>
+<div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/development/resource/opencl_profiling.jpg"/>
 
 
 ### 5.Special Instructions 

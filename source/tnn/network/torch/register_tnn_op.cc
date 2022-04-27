@@ -122,6 +122,18 @@ std::vector<at::Tensor> execute_engine(std::vector<at::Tensor> inputs,
         // DumpDeviceBlob(output_blobs[output_names[i]], cmd_queue, "tnn-output-"+output_names[i]);
     }
 
+    auto desc = output_blobs[output_names[0]]->GetBlobDesc();
+    size_t shared_memory_size = 0;
+    c10::Device device(c10::kCUDA);
+    ConvertToTorchDevice(device, desc.device_type);
+    compiled_engine->instance_->GetForwardMemorySize(shared_memory_size);
+    c10::TensorOptions tensor_options;
+    // use int8 tensor not aligned to 256 bytes, invalid for context memmory
+    shared_memory_size = (shared_memory_size + 3) / 4;
+    std::shared_ptr<at::Tensor> forward_tensor = std::make_shared<torch::Tensor>(
+        at::empty(shared_memory_size, {device.type()}).to(at::ScalarType::Float).contiguous());
+    compiled_engine->instance_->SetForwardMemory(reinterpret_cast<void*>(forward_tensor->data_ptr<float>()));
+
     // use torch memory management
     compiled_engine->instance_->Forward();
 

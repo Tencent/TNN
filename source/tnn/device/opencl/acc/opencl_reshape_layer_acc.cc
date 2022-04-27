@@ -79,6 +79,7 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
             is_nchw_output_ = true;
             build_opt.emplace("-DENABLE_BUFFER_PRECISION_ADJUST");
         }
+        build_opt.insert(build_options_.begin(), build_options_.end());
         ret = CreateExecuteUnit(execute_units_[0], im_to_bf_program_name_, im_to_bf_func_name_, build_opt);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
@@ -88,7 +89,7 @@ Status OpenCLReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
 
     // buffer->image
     {
-        ret = CreateExecuteUnit(execute_units_[1], bf_to_im_program_name_, bf_to_im_func_name_);
+        ret = CreateExecuteUnit(execute_units_[1], bf_to_im_program_name_, bf_to_im_func_name_, build_options_);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;
@@ -112,6 +113,7 @@ Status OpenCLReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
         std::set<std::string> build_opt;
         is_nchw_output_ = true;
         build_opt.emplace("-DENABLE_BUFFER_PRECISION_ADJUST");
+        build_opt.insert(build_options_.begin(), build_options_.end());
         ret = CreateExecuteUnit(execute_units_[0], im_to_bf_program_name_, im_to_bf_func_name_, build_opt);
         CHECK_TNN_OK(ret)
     }

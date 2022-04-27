@@ -16,6 +16,17 @@
 #ifndef TNN_JIT_DATA_PACKING_H_
 #define TNN_JIT_DATA_PACKING_H_
 
+#ifdef _MSC_VER
+#include <algorithm>
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+#endif
+
 #include "tnn/device/x86/acc/compute/jit/common/type_def.h"
 #include "tnn/device/x86/acc/compute/jit/utils/utils.h"
 #include "tnn/device/x86/acc/compute/jit/gemm_config.h"

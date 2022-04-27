@@ -4,7 +4,7 @@
 
 ## Overview
 
-<div align=left><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/user/resource/convert.png"/>
+<div align=left><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/user/resource/convert.png"/>
 
 TNN currently supports the industry's mainstream model file formats, including ONNX, Pytorch, Tensorflow and Caffe. As shown in the figure above, TNN utilizes ONNX as the intermediate port to support multiple model file formats. 
 To convert model file formats such as Pytorch, Tensorflow, TensorFlow-Lite, and Caffe to TNN, you need to use corresponding tool to convert from the original format to ONNX model first, which then will be transferred into a TNN model.
@@ -109,25 +109,42 @@ docker run  -it tnn-convert:latest  python3 ./converter.py tf2tnn -h
 ```
 The output shows below：
 ``` text
-usage: convert tf2tnn [-h] -tp TF_PATH -in input_info [input_info ...] -on output_name [output_name ...] [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half] [-align] [-input_file INPUT_FILE_PATH]
-                      [-ref_file REFER_FILE_PATH]
+usage: convert tf2tnn [-h] -tp TF_PATH -in input_info [input_info ...] -on
+                      output_name [output_name ...] [-o OUTPUT_DIR] [-v v1.0]
+                      [-optimize] [-half] [-align [{None,output,all}]]
+                      [-input_file INPUT_FILE_PATH]
+                      [-ref_file REFER_FILE_PATH] [-debug] [-int8]
 
 optional arguments:
   -h, --help            show this help message and exit
   -tp TF_PATH           the path for tensorflow graphdef file
   -in input_info [input_info ...]
-                        specify the input name and shape of the model. e.g., -in input1_name:1,128,128,3 input2_name:1,256,256,3
+                        specify the input name and shape of the model. e.g.,
+                        -in input1_name:1,128,128,3 input2_name:1,256,256,3
   -on output_name [output_name ...]
-                        the tensorflow model's output name. e.g. -on output_name1 output_name2
+                        the tensorflow model's output name. e.g. -on
+                        output_name1 output_name2
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
-  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -optimize             If the model has fixed input shape, use this option to
+                        optimize the model for speed. On the other hand, if
+                        the model has dynamic input shape, dont use this
+                        option. It may cause warong result
   -half                 save the model using half
-  -align                align the onnx model with tnn model
+  -align [{None,output,all}]
+                        align the onnx model with tnn model. e.g., if you want
+                        to align the last output, you can use '-align' or
+                        '-align output'; if the model is not align, you can
+                        use '-align all' to address the first unaligned layer
   -input_file INPUT_FILE_PATH
-                        the input file path which contains the input data for the inference model.
+                        the input file path which contains the input data for
+                        the inference model.
   -ref_file REFER_FILE_PATH
-                        the reference file path which contains the reference data to compare the results.
+                        the reference file path which contains the reference
+                        data to compare the results.
+  -debug                Turn on the switch to debug the model.
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 Here are the explanations for each parameter:
 
@@ -153,6 +170,10 @@ Here are the explanations for each parameter:
     Specify the input file's name which will be used by model_check through the "-input_file" parameter. This is [input format](#Input).
 - ref_file parameter (optional)
     Specify the reference file's name which will be used by model_check through the "-ref_file" parameter. This is [output format](#Output). 
+- debug (optional)
+  controls whether to output the full log of model conversions.
+- int8 (optional)
+  You can quantize the model to 8 bits using "-int8". The model will be saved using 8 bits, model are interpreted to FP32 when loaded. Only Conv, LSTM, MatMul are quantized.
 
 
 **Current convert2tnn input model only supports graphdef format，does not support checkpoint or saved_model format. Refer to [tf2tnn](./tf2tnn_en.md) to transfer checkpoint or saved_model models.**
@@ -325,9 +346,10 @@ python3 converter.py onnx2tnn -h
 usage information：
 ```text
 usage: convert onnx2tnn [-h] [-in input_info [input_info ...]] [-optimize]
-                        [-half] [-v v1.0.0] [-o OUTPUT_DIR] [-align]
+                        [-half] [-v v1.0.0] [-o OUTPUT_DIR]
+                        [-align [{None,output,all}]] [-align_batch]
                         [-input_file INPUT_FILE_PATH]
-                        [-ref_file REFER_FILE_PATH] [-debug]
+                        [-ref_file REFER_FILE_PATH] [-debug] [-int8]
                         onnx_path
 
 positional arguments:
@@ -338,11 +360,20 @@ optional arguments:
   -in input_info [input_info ...]
                         specify the input name and shape of the model. e.g.,
                         -in input1_name:1,3,128,128 input2_name:1,3,256,256
-  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -optimize             If the model has fixed input shape, use this option to
+                        optimize the model for speed. On the other hand, if
+                        the model has dynamic input shape, dont use this
+                        option. It may cause warong result
   -half                 save model using half
   -v v1.0.0             the version for model
   -o OUTPUT_DIR         the output tnn directory
-  -align                align the onnx model with tnn model
+  -align [{None,output,all}]
+                        align the onnx model with tnn model. e.g., if you want
+                        to align the last output, you can use '-align' or
+                        '-align output'; if the model is not align, you can
+                        use '-align all' to address the first unaligned layer
+  -align_batch          align the onnx model with tnn model and check mutli
+                        batch
   -input_file INPUT_FILE_PATH
                         the input file path which contains the input data for
                         the inference model.
@@ -350,6 +381,8 @@ optional arguments:
                         the reference file path which contains the reference
                         data to compare the results.
   -debug                Turn on the switch to debug the model.
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 Example:
 ```shell script
@@ -387,6 +420,9 @@ python3 converter.py caffe2tnn -h
 usage information：
 ```text
 usage: convert caffe2tnn [-h] [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half]
+                         [-align [{None,output,all}]]
+                         [-input_file INPUT_FILE_PATH]
+                         [-ref_file REFER_FILE_PATH] [-debug] [-int8]
                          prototxt_file_path caffemodel_file_path
 
 positional arguments:
@@ -397,11 +433,25 @@ optional arguments:
   -h, --help            show this help message and exit
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model, default v1.0
-  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -optimize             If the model has fixed input shape, use this option to
+                        optimize the model for speed. On the other hand, if
+                        the model has dynamic input shape, dont use this
+                        option. It may cause warong result
   -half                 save model using half
-  -align                align the onnx model with tnn model
-  -input_file in.txt    the input file path which contains the input data for the inference model
-  -ref_file   out.txt   the reference file path which contains the reference data to compare the results
+  -align [{None,output,all}]
+                        align the onnx model with tnn model. e.g., if you want
+                        to align the last output, you can use '-align' or
+                        '-align output'; if the model is not align, you can
+                        use '-align all' to address the first unaligned layer
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for
+                        the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference
+                        data to compare the results.
+  -debug                Turn on the switch to debug the model.
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 Example：
 ```shell script
@@ -416,25 +466,42 @@ python3 converter.py tf2tnn -h
 ```
 usage information：
 ```text
-usage: convert tf2tnn [-h] -tp TF_PATH -in input_info [input_info ...] -on output_name [output_name ...] [-o OUTPUT_DIR] [-v v1.0] [-optimize] [-half] [-align] [-input_file INPUT_FILE_PATH]
-                      [-ref_file REFER_FILE_PATH]
+usage: convert tf2tnn [-h] -tp TF_PATH -in input_info [input_info ...] -on
+                      output_name [output_name ...] [-o OUTPUT_DIR] [-v v1.0]
+                      [-optimize] [-half] [-align [{None,output,all}]]
+                      [-input_file INPUT_FILE_PATH]
+                      [-ref_file REFER_FILE_PATH] [-debug] [-int8]
 
 optional arguments:
   -h, --help            show this help message and exit
   -tp TF_PATH           the path for tensorflow graphdef file
   -in input_info [input_info ...]
-                        specify the input name and shape of the model. e.g., -in input1_name:1,128,128,3 input2_name:1,256,256,3
+                        specify the input name and shape of the model. e.g.,
+                        -in input1_name:1,128,128,3 input2_name:1,256,256,3
   -on output_name [output_name ...]
-                        the tensorflow model's output name. e.g. -on output_name1 output_name2
+                        the tensorflow model's output name. e.g. -on
+                        output_name1 output_name2
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
-  -optimize             If the model has fixed input shape, use this option to optimize the model for speed. On the other hand, if the model has dynamic input shape, dont use this option. It may cause warong result
+  -optimize             If the model has fixed input shape, use this option to
+                        optimize the model for speed. On the other hand, if
+                        the model has dynamic input shape, dont use this
+                        option. It may cause warong result
   -half                 save the model using half
-  -align                align the onnx model with tnn model
+  -align [{None,output,all}]
+                        align the onnx model with tnn model. e.g., if you want
+                        to align the last output, you can use '-align' or
+                        '-align output'; if the model is not align, you can
+                        use '-align all' to address the first unaligned layer
   -input_file INPUT_FILE_PATH
-                        the input file path which contains the input data for the inference model.
+                        the input file path which contains the input data for
+                        the inference model.
   -ref_file REFER_FILE_PATH
-                        the reference file path which contains the reference data to compare the results.
+                        the reference file path which contains the reference
+                        data to compare the results.
+  -debug                Turn on the switch to debug the model.
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 Example：
 ```shell script
@@ -449,16 +516,31 @@ python3 converter.py tflite2tnn -h
 ```
 usage information：
 ```
-usage: convert tflite2tnn [-h] TF_PATH [-o OUTPUT_DIR] [-v v1.0] [-align]
+usage: convert tflite2tnn [-h] [-o OUTPUT_DIR] [-v v1.0] [-half]
+                          [-align ALIGN] [-input_file INPUT_FILE_PATH]
+                          [-ref_file REFER_FILE_PATH] [-debug] [-int8]
+                          tf_path
+
+positional arguments:
+  tf_path               the path for tensorflow-lite graphdef file
 
 optional arguments:
   -h, --help            show this help message and exit
-  TF_PATH           the path for tensorflow-lite graphdef file
   -o OUTPUT_DIR         the output tnn directory
   -v v1.0               the version for model
-  -align                align the tensorflow-lite model with tnn model
-  -input_file in.txt    the input file path which contains the input data for the inference model
-  -ref_file   out.txt   the reference file path which contains the reference data to compare the results
+  -half                 optimize the model
+  -align ALIGN          align the onnx model with tnn model. e.g., if you want
+                        to align the final output, you can use -align outputif
+                        you want to align whole model, you can use -align all
+  -input_file INPUT_FILE_PATH
+                        the input file path which contains the input data for
+                        the inference model.
+  -ref_file REFER_FILE_PATH
+                        the reference file path which contains the reference
+                        data to compare the results.
+  -debug                Turn on the switch to debug the model.
+  -int8                 save model using dynamic range quantization. use int8
+                        save, fp32 interpreting
 ```
 Example：
 ```shell script

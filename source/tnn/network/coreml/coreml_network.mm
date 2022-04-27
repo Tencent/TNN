@@ -321,7 +321,7 @@ Status CoreMLNetwork::CompileModel(CoreML__Specification__Model* model) {
     }
 }
 
-Status CoreMLNetwork::GetForwardMemorySize(int &memory_size) {
+Status CoreMLNetwork::GetForwardMemorySize(size_t &memory_size) {
     memory_size = 0;
     return Status(TNNERR_INST_ERR, "CoreML do not support GetForwardMemorySize");
 }

@@ -151,7 +151,7 @@ Status OpenVINONetwork_::BuildNgraphNetwork(NetStructure *net_structure) {
     return TNN_OK;
 }
 
-Status OpenVINONetwork_::GetForwardMemorySize(int &memory_size) {
+Status OpenVINONetwork_::GetForwardMemorySize(size_t &memory_size) {
     memory_size = 0;
     return TNN_OK;
 }

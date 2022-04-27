@@ -139,6 +139,10 @@ Status ConvLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* pa
         serializer.PutRaw(layer_res->zero_point_handle);
         serializer.PutRaw(layer_res->scale_handle);
     }
+    if (layer_param->dynamic_range_quantized) {
+        // now dynamic range quantization is to use symmetric quantization, only save scale
+        serializer.PutRaw(layer_res->scale_handle);
+    }
 
     return TNN_OK;
 }

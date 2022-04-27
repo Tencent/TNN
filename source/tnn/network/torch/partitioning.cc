@@ -532,7 +532,7 @@ std::vector<SegmentedBlock> Partition(torch::jit::Module& mod, std::shared_ptr<t
 
     std::for_each(segmented_blocks.begin(), segmented_blocks.end(),
                   [](SegmentedBlock& block) { block.check_raw_nodes(); });
-
+    
     return RemoveUnnessaryBlocks(segmented_blocks);
 }
 

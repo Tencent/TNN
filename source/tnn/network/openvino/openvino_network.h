@@ -42,7 +42,7 @@ public:
     //  forward
     //  @return error code: If successful, returns zero. Otherwise, returns
     //  an error code.
-    virtual Status GetForwardMemorySize(int &memory_size);
+    virtual Status GetForwardMemorySize(size_t &memory_size);
 
     //  @brief: set memory used by the tnn instance without forward
     //  memory, the memory size must be at least that returned by
