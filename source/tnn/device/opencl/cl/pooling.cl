@@ -1,4 +1,5 @@
 #include "base.inc"
+#include "io.inc"
 
 __kernel void Pooling(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
                       __private const int2 input_wh, __private const int output_height, __private const int2 pad_wh,
@@ -10,6 +11,11 @@ __kernel void Pooling(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
     const int output_batch_height_idx = get_global_id(2);
 
     DEAL_NON_UNIFORM_DIM3(output_channel_idx, output_width_idx, output_batch_height_idx);
+
+#ifdef CHECK_INPUT_COOR
+    int2 input_dims = get_image_dim(input);
+#endif
+
     const int output_width = global_size_dim1;
 
     const int output_batch_idx    = output_batch_height_idx / output_height;
@@ -31,6 +37,14 @@ __kernel void Pooling(GLOBAL_SIZE_3_DIMS __read_only image2d_t input,
                 select(input_channel_start + input_width_idx, -1, (input_width_idx < 0 || input_width_idx >= input_wh.x));
 
             float4 input_data = read_imagef(input, SAMPLER, (int2)(input_width_idx, input_height_idx));
+
+#ifdef CHECK_INPUT_COOR
+            int2 input_dims = get_image_dim(input);
+            if (!InRange((int2)(input_width_idx, input_height_idx), input_dims)) {
+                input_data = (float4)0;
+            }
+#endif
+
             output_result     = output_result + input_data;
         }
     }
