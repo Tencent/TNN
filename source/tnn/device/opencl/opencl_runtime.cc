@@ -512,7 +512,7 @@ bool OpenCLRuntime::BuildProgram(const std::string &build_options, cl::Program *
 
 Status OpenCLRuntime::LoadProgramCache() {
     Status ret = TNN_OK;
-#ifdef __ANDROID__
+#if (defined __ANDROID__) || (defined _WIN32)
     if (!program_cache_file_path_.empty()) {
         FILE* program_cache_fin = fopen(program_cache_file_path_.c_str(), "rb");
         if (!program_cache_fin) {
@@ -554,7 +554,11 @@ Status OpenCLRuntime::LoadProgramCache() {
             }
             std::string program_cache_bin_file_path = program_cache_file_path_ + "_" + program_name +
                                                         "_" + md5(build_option) + "_" + program_source_md5;
+#if (defined __ANDROID__)
             FILE* program_binary_stream_fin = fopen(program_cache_bin_file_path.c_str(), "r");
+#elif (defined _WIN32)
+            FILE* program_binary_stream_fin = fopen(program_cache_bin_file_path.c_str(), "rb");
+#endif
             if (!program_binary_stream_fin) {
                 ret = Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
                              "open program cache binary file failed, input path: " +
@@ -611,7 +615,7 @@ Status OpenCLRuntime::LoadProgramCache() {
 
 Status OpenCLRuntime::SaveProgramCache() {
     Status ret = TNN_OK;
-#ifdef __ANDROID__
+#if (defined __ANDROID__) || (defined _WIN32)
     if (!program_cache_file_path_.empty() && is_program_cache_changed_) {
         FILE *program_cache_fout = fopen(program_cache_file_path_.c_str(), "wb");
         if (!program_cache_fout) {
