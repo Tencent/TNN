@@ -135,7 +135,7 @@ Status DirectXConvLayerDepthwiseAcc::DoForward(const std::vector<Blob *> &inputs
     ret = GetShaderByName(kernel_name, cs);
     RETURN_ON_NEQ(ret, TNN_OK);
 
-    ret = DispatchShader(cs, {in_srv, weight_srv, bias_srv}, {out_uav}, {const_buffer_.get()}, {image_width, image_height, 1});
+    ret = DispatchShader(cs, {in_srv, weight_srv, bias_srv}, {out_uav}, {const_buffer_.get()}, {UP_DIV(image_width, 4),UP_DIV(image_height, 4), 1});
 
     return ret;
 }

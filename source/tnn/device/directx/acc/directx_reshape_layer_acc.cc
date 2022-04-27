@@ -168,7 +168,7 @@ Status DirectXReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     int image_width_out  = UP_DIV(channel_out, 4) * width_out;
     int image_height_out = batch_out * height_out;
 
-    ret = DispatchShader(cs, {inter_srv}, {out_uav}, {const_buffer_.get()},  {image_width_out, image_height_out, 1});
+    ret = DispatchShader(cs, {inter_srv}, {out_uav}, {const_buffer_.get()},  {UP_DIV(image_width_out, 4),UP_DIV(image_height_out, 4), 1});
 
     return ret;
 }

@@ -29,6 +29,12 @@ public:
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+#if TNN_PROFILE
+    virtual double GetFlops() override;
+
+    virtual double GetBandwidth() override;
+#endif
+
 private:
     Status ConvertWeights(float *weights_data_ptr, int output_channel);
 
@@ -125,11 +131,24 @@ Status DirectXPReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     ret = GetShaderByName(kernel_name, cs);
     RETURN_ON_NEQ(ret, TNN_OK);
 
-    ret = DispatchShader(cs, {in_srv, scope_srv}, {out_uav}, {const_buffer_.get()}, {image_width, image_height, 1});
+    ret = DispatchShader(cs, {in_srv, scope_srv}, {out_uav}, {const_buffer_.get()}, {UP_DIV(image_width, 4),UP_DIV(image_height, 4), 1});
 
     return ret;
 }
 
+#if TNN_PROFILE
+
+double DirectXPReluLayerAcc::GetFlops(){
+    return 2.0 * DimsVectorUtils::Count(output_dims_);
+}
+
+double DirectXPReluLayerAcc::GetBandwidth() {
+
+    size_t data_type_size = DataTypeUtils::GetBytesSize(data_type_);
+
+    return 2.0 * DimsVectorUtils::Count(output_dims_) * data_type_size ;
+}
+#endif // TNN_PROFILE
 
 REGISTER_DIRECTX_ACC(PRelu, LAYER_PRELU)
 REGISTER_DIRECTX_LAYOUT(LAYER_PRELU, DATA_FORMAT_NHC4W4);

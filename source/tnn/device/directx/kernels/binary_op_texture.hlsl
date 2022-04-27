@@ -47,13 +47,13 @@ Texture2D<float4> input0 : register(t0);
 Texture2D<float4> input1 : register(t1);
 RWTexture2D<float4> output : register(u0);
 
-[numthreads(16, 16, 1)]
+[numthreads(4, 4, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
     uint output_cw = DTid.x;
     uint output_bh = DTid.y;
 
-    if (output_cw >= od_0[1]*od_3[0] || output_bh >= od_0[0]*od_0[2]) {
+    if (output_cw >= UP_DIV(od_0[1],4)*od_3[0] || output_bh >= od_0[0]*od_0[2]) {
         return;
     }
 

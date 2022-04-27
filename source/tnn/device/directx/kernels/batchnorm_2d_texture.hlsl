@@ -30,28 +30,25 @@ cbuffer Shapes: register( b0 )
 
 };
 
-[numthreads(1, 1, 1)]
+[numthreads(4, 4, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
-    int width_idx    = DTid.y;
-    int chan_blk_idx = DTid.z;
-    int hb_idx       = DTid.x;
+    int cw_idx = DTid.x;
+    int hb_idx= DTid.y;
 
-    if ( width_idx >= od[3] || chan_blk_idx >= UP_DIV(od[1], 4) || hb_idx >= od[2]*od[0] ) {
+    if (cw_idx >= UP_DIV(od[1],4)*od[3] || hb_idx >= od[2]*od[0]) {
         return;
     }
 
     int width = od[3];
-    int pos = mad(chan_blk_idx, width, width_idx);
+    int chan_blk_idx = cw_idx / width;
 
-    int2 pos_in = {pos, hb_idx};
-    float4 data = input[pos_in];
+    float4 data = input[DTid.xy];
     int2 pos_scale = {chan_blk_idx, 0};
     float4 scale_ = scale[pos_scale];
     int2 pos_bias = {chan_blk_idx, 0};
     float4 bias_ = bias[pos_bias];
     data = mad(data, scale_, bias_);
 
-    int2 pos_out = {pos, hb_idx};
-    output[pos_out] = data;
+    output[DTid.xy] = data;
 }

@@ -171,7 +171,9 @@ static Status NCHWToBlob(Mat& image,
         return  Status(TNNERR_CONTEXT_ERR, "got null directx device");
     }
 
-    auto blob_memory = DirectXMemory::CreateRefMemoryFromBlob(blob);
+    std::shared_ptr<DirectXMemory> blob_memory;
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(blob, blob_memory), TNN_OK);
+//    auto blob_memory = DirectXMemory::CreateRefMemoryFromBlob(blob);
     DimsVector dims = image.GetDims();
 
     shared_ptr<DirectXMemory> mat_buffer = DirectXMemory::CreateBufferMemoryFromHost(
@@ -208,7 +210,7 @@ static Status NCHWToBlob(Mat& image,
     width            = DimsFunctionUtils::GetDim(dims, 3);
     int image_width  = UP_DIV(channel, 4) * width;
     int image_height = batch * height;
-    Status  ret = DispatchShader(cs, {mat_srv}, {blob_uav}, {param_cb.get()}, {image_width,image_height,1});
+    Status  ret = DispatchShader(cs, {mat_srv}, {blob_uav}, {param_cb.get()}, {UP_DIV(image_width, 4),UP_DIV(image_height, 4),1});
 
     return ret;
 }
@@ -348,7 +350,9 @@ static Status BlobToNCHW(Mat& image,
         return  Status(TNNERR_CONTEXT_ERR, "got null directx device");
     }
 
-    auto blob_memory = DirectXMemory::CreateRefMemoryFromBlob(blob);
+    std::shared_ptr<DirectXMemory> blob_memory;
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(blob, blob_memory), TNN_OK);
+//    auto blob_memory = DirectXMemory::CreateRefMemoryFromBlob(blob);
     DimsVector dims = image.GetDims();
 
     shared_ptr<DirectXMemory> mat_buffer = DirectXMemory::CreateBufferMemoryFromHost(
@@ -385,7 +389,7 @@ static Status BlobToNCHW(Mat& image,
     width            = DimsFunctionUtils::GetDim(dims, 3);
     int image_width  = UP_DIV(channel, 4) * width;
     int image_height = batch * height;
-    Status  ret = DispatchShader(cs, {blob_srv}, {mat_uav}, {param_cb.get()}, {image_width,image_height,1});
+    Status  ret = DispatchShader(cs, {blob_srv}, {mat_uav}, {param_cb.get()}, {UP_DIV(image_width, 4),UP_DIV(image_height, 4),1});
 
     BlobHandle cpu_handle;
     cpu_handle.base = image.GetData();

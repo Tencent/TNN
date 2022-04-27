@@ -57,7 +57,7 @@ Status DirectXUnaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
 
     const int channel_blocks    = UP_DIV(channels, 4);
 
-    ret = DispatchShader(cs, {in_srv}, {out_uav}, {const_buffer_.get()}, {batch * output_height,output_width,channel_blocks});
+    ret = DispatchShader(cs, {in_srv}, {out_uav}, {const_buffer_.get()}, {UP_DIV(batch * output_height, 4),UP_DIV(output_width, 4),channel_blocks});
 
     return ret;
 

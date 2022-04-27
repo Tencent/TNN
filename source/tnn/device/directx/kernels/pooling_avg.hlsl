@@ -41,7 +41,7 @@ cbuffer StepsAndShapes: register( b0 )
 };
 
 
-[numthreads(16, 16, 1)]
+[numthreads(4, 4, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID)
 {
     int output_channel_idx      = DTid.z;

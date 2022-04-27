@@ -60,7 +60,7 @@ Texture2D<float4> weights : register(t1);
 Texture2D<float4> bias : register(t2);
 RWTexture2D<float4> output : register(u0);
 
-[numthreads(16, 16, 1)]
+[numthreads(4, 4, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
     int2 wh = {in_shape[3], in_shape[2]};
@@ -70,7 +70,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     int output_cw_idx = DTid.x;
     int bh_idx = DTid.y;
 
-    if (output_cw_idx > UP_DIV(out_shape[1], 4)*UP_DIV(out_shape[3], 4) || bh_idx > out_shape[0]*out_shape[2]) {
+    if (output_cw_idx >= UP_DIV(out_shape[1], 4)*UP_DIV(out_shape[3], 4) || bh_idx >= out_shape[0]*out_shape[2]) {
         return;
     }
 

@@ -119,7 +119,8 @@ Status DirectXBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, co
     auto &out_dims = outputs[0]->GetBlobDesc().dims;
     Status ret;
 
-    kernel_name = "batchnorm_texture";
+//    kernel_name = "batchnorm_texture";
+    kernel_name = "batchnorm_2d_texture";
 
 //    LOGD("kernel name: %s\n",kernel_name.c_str());
     std::shared_ptr<ID3D11ComputeShader> cs;
@@ -132,8 +133,12 @@ Status DirectXBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, co
     const int channels      = DimsFunctionUtils::GetDim(output_dims_, 1);
 
     const int channel_blocks    = UP_DIV(channels, 4);
+    int image_width = UP_DIV(DimsFunctionUtils::GetDim(out_dims, 1), 4) * DimsFunctionUtils::GetDim(out_dims, 3);
+    int image_height = DimsFunctionUtils::GetDim(out_dims, 0) * DimsFunctionUtils::GetDim(out_dims, 2);
 
-    ret = DispatchShader(cs, {in_srv, scale_srv, bias_srv}, {out_uav}, {const_buffer_.get()}, {batch * output_height,output_width,channel_blocks});
+    ret = DispatchShader(cs, {in_srv, scale_srv, bias_srv}, {out_uav}, {const_buffer_.get()}, {UP_DIV(image_width, 4),UP_DIV(image_height, 4),1});
+
+//    ret = DispatchShader(cs, {in_srv, scale_srv, bias_srv}, {out_uav}, {const_buffer_.get()}, {batch * output_height,output_width,channel_blocks});
 
     return ret;
 }

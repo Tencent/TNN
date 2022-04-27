@@ -33,7 +33,7 @@ cbuffer Shapes: register( b0 )
     vector<int, 4> param;
 };
 
-[numthreads(16, 16, 1)]
+[numthreads(4, 4, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
     int input0_channel = id0[1];

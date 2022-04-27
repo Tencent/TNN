@@ -32,7 +32,7 @@ cbuffer Shapes: register( b0 )
 
 };
 
-[numthreads(16, 16, 1)]
+[numthreads(4, 4, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
     int width = od[3];

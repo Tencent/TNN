@@ -186,7 +186,7 @@ Status DirectXBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const
         int image_width  = UP_DIV(channel, 4) * width;
         int image_height = batch * height;
 
-        ret = DispatchShader(cs, in_srvs, {out_uav}, {const_buffer_.get()}, {image_width,image_height,1});
+        ret = DispatchShader(cs, in_srvs, {out_uav}, {const_buffer_.get()}, {UP_DIV(image_width, 4),UP_DIV(image_height, 4),1});
     }
 
     return ret;

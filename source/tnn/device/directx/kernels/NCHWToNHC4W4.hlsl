@@ -32,7 +32,7 @@ cbuffer InputCBBuffer : register(b0)
 ByteAddressBuffer BufferIn : register(t0);
 RWTexture2D<float4> Texture_Blob : register(u0);
 
-[numthreads(1, 1, 1)]
+[numthreads(4, 4, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
     uint image_width_idx  = DTid.x;

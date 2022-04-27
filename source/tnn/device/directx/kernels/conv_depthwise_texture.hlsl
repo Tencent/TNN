@@ -93,7 +93,7 @@ Texture2D<float4> filter : register(t1);
 Texture2D<float4> bias : register(t2);
 RWTexture2D<float4> output : register(u0);
 
-[numthreads(16, 16, 1)]
+[numthreads(4, 4, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
     int2 input_wh = {in_shape[3], in_shape[2]};
