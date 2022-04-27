@@ -64,6 +64,10 @@ cp -d libTNN.so* ${TNN_INSTALL_DIR}/lib/
 cuda_dep_list=$( ldd libTNN.so | awk '{if (match($3, "/usr/local/cuda")){ print $3}}' )
 cp $cuda_dep_list ${TNN_INSTALL_DIR}/lib/
 
+# nvrtc
+nvrtc_dep_list=$( find /usr/local/cuda/ -name "*nvrtc-builtins*" )
+cp $nvrtc_dep_list ${TNN_INSTALL_DIR}/lib/
+
 #cublas
 cublas_dep_list=$( ldd libTNN.so | awk '{if (match($3, "cublas")){ print $3}}' )
 cp $cublas_dep_list ${TNN_INSTALL_DIR}/lib/
