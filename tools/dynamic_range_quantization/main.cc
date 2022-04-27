@@ -20,7 +20,7 @@ using namespace TNN_NS;
 
 void ShowUsage() {
     printf(
-        "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-qp] <quant_tnnproto> [-qm] <quant_tnnmodel> \n");
+        "usage:\n./dynamic_range_quantization [-h] [-p] <tnnproto> [-m] <tnnmodel> [-qp] <quant_tnnproto> [-qm] <quant_tnnmodel> \n");
     printf("\t-h, <help>     \t\t\t%s\n", TNN_NS::help_message);
     printf("\t-p, <proto>    \t\t\t%s\n", TNN_NS::proto_message);
     printf("\t-m, <model>    \t\t\t%s\n", TNN_NS::model_message);
