@@ -40,16 +40,19 @@ nvinfer1::DataType HardSwishTRTPluginLayerBuilder::getOutputDataType(int index, 
 ILayer* HardSwishTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     auto paramlist = dynamic_cast<HardSwishLayerParam *>(param_);
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto input_foreign_tensor1 = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    if (input_blobs_.size() != 1) input_foreign_tensor1 = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
-    auto layer = network->addActivation(*tensor, nvinfer1::ActivationType::kHARD_SIGMOID);
+    auto tensor1 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor1)->GetTensor();
+    auto layer = network->addActivation(*tensor1, nvinfer1::ActivationType::kHARD_SIGMOID);
     layer->setAlpha(paramlist->alpha);
     layer->setBeta(paramlist->beta);
 
-    auto tensor1 = layer->getOutput(0);
+    tensor1 = layer->getOutput(0);
     auto layer1 = network->addElementWise(*tensor, *tensor1, nvinfer1::ElementWiseOperation::kPROD);
     layer1->setName(layer_name_.c_str());
     return layer1;
-
+    
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
