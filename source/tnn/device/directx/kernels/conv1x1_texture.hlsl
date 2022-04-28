@@ -63,14 +63,15 @@ RWTexture2D<float4> output : register(u0);
 [numthreads(4, 4, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
-    int2 wh = {in_shape[3], in_shape[2]};
+    int2 input_wh = {in_shape[3], in_shape[2]};
+    int2 output_wh = {out_shape[3], out_shape[2]};
     int input_c_blocks = UP_DIV(in_shape[1] ,4);
     int output_w_updiv_4 = UP_DIV(out_shape[3] ,4);
 
     int output_cw_idx = DTid.x;
-    int bh_idx = DTid.y;
+    int output_bh_idx = DTid.y;
 
-    if (output_cw_idx >= UP_DIV(out_shape[1], 4)*UP_DIV(out_shape[3], 4) || bh_idx >= out_shape[0]*out_shape[2]) {
+    if (output_cw_idx >= UP_DIV(out_shape[1], 4)*UP_DIV(out_shape[3], 4) || output_bh_idx >= out_shape[0]*out_shape[2]) {
         return;
     }
 
@@ -83,30 +84,33 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     float4 out2 = out0;
     float4 out3 = out0;
 
-    int input_w_idx0 = output_w_block_idx << 2;
-    int input_w_idx1 = input_w_idx0 + 1;
-    int input_w_idx2 = input_w_idx0 + 2;
-    int input_w_idx3 = input_w_idx0 + 3;
+    int input_w_idx0 = mul(output_w_block_idx, stride_wh[0] << 2);
+    int input_w_idx1 = input_w_idx0 + stride_wh[0];
+    int input_w_idx2 = input_w_idx1 + stride_wh[0];
+    int input_w_idx3 = input_w_idx2 + stride_wh[0];
 
-    input_w_idx0 = input_w_idx0 >= wh.x ? INT_MIN : input_w_idx0;
-    input_w_idx1 = input_w_idx1 >= wh.x ? INT_MIN : input_w_idx1;
-    input_w_idx2 = input_w_idx2 >= wh.x ? INT_MIN : input_w_idx2;
-    input_w_idx3 = input_w_idx3 >= wh.x ? INT_MIN : input_w_idx3;
+    input_w_idx0 = input_w_idx0 >= input_wh.x ? INT_MIN : input_w_idx0;
+    input_w_idx1 = input_w_idx1 >= input_wh.x ? INT_MIN : input_w_idx1;
+    input_w_idx2 = input_w_idx2 >= input_wh.x ? INT_MIN : input_w_idx2;
+    input_w_idx3 = input_w_idx3 >= input_wh.x ? INT_MIN : input_w_idx3;
+
+    int b_idx = output_bh_idx / output_wh.y;
+    int input_bh_idx = mad(output_bh_idx % output_wh.y, stride_wh[1], b_idx * input_wh.y);
 
     float4 in0, in1, in2, in3;
     float4 weights0, weights1, weights2, weights3;
-    int input_w_base   = 0;
-    int weights_w_base = 0;
 
     for (int input_c_block_idx = 0; input_c_block_idx < input_c_blocks; ++input_c_block_idx) {
+        int input_w_base   = input_c_block_idx * input_wh.x;
+        int weights_w_base = input_c_block_idx << 2;
 
-        int2 pos_in0 = {input_w_base + input_w_idx0, bh_idx};
+        int2 pos_in0 = {input_w_base + input_w_idx0, input_bh_idx};
         in0 = input[pos_in0];
-        int2 pos_in1 = {input_w_base + input_w_idx1, bh_idx};
+        int2 pos_in1 = {input_w_base + input_w_idx1, input_bh_idx};
         in1 = input[pos_in1];
-        int2 pos_in2 = {input_w_base + input_w_idx2, bh_idx};
+        int2 pos_in2 = {input_w_base + input_w_idx2, input_bh_idx};
         in2 = input[pos_in2];
-        int2 pos_in3 = {input_w_base + input_w_idx3, bh_idx};
+        int2 pos_in3 = {input_w_base + input_w_idx3, input_bh_idx};
         in3 = input[pos_in3];
 
         int2 pos_w0 = {weights_w_base, output_c_block_idx};
@@ -123,8 +127,6 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
         CALCULATE_OUTPUT(2);
         CALCULATE_OUTPUT(3);
 
-        input_w_base   += wh.x;
-        weights_w_base += 4;
     }
 
     ActivationProcess(out0, activation_type[0]);
@@ -132,36 +134,37 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     ActivationProcess(out2, activation_type[0]);
     ActivationProcess(out3, activation_type[0]);
 
-    int out_x_base = mul(output_c_block_idx, wh.x);
+    int out_x_base = mul(output_c_block_idx, output_wh.x);
     int out_x_idx = output_w_block_idx << 2;
 
-    const int remain = wh.x - out_x_idx;
+    const int remain = output_wh.x - out_x_idx;
     int output_w_idx = out_x_base + out_x_idx;
 
     if (remain >= 4) {
-        int2 pos_out0 = {output_w_idx, bh_idx};
+        int2 pos_out0 = {output_w_idx, output_bh_idx};
         output[pos_out0] = out0;
-        int2 pos_out1 = {output_w_idx + 1, bh_idx};
+        int2 pos_out1 = {output_w_idx + 1, output_bh_idx};
         output[pos_out1] = out1;
-        int2 pos_out2 = {output_w_idx + 2, bh_idx};
+        int2 pos_out2 = {output_w_idx + 2, output_bh_idx};
         output[pos_out2] = out2;
-        int2 pos_out3 = {output_w_idx + 3, bh_idx};
+        int2 pos_out3 = {output_w_idx + 3, output_bh_idx};
         output[pos_out3] = out3;
     } else if (remain == 3) {
-        int2 pos_out0 = {output_w_idx, bh_idx};
+        int2 pos_out0 = {output_w_idx, output_bh_idx};
         output[pos_out0] = out0;
-        int2 pos_out1 = {output_w_idx + 1, bh_idx};
+        int2 pos_out1 = {output_w_idx + 1, output_bh_idx};
         output[pos_out1] = out1;
-        int2 pos_out2 = {output_w_idx + 2, bh_idx};
+        int2 pos_out2 = {output_w_idx + 2, output_bh_idx};
         output[pos_out2] = out2;
     } else if (remain == 2) {
-        int2 pos_out0 = {output_w_idx, bh_idx};
+        int2 pos_out0 = {output_w_idx, output_bh_idx};
         output[pos_out0] = out0;
-        int2 pos_out1 = {output_w_idx + 1, bh_idx};
+        int2 pos_out1 = {output_w_idx + 1, output_bh_idx};
         output[pos_out1] = out1;
     } else if (remain == 1) {
-        int2 pos_out0 = {output_w_idx, bh_idx};
+        int2 pos_out0 = {output_w_idx, output_bh_idx};
         output[pos_out0] = out0;
     }
 
 }
+

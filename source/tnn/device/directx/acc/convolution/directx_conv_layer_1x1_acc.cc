@@ -45,7 +45,7 @@ Status DirectXConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerRe
         stride_is_1_ = true;
     }
 
-    if (!stride_is_1_) {
+    if (!stride_is_1_ && use_buffer_) {
         LOGE("dx conv1x1 not supports stride other than 1.");
         return Status(TNNERR_DX_ACC_INIT_ERR, "dx conv1x1 not supports stride other than 1.");
     }
