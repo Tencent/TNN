@@ -145,6 +145,12 @@ Status ModelPacker::PackProto(std::string file_path) {
                 layer_type_str = "Quantized" + layer_type_str;
             }
         }
+        // add an identifier to the dynamic range quantization layer
+        if (item->param->dynamic_range_quantized) {
+            if (layer_type_str.compare(0, 21, "DynamicRangeQuantized") != 0) {
+                layer_type_str = "DynamicRangeQuantized" + layer_type_str;
+            }
+        }
         layer_type_str = Transfer(layer_type_str);
         write_stream << layer_type_str << " ";
 

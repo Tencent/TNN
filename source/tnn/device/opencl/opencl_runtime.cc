@@ -136,6 +136,8 @@ Status OpenCLRuntime::Init() {
 
         gpu_info_ = ParseGpuInfo(device_name, device_version);
 
+        RETURN_ON_NEQ(CheckOpenCLVersion(gpu_info_.opencl_version), TNN_OK);
+
         cl_int err;
 #if defined(SHARING_MEM_WITH_OPENGL) && (CL_HPP_TARGET_OPENCL_VERSION >= 120)
         // create context from glcontext
@@ -310,6 +312,11 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
     for (auto &option : build_options) {
         build_options_str += " " + option;
     }
+
+    for (auto &option : extra_build_options_) {
+        build_options_str += " " + option;
+    }
+
     build_options_str += default_build_opts_;
     //program identifier = program_name + build_options
     std::pair<std::string, std::string> build_program_key =
@@ -390,9 +397,18 @@ GpuInfo OpenCLRuntime::ParseGpuInfo(std::string device_name, std::string device_
     } else if (device_name.find("Intel") != std::string::npos) {
         LOGD("GPU type is Intel GPU\n");
         info.type = INTEL_GPU;
-    } else if (device_name.find("GeForce") != std::string::npos) {
+        sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
+    } else if (device_version.find("CUDA") != std::string::npos) {
         LOGD("GPU type is Nvidia GPU\n");
         info.type = NVIDIA_GPU;
+        sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
+    } else if (device_name.find("AMD") != std::string::npos || device_version.find("AMD") != std::string::npos) {
+        LOGD("GPU type is AMD GPU\n");
+        info.type = AMD_GPU;
+        sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
+    } else {
+        // get the opencl version for version checking
+        sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
     }
     LOGD("GPU Type: %d, model_num: %d, opencl version: %f\n", info.type, info.model_num, info.opencl_version);
 
@@ -442,12 +458,20 @@ Status OpenCLRuntime::SearchGpuDevice(std::shared_ptr<cl::Device>& device) {
 
     // choose GPU
     DevicePacket device_packet_to_use;
+    GpuType gpu_type;
     if (gpu_map.count(NVIDIA_GPU) > 0) {
         device_packet_to_use = gpu_map[NVIDIA_GPU].front();
     } else if (gpu_map.count(INTEL_GPU) > 0) {
         device_packet_to_use = gpu_map[INTEL_GPU].front();
     } else {
+        gpu_type             = gpu_map.begin()->first;
         device_packet_to_use = gpu_map.begin()->second.front();
+    }
+
+    // On some AMD GPUs, reading data with out-of-bounds coordinates gets (0, 0, 0, 1),
+    // but the excepted data is (0, 0, 0, 0). Use -DCHECK_INPUT_COOR to check input data on AMD GPU.
+    if (AMD_GPU == gpu_type) {
+        extra_build_options_.emplace("-DCHECK_INPUT_COOR");
     }
 
     cl::Platform::setDefault(device_packet_to_use.platform);
@@ -488,7 +512,7 @@ bool OpenCLRuntime::BuildProgram(const std::string &build_options, cl::Program *
 
 Status OpenCLRuntime::LoadProgramCache() {
     Status ret = TNN_OK;
-#ifdef __ANDROID__
+#if (defined __ANDROID__) || (defined _WIN32)
     if (!program_cache_file_path_.empty()) {
         FILE* program_cache_fin = fopen(program_cache_file_path_.c_str(), "rb");
         if (!program_cache_fin) {
@@ -530,7 +554,11 @@ Status OpenCLRuntime::LoadProgramCache() {
             }
             std::string program_cache_bin_file_path = program_cache_file_path_ + "_" + program_name +
                                                         "_" + md5(build_option) + "_" + program_source_md5;
+#if (defined __ANDROID__)
             FILE* program_binary_stream_fin = fopen(program_cache_bin_file_path.c_str(), "r");
+#elif (defined _WIN32)
+            FILE* program_binary_stream_fin = fopen(program_cache_bin_file_path.c_str(), "rb");
+#endif
             if (!program_binary_stream_fin) {
                 ret = Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
                              "open program cache binary file failed, input path: " +
@@ -587,7 +615,7 @@ Status OpenCLRuntime::LoadProgramCache() {
 
 Status OpenCLRuntime::SaveProgramCache() {
     Status ret = TNN_OK;
-#ifdef __ANDROID__
+#if (defined __ANDROID__) || (defined _WIN32)
     if (!program_cache_file_path_.empty() && is_program_cache_changed_) {
         FILE *program_cache_fout = fopen(program_cache_file_path_.c_str(), "wb");
         if (!program_cache_fout) {
@@ -612,10 +640,15 @@ Status OpenCLRuntime::SaveProgramCache() {
             auto program_name = key.first;
             auto build_option = key.second;
             struct ProgramCacheInfo info;
-            RETURN_VALUE_ON_NEQ(program_name.size() < PROGRAM_NAME_MAX_LEN, true,
-                                TNNERR_OUTOFMEMORY);
-            RETURN_VALUE_ON_NEQ(build_option.size() < BUILD_OPTION_MAX_LEN, true,
-                                TNNERR_OUTOFMEMORY);
+            if(program_name.size() >= PROGRAM_NAME_MAX_LEN) {
+                ret = Status(TNNERR_OUTOFMEMORY, "check program name size error");
+                continue;
+            }
+
+            if(build_option.size() >= BUILD_OPTION_MAX_LEN) {
+                ret = Status(TNNERR_OUTOFMEMORY, "check build option size error");
+                continue;
+            }
             strcpy(info.program_name, program_name.c_str());
             strcpy(info.build_option, build_option.c_str());
 
@@ -628,8 +661,10 @@ Status OpenCLRuntime::SaveProgramCache() {
                     kernel_key_list_stream << kernel_name << " ";
                 }
             }
-            RETURN_VALUE_ON_NEQ(kernel_key_list_stream.str().size() < KERNEL_KEY_LIST_MAX_LEN, true,
-                                TNNERR_OUTOFMEMORY);
+            if(kernel_key_list_stream.str().size() >= KERNEL_KEY_LIST_MAX_LEN) {
+                ret = Status(TNNERR_OUTOFMEMORY, "check kernel key list stream size error");
+                continue;
+            }
             strcpy(info.kernel_key_list, kernel_key_list_stream.str().c_str());
             info.buffer_size = buffer_size;
             int fwsize = fwrite(&info, sizeof(struct ProgramCacheInfo), 1, program_cache_fout);
@@ -691,6 +726,15 @@ Status OpenCLRuntime::SaveProgramCache() {
 
 std::vector<size_t> OpenCLRuntime::GetImage2dMaxSize() {
     return image_2d_max_size_;
+}
+
+Status OpenCLRuntime::CheckOpenCLVersion(const float opencl_version) {
+    if (opencl_version < 1.1) {
+        char error_message[100];
+        sprintf(error_message, "OpenCL %.1f is not supported, minimum version required is 1.1\n", opencl_version);
+        return Status(TNNERR_DEVICE_NOT_SUPPORT, error_message);
+    }
+    return TNN_NS::TNN_OK;
 }
 
 }  // namespace TNN_NS

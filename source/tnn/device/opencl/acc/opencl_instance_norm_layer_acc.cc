@@ -99,7 +99,7 @@ Status OpenCLInstanceNormLayerAcc::Init(Context *context, LayerParam *param, Lay
         return ret;
     }
     //create execute unit
-    ret = CreateExecuteUnit(execute_units_[1], "batch_norm", "BatchNormBatch");
+    ret = CreateExecuteUnit(execute_units_[1], "batch_norm", "BatchNormBatch", build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
@@ -198,6 +198,7 @@ Status OpenCLInstanceNormLayerAcc::BuildVarBiasKernel(int width) {
         memset(temp_str, 0, 32);
         snprintf(temp_str, 31, "-DTHREAD_BLOCK_W=%d", thread_block_w_);
         build_options.emplace(temp_str);
+        build_options.insert(build_options_.begin(), build_options_.end());
         std::string kernel_name = "InstanceNormVarBias_LocalMem";
         ret                     = CreateExecuteUnit(execute_units_[0], "instance_norm", kernel_name, build_options);
 

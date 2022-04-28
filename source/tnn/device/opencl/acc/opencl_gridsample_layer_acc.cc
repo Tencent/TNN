@@ -53,7 +53,7 @@ Status OpenCLGridsampleLayerAcc::Init(Context *context, LayerParam *param, Layer
         return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid upsample mode");
     }
 
-    ret = CreateExecuteUnit(execute_units_[0], "gridsample", kernel_name);
+    ret = CreateExecuteUnit(execute_units_[0], "gridsample", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

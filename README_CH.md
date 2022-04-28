@@ -1,9 +1,9 @@
 [English Version](README.md)
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
+<div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/TNN.png"/>
 
 ## 简介
 
-TNN：由腾讯优图实验室开源的高性能、轻量级神经网络推理框架，同时拥有跨平台、高性能、模型压缩、代码裁剪等众多突出优势。TNN框架在原有Rapidnet、ncnn框架的基础上进一步加强了移动端设备的支持以及性能优化，同时借鉴了业界主流开源框架高性能和良好拓展性的特性，拓展了对于后台X86, NV GPU的支持。手机端 TNN已经在手Q、微视、P图等众多应用中落地，服务端TNN作为腾讯云AI基础加速框架已为众多业务落地提供加速支持。欢迎大家参与协同共建，促进TNN推理框架进一步完善。
+TNN：由腾讯优图实验室开源的高性能、轻量级神经网络推理框架，同时拥有跨平台、高性能、模型压缩、代码裁剪等众多突出优势。TNN框架在原有Rapidnet、ncnn框架的基础上进一步加强了移动端设备的支持以及性能优化，同时借鉴了业界主流开源框架高性能和良好拓展性的特性，拓展了对于后台X86, NV GPU的支持。手机端 TNN已经在手机QQ、微视、P图等众多应用中落地，服务端TNN作为腾讯云AI基础加速框架已为众多业务落地提供加速支持。欢迎大家参与协同共建，促进TNN推理框架进一步完善。
 
 
 ## 效果示例
@@ -43,7 +43,7 @@ demo                                                                            
 3. 最后一步就是使用编译好的 TNN 引擎进行推理，你可以在自己的应用程序中嵌入对 TNN 的调用，这方面我们提供了丰富而详实的 demo 来帮助你完成。
     *  [从0开始跑通一个iOS Demo](doc/cn/user/demo.md)
     *  [从0开始跑通一个Android Demo](doc/cn/user/demo.md)
-    *  [从0开始跑通一个Windows/Linux Demo](doc/cn/user/demo.md#四)
+    *  [从0开始跑通一个Windows/Linux Demo](doc/cn/user/demo.md)
 
 ## 技术方案
 
@@ -68,7 +68,7 @@ demo                                                                            
 
 * TNN架构图：
 
-   <div><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/tnn_architect.jpg"/>
+   <div><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/imgs/tnn_architect.jpg"/>
 
 * 通过 ONNX 支持 TensorFlow， PyTorch， MXNet， Caffe 等多种训练框架，充分利用和融入不断完善的 ONNX 开源生态。当前支持 ONNX 算子100+，覆盖主流CNN, NLP网络。
 * 支持主流安卓、iOS、Embedded Linux 操作系统, Windows, Linux，支持 ARM CPU, x86, Mali GPU, Adreno GPU, NV GPU, 达芬奇NPU，RK NPU。
@@ -127,7 +127,7 @@ TNN参考和借鉴了下列项目：
 
 * 欢迎大家参与，协同共建，打造业界最好的高性能推理框架。
 
-* 技术交流 QQ 群： 913940506 答案：TNN
+* 技术交流 QQ 群： 704900079 答案：TNN
 
 * QQ 群二维码：
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN-QQ.png"/>
+<div align=left ><img src="TNN-QQ.png"/>

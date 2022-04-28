@@ -1,5 +1,5 @@
 [中文版本](README_CH.md)
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
+<div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/TNN.png"/>
 
 ## Introduction
 
@@ -67,7 +67,7 @@ At present, TNN has been launched in various major businesses, and its following
 
 * TNN architecture diagram：
 
-   <div><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/en/imgs/tnn_architect.jpg"/>
+   <div><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/en/imgs/tnn_architect.jpg"/>
 
 * TNN supports TensorFlow, Pytorch, MxNet, Caffe, and other training frameworks through ONNX, leveraging the continuous improvement of the ONNX open-source society.
   Currently, TNN supports 100+ ONNX operators, consisting of most of the mainstream CNN, NLP operators needed.
@@ -127,7 +127,7 @@ TNN referenced the following projects：
 
 * Everyone is welcome to participate to build the best inference framework in the industry.
 
-* Technical Discussion QQ Group: 913940506 Answer: TNN
+* Technical Discussion QQ Group: 704900079 Answer: TNN
 
 * Scan the QR code to join the TNN discussion group：
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN-QQ.png"/>
+<div align=left ><img src="TNN-QQ.png"/>

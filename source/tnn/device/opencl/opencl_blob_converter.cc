@@ -104,6 +104,9 @@ Status OpenCLBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param
             return ret;
         }
         convert_to_mat_map_[to_mat_key] = unit;
+        //only try save once, ignore fail
+        auto opencl_runtime   = OpenCLRuntime::GetInstance();
+        opencl_runtime->SaveProgramCache();
     }
 
     OpenCLExecuteUnit unit = convert_to_mat_map_[to_mat_key];
@@ -384,7 +387,8 @@ Status OpenCLBlobConverterAcc::CreateConvertUnit(OpenCLExecuteUnit &unit, Mat &m
     if (convert_to_mat) {
         program_name = "convert_to_mat";
         //DEVICE_NAIVE AND DEVICE_ARM is same for memory type.
-        if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType()) {
+        if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType() ||
+            DEVICE_X86 == mat.GetDeviceType()) {
             Status ret = GetConvertToMatKernelName(mat, kernel_name, program_name);
             if (ret != TNN_OK) {
                 return ret;
@@ -400,7 +404,8 @@ Status OpenCLBlobConverterAcc::CreateConvertUnit(OpenCLExecuteUnit &unit, Mat &m
         }
     } else {
         program_name = "convert_from_mat";
-        if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType()) {
+        if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType() ||
+            DEVICE_X86 == mat.GetDeviceType()) {
             Status ret = GetConvertFromMatKernelName(mat, kernel_name, program_name);
             if (ret != TNN_OK) {
                 return ret;
@@ -442,7 +447,8 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
                (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType())) {
         idx = SetExecuteUnit2DSizeInfoCNH4(unit, dims);
     } else if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NCHW &&
-               (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType())) {
+               (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType() ||
+                DEVICE_X86 == mat.GetDeviceType())) {
         idx = SetExecuteUnit2DSizeInfoNCHW(unit, dims);
     } else {
         return Status(TNNERR_PARAM_ERR, "blob data format not support yet");
@@ -456,7 +462,7 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
     }
 
     cl_int cl_ret;
-    if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType()) {
+    if (DEVICE_NAIVE == mat.GetDeviceType() || DEVICE_ARM == mat.GetDeviceType() || DEVICE_X86 == mat.GetDeviceType()) {
         if (blob_->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
             cl_ret = unit.ocl_kernel.setArg(idx++, *image);
             CHECK_CL_SUCCESS(cl_ret);

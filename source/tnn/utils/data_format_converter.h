@@ -89,7 +89,9 @@ public:
         }
         return TNN_OK;
     }
-
+    static char* GetBlobPtr(BlobHandle handle) {
+        return static_cast<char *>(handle.base) + handle.bytes_offset; 
+    }
     template <class T>
     static Status ConvertFromNCHWToNHWC(Blob *src, Blob *dst) {
         ASSERT(src != nullptr);
@@ -99,8 +101,8 @@ public:
         const int channel = src_dims.size() > 1 ? src_dims[1] : 1;
         const int height  = src_dims.size() > 2 ? src_dims[2] : 1;
         const int width   = src_dims.size() > 3 ? src_dims[3] : 1;
-        T *src_data_ptr   = (T *)src->GetHandle().base;
-        T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
+        T *src_data_ptr   = (T *)GetBlobPtr(src->GetHandle());
+        T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)GetBlobPtr(dst->GetHandle());
 
         auto status = ConvertBetweenNHWCAndNCHW<T>(src_data_ptr, dst_data_ptr, num, channel, height, width, NCHW2NHWC);
         return status;
@@ -115,8 +117,8 @@ public:
         const int channel = src_dims.size() > 1 ? src_dims[1] : 1;
         const int height  = src_dims.size() > 2 ? src_dims[2] : 1;
         const int width   = src_dims.size() > 3 ? src_dims[3] : 1;
-        T *src_data_ptr   = (T *)src->GetHandle().base;
-        T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
+        T *src_data_ptr   = (T *)GetBlobPtr(src->GetHandle());
+        T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)GetBlobPtr(dst->GetHandle());
 
         auto status = ConvertBetweenNHWCAndNCHW<T>(src_data_ptr, dst_data_ptr, num, channel, height, width, NHWC2NCHW);
         return status;

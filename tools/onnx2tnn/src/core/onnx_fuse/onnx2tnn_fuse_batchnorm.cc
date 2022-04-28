@@ -107,18 +107,18 @@ int Onnx2TNN::FuseBatchNorm(onnx::GraphProto* mutable_graph,
                     
                     auto weight_bias = weights[scale_name];
                     auto dims_bias =  weight_scale.dims();
-                    if (weight_bias.dims_size() != dims_bias.size() || dims_bias.size() < 2 || dims_bias[0] != 1) {
+                    if (weight_bias.dims_size() != dims_bias.size() || dims_bias.size() < 2 || dims_bias.Get(0) != 1) {
                         break;
                     }
-                    for (int ind=0; ind<dims_scale.size(); ind++) {
-                        if (dims_scale[ind] != dims_bias[ind]) {
+                    for (int ind = 0; ind < dims_scale.size(); ind++) {
+                        if (dims_scale.Get(ind) != dims_bias.Get(ind)) {
                             break;
                         }
-                        scale_dims.push_back((int)dims_scale[ind]);
-                        data_count *= dims_scale[ind];
+                        scale_dims.push_back((int)dims_scale.Get(ind));
+                        data_count *= dims_scale.Get(ind);
                     }
                 }
-                
+
                 string mean_name = node_add->output(0) + "-mean";
                 string var_name = node_add->output(0) + "-var";
                 //set weights mean var
