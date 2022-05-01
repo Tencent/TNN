@@ -173,7 +173,7 @@ static Status NCHWToBlob(Mat& image,
 
     std::shared_ptr<DirectXMemory> blob_memory;
     RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(blob, blob_memory), TNN_OK);
-//    auto blob_memory = DirectXMemory::CreateRefMemoryFromBlob(blob);
+
     DimsVector dims = image.GetDims();
 
     shared_ptr<DirectXMemory> mat_buffer = DirectXMemory::CreateBufferMemoryFromHost(
@@ -195,13 +195,10 @@ static Status NCHWToBlob(Mat& image,
     Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
-//    LOGD("kernel name: NCHWToNHC4W4\n");
+    LOGD("kernel name: NCHWToNHC4W4\n");
     std::shared_ptr<ID3D11ComputeShader> cs;
     status = GetShaderByName("NCHWToNHC4W4", cs);
     RETURN_ON_NEQ(status, TNN_OK);
-
-    const int THREADS_PER_BLOCK = 128;
-    const int ELE_PER_THREAD    = 4;
 
     int batch, channel, height, width;
     batch            = DimsFunctionUtils::GetDim(dims, 0);
@@ -258,9 +255,6 @@ static Status N8UC3ToBlob(Mat& image,
     std::shared_ptr<ID3D11ComputeShader> cs;
     status = GetShaderByName("N8UC3ToNHC4W4", cs);
     RETURN_ON_NEQ(status, TNN_OK);
-
-    const int THREADS_PER_BLOCK = 128;
-    const int ELE_PER_THREAD    = 4;
 
     int batch, channel, height, width;
     batch            = DimsFunctionUtils::GetDim(dims, 0);
@@ -352,7 +346,7 @@ static Status BlobToNCHW(Mat& image,
 
     std::shared_ptr<DirectXMemory> blob_memory;
     RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(blob, blob_memory), TNN_OK);
-//    auto blob_memory = DirectXMemory::CreateRefMemoryFromBlob(blob);
+
     DimsVector dims = image.GetDims();
 
     shared_ptr<DirectXMemory> mat_buffer = DirectXMemory::CreateBufferMemoryFromHost(
@@ -374,13 +368,10 @@ static Status BlobToNCHW(Mat& image,
     Status status = CreateConstBuffer<ParamCB>(param_cb_host, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
-//    LOGD("kernel name: NHC4W4ToNCHW\n");
+    LOGD("kernel name: NHC4W4ToNCHW\n");
     std::shared_ptr<ID3D11ComputeShader> cs;
     status = GetShaderByName("NHC4W4ToNCHW", cs);
     RETURN_ON_NEQ(status, TNN_OK);
-
-    const int THREADS_PER_BLOCK = 128;
-    const int ELE_PER_THREAD    = 4;
 
     int batch, channel, height, width;
     batch            = DimsFunctionUtils::GetDim(dims, 0);

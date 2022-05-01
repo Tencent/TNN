@@ -12,15 +12,16 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_CONV_LAYER_WINOGRAD_ACC_H_
-#define TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_CONV_LAYER_WINOGRAD_ACC_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_CONV_LAYER_WINOGRAD_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_CONV_LAYER_WINOGRAD_ACC_H_
 
-#include "tnn/device/opencl/acc/convolution/opencl_conv_layer_acc_impl.h"
-#include "tnn/device/opencl/opencl_memory.h"
+#include "tnn/device/directx/acc/convolution/directx_conv_layer_acc_impl.h"
+#include "tnn/device/directx/directx_memory.h"
 
 namespace TNN_NS {
+namespace directx {
 
-class OpenCLConvLayerWinogradAcc : public OpenCLConvLayerAccImpl {
+class DirectXConvLayerWinogradAcc : public DirectXConvLayerAccImpl {
 public:
     static bool IsPrefered(const ConvLayerParam *param, const std::vector<Blob *> &inputs,
                            const std::vector<Blob *> &outputs);
@@ -28,19 +29,27 @@ public:
     virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
                         const std::vector<Blob *> &outputs) override;
 
-    virtual ~OpenCLConvLayerWinogradAcc() override;
+    virtual ~DirectXConvLayerWinogradAcc() override;
 
     virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
 private:
-    Status ConvertWinogradTransformWeigths(RawBuffer &raw_handle, shared_ptr<OpenCLMemory> &ocl_handle, int input_channel, int output_channel);
+
+    Status CreateCB(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) ;
+
+    Status ConvertWinogradTransformWeigths(RawBuffer &raw_handle, shared_ptr<DirectXMemory> &dx_handle, int input_channel, int output_channel);
 
     Status AllocateWinogradMatrixVAndM(DimsVector input_dims, DimsVector output_dims);
 
-    shared_ptr<OpenCLMemory> ocl_v_;
-    shared_ptr<OpenCLMemory> ocl_m_;
+    shared_ptr<DirectXMemory> dx_v_;
+    shared_ptr<DirectXMemory> dx_m_;
+
+    std::shared_ptr<ID3D11Buffer> const_buffer_;
 };
 
+}  // namespace directx
 }  // namespace TNN_NS
 
-#endif  // TNN_SOURCE_TNN_DEVICE_OPENCL_ACC_OPENCL_CONV_LAYER_WINOGRAD_ACC_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_DIRECTX_ACC_DIRECTX_CONV_LAYER_WINOGRAD_ACC_H_

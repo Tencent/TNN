@@ -10,6 +10,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#define UP_DIV(A, B) (((A) + (B) - 1) / B)
+
 cbuffer InputCBBuffer : register(b0)
 {
     // input dimension
@@ -33,10 +35,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     uint image_width_idx  = DTid.x;
     uint image_height_idx = DTid.y;
 
-    uint texture_w;
-    uint texture_h;
-    Texture_Blob.GetDimensions(texture_w, texture_h);
-    if (image_width_idx >= texture_w || image_height_idx >= texture_h) {
+    if (image_width_idx >= UP_DIV(channel, 4)*width || image_height_idx >=  batch*height ) {
         return;
     }
 

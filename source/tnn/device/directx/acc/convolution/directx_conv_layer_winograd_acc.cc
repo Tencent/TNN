@@ -12,16 +12,15 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/opencl/acc/convolution/opencl_conv_layer_winograd_acc.h"
-#include "tnn/device/opencl/imagebuffer_convertor.h"
-
+#include "tnn/device/directx/acc/convolution/directx_conv_layer_winograd_acc.h"
 #include "tnn/utils/winograd_generator.h"
 
 namespace TNN_NS {
+namespace directx {
 
 #define UNIT 2
 
-bool OpenCLConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const std::vector<Blob *> & inputs,
+bool DirectXConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const std::vector<Blob *> & inputs,
                                        const std::vector<Blob *> & outputs) {
     if (!param) {
         return false;
@@ -31,13 +30,14 @@ bool OpenCLConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const s
         return false;
     }
 
-    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-    auto image2d_max_size = opencl_runtime->GetImage2dMaxSize();
-    int image2d_max_height = image2d_max_size[1];
+    DirectXRuntime* directx_runtime = DirectXRuntime::GetInstance();
+    auto texture_2d_max_size = directx_runtime->GetTexture2DMaxSize();
+    int texture_2d_max_height = texture_2d_max_size[1];
+
     auto input_dims          = inputs[0]->GetBlobDesc().dims;
 
-    if(UP_DIV(param->output_channel, 4) * 16 > image2d_max_height || 
-        DimsFunctionUtils::GetDim(input_dims, 0) * UP_DIV(DimsFunctionUtils::GetDim(input_dims, 2), 2) * 16 > image2d_max_height) {
+    if(UP_DIV(param->output_channel, 4) * 16 > texture_2d_max_height ||
+        DimsFunctionUtils::GetDim(input_dims, 0) * UP_DIV(DimsFunctionUtils::GetDim(input_dims, 2), 2) * 16 > texture_2d_max_height) {
         return false;
     }
 
@@ -47,15 +47,15 @@ bool OpenCLConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const s
             DimsFunctionUtils::GetDim(input_dims, 3) * 1.0f / param->output_channel <= 4;
 }
 
-Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status DirectXConvLayerWinogradAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                    const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("Init Conv Winograd Acc \n");
 
     conv_type_ = CT_CONV_WINOGRAD;
     op_name_   = "Conv_Winograd";
 
-    Status ret = OpenCLConvLayerAccImpl::Init(context, param, resource, inputs, outputs);
-    CHECK_TNN_OK(ret)
+    Status ret = DirectXConvLayerAccImpl::Init(context, param, resource, inputs, outputs);
+    RETURN_ON_NEQ(ret, TNN_OK);
 
     ConvLayerResource *conv_resource = dynamic_cast<ConvLayerResource *>(resource_);
 
@@ -65,43 +65,133 @@ Status OpenCLConvLayerWinogradAcc::Init(Context *context, LayerParam *param, Lay
     const int output_channel = DimsFunctionUtils::GetDim(output_dims, 1);
 
     //convert filter
-    ret = ConvertWinogradTransformWeigths(conv_resource->filter_handle, ocl_weights_, input_channel, output_channel);
-    CHECK_TNN_OK(ret)
+    ret = ConvertWinogradTransformWeigths(conv_resource->filter_handle, weights_, input_channel, output_channel);
+    RETURN_ON_NEQ(ret, TNN_OK);
 
     //convert bias
-    ret = ConvertChannelWeights(conv_resource->bias_handle, ocl_bias_, conv_params_.output_channel,
+    ret = ConvertChannelWeights(conv_resource->bias_handle, bias_, conv_params_.output_channel,
                                 conv_params_.has_bias, false);
-    CHECK_TNN_OK(ret)
+    RETURN_ON_NEQ(ret, TNN_OK);
 
     ret = AllocateWinogradMatrixVAndM(input_dims, output_dims);
-    CHECK_TNN_OK(ret)
+    RETURN_ON_NEQ(ret, TNN_OK);
 
-    //create kernels 
-    execute_units_.resize(3);
-    std::string program_name;
-    program_name = "winograd";
-    std::string kernel_name;
-    //kernel WinogradTransformSource
-    kernel_name = "TransformToMatrixV";
-    ret         = CreateExecuteUnit(execute_units_[0], program_name, kernel_name, build_options_);    
-    CHECK_TNN_OK(ret)
+    return CreateCB(inputs, outputs);
+}
 
-    // kernel MatrixInnerProduct
-    kernel_name = "MatrixInnerProduct";
-    ret         = CreateExecuteUnit(execute_units_[1], program_name, kernel_name, build_options_);
-    CHECK_TNN_OK(ret)
+DirectXConvLayerWinogradAcc::~DirectXConvLayerWinogradAcc() {}
 
-    //kernel WinogradTransformDest 
-    kernel_name = "TransformFromMatrixM";
-    ret         = CreateExecuteUnit(execute_units_[2], program_name, kernel_name, build_options_);
-    CHECK_TNN_OK(ret)
+Status DirectXConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
 
     return TNN_OK;
 }
 
-OpenCLConvLayerWinogradAcc::~OpenCLConvLayerWinogradAcc() {}
+Status DirectXConvLayerWinogradAcc::ConvertWinogradTransformWeigths(RawBuffer &raw_handle, shared_ptr<DirectXMemory> &dx_handle, int input_channel, int output_channel) {
 
-Status OpenCLConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    const int kernel_size       = conv_params_.kernel_w;
+    int unit_output = UNIT;
+    int unit_input = UNIT + kernel_size - 1;
+    WinogradGenerator generator(unit_output, kernel_size, 1.0f);
+    auto transform_weight =  generator.allocTransformWeight(output_channel, input_channel, kernel_size, kernel_size, 4, 4);
+    // if filter handle is half, need convert to float first.
+    auto filter_data = GetFloatFromRawBuffer(raw_handle);
+    if (filter_data == nullptr) {
+        return Status(TNNERR_DX_ACC_INIT_ERR, "pointer is null");
+    }
+    generator.transformWeight(transform_weight, filter_data.get(), output_channel, input_channel, kernel_size, kernel_size);
+
+    auto dims = std::get<1>(transform_weight);
+
+    int image_height = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 1);
+    int image_width = DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
+
+    auto dx_mem = DirectXMemory::CreateTextureMemoryFromHost(nullptr, dims, image_width, image_height, DATA_TYPE_FLOAT, DATA_FORMAT_NHC4W4);
+    if (!dx_mem) {
+        LOGE("CreateTextureMemoryFromHost failed\n");
+        return Status(TNNERR_DX_TEXTURE_ALOCATE_ERR, "create directx texture memory failed.");
+    }
+
+    auto transform_weight_ptr = std::get<0>(transform_weight).get();
+
+    Status ret = UpdateConvWGFilterTexture2D(transform_weight_ptr, dims, image_width, image_height, dx_mem);
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    weights_ = std::move(dx_mem);
+
+    return TNN_OK;
+}
+
+Status DirectXConvLayerWinogradAcc::AllocateWinogradMatrixVAndM(DimsVector input_dims, DimsVector output_dims) {
+
+    const int batch             = DimsFunctionUtils::GetDim(output_dims, 0);
+    const int output_channel    = DimsFunctionUtils::GetDim(output_dims, 1);
+    const int output_height     = DimsFunctionUtils::GetDim(output_dims, 2);
+    const int output_width      = DimsFunctionUtils::GetDim(output_dims, 3);
+
+    const int input_channel         = DimsFunctionUtils::GetDim(input_dims, 1);
+    const int output_channel_blocks = UP_DIV(output_channel, 4);
+    const int input_channel_blocks  = UP_DIV(input_channel, 4);
+
+    const int round_up_ouptut_width = UP_DIV(output_width, 2);
+    const int round_up_output_height = UP_DIV(output_height, 2);
+
+    auto dx_v = DirectXMemory::CreateTextureMemoryFromHost(nullptr, {batch, input_channel, output_height, output_width}, input_channel_blocks * round_up_ouptut_width, 16 * batch * round_up_output_height, DATA_TYPE_FLOAT, DATA_FORMAT_NHC4W4);
+    if (!dx_v) {
+        LOGE("CreateTextureMemoryFromHost failed\n");
+        return Status(TNNERR_DX_TEXTURE_ALOCATE_ERR, "create directx texture memory failed.");
+    }
+    dx_v_.reset(new DirectXMemory(TNN_DX_TEXTURE));
+    dx_v_->SetData(dx_v, true);
+
+    auto dx_m = DirectXMemory::CreateTextureMemoryFromHost(nullptr, {batch, output_channel, output_height, output_width}, output_channel_blocks * round_up_ouptut_width, 16 * batch * round_up_output_height, DATA_TYPE_FLOAT, DATA_FORMAT_NHC4W4);
+    if (!dx_m) {
+        LOGE("CreateTextureMemoryFromHost failed\n");
+        return Status(TNNERR_DX_TEXTURE_ALOCATE_ERR, "create directx texture memory failed.");
+    }
+    dx_m_.reset(new DirectXMemory(TNN_DX_TEXTURE));
+    dx_m_->SetData(dx_m, true);
+
+    return TNN_OK;
+}
+
+Status DirectXConvLayerWinogradAcc::CreateCB(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto & in_dims = inputs[0]->GetBlobDesc().dims;
+    auto & out_dims = outputs[0]->GetBlobDesc().dims;
+
+    if (in_dims.size() < 4 || out_dims.size() < 4) {
+        LOGE("Expect shape lenghts > 4 for input and output.\n");
+        return Status(TNNERR_DX_LAYER_ERR, "Expect shape lenghts > 4 for input and output.");
+    }
+    typedef struct launch_param {
+        DirectX::XMUINT4 in_shape;
+        DirectX::XMUINT4 out_shape;
+        DirectX::XMUINT4 kernel_wh;
+        DirectX::XMUINT4 stride_wh;
+        DirectX::XMUINT4 padding_wh;
+        DirectX::XMUINT4 dilation_wh;
+        DirectX::XMUINT4 activation_type;
+    } launch_param_t;
+
+    launch_param_t args;
+    args.in_shape  = DirectX::XMUINT4(DimsFunctionUtils::GetDim(in_dims, 0), DimsFunctionUtils::GetDim(in_dims, 1),
+                                      DimsFunctionUtils::GetDim(in_dims, 2), DimsFunctionUtils::GetDim(in_dims, 3));
+    args.out_shape = DirectX::XMUINT4(DimsFunctionUtils::GetDim(out_dims, 0), DimsFunctionUtils::GetDim(out_dims, 1),
+                                      DimsFunctionUtils::GetDim(out_dims, 2), DimsFunctionUtils::GetDim(out_dims, 3));
+    args.kernel_wh = DirectX::XMUINT4(conv_params_.kernel_w, conv_params_.kernel_h, 0, 0);
+    args.stride_wh = DirectX::XMUINT4(conv_params_.stride_w, conv_params_.stride_h, 0, 0);
+    args.padding_wh = DirectX::XMUINT4(conv_params_.pad_w, conv_params_.pad_h, 0, 0);
+    args.dilation_wh = DirectX::XMUINT4(conv_params_.dilation_w, conv_params_.dilation_h, 0, 0);
+    args.activation_type = DirectX::XMUINT4(conv_params_.activation_type, 0,0,0);
+
+    return CreateConstBuffer<launch_param_t>(args, GetID3DDevice(), const_buffer_);
+}
+
+Status DirectXConvLayerWinogradAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+
+    std::shared_ptr<DirectXMemory> in_memory, out_memory;
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(inputs[0], in_memory), TNN_OK);
+    RETURN_ON_NEQ(DirectXMemoryManager::GetInstance()->GetRefMemoryFromBlob(outputs[0], out_memory), TNN_OK);
+
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
 
@@ -122,176 +212,48 @@ Status OpenCLConvLayerWinogradAcc::Reshape(const std::vector<Blob *> &inputs, co
     const int input_channel_blocks = UP_DIV(input_channel, 4);
     const int round_up_4x4_ouptut_width = UP_DIV(round_up_ouptut_width, 4);
 
-
-    int padding_shape[2]     = {conv_params_.pad_x, conv_params_.pad_y};
-
-    execute_units_[0].global_work_size = {static_cast<uint32_t>(input_channel_blocks * round_up_ouptut_width),
-                                        static_cast<uint32_t>(batch_round_h)};
-    execute_units_[0].local_work_size = Conv2dCommonLocalWS2D(
-            execute_units_[0].global_work_size, execute_units_[0].workgroupsize_max, execute_units_[0].sub_group_size);
-
-    execute_units_[1].global_work_size = {static_cast<uint32_t>(output_channel_blocks * round_up_4x4_ouptut_width),
-                                          static_cast<uint32_t>(16 * batch_round_h)};
-
-    execute_units_[2].global_work_size = {static_cast<uint32_t>(output_channel_blocks * round_up_ouptut_width),
-                                        static_cast<uint32_t>(batch_round_h)};
-    execute_units_[2].local_work_size = Conv2dCommonLocalWS2D(
-            execute_units_[2].global_work_size, execute_units_[2].workgroupsize_max, execute_units_[2].sub_group_size);
-
-
     //kernel WinogradTransformSource
-    int idx = 0;
-    for (auto gws : execute_units_[0].global_work_size) {
-        execute_units_[0].ocl_kernel.setArg(idx++, gws);
-    }
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[0]->GetHandle().base));
-    execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_v_->GetData()));
-    execute_units_[0].ocl_kernel.setArg(idx++, input_height);
-    execute_units_[0].ocl_kernel.setArg(idx++, input_width);
-    execute_units_[0].ocl_kernel.setArg(idx++, input_channel);
-    execute_units_[0].ocl_kernel.setArg(idx++, round_up_output_height);
-    execute_units_[0].ocl_kernel.setArg(idx++, round_up_ouptut_width);
-    execute_units_[0].ocl_kernel.setArg(idx++, sizeof(padding_shape), padding_shape);
+    auto in_srv = in_memory->GetSRV();
+    auto v_uav = dx_v_->GetUAV();
+
+    std::string kernel_name;
+    Status ret;
+
+    kernel_name = "WinogradTransformToMatrixV";
+    LOGD("kernel name: %s\n",kernel_name.c_str());
+    std::shared_ptr<ID3D11ComputeShader> cs;
+    ret = GetShaderByName(kernel_name, cs);
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    ret = DispatchShader(cs, {in_srv}, {v_uav}, {const_buffer_.get()},  {UP_DIV(input_channel_blocks * round_up_ouptut_width, 4), UP_DIV(batch_round_h, 4), 1});
 
     // kernel MatrixInnerProduct
-    idx = 0;
-    for (auto gws : execute_units_[1].global_work_size) {
-        execute_units_[1].ocl_kernel.setArg(idx++, gws);
-    }
-    execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_v_->GetData()));
-    execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_weights_->GetData()));
-    execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_m_->GetData()));
-    execute_units_[1].ocl_kernel.setArg(idx++, round_up_ouptut_width);
-    execute_units_[1].ocl_kernel.setArg(idx++, round_up_4x4_ouptut_width);
-    execute_units_[1].ocl_kernel.setArg(idx++, batch_round_h);
-    execute_units_[1].ocl_kernel.setArg(idx++, output_channel_blocks);
-    execute_units_[1].ocl_kernel.setArg(idx++, input_channel_blocks);
+    auto v_srv = dx_v_->GetSRV();
+    auto weights_srv = weights_->GetSRV();
+    auto m_uav = dx_m_->GetUAV();
+
+    kernel_name = "WinogradMatrixInnerProduct";
+    LOGD("kernel name: %s\n",kernel_name.c_str());
+    std::shared_ptr<ID3D11ComputeShader> cs;
+    ret = GetShaderByName(kernel_name, cs);
+    RETURN_ON_NEQ(ret, TNN_OK);
+
+    ret = DispatchShader(cs, {v_srv, weights_srv}, {m_uav}, {const_buffer_.get()},  {UP_DIV(output_channel_blocks * round_up_4x4_ouptut_width, 4), UP_DIV(batch_round_h, 4), 1});
 
     //kernel TransformFromMatrixM
-    idx = 0;
-    for (auto gws : execute_units_[2].global_work_size) {
-        execute_units_[2].ocl_kernel.setArg(idx++, gws);
-    }
-    execute_units_[2].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_m_->GetData()));
-    execute_units_[2].ocl_kernel.setArg(idx++, *((cl::Image *)ocl_bias_->GetData()));
-    execute_units_[2].ocl_kernel.setArg(idx++, *((cl::Image *)outputs[0]->GetHandle().base));
-    execute_units_[2].ocl_kernel.setArg(idx++, round_up_ouptut_width);
-    execute_units_[2].ocl_kernel.setArg(idx++, round_up_output_height);
-    execute_units_[2].ocl_kernel.setArg(idx++, output_width);
-    execute_units_[2].ocl_kernel.setArg(idx++, output_height);
-    execute_units_[2].ocl_kernel.setArg(idx++, (int)conv_params_.activation_type);
+    auto m_srv = dx_m_->GetSRV();
+    auto bias_srv = bias_->GetSRV();
+    auto out_uav = out_memory->GetUAV();
 
-    execute_units_[1].local_work_size = Conv2dCommonLocalWS2D(
-            execute_units_[1].global_work_size, execute_units_[1].workgroupsize_max, execute_units_[1].sub_group_size);
+    kernel_name = "WinogradTransformFromMatrixM";
+    LOGD("kernel name: %s\n",kernel_name.c_str());
+    std::shared_ptr<ID3D11ComputeShader> cs;
+    ret = GetShaderByName(kernel_name, cs);
+    RETURN_ON_NEQ(ret, TNN_OK);
 
-    if (ocl_context_->GetEnableTuneKernel()) {
-        execute_units_[1].local_work_size = LocalTune(execute_units_[1], ocl_context_, GenerateTuneKernelKey(execute_units_[1]));
-    }
+    ret = DispatchShader(cs, {m_srv, bias_srv}, {out_uav}, {const_buffer_.get()},  {UP_DIV(output_channel_blocks * round_up_ouptut_width, 4), UP_DIV(batch_round_h, 4), 1});
 
-    return TNN_OK;
 }
 
-Status OpenCLConvLayerWinogradAcc::ConvertWinogradTransformWeigths(RawBuffer &raw_handle, shared_ptr<OpenCLMemory> &ocl_handle, int input_channel, int output_channel) {
-    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-    const int kernel_size       = conv_params_.kernel_x;
-    int unit_output = UNIT;
-    int unit_input = UNIT + kernel_size - 1;
-    WinogradGenerator generator(unit_output, kernel_size, 1.0f);
-    auto transform_weight =  generator.allocTransformWeight(output_channel, input_channel, kernel_size, kernel_size, 4, 4);
-    // if filter handle is half, need convert to float first.
-    auto filter_data = GetFloatFromRawBuffer(raw_handle);
-    if (filter_data == nullptr) {
-        return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
-    }
-    generator.transformWeight(transform_weight, filter_data.get(), output_channel, input_channel, kernel_size, kernel_size);
-
-    auto dims = std::get<1>(transform_weight);
-    
-    cl_int ret = CL_SUCCESS;
-    cl::Buffer buffer(*opencl_runtime->Context(), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-                      DimsVectorUtils::Count(dims) * sizeof(float), nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
-    }
-    auto transform_weight_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
-        buffer, true, CL_MAP_WRITE, 0, DimsVectorUtils::Count(dims) * sizeof(float), nullptr, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL Conv MemMap failed");
-    }
-    memcpy(transform_weight_clbuffer_ptr, std::get<0>(transform_weight).get(), DimsVectorUtils::Count(dims) * sizeof(float));
-    ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(buffer, transform_weight_clbuffer_ptr);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL Conv MemUnMap failed");
-    }
-
-    cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
-        data_type = CL_HALF_FLOAT;
-    int image_height = DimsFunctionUtils::GetDim(dims, 0) * DimsFunctionUtils::GetDim(dims, 1);
-    int image_width = DimsFunctionUtils::GetDim(dims, 2) * DimsFunctionUtils::GetDim(dims, 3);
-    cl::Image2D *image =
-        new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
-                        image_width, image_height, 0, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        if (nullptr != image)
-            delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
-    }
-    ocl_weights_.reset(new OpenCLMemory(TNN_CL_IMAGE));
-    ocl_weights_->SetData(image, true);
-    CopyBufferToImage(opencl_runtime, ocl_context_, buffer, *image, image_width, image_height, true);
-    return TNN_OK;
-}
-
-Status OpenCLConvLayerWinogradAcc::AllocateWinogradMatrixVAndM(DimsVector input_dims, DimsVector output_dims) {
-    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
-    cl_channel_type data_type = CL_FLOAT;
-    if (opencl_runtime->GetPrecision() != PRECISION_HIGH)
-        data_type = CL_HALF_FLOAT;
-    cl_int ret = CL_SUCCESS;
-
-    const int batch             = DimsFunctionUtils::GetDim(output_dims, 0);
-    const int output_channel    = DimsFunctionUtils::GetDim(output_dims, 1);
-    const int output_height     = DimsFunctionUtils::GetDim(output_dims, 2);
-    const int output_width      = DimsFunctionUtils::GetDim(output_dims, 3);
-
-    const int input_channel         = DimsFunctionUtils::GetDim(input_dims, 1);
-    const int output_channel_blocks = UP_DIV(output_channel, 4);
-    const int input_channel_blocks  = UP_DIV(input_channel, 4);
-
-    const int round_up_ouptut_width = UP_DIV(output_width, 2);
-    const int round_up_output_height = UP_DIV(output_height, 2);
-
-    cl::Image2D *image =
-        new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
-                        input_channel_blocks * round_up_ouptut_width, 16 * batch * round_up_output_height, 0, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        if (nullptr != image)
-            delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
-    }
-    ocl_v_.reset(new OpenCLMemory(TNN_CL_IMAGE));
-    ocl_v_->SetData(image, true);
-
-
-    image =
-        new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_RGBA, data_type),
-                        output_channel_blocks * round_up_ouptut_width, 16 * batch * round_up_output_height, 0, nullptr, &ret);
-    if (ret != CL_SUCCESS) {
-        CHECK_CL_SUCCESS(ret)
-        if (nullptr != image)
-            delete image;
-        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL Conv malloc memory failed");
-    }
-    ocl_m_.reset(new OpenCLMemory(TNN_CL_IMAGE));
-    ocl_m_->SetData(image, true);
-    
-    return TNN_OK;
-}
-
+}  // namespace directx
 }  // namespace TNN_NS

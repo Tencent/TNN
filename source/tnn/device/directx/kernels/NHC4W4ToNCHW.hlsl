@@ -40,9 +40,6 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
     uint image_width_idx  = DTid.x;
     uint image_height_idx = DTid.y;
 
-//     uint texture_w;
-//     uint texture_h;
-//     Texture_Blob.GetDimensions(texture_w, texture_h);
     if (image_width_idx >= UP_DIV(channel, 4)*width || image_height_idx >=  batch*height ) {
         return;
     }

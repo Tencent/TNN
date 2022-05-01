@@ -135,7 +135,7 @@ Status DirectXReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
 
     kernel_name = "reshape_image2buffer";
 
-//    LOGD("kernel name: %s\n",kernel_name.c_str());
+    LOGD("kernel name: %s\n",kernel_name.c_str());
     std::shared_ptr<ID3D11ComputeShader> cs;
     ret = GetShaderByName(kernel_name, cs);
     RETURN_ON_NEQ(ret, TNN_OK);
@@ -148,7 +148,7 @@ Status DirectXReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     int image_width_in  = UP_DIV(channel_in, 4) * width_in;
     int image_height_in = batch_in * height_in;
 
-    ret = DispatchShader(cs, {in_srv}, {inter_uav}, {const_buffer_.get()},  {image_width_in, image_height_in, 1});
+    ret = DispatchShader(cs, {in_srv}, {inter_uav}, {const_buffer_.get()},  {UP_DIV(image_width_in, 4), UP_DIV(image_height_in, 4), 1});
 
     // reshape buffer to image
     auto inter_srv = inter_buffer->GetSRV();
@@ -156,7 +156,7 @@ Status DirectXReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
 
     kernel_name = "reshape_buffer2image";
 
-//    LOGD("kernel name: %s\n",kernel_name.c_str());
+    LOGD("kernel name: %s\n",kernel_name.c_str());
     ret = GetShaderByName(kernel_name, cs);
     RETURN_ON_NEQ(ret, TNN_OK);
 

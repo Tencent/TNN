@@ -84,7 +84,7 @@ Status DirectXPoolingLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     auto in_srv = in_memory->GetSRV();
     auto out_uav = out_memory->GetUAV();
 
-//    LOGD("kernel name: %s\n",kernel_name_.c_str());
+    LOGD("kernel name: %s\n",kernel_name_.c_str());
     std::shared_ptr<ID3D11ComputeShader> cs;
     Status ret = GetShaderByName(kernel_name_, cs);
     RETURN_ON_NEQ(ret, TNN_OK);

@@ -242,13 +242,10 @@ Status UpdateTexture2D(void* data_ptr,
     Status status = CreateConstBuffer<launch_param_t>(args, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
-//    LOGD("kernel name: NCHWToNHC4W4\n");
+    LOGD("kernel name: reshape_buffer2image\n");
     std::shared_ptr<ID3D11ComputeShader> cs;
     status = GetShaderByName("reshape_buffer2image", cs);
     RETURN_ON_NEQ(status, TNN_OK);
-
-    const int THREADS_PER_BLOCK = 128;
-    const int ELE_PER_THREAD    = 4;
 
     int batch, channel, height, width;
     batch            = DimsFunctionUtils::GetDim(dims, 0);
@@ -257,7 +254,7 @@ Status UpdateTexture2D(void* data_ptr,
     width            = DimsFunctionUtils::GetDim(dims, 3);
     int image_width  = UP_DIV(channel, 4) * width;
     int image_height = batch * height;
-    Status  ret = DispatchShader(cs, {buffer_srv}, {texture_uav}, {param_cb.get()}, {image_width,image_height,1});
+    Status  ret = DispatchShader(cs, {buffer_srv}, {texture_uav}, {param_cb.get()}, {UP_DIV(image_width, 4),UP_DIV(image_height, 4),1});
 
     return  ret;
 }
@@ -302,12 +299,12 @@ Status UpdateConv2DFilterTexture2D(void* data_ptr,
     Status status = CreateConstBuffer<launch_param_t>(args, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
-//    LOGD("kernel name: Conv2DFilterToNHC4W4\n");
+    LOGD("kernel name: Conv2DFilterToNHC4W4\n");
     std::shared_ptr<ID3D11ComputeShader> cs;
     status = GetShaderByName("Conv2DFilterToNHC4W4", cs);
     RETURN_ON_NEQ(status, TNN_OK);
 
-    Status  ret = DispatchShader(cs, {buffer_srv}, {texture_uav}, {param_cb.get()}, {image_width,image_height,1});
+    Status  ret = DispatchShader(cs, {buffer_srv}, {texture_uav}, {param_cb.get()}, {UP_DIV(image_width, 4),UP_DIV(image_height, 4),1});
 
     return  ret;
 }
@@ -352,15 +349,54 @@ Status UpdateConvDWFilterTexture2D(void* data_ptr,
     Status status = CreateConstBuffer<launch_param_t>(args, device, param_cb);
     RETURN_ON_NEQ(status, TNN_OK);
 
-//    LOGD("kernel name: ConvDWFilterToNHC4W4\n");
+    LOGD("kernel name: ConvDWFilterToNHC4W4\n");
     std::shared_ptr<ID3D11ComputeShader> cs;
     status = GetShaderByName("ConvDWFilterToNHC4W4", cs);
     RETURN_ON_NEQ(status, TNN_OK);
 
-    Status  ret = DispatchShader(cs, {buffer_srv}, {texture_uav}, {param_cb.get()}, {image_width,image_height,1});
+    Status  ret = DispatchShader(cs, {buffer_srv}, {texture_uav}, {param_cb.get()}, {UP_DIV(image_width, 4),UP_DIV(image_height, 4),1});
 
     return  ret;
 }
+
+Status UpdateConvWGFilterTexture2D(void* data_ptr,
+                                   std::vector<int> dims,
+                                   int image_width,
+                                   int image_height,
+                                   std::shared_ptr<DirectXMemory> &texture_memory) {
+
+    auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
+    if (!tnn_device) {
+        LOGE("Got null directx device");
+        return Status(TNNERR_CONTEXT_ERR, "got null directx device");
+    }
+
+    auto device = tnn_device->GetID3DDevice();
+    if (!device) {
+        LOGE("Got null ID3Ddevice");
+        return  Status(TNNERR_CONTEXT_ERR, "got null directx device");
+    }
+
+    shared_ptr<DirectXMemory> buffer = DirectXMemory::CreateBufferMemoryFromHost(
+        data_ptr, dims, DATA_TYPE_FLOAT, DATA_FORMAT_NCHW);
+    if (!buffer) {
+        LOGE("param transfer to GPU failed.");
+        return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "param transfer to GPU failed.");
+    }
+
+    auto buffer_srv = buffer->GetSRV();
+    auto texture_uav = texture_memory->GetUAV();
+
+    LOGD("kernel name: ConvWGFilterToNHC4W4\n");
+    std::shared_ptr<ID3D11ComputeShader> cs;
+    Status status = GetShaderByName("ConvWGFilterToNHC4W4", cs);
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    Status  ret = DispatchShader(cs, {buffer_srv}, {texture_uav}, {nullptr}, {UP_DIV(image_width, 4),UP_DIV(image_height, 4),1});
+
+    return  ret;
+}
+
 
 }  // namespace directx
 }  // namespace TNN_NS

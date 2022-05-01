@@ -17,6 +17,7 @@
 #include "tnn/device/directx/acc/convolution/directx_conv_layer_acc_impl.h"
 #include "tnn/device/directx/acc/convolution/directx_conv_layer_common_acc.h"
 #include "tnn/device/directx/acc/convolution/directx_conv_layer_depthwise_acc.h"
+#include "tnn/device/directx/acc/convolution/directx_conv_layer_winograd_acc.h"
 
 namespace TNN_NS {
 
@@ -48,10 +49,12 @@ Status DirectXConvLayerAcc::Init(Context *context, LayerParam *param, LayerResou
 
     ConvLayerParam *conv_param = dynamic_cast<ConvLayerParam *>(param);
 
-    if (DirectXConvLayer1x1Acc::IsPrefered(conv_param, inputs, outputs)) {
-        conv_acc_implement_ = std::make_shared<DirectXConvLayer1x1Acc>();
-    } else if (DirectXConvLayerDepthwiseAcc::IsPrefered(conv_param, inputs, outputs)) {
+    if (DirectXConvLayerDepthwiseAcc::IsPrefered(conv_param, inputs, outputs)) {
         conv_acc_implement_ = std::make_shared<DirectXConvLayerDepthwiseAcc>();
+    } else if (DirectXConvLayer1x1Acc::IsPrefered(conv_param, inputs, outputs)) {
+        conv_acc_implement_ = std::make_shared<DirectXConvLayer1x1Acc>();
+    } else if (DirectXConvLayerWinogradAcc::IsPrefered(conv_param, inputs, outputs)) {
+        conv_acc_implement_ = std::make_shared<DirectXConvLayerWinogradAcc>();
     } else if (DirectXConvLayerCommonAcc::IsPrefered(conv_param, inputs, outputs)) {
         conv_acc_implement_ = std::make_shared<DirectXConvLayerCommonAcc>();
     }

@@ -30,7 +30,7 @@ cbuffer Shapes: register( b0 )
 ByteAddressBuffer input : register(t0);
 RWTexture2D<float4> output : register(u0);
 
-[numthreads(1, 1, 1)]
+[numthreads(4, 4, 1)]
 void CSMain( uint3 DTid : SV_DispatchThreadID )
 {
     int height_width_size = shape[2]*shape[3];

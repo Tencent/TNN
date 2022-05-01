@@ -138,7 +138,7 @@ Status DirectXInnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs,
 
         kernel_name = "innerproduct_texture";
 
-//        LOGD("kernel name: %s\n",kernel_name.c_str());
+        LOGD("kernel name: %s\n",kernel_name.c_str());
         std::shared_ptr<ID3D11ComputeShader> cs;
         ret = GetShaderByName(kernel_name, cs);
         RETURN_ON_NEQ(ret, TNN_OK);
