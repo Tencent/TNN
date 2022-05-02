@@ -52,7 +52,7 @@ Status DirectXConvLayerWinogradAcc::Init(Context *context, LayerParam *param, La
     LOGD("Init Conv Winograd Acc \n");
 
     conv_type_ = CT_CONV_WINOGRAD;
-    op_name_   = "Conv_Winograd";
+//    op_name_   = "Conv_Winograd";
 
     Status ret = DirectXConvLayerAccImpl::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(ret, TNN_OK);
@@ -140,16 +140,20 @@ Status DirectXConvLayerWinogradAcc::AllocateWinogradMatrixVAndM(DimsVector input
         LOGE("CreateTextureMemoryFromHost failed\n");
         return Status(TNNERR_DX_TEXTURE_ALOCATE_ERR, "create directx texture memory failed.");
     }
-    dx_v_.reset(new DirectXMemory(TNN_DX_TEXTURE));
-    dx_v_->SetData(dx_v, true);
+    dx_v_ = std::move(dx_v);
+
+//    dx_v_.reset(new DirectXMemory(TNN_DX_TEXTURE));
+//    dx_v_->SetData(dx_v, false);
 
     auto dx_m = DirectXMemory::CreateTextureMemoryFromHost(nullptr, {batch, output_channel, output_height, output_width}, output_channel_blocks * round_up_ouptut_width, 16 * batch * round_up_output_height, DATA_TYPE_FLOAT, DATA_FORMAT_NHC4W4);
     if (!dx_m) {
         LOGE("CreateTextureMemoryFromHost failed\n");
         return Status(TNNERR_DX_TEXTURE_ALOCATE_ERR, "create directx texture memory failed.");
     }
-    dx_m_.reset(new DirectXMemory(TNN_DX_TEXTURE));
-    dx_m_->SetData(dx_m, true);
+    dx_m_ = std::move(dx_m);
+
+//    dx_m_.reset(new DirectXMemory(TNN_DX_TEXTURE));
+//    dx_m_->SetData(dx_m, false);
 
     return TNN_OK;
 }
@@ -234,7 +238,6 @@ Status DirectXConvLayerWinogradAcc::DoForward(const std::vector<Blob *> &inputs,
 
     kernel_name = "WinogradMatrixInnerProduct";
     LOGD("kernel name: %s\n",kernel_name.c_str());
-    std::shared_ptr<ID3D11ComputeShader> cs;
     ret = GetShaderByName(kernel_name, cs);
     RETURN_ON_NEQ(ret, TNN_OK);
 
@@ -247,12 +250,12 @@ Status DirectXConvLayerWinogradAcc::DoForward(const std::vector<Blob *> &inputs,
 
     kernel_name = "WinogradTransformFromMatrixM";
     LOGD("kernel name: %s\n",kernel_name.c_str());
-    std::shared_ptr<ID3D11ComputeShader> cs;
     ret = GetShaderByName(kernel_name, cs);
     RETURN_ON_NEQ(ret, TNN_OK);
 
     ret = DispatchShader(cs, {m_srv, bias_srv}, {out_uav}, {const_buffer_.get()},  {UP_DIV(output_channel_blocks * round_up_ouptut_width, 4), UP_DIV(batch_round_h, 4), 1});
 
+    return ret;
 }
 
 }  // namespace directx
