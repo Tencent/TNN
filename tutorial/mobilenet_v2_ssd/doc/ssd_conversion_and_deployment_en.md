@@ -68,6 +68,8 @@ with gfile.GFile("saved_model.pb", "wb") as f:
     f.write(opt_gdef.SerializeToString())
 ```
 
+In this part, all the code used is stored [here](../code/part2_clean_tensorflow_model.py).
+
 
 ## Convert TensorFlow model to ONNX model
 
@@ -105,6 +107,8 @@ In the ssdlite_mobilenet_v2_coco directory, there is the file pipeline.config, f
 In addition, it should be noted that it is often necessary to add a :0 after the input name. For example, the parameters passed in by --inputs of this model can be input:0[1,300,300,3]; --outputs is used to specify the output name, and There is no need to specify the shape of the output, and its acquisition method and precautions are basically the same as --inputs.
 
 For more parameter information, please refer to the official documentation of tf2onnx. The project address of tf2onnx is https://github.com/onnx/tensorflow-onnx .
+
+The shell scripts used in this part are stored [here](../code/part3_convert_tensorflow_to_onnx.sh).
 
 ## ONNX model input and output name modification
 
@@ -145,6 +149,8 @@ onnx.save(onnx_model, "saved_model_modify.onnx")
 ```
 
 In this way, we get the onnx model with the input and output names modified and save it as saved_model_modify.onnx . Post-processing operations such as boundary decoding can then be added to the model.
+
+The code to modify the input and output names of the model is placed [here](../code/part4_fix_onnx_input_and_output.py).
 
 
 ## Add bounding box decoding to ONNX models
@@ -385,6 +391,8 @@ We visualize the new model with Netron to confirm that we have successfully merg
 
 After visualization, we can see that the decoding operation has been successfully added to the SSD model, and then we can start to convert the TNN model.
 
+In this part, all the code used is placed [here](../code/part5_add_decoding_in_onnx.py).
+
 
 ## ONNX model to TNN model
 
@@ -411,6 +419,8 @@ In the above command, converter.py is the conversion tool script; onnx2tnn is th
 The figure below is a screenshot of the log after the model is successfully converted. If you get the same log during conversion, it means that you have successfully completed the conversion of the TNN model.
 
 ![](../imgs/convert_log.png)
+
+The script for TNN model conversion is stored [here](../code/part6_convert_to_tnn.sh).
 
 
 ## Running SSD in TNN
@@ -546,7 +556,7 @@ I selected a picture containing cats and dogs from the Internet for reasoning to
 
 As you can see, both cats and dogs in the picture are detected, so our SSD model runs successfully in TNN.
 
-Due to space limitations, the complete code is not shown in this section, only the main part is shown. If you want to see the full code, for more details, it can be found in the TNN example section.
+Due to space limitations, the complete code is not shown in this section, only the main part is shown. If you want to see the full code, for more details, it can be found in the [TNN example](../../../examples/base/object_detector_ssd.cc) section.
 
 
 ## Summarize

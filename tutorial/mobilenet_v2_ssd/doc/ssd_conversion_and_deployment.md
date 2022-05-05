@@ -68,6 +68,8 @@ with gfile.GFile("saved_model.pb", "wb") as f:
     f.write(opt_gdef.SerializeToString())
 ```
 
+这一部分中，所有使用到的代码被存放在了[这里](../code/part2_clean_tensorflow_model.py) 。
+
 
 ## 三、 TensorFlow 模型转 ONNX 模型
 
@@ -106,6 +108,7 @@ python3 -m tf2onnx.convert  \
 
 更多参数信息可以参考 tf2onnx 的官方文档，tf2onnx 的项目地址是 https://github.com/onnx/tensorflow-onnx 。
 
+在这一部分使用到的 shell 脚本被放在了[这里](../code/part3_convert_tensorflow_to_onnx.sh)。
 
 ## 四、 ONNX 模型输入输出名称修改
 
@@ -147,6 +150,7 @@ onnx.save(onnx_model, "saved_model_modify.onnx")
 
 这样，我们就得到了输入输出名称修改完成的 onnx 模型，并将它保存为 saved_model_modify.onnx 。接下来就可以将边界解码这样的后处理操作添加到模型中。
 
+修改模型输入输出名称的代码放在了[这里](../code/part4_fix_onnx_input_and_output.py) 。
 
 ## 五、 ONNX 模型添加边界框解码
 
@@ -386,6 +390,8 @@ onnx.save(combined_model, './new_model.onnx')
 
 可视化之后我们可以看到，解码操作已经成功添加到 SSD 模型中，接下来我们可以开始进行 TNN 模型的转换了。
 
+在这一部分中，所有使用到的代码放在了[这里](../code/part5_add_decoding_in_onnx.py)。
+
 
 ## 六、 ONNX 模型转 TNN 模型
 
@@ -412,6 +418,8 @@ python3 converter.py onnx2tnn new_model.onnx -align
 下图是模型成功转换之后的日志截图，如果你在转换时得到了相同的日志就说明你已经成功完成 TNN 模型的转换。
 
 ![](../imgs/convert_log.png)
+
+[这里](../code/part6_convert_to_tnn.sh)存放了 TNN 模型转换的脚本。
 
 
 ## 七、 在 TNN 中运行 SSD
@@ -547,7 +555,7 @@ predictor->Predict(std::make_shared<TNN_NS::TNNSDKInput>(resize_mat), sdk_output
 
 可以看到，图片中的猫和狗都被检测出来了，这样我们的 SSD 模型就成功的在 TNN 中运行起来了。
 
-由于篇幅的限制，在这一节中并没有展示完整的代码，只展示了主要部分。如果你想查看完整的代码，了解更多的细节，可以在 TNN example 部分里找到。
+由于篇幅的限制，在这一节中并没有展示完整的代码，只展示了主要部分。如果你想查看完整的代码，了解更多的细节，可以在 [TNN example](../../../examples/base/object_detector_ssd.cc) 部分找到。
 
 
 ## 八、 总结
