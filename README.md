@@ -94,7 +94,7 @@ At present, TNN has been launched in various major businesses, and its following
     * [Model Visualization Netron](https://lutzroeder.github.io/netron/)
     * [Performance Analysis](doc/en/development/profiling_en.md)
     * [Model Alignment](doc/en/development/model_check_en.md)
-* [tutorial]()
+* [Tutorial]()
     * [TNN model conversion and deployment for SSD](tutorial/mobilenet_v2_ssd/doc/ssd_conversion_and_deployment_en.md)
 
 ## API Document
