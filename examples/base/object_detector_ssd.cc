@@ -13,9 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "object_detector_ssd.h"
-#include <iostream>
+
 #include <algorithm>
-#include <unordered_set>
 
 namespace TNN_NS {
 
@@ -23,8 +22,7 @@ ObjectDetectorSSDOutput::~ObjectDetectorSSDOutput() {}
 
 ObjectDetectorSSD::~ObjectDetectorSSD() {}
 
-std::shared_ptr<Mat> ObjectDetectorSSD::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
-                                                                   std::string name) {
+std::shared_ptr<Mat> ObjectDetectorSSD::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat, std::string name) {
     return TNNSDKSample::ResizeToInputShape(input_mat, name);
 }
 
@@ -41,90 +39,71 @@ std::shared_ptr<TNNSDKOutput> ObjectDetectorSSD::CreateSDKOutput() {
 
 Status ObjectDetectorSSD::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
     Status status = TNN_OK;
-    
+
     auto output = dynamic_cast<ObjectDetectorSSDOutput *>(output_.get());
-    RETURN_VALUE_ON_NEQ(!output, false,
-                        Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
-    
-    auto output_mat_scores = output->GetMat("Postprocessor/convert_scores:0");
-    auto output_mat_boxes = output->GetMat("concat:0");
-    RETURN_VALUE_ON_NEQ(!output_mat_scores, false,
-                        Status(TNNERR_PARAM_ERR, "output_mat_scores is invalid"));
-    RETURN_VALUE_ON_NEQ(!output_mat_boxes, false,
-                        Status(TNNERR_PARAM_ERR, "output_mat_boxes is invalid"));
-    
+    RETURN_VALUE_ON_NEQ(!output, false, Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
+
+    auto output_mat_scores = output->GetMat("score");
+    auto output_mat_boxes  = output->GetMat("output");
+    RETURN_VALUE_ON_NEQ(!output_mat_scores, false, Status(TNNERR_PARAM_ERR, "output_mat_scores is invalid"));
+    RETURN_VALUE_ON_NEQ(!output_mat_boxes, false, Status(TNNERR_PARAM_ERR, "output_mat_boxes is invalid"));
+
     auto input_shape = GetInputShape();
-    RETURN_VALUE_ON_NEQ(input_shape.size() == 4, true,
-                        Status(TNNERR_PARAM_ERR, "GetInputShape is invalid"));
-    
+    RETURN_VALUE_ON_NEQ(input_shape.size() == 4, true, Status(TNNERR_PARAM_ERR, "GetInputShape is invalid"));
+
     std::vector<ObjectInfo> object_list;
-    GenerateObjects(object_list, output_mat_scores, output_mat_boxes,
-                    0.75, input_shape[3], input_shape[2]);
-    
+    GenerateObjects(object_list, output_mat_scores, output_mat_boxes, 0.75, input_shape[3], input_shape[2]);
+
     std::vector<ObjectInfo> object_list_nms;
     TNN_NS::NMS(object_list, object_list_nms, 0.25, TNNHardNMS);
     output->object_list = object_list_nms;
     return status;
 }
 
-void ObjectDetectorSSD::GenerateObjects(std::vector<ObjectInfo>& objects,
-                                        std::shared_ptr<Mat> scores, std::shared_ptr<Mat> boxes,
-                                        float score_threshold, int image_width, int image_height) {
+void ObjectDetectorSSD::GenerateObjects(std::vector<ObjectInfo> &objects, std::shared_ptr<Mat> scores,
+                                        std::shared_ptr<Mat> boxes, float score_threshold, int image_width,
+                                        int image_height) {
     int num_anchors = scores->GetDim(1);
-    int num_class = scores->GetDim(2);
-    
+    int num_class   = scores->GetDim(2);
+
     float *scores_data = (float *)scores->GetData();
     float *boxes_data  = (float *)boxes->GetData();
-    
-    auto clip = [](float v){
-        return (std::min)(v>0.0?v:0.0, 1.0);
-    };
-    
+
+    auto clip = [](float v) { return (std::min)(v > 0.0 ? v : 0.0, 1.0); };
+
     for (int i = 0; i < num_anchors; i++) {
-        int target_class_id = 0;
+        int target_class_id      = 0;
         float target_class_score = -1;
         for (int class_id = 0; class_id < num_class; class_id++) {
-            int index = i*num_class + class_id;
+            int index = i * num_class + class_id;
             if (scores_data[index] > target_class_score) {
-                target_class_id = class_id;
+                target_class_id    = class_id;
                 target_class_score = scores_data[index];
             }
         }
-        
+
         if (target_class_score <= score_threshold || target_class_id == 0) {
             continue;
         }
-        
-        const float *anchor = ssd_anchors[i];
-        float anchor_y_center = (anchor[0] + anchor[2]) * 0.5;
-        float anchor_x_center = (anchor[1] + anchor[3]) * 0.5;
-        float anchor_y_height = anchor[2] - anchor[0];
-        float anchor_x_width = anchor[3] - anchor[1];
-            
-        float ty = boxes_data[i*4+0] / 10.0;
-        float tx = boxes_data[i*4+1] / 10.0;
-        float th = boxes_data[i*4+2] / 5.0;
-        float tw = boxes_data[i*4+3] / 5.0;
-        
-        float x_w = exp(tw) * anchor_x_width;
-        float y_h = exp(th) * anchor_y_height;
-        
-        float y_c = ty * anchor_y_height + anchor_y_center;
-        float x_c = tx * anchor_x_width + anchor_x_center;
-        
+
+        float y_c = boxes_data[i * 4 + 0];
+        float x_c = boxes_data[i * 4 + 1];
+        float th  = boxes_data[i * 4 + 2];
+        float tw  = boxes_data[i * 4 + 3];
+
         ObjectInfo info;
-        info.image_width = image_width;
+        info.image_width  = image_width;
         info.image_height = image_height;
-        info.class_id = target_class_id ;
-        info.score = target_class_score;
-        
-        info.x1 = clip(x_c - x_w/2.0) * image_width;
-        info.y1 = clip(y_c - y_h/2.0) * image_height;
-        info.x2 = clip(x_c + x_w/2.0) * image_width;
-        info.y2 = clip(y_c + y_h/2.0) * image_height;
+        info.class_id     = target_class_id;
+        info.score        = target_class_score;
+
+        info.x1 = clip(x_c - tw / 2.0) * image_width;
+        info.y1 = clip(y_c - th / 2.0) * image_height;
+        info.x2 = clip(x_c + tw / 2.0) * image_width;
+        info.y2 = clip(y_c + th / 2.0) * image_height;
 
         objects.push_back(info);
     }
 }
 
-}
+}  // namespace TNN_NS

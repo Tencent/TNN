@@ -108,11 +108,12 @@ Status DynamicRangeQuantizer::QuantLSTM(std::shared_ptr<LayerInfo>& layer,
 Status DynamicRangeQuantizer::QuantMatMul(std::shared_ptr<LayerInfo>& layer,
                                           std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
                                           std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
-    auto matmul_param                     = std::dynamic_pointer_cast<MatMulLayerParam>(layer->param);
-    matmul_param->dynamic_range_quantized = true;
+    auto matmul_param = std::dynamic_pointer_cast<MatMulLayerParam>(layer->param);
     if (matmul_param->weight_position != 1) {
         return TNN_OK;
     }
+
+    matmul_param->dynamic_range_quantized         = true;
     std::shared_ptr<LayerResource> layer_resource = nullptr;
     if (resource_map.find(layer->name) != resource_map.end()) {
         layer_resource = resource_map[layer->name];
