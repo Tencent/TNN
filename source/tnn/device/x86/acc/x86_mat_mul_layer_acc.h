@@ -23,10 +23,15 @@ class X86MatMulLayerAcc : public X86LayerAcc {
 public:
     virtual ~X86MatMulLayerAcc();
 
+    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                const std::vector<Blob *> &outputs) override;
+
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 protected:
     conv_gemm_config<float, float, float> conv_gemm_conf_;
+    std::shared_ptr<LayerResource> matmul_acc_f32_resource_ = nullptr;
+
 };
 
 }  // namespace TNN_NS
