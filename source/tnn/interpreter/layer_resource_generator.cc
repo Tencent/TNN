@@ -527,6 +527,42 @@ class LSTMONNXLayerResourceGenerator : public LayerResourceGenerator {
     }
 };
 
+/*
+ * Generate weights for Binary
+ */
+class MatMulLayerResourceGenerator : public LayerResourceGenerator {
+    virtual Status GenLayerResource(LayerParam* param, LayerResource** resource, std::vector<Blob*>& inputs) {
+        if (inputs.size() == 1) {
+            LOGD("MatMulLayerResourceGenerator, input size is 1\n");
+
+            LOGE(
+                "[WARNNING] can't infer resource shape from MatMul param in benchmark mode, random generator may not "
+                "be exactly same with the real resource!\n");
+            auto layer_res    = new MatMulLayerResource();
+            auto dims         = inputs[0]->GetBlobDesc().dims;
+            layer_res->weight = RawBuffer(dims[1] * sizeof(float));
+            InitRandom(layer_res->weight.force_to<float*>(), dims[1], 1.0f);
+
+            *resource = layer_res;
+        }
+
+        return TNN_OK;
+    }
+
+    virtual Status ConvertHalfLayerResource(LayerResource* fp16_res, LayerResource** fp32_res) {
+        auto src_res = dynamic_cast<MatMulLayerResource*>(fp16_res);
+        CHECK_PARAM_NULL(src_res);
+
+        auto dst_res = new MatMulLayerResource();
+
+        dst_res->weight = ConvertHalfHandle(src_res->weight);
+
+        *fp32_res = dst_res;
+
+        return TNN_OK;
+    }
+};
+
 REGISTER_LAYER_RESOURCE(Convolution, LAYER_CONVOLUTION);
 REGISTER_LAYER_RESOURCE(Deconvolution, LAYER_DECONVOLUTION);
 REGISTER_LAYER_RESOURCE(Convolution1D, LAYER_CONVOLUTION_1D);
@@ -549,6 +585,7 @@ REGISTER_LAYER_RESOURCE(And, LAYER_AND);
 REGISTER_LAYER_RESOURCE(Not, LAYER_NOT);
 REGISTER_LAYER_RESOURCE(SquaredDifference, LAYER_SQUARED_DIFFERENCE);
 REGISTER_LAYER_RESOURCE(HdrGuide, LAYER_HDRGUIDE);
+REGISTER_LAYER_RESOURCE(MatMul, LAYER_MATMUL);
 
 REGISTER_LAYER_CONSTANT_RESOURCE(LSTMONNX, LAYER_LSTMONNX);
 

@@ -20,6 +20,7 @@
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/device/x86/x86_device.h"
 #include "tnn/device/x86/acc/Float4.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 
 namespace TNN_NS {
 
@@ -62,6 +63,8 @@ private:
 
     binary_func_t binary_func_;
     binary_general_func_t binary_general_func_;
+
+    std::shared_ptr<LayerResource> binary_acc_f32_resource_ = nullptr;
 };
 
 #define DECLARE_X86_BINARY_OP_ACC(type_string, op_type)                                                                 \
