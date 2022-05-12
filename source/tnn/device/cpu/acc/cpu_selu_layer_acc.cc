@@ -27,22 +27,30 @@ public:
             LOGE("Error: selu layer param is nil\n");
             return Status(TNNERR_MODEL_ERR, "Error: selu layer param is nil");
         }
-        alpha_ = layer_param->alpha;
-        gamma_ = layer_param->gamma;
+        // 当 alpha = gamma = 0时，认为触发 default需求
+        if ((double)fabs(layer_param->alpha) < 1e-15 && (double)fabs(layer_param->gamma) < 1e-15) {
+            alpha_ = 1.6732632423543772848170429916717;
+            gamma_ = 1.0507009873554804934193349852946;
+        }
+        else {
+            alpha_ = layer_param->alpha;
+            gamma_ = layer_param->gamma;
+        }
         return TNN_OK;
     }
     virtual float operator()(float in) {
-        float temp = in;
+        double temp = in;
         if (temp <= 0) {
             temp = gamma_ * (alpha_ * exp(temp) - alpha_);
         } else {
             temp = gamma_ * temp;
         }
-        return temp;
+        return (float)temp;
     }
 
 private:
-    float alpha_ = 0.f, gamma_ = 0.f;
+    // 使用 double 提高精度
+    double alpha_ = 0.f, gamma_ = 0.f;
 } SELU_OP;
 
 DECLARE_UNARY_ACC(Selu, LAYER_SELU, SELU_OP);

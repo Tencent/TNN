@@ -19,3 +19,20 @@
 - **解决办法**
 
   修改 `/opt/TNN/tools/onnx2tnn/src/core/layer/onnx_converter_gemm.cc` 文件 153 行，bias 变量(即 C) 对应来源逻辑。
+
+### 2. Selu 算子
+
+- **算子逻辑**
+
+  $$y = \left\{ \begin{array}{rcl} \gamma \cdot (\alpha \cdot e^x-\alpha)  & \mbox{for} & x \leq 0 \\ \gamma \cdot x & \mbox{for} & x \gt 0  \end{array}\right. $$
+
+- **存在问题**
+
+  在 TNN 源码中，$\gamma$ 与 $\alpha$ 初始化值均为 0，但在 ONNX 实现时，存在 default 值 
+   
+  - $\gamma = 1.0507009873554804934193349852946$
+  - $\alpha = 1.6732632423543772848170429916717$
+
+- **解决办法**
+
+  修改 `/opt/TNN/source/tnn/device/cpu/acc/cpu_selu_layer_acc.cc` 文件 30 行，初始化 $\gamma$ 与 初始化 $\alpha$ 的逻辑。
