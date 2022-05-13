@@ -23,6 +23,7 @@
 #include "tnn/device/directx/directx_util.h"
 #include "tnn/device/directx/directx_device.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_function_utils.h"
 
 namespace TNN_NS {
 
@@ -297,6 +298,11 @@ std::shared_ptr<DirectXMemory> DirectXMemory::CreateTextureMemoryFromHost(
 }
 
 Status DirectXMemory::Dump() const {
+    printf("Dump dims: [");
+    for (auto d : dims_) {
+        printf("%d,", d);
+    }
+    printf("]\n");
 
     auto tnn_device = dynamic_cast<DirectXDevice*>(GetDevice(DEVICE_DIRECTX));
     if (!tnn_device) {
@@ -361,9 +367,65 @@ Status DirectXMemory::Dump() const {
         debug_buffer->Release();
 
     } else {
-        char error_str[128];
-        sprintf(error_str, "Dump not support this memory_type");
-        return Status(TNNERR_PARAM_ERR, error_str);
+        ID3D11Texture2D *pTexture = (ID3D11Texture2D*)data_;
+
+        D3D11_TEXTURE2D_DESC tmpDesc;
+        ZeroMemory(&tmpDesc, sizeof(tmpDesc));
+        ID3D11Texture2D *tmpTexture = nullptr;
+        pTexture->GetDesc(&tmpDesc);
+        tmpDesc.Usage           = D3D11_USAGE_STAGING;
+        tmpDesc.BindFlags       = 0;
+        tmpDesc.CPUAccessFlags  = D3D11_CPU_ACCESS_READ;
+        HRESULT hr = d3d_device->CreateTexture2D(&tmpDesc, nullptr, &tmpTexture);
+        if (FAILED(hr)) {
+            LOGE("DirectX create debug Texture failed ret:0x%X", hr);
+            return Status(TNNERR_DX_BUFFER_ALOCATE_ERR, "DirectX create debug Texture failed.");
+        }
+
+        d3d_context->CopyResource(
+            tmpTexture,     // pDstResource
+            pTexture        // pSrcResource
+        );
+
+        D3D11_MAPPED_SUBRESOURCE mapped_resource;
+        hr = d3d_context->Map(
+            tmpTexture,         // pResource
+            0,                  // Subresource
+            D3D11_MAP_READ,     // MapType
+            0,                  // MapFlags
+            &mapped_resource    // pMappedResource
+        );
+        if (FAILED(hr)) {
+            LOGE("DirectX map failed ret:0x%X", hr);
+            return Status(TNNERR_DX_MAP_ERR, "DirectX map failed.");
+        }
+
+        if (data_type_ != DATA_TYPE_FLOAT) {
+            LOGE("only float supports dump now");
+            return Status(TNNERR_DX_RESOURCE_CREATION);
+        }
+
+        int row  = DimsFunctionUtils::GetDim(dims_, 0) * DimsFunctionUtils::GetDim(dims_, 2);
+        int col = UP_DIV(DimsFunctionUtils::GetDim(dims_, 1), 4) * DimsFunctionUtils::GetDim(dims_, 3);
+        float *cpu_data = new float[row * col * 4];
+        int col_byte = col * 4 * DataTypeUtils::GetBytesSize(data_type_);
+        int total_byte = row * col_byte;
+        if (mapped_resource.RowPitch == col_byte) {
+            memcpy(cpu_data, mapped_resource.pData, total_byte);
+        } else {
+            for (UINT r = 0; r < row; ++r) {
+                memcpy((char*)(cpu_data) + r * col_byte, (char*)(mapped_resource.pData) + r * mapped_resource.RowPitch, col_byte);
+            }
+        }
+        printf("dumping texture, row = %d, col = %d\n", row, col);
+        for (int i = 0; i < row * col; ++i) {
+            printf("input [%3d] %f, %f, %f, %f,\n", i, cpu_data[i*4], cpu_data[i*4+1], cpu_data[i*4+2], cpu_data[i*4+3]);
+        }
+        delete[] cpu_data;
+
+        d3d_context->Unmap(tmpTexture, 0);
+        tmpTexture->Release();
+
     }
 
     return TNN_OK;
