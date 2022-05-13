@@ -43,10 +43,24 @@ namespace directx {
             return false;
         }
 
-        return param->kernels[0] == 3 && param->kernels[1] == 3 && param->dialations[0] == 1 &&
-               param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 &&
-               param->output_channel >= 32 && param->input_channel >= 32 &&
-               DimsFunctionUtils::GetDim(input_dims, 3) * 1.0f / param->output_channel <= 4;
+        bool is_param_support = param->kernels[0] == 3 && param->kernels[1] == 3 && param->dialations[0] == 1 &&
+                                param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 &&
+                                param->output_channel >= 32 && param->input_channel >= 32 &&
+                                DimsFunctionUtils::GetDim(input_dims, 3) * 1.0f / param->output_channel <= 4;
+        if (!is_param_support) {
+            return false;
+        }
+
+        auto tnn_device = dynamic_cast<DirectXDevice *>(GetDevice(DEVICE_DIRECTX));
+        if (!tnn_device) {
+            LOGE("Got null directx device");
+            return false;
+        }
+        if (tnn_device->GetVensorType() == DX_VENDOR_INTEL) {
+            // may need seperate optimization on intel platform
+            return false;
+        }
+        return true;
     }
 
     Status DirectXConvLayerWinogradAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
