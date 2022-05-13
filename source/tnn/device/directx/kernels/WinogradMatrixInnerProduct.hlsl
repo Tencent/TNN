@@ -66,6 +66,7 @@ groupshared float b_mem[4][SMEM_B];
 [numthreads(THREADS_PER_BLOCK, 1, 1)]
 void CSMain( uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex )
 {
+    uint batch_size = out_shape[0];
     uint oc4 = UP_DIV(out_shape[1], 4);
     uint oh2 = UP_DIV(out_shape[2], 2);
     uint ow2 = UP_DIV(out_shape[3], 2);
@@ -74,13 +75,15 @@ void CSMain( uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex )
     uint K = in_shape[1];
     uint N = out_shape[1];
 
-    uint unit_m64_idx = groupID.y;
-    uint unit_idx = unit_m64_idx / (UP_DIV(M, 64));
-    uint m64_idx = unit_m64_idx % (UP_DIV(M, 64));
+    uint unit_b_m64_idx = groupID.y;
+    uint unit_b_idx = unit_b_m64_idx / (UP_DIV(M, 64));
+    uint m64_idx = unit_b_m64_idx % (UP_DIV(M, 64));
+    uint unit_idx = unit_b_idx / batch_size;
+    uint batch_idx = unit_b_idx % batch_size;
 
-    uint load_unit_offset_v = unit_idx * oh2;
+    uint load_unit_offset_v = unit_idx * batch_size * oh2 + batch_idx * oh2;
     uint load_unit_offset_u = unit_idx * oc4;
-    uint load_unit_offset_m = unit_idx * oh2;
+    uint load_unit_offset_m = unit_idx * batch_size * oh2 + batch_idx * oh2;
 
     uint a_offset_y = groupID.x * BLOCK_A + groupIndex.x / 4;
     uint a_offset_x = groupIndex.x % 4;
