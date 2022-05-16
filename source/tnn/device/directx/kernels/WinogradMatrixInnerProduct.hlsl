@@ -11,18 +11,8 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-#define UP_DIV(A, B) (((A) + (B) - 1) / B)
 
-#define ActivationType_None 0x0000
-#define ActivationType_ReLU 0x0001
-#define ActivationType_ReLU6 0x0002
-#define ActivationType_SIGMOID_MUL 0x0100
-
-#define ActivationProcess(output, activation_type) \
-    output = (activation_type == ActivationType_ReLU) ? max(output, (float4)0) : \
-    ((activation_type == ActivationType_ReLU6) ? clamp(output,(float4)0,(float4)6) : \
-    ((activation_type == ActivationType_SIGMOID_MUL) ? rcp((float4)1 + mul(exp(-output), output)) : \
-    output ))
+#define UP_DIV(A, B) (((A) + (B) - 1) / (B))
 
 cbuffer Shapes: register( b0 )
 {
@@ -53,105 +43,138 @@ cbuffer Shapes: register( b0 )
 
 };
 
+Texture2D<float4> matrix_v : register(t0);
+Texture2D<float4> matrix_u : register(t1);
+RWTexture2D<float4> matrix_m : register(u0);
 
-Texture2D<float4> matrix_m : register(t0);
-Texture2D<float4> bias : register(t1);
-RWTexture2D<float4> output : register(u0);
+#define THREADS_PER_BLOCK 64
+#define THREAD_BLOCK_A 2
+#define THREAD_BLOCK_B 8
+#define BLOCK_A 16
+#define BLOCK_B 64
 
-[numthreads(4, 4, 1)]
-void CSMain( uint3 DTid : SV_DispatchThreadID )
+#define WARP_SIZE 32
+#define WARPS_PER_BLOCK (THREADS_PER_BLOCK / WARP_SIZE)
+#define THREADS_PER_GROUP (BLOCK_A / (WARPS_PER_BLOCK * THREAD_BLOCK_A))
+
+#define SMEM_A UP_DIV(BLOCK_A * 4, WARP_SIZE) * WARP_SIZE
+#define SMEM_B UP_DIV(BLOCK_B, WARP_SIZE) * WARP_SIZE
+
+groupshared float a_mem[4][SMEM_A];
+groupshared float b_mem[4][SMEM_B];
+
+[numthreads(THREADS_PER_BLOCK, 1, 1)]
+void CSMain( uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex )
 {
+    uint batch_size = out_shape[0];
+    uint oc4 = UP_DIV(out_shape[1], 4);
+    uint oh2 = UP_DIV(out_shape[2], 2);
+    uint ow2 = UP_DIV(out_shape[3], 2);
 
-    int output_cw_idx = DTid.x; //c/4 w/2
-    int output_bh_idx = DTid.y; //b h/2
+    uint M = oh2 * ow2;
+    uint K = in_shape[1];
+    uint N = out_shape[1];
 
-    int out_channel = out_shape[1];
-    int out_height = out_shape[2];
-    int out_width = out_shape[3];
-    int round_h = UP_DIV(out_shape[2], 2);
-    int round_w = UP_DIV(out_shape[3], 2);
-    int output_channel_blocks = UP_DIV(out_channel, 4);
-    int global_size_dim1 = out_shape[0]*round_h;
+    uint unit_b_m64_idx = groupID.y;
+    uint unit_b_idx = unit_b_m64_idx / (UP_DIV(M, 64));
+    uint m64_idx = unit_b_m64_idx % (UP_DIV(M, 64));
+    uint unit_idx = unit_b_idx / batch_size;
+    uint batch_idx = unit_b_idx % batch_size;
 
-    if (output_cw_idx >= output_channel_blocks*round_w || output_bh_idx >= out_shape[0]*round_h) {
-        return;
-    }
-    int c_block_idx = output_cw_idx / round_w;
-    int w_block_idx = output_cw_idx - mul(c_block_idx, round_w);
-    int batch = output_bh_idx / round_h;
-    int h_block_idx = output_bh_idx - mul(batch, round_h);
+    uint load_unit_offset_v = unit_idx * batch_size * oh2 + batch_idx * oh2;
+    uint load_unit_offset_u = unit_idx * oc4;
+    uint load_unit_offset_m = unit_idx * batch_size * oh2 + batch_idx * oh2;
 
-    int2 pos_bias = {c_block_idx, 0};
-    float4 bias_value = bias[pos_bias];
+    uint a_offset_y = groupID.x * BLOCK_A + groupIndex.x / 4;
+    uint a_offset_x = groupIndex.x % 4;
+    uint b_offset   = m64_idx * BLOCK_B + groupIndex.x;
+    uint b_offset_w = b_offset % ow2;
+    uint b_offset_h = b_offset / ow2;
 
-    int2 pos_m00 = {output_cw_idx, output_bh_idx};
-    float4 m00 = matrix_m[pos_m00];
-    int2 pos_m10 = {output_cw_idx, mad(1, global_size_dim1, output_bh_idx)};
-    float4 m10 = matrix_m[pos_m10];
-    int2 pos_m20 = {output_cw_idx, mad(2, global_size_dim1, output_bh_idx)};
-    float4 m20 = matrix_m[pos_m20];
-    int2 pos_m30 = {output_cw_idx, mad(3, global_size_dim1, output_bh_idx)};
-    float4 m30 = matrix_m[pos_m30];
-    int2 pos_m01 = {output_cw_idx, mad(4, global_size_dim1, output_bh_idx)};
-    float4 m01 = matrix_m[pos_m01];
-    int2 pos_m11 = {output_cw_idx, mad(5, global_size_dim1, output_bh_idx)};
-    float4 m11 = matrix_m[pos_m11];
-    int2 pos_m21 = {output_cw_idx, mad(6, global_size_dim1, output_bh_idx)};
-    float4 m21 = matrix_m[pos_m21];
-    int2 pos_m31 = {output_cw_idx, mad(7, global_size_dim1, output_bh_idx)};
-    float4 m31 = matrix_m[pos_m31];
-    int2 pos_m02 = {output_cw_idx, mad(8, global_size_dim1, output_bh_idx)};
-    float4 m02 = matrix_m[pos_m02];
-    int2 pos_m12 = {output_cw_idx, mad(9, global_size_dim1, output_bh_idx)};
-    float4 m12 = matrix_m[pos_m12];
-    int2 pos_m22 = {output_cw_idx, mad(10, global_size_dim1, output_bh_idx)};
-    float4 m22 = matrix_m[pos_m22];
-    int2 pos_m32 = {output_cw_idx, mad(11, global_size_dim1, output_bh_idx)};
-    float4 m32 = matrix_m[pos_m32];
-    int2 pos_m03 = {output_cw_idx, mad(12, global_size_dim1, output_bh_idx)};
-    float4 m03 = matrix_m[pos_m03];
-    int2 pos_m13 = {output_cw_idx, mad(13, global_size_dim1, output_bh_idx)};
-    float4 m13 = matrix_m[pos_m13];
-    int2 pos_m23 = {output_cw_idx, mad(14, global_size_dim1, output_bh_idx)};
-    float4 m23 = matrix_m[pos_m23];
-    int2 pos_m33 = {output_cw_idx, mad(15, global_size_dim1, output_bh_idx)};
-    float4 m33 = matrix_m[pos_m33];
+    const uint warp_id = groupIndex.x / WARP_SIZE;
+    const uint lane_id = groupIndex.x % WARP_SIZE;
+    const uint swizzledA = (warp_id * THREADS_PER_GROUP + lane_id % THREADS_PER_GROUP ) * THREAD_BLOCK_A;
+    const uint swizzledB = lane_id / THREADS_PER_GROUP * THREAD_BLOCK_B;
 
-    float4 out00  = m00 + m01 + m02;
-    float4 out10  = m10 + m11 + m12;
-    float4 out20  = m20 + m21 + m22;
-    float4 out30  = m30 + m31 + m32;
-    float4 out01  = m01 - m02 + m03;
-    float4 out11  = m11 - m12 + m13;
-    float4 out21  = m21 - m22 + m23;
-    float4 out31  = m31 - m32 + m33;
+    const uint c_off_a = BLOCK_A * groupID.x + swizzledA;
+    const uint c_off_b = BLOCK_B * m64_idx + swizzledB;
 
-    int2 ow = (int2)(w_block_idx << 1) + (int2)(0, 1);
-    int2 oh = (int2)(h_block_idx << 1) + (int2)(0, 1);
-    int2 ox = mad((int2)(c_block_idx), (int2)(out_width), ow);
-    int2 oy = mad((int2)(batch), (int2)(out_height), oh);
-    float4 res00  = bias_value + out00 + out10 + out20;
-    res00 = ActivationProcess(res00, activation_type[0]);
-
-    int2 pos_res00 = {ox.x, oy.x};
-    output[pos_res00] = res00;
-    if (ow.y < out_width && oh.x < out_height) {
-        float4 res10  = bias_value + out10 - out20 + out30;
-        res10 = ActivationProcess(res10, activation_type[0]);
-        int2 pos_res10 = {ox.y, oy.x};
-        output[pos_res10] = res10;
-    }
-    if (ow.x < out_width && oh.y < out_height) {
-        float4 res01  = bias_value + out01 + out11 + out21;
-        res01 = ActivationProcess(res01, activation_type[0]);
-        int2 pos_res01 = {ox.x, oy.y};
-        output[pos_res01] = res01;
-    }
-    if (ow.y < out_width && oh.y < out_height) {
-        float4 res11  = bias_value + out11 - out21 + out31;
-        res11 = ActivationProcess(res11, activation_type[0]);
-        int2 pos_res11 = {ox.y, oy.y};
-        output[pos_res11] = res11;
+    uint oh_offset[8];
+    uint ow_offset[8];
+    uint oh_idx = c_off_b / ow2;
+    uint ow_idx = c_off_b % ow2;
+    for (int i = 0; i < 8; ++i) {
+        if (ow_idx >= ow2) {
+            ow_idx = 0;
+            oh_idx += 1;
+        }
+        ow_offset[i] = ow_idx;
+        oh_offset[i] = oh_idx;
+        ow_idx += 1;
     }
 
+    float4 a_rf[4][THREAD_BLOCK_A];
+    float4 b_rf[THREAD_BLOCK_B];
+    float4 c_rf[THREAD_BLOCK_B][THREAD_BLOCK_A];
+
+    [unroll]  for (uint j = 0; j < THREAD_BLOCK_B; ++j) {
+        [unroll]  for(uint i = 0; i < THREAD_BLOCK_A; ++i) {
+            c_rf[j][i] = (float4)0;
+        }
+    }
+
+    for (uint k = 0; k < UP_DIV(K, 4); ++k) {
+        uint2 pos_b = {k * ow2 + b_offset_w, load_unit_offset_v + b_offset_h};
+        b_mem[0][groupIndex.x] = matrix_v[pos_b].x;
+        b_mem[1][groupIndex.x] = matrix_v[pos_b].y;
+        b_mem[2][groupIndex.x] = matrix_v[pos_b].z;
+        b_mem[3][groupIndex.x] = matrix_v[pos_b].w;
+
+        uint2 pos_a = {k * 4 + a_offset_x, load_unit_offset_u + a_offset_y};
+        a_mem[0][groupIndex.x] = matrix_u[pos_a].x;
+        a_mem[1][groupIndex.x] = matrix_u[pos_a].y;
+        a_mem[2][groupIndex.x] = matrix_u[pos_a].z;
+        a_mem[3][groupIndex.x] = matrix_u[pos_a].w;
+
+        GroupMemoryBarrierWithGroupSync();
+
+        // smem to register file
+        [unroll] for(uint a_of=0;a_of<THREAD_BLOCK_A;a_of++){
+            [unroll] for(uint a_of_y=0;a_of_y<4;a_of_y++) {
+                float4 va = {a_mem[0][(swizzledA + a_of)*4 + a_of_y],
+                             a_mem[1][(swizzledA + a_of)*4 + a_of_y],
+                             a_mem[2][(swizzledA + a_of)*4 + a_of_y],
+                             a_mem[3][(swizzledA + a_of)*4 + a_of_y]};
+                a_rf[a_of_y][a_of] = va;
+            }
+        }
+        [unroll] for(uint b_of=0;b_of<THREAD_BLOCK_B;b_of++){
+            float4 vb = {b_mem[0][swizzledB+b_of],
+                         b_mem[1][swizzledB+b_of],
+                         b_mem[2][swizzledB+b_of],
+                         b_mem[3][swizzledB+b_of]};
+            b_rf[b_of] = vb;
+        }
+
+        // calc out product of size BLOCK_A * BLOCK_B
+        [unroll]  for(uint a_of=0;a_of<THREAD_BLOCK_A;a_of++) {
+            [unroll]  for(uint b_of=0;b_of<THREAD_BLOCK_B;b_of++) {
+                c_rf[b_of][a_of] += a_rf[0][a_of] * b_rf[b_of].x;
+                c_rf[b_of][a_of] += a_rf[1][a_of] * b_rf[b_of].y;
+                c_rf[b_of][a_of] += a_rf[2][a_of] * b_rf[b_of].z;
+                c_rf[b_of][a_of] += a_rf[3][a_of] * b_rf[b_of].w;
+            }
+        }
+
+        GroupMemoryBarrierWithGroupSync();
+    }
+
+    for (uint j = 0; j < 8; ++j) {
+        for(uint i = 0; i < 2; ++i){
+            uint2 dst_pos = {(c_off_a + i) * ow2 + ow_offset[j], load_unit_offset_m + oh_offset[j]};
+            if (oh_offset[j] < oh2 && c_off_a + i < oc4) {
+                matrix_m[dst_pos] = c_rf[j][i];
+            }
+        }
+    }
 }

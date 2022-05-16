@@ -32,6 +32,13 @@ namespace directx {
 
 // @brief DirectXDevice create memory and layer acc
 
+enum VendorType {
+    DX_VENDOR_UNKNOWN = 0,
+    DX_VENDOR_NVIDIA,
+    DX_VENDOR_INTEL,
+    DX_VENDOR_AMD
+};
+
 class DirectXDevice : public AbstractDevice {
 public:
 
@@ -76,6 +83,8 @@ public:
         return context_;
     }
 
+    VendorType GetVensorType();
+
 private:
     BlobMemorySizeInfo Calculate1DMemorySize(BlobDesc& desc);
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>> &GetLayerCreatorMap();
@@ -84,6 +93,7 @@ private:
     std::shared_ptr<ID3D11Device>               device_ = nullptr;
     std::shared_ptr<ID3D11DeviceContext>        context_ = nullptr;
 
+    DXGI_ADAPTER_DESC adapter_desc_;
 };
 
 // @brief DirectXLayerAccRegister register DirectXLayerAccCreator

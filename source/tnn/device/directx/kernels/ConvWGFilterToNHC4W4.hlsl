@@ -30,10 +30,10 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
 
     if (x < width && y < height) {
         float4 out4;
-        out4.x =asfloat( (input.Load((x + y * width)*PACK4 + 0)*STRIDE));
-        out4.y =asfloat( (input.Load((x + y * width)*PACK4 + 1)*STRIDE));
-        out4.z =asfloat( (input.Load((x + y * width)*PACK4 + 2)*STRIDE));
-        out4.w =asfloat( (input.Load((x + y * width)*PACK4 + 3)*STRIDE));
+        out4.x =asfloat(input.Load(((x + y * width)*PACK4 + 0)*STRIDE));
+        out4.y =asfloat(input.Load(((x + y * width)*PACK4 + 1)*STRIDE));
+        out4.z =asfloat(input.Load(((x + y * width)*PACK4 + 2)*STRIDE));
+        out4.w =asfloat(input.Load(((x + y * width)*PACK4 + 3)*STRIDE));
 
         output[DTid.xy] = out4;
     }

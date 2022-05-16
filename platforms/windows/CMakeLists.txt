@@ -54,5 +54,5 @@ if(TNN_CUDA_ENABLE)
 endif()
 
 if(TNN_DIRECTX_ENABLE)
-    target_link_libraries(TNN "d3d11.lib" "d3dcompiler.lib" "dxguid.lib")
+    target_link_libraries(TNN "d3d11.lib" "d3dcompiler.lib" "dxguid.lib" "dxgi.lib")
 endif()

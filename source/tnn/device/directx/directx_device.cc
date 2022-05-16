@@ -84,6 +84,26 @@ Status DirectXDevice::Init() {
                 }
             }
         }
+
+        {
+            IDXGIFactory * pFactory = nullptr;
+            hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)(&pFactory) );
+            if ( FAILED(hr) ) {
+                LOGD("CreateDXGIFactory failed.");
+            } else {
+                IDXGIAdapter * pAdapter = nullptr;
+                if (pFactory->EnumAdapters(0, &pAdapter) != DXGI_ERROR_NOT_FOUND) {
+                    hr = pAdapter->GetDesc(&adapter_desc_);
+                    if ( FAILED(hr) ) {
+                        LOGD("Get adapter desc failed, will use default desc.");
+                    }
+                } else {
+                    LOGD("No adapter found, will use default desc.");
+                }
+                TNN_SAFE_RELEASE(pAdapter);
+            }
+            TNN_SAFE_RELEASE(pFactory);
+        }
     }
     
     if ( forceRef || FAILED(hr) || bNeedRefDevice )
@@ -114,6 +134,21 @@ Status DirectXDevice::Init() {
     context_ = std::shared_ptr<ID3D11DeviceContext>(pContext, [](ID3D11DeviceContext * p){ TNN_SAFE_RELEASE(p);});
 
     return TNN_OK;
+}
+
+VendorType DirectXDevice::GetVensorType() {
+    LOGD("VendorId: %d\n", adapter_desc_.VendorId);
+
+    switch (adapter_desc_.VendorId) {
+        case 4318:
+            return DX_VENDOR_NVIDIA;
+        case 8086:
+            return DX_VENDOR_INTEL;
+        case 4130:
+            return DX_VENDOR_AMD;
+        default:
+            return DX_VENDOR_UNKNOWN;
+    }
 }
 
 BlobMemorySizeInfo DirectXDevice::Calculate1DMemorySize(BlobDesc &desc) {
