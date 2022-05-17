@@ -19,7 +19,48 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(LayerNorm, LAYER_LAYER_NORM);
+class CpuLayerNormLayerAcc : public CpuLayerAcc {
+public:
+    virtual ~CpuLayerNormLayerAcc(){};
+    Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                const std::vector<Blob *> &outputs);
+    virtual Status Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+    virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+};
+
+Status CpuLayerNormLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto scale_blob = inputs[1];
+    auto bias_blob  = inputs[2];
+
+    // Convert Scale and Bias to float if they are of half type.
+    if (scale_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        std::string name = scale_blob->GetBlobDesc().name;
+        if (const_resource_ == nullptr || const_resource_->find(name) == const_resource_->end()) {
+            return Status(TNNERR_LAYER_ERR, "CPULayerNormLayerAcc has invalid scale, unable to find scale in constant_map.");
+        }
+        auto scale_fp16 = (*const_resource_)[name];
+        auto scale_fp32 = std::make_shared<RawBuffer>(ConvertHalfHandle(*scale_fp16));
+        scale_fp32->SetBufferDims(scale_fp16->GetBufferDims());
+        (*const_resource_)[name] = scale_fp32;
+    }
+    
+    if (bias_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        std::string name = bias_blob->GetBlobDesc().name;
+        if (const_resource_ == nullptr || const_resource_->find(name) == const_resource_->end()) {
+            return Status(TNNERR_LAYER_ERR, "CPULayerNormLayerAcc has invalid bias, unable to find bias in constant_map.");
+        }
+        auto bias_fp16 = (*const_resource_)[name];
+        auto bias_fp32 = std::make_shared<RawBuffer>(ConvertHalfHandle(*bias_fp16));
+        bias_fp32->SetBufferDims(bias_fp16->GetBufferDims());
+        (*const_resource_)[name] = bias_fp32;
+    }
+
+    Status ret = CpuLayerAcc::Init(context, param, resource, inputs, outputs);
+    
+    RETURN_ON_NEQ(ret, TNN_OK);
+    return TNN_OK;
+}
 
 Status CpuLayerNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
