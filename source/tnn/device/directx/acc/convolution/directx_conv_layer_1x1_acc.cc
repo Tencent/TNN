@@ -43,6 +43,11 @@ Status DirectXConvLayer1x1Acc::Init(Context *context, LayerParam *param, LayerRe
 
     if (1 == conv_params_.stride_w && 1 == conv_params_.stride_h) {
         stride_is_1_ = true;
+        auto tnn_device = dynamic_cast<DirectXDevice *>(GetDevice(DEVICE_DIRECTX));
+        if (tnn_device && tnn_device->GetVensorType() != DX_VENDOR_INTEL) {
+            // tmp skip intel platform
+            use_gemm_opt_ = true;
+        }
     }
 
     if (!stride_is_1_ && use_buffer_) {
@@ -140,6 +145,7 @@ Status DirectXConvLayer1x1Acc::DoForward(const std::vector<Blob *> &inputs, cons
     } else {
         int image_width;
         int image_height;
+        std::vector<int> grid;
 
         if (stride_is_1_) {
             kernel_name = "conv1x1_s1_texture";
@@ -147,15 +153,26 @@ Status DirectXConvLayer1x1Acc::DoForward(const std::vector<Blob *> &inputs, cons
             kernel_name = "conv1x1_texture";
         }
 
-        image_width = UP_DIV(DimsFunctionUtils::GetDim(out_dims, 1), 4) * UP_DIV(DimsFunctionUtils::GetDim(out_dims, 3), 4);
-        image_height = DimsFunctionUtils::GetDim(out_dims, 0) * DimsFunctionUtils::GetDim(out_dims, 2);
+        int batch = DimsFunctionUtils::GetDim(out_dims, 0);
+        int oc    = DimsFunctionUtils::GetDim(out_dims, 1);
+        int oh    = DimsFunctionUtils::GetDim(out_dims, 2);
+        int ow    = DimsFunctionUtils::GetDim(out_dims, 3);
+
+        image_width = UP_DIV(oc, 4) * UP_DIV(ow, 4);
+        image_height = batch * oh;
+        grid = {UP_DIV(image_width, 4), UP_DIV(image_height, 4)};
+
+        if (use_gemm_opt_ && oh >= 64 && ow >= 64) {
+            kernel_name = "conv1x1_s1_texture_64x64";
+            grid = {UP_DIV(UP_DIV(oc, 4), 16), batch * UP_DIV(oh * ow, 64)};
+        }
 
         LOGD("kernel name: %s\n",kernel_name.c_str());
         std::shared_ptr<ID3D11ComputeShader> cs;
         ret = GetShaderByName(kernel_name, cs);
         RETURN_ON_NEQ(ret, TNN_OK);
 
-        ret = DispatchShader(cs, {in_srv, weight_srv, bias_srv}, {out_uav}, {const_buffer_.get()}, {UP_DIV(image_width, 4),UP_DIV(image_height, 4), 1});
+        ret = DispatchShader(cs, {in_srv, weight_srv, bias_srv}, {out_uav}, {const_buffer_.get()}, grid);
 
     }
 

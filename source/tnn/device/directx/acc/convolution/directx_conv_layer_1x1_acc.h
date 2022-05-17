@@ -40,6 +40,7 @@ private:
     Status CreateCB(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) ;
 
     bool stride_is_1_ = false;
+    bool use_gemm_opt_ = false;
 
     std::shared_ptr<ID3D11Buffer> const_buffer_;
 };
