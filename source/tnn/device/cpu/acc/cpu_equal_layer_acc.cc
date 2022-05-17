@@ -40,6 +40,12 @@ Status CpuEqualLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
     if (data_type == DATA_TYPE_FLOAT) {
         CPU_ELEMENT_WISE_COMPARE<float, char>(input_ptrs, input_shapes, output_data, output_dims,
                                   [](float a, float b) -> char { return a == b; });
+    } else if(data_type == DATA_TYPE_HALF) {  
+        CPU_ELEMENT_WISE_COMPARE<fp16_t, char>(input_ptrs, input_shapes, output_data, output_dims,
+                                  [](fp16_t a, fp16_t b) -> char { return a == b; });
+    } else if(data_type == DATA_TYPE_BFP16) {  
+        CPU_ELEMENT_WISE_COMPARE<bfp16_t, char>(input_ptrs, input_shapes, output_data, output_dims,
+                                  [](bfp16_t a, bfp16_t b) -> char { return a == b; });
     } else if(data_type == DATA_TYPE_INT32) {  
         CPU_ELEMENT_WISE_COMPARE<int, char>(input_ptrs, input_shapes, output_data, output_dims,
                                   [](int a, int b) -> char { return a == b; });

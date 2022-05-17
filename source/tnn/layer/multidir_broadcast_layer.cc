@@ -18,6 +18,68 @@
 
 namespace TNN_NS {
 
+Status MultidirBroadcastLayer::InferOutputDataType() {
+    BaseLayer::InferOutputDataType();
+    auto layer_param = dynamic_cast<MultidirBroadcastLayerParam*>(param_);
+
+    // Multidir OP Cast Output to higher data type.
+    // for example:
+    // [half, float] -> float 
+    // [int8_t, int] -> int
+    // [int, int, int] -> int
+    // [int, int, int, half] -> half
+    // [int, int, int, bfp16] -> bfp16
+    // [int, half, float, int8_t] -> float 
+    bool inputs_contains_float = false;
+    bool inputs_contains_half  = false;
+    bool inputs_contains_bfp16 = false;
+    bool inputs_contains_int32 = false;
+
+    if (input_blobs_.size()==1) {
+        auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
+        if (!layer_res) {
+            return Status(TNNERR_LAYER_ERR, "Error: layer resource missing when Binary OP has only 1 input.");
+        }
+        DataType res_dtype = layer_res->element_handle.GetDataType();
+        inputs_contains_float |= (res_dtype==DATA_TYPE_FLOAT);
+        inputs_contains_half  |= (res_dtype==DATA_TYPE_HALF);
+        inputs_contains_bfp16 |= (res_dtype==DATA_TYPE_BFP16);
+        inputs_contains_int32 |= (res_dtype==DATA_TYPE_INT32);
+    } 
+    
+    for (const auto& input_blob : input_blobs_) {
+        DataType dtype = input_blob->GetBlobDesc().data_type;
+        inputs_contains_float |= (dtype==DATA_TYPE_FLOAT);
+        inputs_contains_half  |= (dtype==DATA_TYPE_HALF);
+        inputs_contains_bfp16 |= (dtype==DATA_TYPE_BFP16);
+        inputs_contains_int32 |= (dtype==DATA_TYPE_INT32);
+    }
+
+    if (inputs_contains_float) {
+        output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
+        return TNN_OK;
+    }
+
+    if (inputs_contains_half && inputs_contains_bfp16) {
+        return Status(TNNERR_LAYER_ERR, "Error: Binary OP with both fp16 inputs and bfp16 inputs is not allowed.");
+    }
+    if (inputs_contains_half) {
+        output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_HALF;
+        return TNN_OK;
+    }
+    if (inputs_contains_bfp16) {
+        output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_BFP16;
+        return TNN_OK;
+    }
+
+    if (inputs_contains_int32) {
+        output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_INT32;
+        return TNN_OK;
+    }
+    
+    return TNN_OK;
+}
+
 void BroadCastTypeFilter(const DimsVector &dims_output, const DimsVector &dims_input, int &type) {
 
     if (DimsVectorUtils::Equal(dims_output, dims_input)) {
