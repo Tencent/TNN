@@ -47,7 +47,7 @@ namespace TNN_NS {
         for (auto item : split_torch_param->slices) {
             output_stream << item << " ";
         }
-        output_stream << int(splitv_param->is_split_specified) << " ";
+        output_stream << int(split_torch_param->is_split_specified) << " ";
         output_stream << split_torch_param->split_size << " ";
 
         return TNN_OK;
