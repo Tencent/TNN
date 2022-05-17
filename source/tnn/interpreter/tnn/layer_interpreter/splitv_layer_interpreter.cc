@@ -28,6 +28,8 @@ Status SplitVLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, 
 
     p->slices.clear();
     GET_INT_N_INTO_VEC(p->slices, slice_count);
+    
+    GET_INT_1_OR_DEFAULT(p->is_split_specified, 0);
 
     return TNN_OK;
 }
@@ -44,6 +46,7 @@ Status SplitVLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerPara
     for (auto item : splitv_param->slices) {
         output_stream << item << " ";
     }
+    output_stream << int(splitv_param->is_split_specified) << " ";
 
     return TNN_OK;
 }

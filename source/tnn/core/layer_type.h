@@ -225,6 +225,11 @@ enum LayerType {
     LAYER_LESS                                              = 334,
     LAYER_NON_MAX_SUPPRESSION                               = 335,
     LAYER_SCATTER                                           = 336,
+    LAYER_SPLITTORCH                                        = 337,
+    LAYER_PERMUTEV2                                         = 338,
+    LAYER_CLONE                                             = 339,
+    LAYER_RESHAPETORCH                                      = 340,
+    LAYER_FLATTENTORCH                                      = 341,
     LAYER_OR                                                = 342,
     LAYER_XOR                                               = 343,
 
