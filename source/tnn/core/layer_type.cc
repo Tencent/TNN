@@ -224,6 +224,8 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"NonMaxSuppression", LAYER_NON_MAX_SUPPRESSION},
     {"TopK", LAYER_TOPK},
     {"Scatter", LAYER_SCATTER},
+    {"Or", LAYER_OR},
+    {"Xor", LAYER_XOR},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 
