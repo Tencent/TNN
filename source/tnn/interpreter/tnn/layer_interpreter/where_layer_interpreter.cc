@@ -37,7 +37,7 @@ Status WhereLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
     return TNN_OK;
 }
 
-Status WhereLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
+Status WhereLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
     return TNN_OK;
 }
 
