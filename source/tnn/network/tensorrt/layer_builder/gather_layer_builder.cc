@@ -106,7 +106,8 @@ nvinfer1::DataType GatherTRTPluginLayerBuilder::getOutputDataType(int index, con
 ILayer* GatherTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     // if shape tensor
     if (GetInputITensors()[0]->getDimensions().nbDims == 0 ||
-        GetInputITensors()[0]->getDimensions().nbDims == 1) {
+        GetInputITensors()[0]->getDimensions().nbDims == 1 ||
+        GetInputITensors()[0]->getDimensions().nbDims == 2) {
 
         auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
         if (layer_param == nullptr) {
@@ -147,8 +148,20 @@ ILayer* GatherTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
             LOGE("GatherTRTLayerBuilder can not find data or indices\n");
             return nullptr;
         }
+        
+        // TNN-Torch aten::embedding may have a strange BUG,
+        // runtime data type of indices may be types other than int32 although
+        // init time dtype is. An extra type cast must be added here to avoid such case.
+        if (GetInputITensors()[0]->getDimensions().nbDims == 2) {
+            ILayer* cast_layer = network->addIdentity(*indices);
+            cast_layer->setName((layer_name_+"_gather_indices_to_int32").c_str());
+            cast_layer->setOutputType(0, nvinfer1::DataType::kINT32);
+            indices = cast_layer->getOutput(0);
+        }
 
-        return network->addGather(*data, *indices, axis);
+        auto gather_layer = network->addGather(*data, *indices, axis);
+        gather_layer->setName((layer_name_).c_str());
+        return gather_layer;
     }
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
