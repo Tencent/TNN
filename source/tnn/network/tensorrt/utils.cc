@@ -158,6 +158,8 @@ nvinfer1::DataType ConvertToTRTDataType(DataType type) {
             return nvinfer1::DataType::kHALF;
         case DATA_TYPE_INT32: 
             return nvinfer1::DataType::kINT32;
+        case DATA_TYPE_INT8: 
+            return nvinfer1::DataType::kINT8;
         default:
             return nvinfer1::DataType::kFLOAT;
     } 
