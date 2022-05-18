@@ -535,14 +535,24 @@ X86BinaryOpLayerAcc::~X86BinaryOpLayerAcc() {}
 
 Status X86BinaryOpLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                              const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Status ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+    auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param);
+    CHECK_PARAM_NULL(layer_param);
+    auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource);
+
+    Status ret;
+    if (inputs.size() == 1 && layer_res && layer_res->element_handle.GetDataType() == DATA_TYPE_HALF) {
+        LayerResource *fp32_res = nullptr;
+        LayerType layer_type    = GlobalConvertLayerType(layer_param->type);
+        RETURN_ON_NEQ(ConvertHalfResource(layer_type, layer_res, &fp32_res), TNN_OK);
+        binary_acc_f32_resource_ = std::shared_ptr<LayerResource>(fp32_res);
+        ret                      = X86LayerAcc::Init(context, param, binary_acc_f32_resource_.get(), inputs, outputs);
+    } else {
+        ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+    }
+
     if (ret != TNN_OK) {
         return ret;
     }
-
-    auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
-    CHECK_PARAM_NULL(layer_param);
-    auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
 
     // prepare input shapes
     input_shapes_.clear();

@@ -506,12 +506,22 @@ void Kernel_1x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
             Half8 vec_0     = Half8(fp16_t(0));
             Half8 c0        = vec_0;
             Half8 c1        = vec_0;
+            // Kahan summation
+            // set to zero
+            Half8 error_0 = vec_0;
+            Half8 error_1 = vec_0;
             for (int kk = 0; kk < k; ++kk) {
                 Half8 b0 = Half8::load(b);
                 Half8 b1 = Half8::load(b + 8);
                 Half8 a0 = Half8(a[kk]);
-                Half8::mla(c0, a0, b0);
-                Half8::mla(c1, a0, b1);
+                Half8 y_0 = a0 * b0 - error_0;
+                Half8 y_1 = a0 * b1 - error_1;
+                Half8 t_0 = c0 + y_0;
+                Half8 t_1 = c1 + y_1;
+                error_0 = (t_0 - c0) - y_0;
+                error_1 = (t_1 - c1) - y_1;
+                c0 = t_0;
+                c1 = t_1;
                 b += 16;
             }
             if (remain > 8) {
