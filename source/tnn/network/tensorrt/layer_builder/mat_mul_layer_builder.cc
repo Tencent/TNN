@@ -33,7 +33,8 @@ nvinfer1::Dims unsqueeze_trt_dims(const nvinfer1::Dims &input_dims, int unsqueez
 
 bool MatMulTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    if (pos == 1) {
+    if (pos == 1 && inOut[pos].dims.d[inOut[pos].dims.nbDims-1]==1) {
+        // GEMV + reduce sum case, input 1 should be fp32 to keep precision.
         return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
     } else {
         return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF) &&
@@ -113,10 +114,29 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
     MatrixOperation opA = getMatrixOp(matrix_a);
     MatrixOperation opB = getMatrixOp(matrix_b);
 
-    if (opA == MatrixOperation::kNONE && opB == MatrixOperation::kNONE && dims_b.d[dims_b.nbDims - 1] == 1 &&
+    // CASEs when Custom Plugin MatMul OP is prefered:
+    // case 1: N=1, TRT GEMV with reduce sum, TRT default batched-gemv is slow,
+    //         besides, fp16 GEMV has reduce sum OP, reduce should be calculated under fp32.
+    // case 2: Batched-GEMM, without unsqueeze, TRT 7,8 may trigger "Unable to find CUBLAS algo" ERROR,
+    //         in some corner cases.
+    //         Calling Plugin CUBLAS GEMM may hurt performace, so we put a very strict prerequisite.
+    //         Ideally, Batched-GEMM plugin should only be called by Models with Transformer Kernels.
+    if (opA == MatrixOperation::kNONE && opB == MatrixOperation::kNONE &&
             input_tensors.size() == 2 &&
             input_tensors[0]->getDimensions().nbDims == input_tensors[1]->getDimensions().nbDims) {
-        return TensorRTPluginLayerBuilder::AddToNetwork(network);
+        bool batch_eq = true;
+        bool mnk_unknown = true;
+        int in0_batch = 1;
+        for (int i=0; i<input_tensors[0]->getDimensions().nbDims-2; i++) {
+            // dim==-1 would be treated as dim>1 here.
+            batch_eq &= (input_tensors[0]->getDimensions().d[i]==input_tensors[1]->getDimensions().d[i]); 
+            in0_batch *= input_tensors[0]->getDimensions().d[i]==-1 ? 2 : input_tensors[0]->getDimensions().d[1];
+        }
+        mnk_unknown &= input_tensors[0]->getDimensions().nbDims==4;
+        if (dims_b.d[dims_b.nbDims - 1] == 1 ||
+            (batch_eq && in0_batch>1 && mnk_unknown)) {
+            return TensorRTPluginLayerBuilder::AddToNetwork(network); 
+        }
     }
 
     IMatrixMultiplyLayer* layer = network->addMatrixMultiply(*matrix_a, opA, *matrix_b, opB);

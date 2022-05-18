@@ -61,6 +61,51 @@ Status CpuMatMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
     return TNN_OK;
 }
 
+//in align with onnx, use Tprecision=double to compute here for decision for fp types.
+//or for align with bert model, use COSINE distance ??? not checked
+template<typename Ta,typename Tb,typename Tprecision,typename Tc>
+void CpuMatMulKernel(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs, float *weight,
+                     const DimsVector &matrix_a_dims, const DimsVector &matrix_b_dims, const DimsVector & matrix_c_dims,
+                     const MatMulLayerParam *param) {
+    Ta *matrix_a;
+    Tb *matrix_b;
+    if (inputs.size() == 2) {
+        matrix_a = static_cast<Ta *>(inputs[0]->GetHandle().base);
+        matrix_b = static_cast<Tb *>(inputs[1]->GetHandle().base);
+    } else {
+        //matrix_a = param->weight_position == 0 ? weight_.get() : static_cast<Ta *>(inputs[0]->GetHandle().base);
+        //matrix_b = param->weight_position == 1 ? weight_.get() : static_cast<Tb *>(inputs[0]->GetHandle().base);
+        matrix_a = param->weight_position == 0 ? reinterpret_cast<Ta *>(weight) : static_cast<Ta *>(inputs[0]->GetHandle().base);
+        matrix_b = param->weight_position == 1 ? reinterpret_cast<Tb *>(weight) : static_cast<Tb *>(inputs[0]->GetHandle().base);
+    }
+ 
+    Tc *matrix_c = static_cast<Tc *>(outputs[0]->GetHandle().base);
+    int M        = matrix_a_dims[matrix_a_dims.size() - 2];
+    int N        = matrix_a_dims[matrix_a_dims.size() - 1];
+    int K        = matrix_b_dims[matrix_b_dims.size() - 1];
+    int count_a  = DimsVectorUtils::Count(matrix_a_dims);
+    int count_b  = DimsVectorUtils::Count(matrix_b_dims);
+    int count_c  = DimsVectorUtils::Count(matrix_c_dims);
+    int batch_a  = count_a / (M * N);
+    int batch_b  = count_b / (N * K);
+    int batch_c  = count_c / (M * K);
+
+    for (int bc = 0; bc < batch_c; ++bc) {
+        int ba = bc % batch_a;
+        int bb = bc % batch_b;
+            
+        for (int m = 0; m < M; ++m) {
+            for (int k = 0; k < K; ++k) {
+                Tprecision sum = 0;
+                for (int n = 0; n < N; ++n) {
+                    sum += Tprecision(matrix_a[ba * M * N + m * N + n]) * Tprecision(matrix_b[bb * N * K + n * K + k]);
+                }
+                matrix_c[bc * M * K + m * K + k] = Tc(sum);
+            }
+        }
+    }
+}
+
 Status CpuMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param               = dynamic_cast<MatMulLayerParam *>(param_);
     auto resource            = dynamic_cast<MatMulLayerResource *>(resource_);
@@ -72,45 +117,53 @@ Status CpuMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
     if (matrix_b_dims.size() == 1) {
         matrix_b_dims.push_back(1);
     }
-    DataType data_type       = inputs[0]->GetBlobDesc().data_type;
     auto matrix_c_dims       = outputs[0]->GetBlobDesc().dims;
-    if (data_type == DATA_TYPE_FLOAT) {
-        float *matrix_a;
-        float *matrix_b;
-
-        if (inputs.size() == 2) {
-            matrix_a = static_cast<float *>(inputs[0]->GetHandle().base);
-            matrix_b = static_cast<float *>(inputs[1]->GetHandle().base);
+    
+    DataType matrix_a_dtype;
+    DataType matrix_b_dtype;
+    DataType matrix_c_dtype  = outputs[0]->GetBlobDesc().data_type;
+    if (inputs.size() == 1) {
+        if (param->weight_position == 0) {
+            //matrix_a_dtype = resource->weight.GetDataType();
+            matrix_a_dtype = DATA_TYPE_FLOAT;
+            matrix_b_dtype = inputs[0]->GetBlobDesc().data_type;
+        } else if (param->weight_position == 1) {
+            matrix_a_dtype = inputs[0]->GetBlobDesc().data_type;
+            //matrix_b_dtype = resource->weight.GetDataType();
+            matrix_b_dtype = DATA_TYPE_FLOAT;
         } else {
-            matrix_a    = param->weight_position == 0 ? weight_.get() : static_cast<float *>(inputs[0]->GetHandle().base);
-            matrix_b    = param->weight_position == 1 ? weight_.get() : static_cast<float *>(inputs[0]->GetHandle().base);
+            return Status(TNNERR_INVALID_MODEL, "MatMul input size error. param.weight_position invalid when num of input is 1.");
         }
-        auto matrix_c = static_cast<float *>(outputs[0]->GetHandle().base);
-        int M         = matrix_a_dims[matrix_a_dims.size() - 2];
-        int N         = matrix_a_dims[matrix_a_dims.size() - 1];
-        int K         = matrix_b_dims[matrix_b_dims.size() - 1];
-        int count_a     = DimsVectorUtils::Count(matrix_a_dims);
-        int count_b     = DimsVectorUtils::Count(matrix_b_dims);
-        int count_c     = DimsVectorUtils::Count(matrix_c_dims);
-        int batch_a   = count_a / (M * N);
-        int batch_b   = count_b / (N * K);
-        int batch_c   = count_c / (M * K);
-        for (int bc = 0; bc < batch_c; ++bc) {
-            int ba = bc % batch_a;
-            int bb = bc % batch_b;
-            
-            for (int m = 0; m < M; ++m) {
-                for (int k = 0; k < K; ++k) {
-                    //in align with onnx, use double to compute here for decision.
-                    //or for align with bert model, use COSINE distance ??? not checked
-                    double sum = 0;
-                    for (int n = 0; n < N; ++n) {
-                        sum += double(matrix_a[ba * M * N + m * N + n]) * double(matrix_b[bb * N * K + n * K + k]);
-                    }
-                    matrix_c[bc * M * K + m * K + k] = float(sum);
-                }
-            }
+    } else if (inputs.size() == 2) {
+        matrix_a_dtype = inputs[0]->GetBlobDesc().data_type;
+        matrix_b_dtype = inputs[1]->GetBlobDesc().data_type;
+    } else {
+        return Status(TNNERR_INVALID_MODEL, "MatMul OP number of inputs should be 1 or 2.");
+    }
+
+
+    if (matrix_c_dtype == DATA_TYPE_FLOAT) {
+        if (matrix_a_dtype==DATA_TYPE_FLOAT && matrix_b_dtype==DATA_TYPE_FLOAT) {
+            CpuMatMulKernel<float,float,double,float>(inputs, outputs, weight_.get(), matrix_a_dims, matrix_b_dims, matrix_c_dims, param); 
+        } else if (matrix_a_dtype==DATA_TYPE_FLOAT && matrix_b_dtype==DATA_TYPE_HALF) {
+            CpuMatMulKernel<float,fp16_t,double,float>(inputs, outputs, weight_.get(), matrix_a_dims, matrix_b_dims, matrix_c_dims, param); 
+        } else if (matrix_a_dtype==DATA_TYPE_HALF && matrix_b_dtype==DATA_TYPE_FLOAT) {
+            CpuMatMulKernel<fp16_t,float,double,float>(inputs, outputs, weight_.get(), matrix_a_dims, matrix_b_dims, matrix_c_dims, param); 
+        } else {
+            return Status(TNNERR_INVALID_MODEL, "MatMul OP CPU: data type combination of matrix a and b not supported.");
         }
+    } else if (matrix_c_dtype == DATA_TYPE_HALF) {
+        if (matrix_a_dtype==DATA_TYPE_HALF && matrix_b_dtype==DATA_TYPE_HALF) {
+            CpuMatMulKernel<fp16_t,fp16_t,float,fp16_t>(inputs, outputs, weight_.get(), matrix_a_dims, matrix_b_dims, matrix_c_dims, param); 
+        } else if (matrix_a_dtype==DATA_TYPE_FLOAT && matrix_b_dtype==DATA_TYPE_HALF) {
+            CpuMatMulKernel<float,fp16_t,float,fp16_t>(inputs, outputs, weight_.get(), matrix_a_dims, matrix_b_dims, matrix_c_dims, param); 
+        } else if (matrix_a_dtype==DATA_TYPE_HALF && matrix_b_dtype==DATA_TYPE_FLOAT) {
+            CpuMatMulKernel<fp16_t,float,float,fp16_t>(inputs, outputs, weight_.get(), matrix_a_dims, matrix_b_dims, matrix_c_dims, param); 
+        } else {
+            return Status(TNNERR_INVALID_MODEL, "MatMul OP CPU: data type combination of matrix a and b not supported.");
+        }
+    } else {
+        return Status(TNNERR_INVALID_MODEL, "MatMul OP CPU: OUTPUT matrix C, data type not supported.");
     }
 
     return TNN_OK;
