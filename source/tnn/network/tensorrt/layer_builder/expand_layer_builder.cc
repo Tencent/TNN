@@ -36,10 +36,11 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     nvinfer1::ITensor* shape;
     int shapeLength;
-    if (input_tensors.size() == 2) {
+    if (input_tensors.size() == 2 && input_tensors[1]->getDimensions().d[0]!=-1) {
         shape = input_tensors[1];
         shapeLength = input_tensors[1]->getDimensions().d[0];
-    } else if (input_tensors.size() == 1) {
+    } else if (input_tensors.size() == 1 || 
+               (input_tensors.size() == 2 && input_tensors[1]->getDimensions().d[0]==-1)) {
         nvinfer1::Dims shapeDims;
         shapeDims.nbDims = 1;
         shapeDims.d[0] = layer_param->shape.size();
@@ -114,9 +115,12 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
             tmpDims.d[i] = 1;
         Weights tmpWeight;
         tmpWeight.type = nvinfer1::DataType::kINT32;
-        tmpWeight.values = layer_param->shape.data();
+        auto tmpValuePtr = std::make_shared<std::vector<int>>(1, 1);
+        tmpWeight.values = tmpValuePtr.get(); 
         tmpWeight.count = 1;
-        one = network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0);
+        ILayer* one_shape_constant_layer = network->addConstant(tmpDims, tmpWeight);
+        one_shape_constant_layer->setName((layer_name_+"_one_shape_constant").c_str());
+        one = network->addShape(*one_shape_constant_layer->getOutput(0))->getOutput(0);
     }
 
     ITensor* strides = network->addElementWise(*one,
@@ -124,6 +128,7 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         ElementWiseOperation::kMIN)->getOutput(0);
 
     ISliceLayer* broadcast_layer = network->addSlice(*input_data_tensor, startDims, nvinfer1::Dims{}, nvinfer1::Dims{});
+    broadcast_layer->setName((layer_name_+"_expand_slice").c_str());
     if (broadcast_layer != nullptr) {
         broadcast_layer->setInput(2, *sizes);
         broadcast_layer->setInput(3, *strides);
