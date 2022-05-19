@@ -266,6 +266,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"DynamicRangeQuantizedConvolution", LAYER_CONVOLUTION},
     {"DynamicRangeQuantizedLSTMONNX", LAYER_LSTMONNX},
     {"DynamicRangeQuantizedMatMul", LAYER_MATMUL},
+    {"DynamicRangeQuantizedInnerProduct", LAYER_INNER_PRODUCT},
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

@@ -42,6 +42,9 @@ private:
     Status QuantMatMul(std::shared_ptr<LayerInfo>& layer,
                        std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
                        std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map);
+    Status QuantInnerProduct(std::shared_ptr<LayerInfo>& layer,
+                       std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
+                       std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map);
     Status PerChannelQuant(RawBuffer& weight_buf, RawBuffer& quant_buf, RawBuffer& scale_buf, int num_kernel);
     Status PerTensorQuant(RawBuffer& weight_buf, RawBuffer& quant_buf, RawBuffer& scale_buf);
 

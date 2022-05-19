@@ -60,6 +60,9 @@ namespace optimizer {
                 case LAYER_MATMUL:
                     DequantMatMul(layer, structure, resource);
                     break;
+                case LAYER_INNER_PRODUCT:
+                    DequantInnerProduct(layer, structure, resource);
+                    break;
                 default:
                     break;
             }
@@ -169,6 +172,37 @@ namespace optimizer {
         weight_buf.SetBufferDims(matmul_resource->weight.GetBufferDims());
 
         matmul_resource->weight               = weight_buf;
+        layer->param->dynamic_range_quantized = false;
+        return TNN_OK;
+    }
+
+    Status NetOptimizerDynamicRangeDequant::DequantInnerProduct(std::shared_ptr<LayerInfo> &layer,
+                                                                NetStructure *structure, NetResource *resource) {
+        auto layer_name      = layer->name;
+        auto matmul_resource = std::dynamic_pointer_cast<InnerProductLayerResource>(resource->resource_map[layer_name]);
+        auto scale_handle    = matmul_resource->scale_handle;
+        if (matmul_resource->weight_handle.GetDataType() != DATA_TYPE_INT8) {
+            LOGD(
+                "Dynamic range dequantize layer(%s) weight data type is not int8_t."
+                "This weight might have been dequantized before.\n",
+                layer_name.c_str());
+            return TNN_OK;
+        }
+
+        const int data_size = matmul_resource->weight_handle.GetDataCount();
+        auto weight_ptr     = matmul_resource->weight_handle.force_to<int8_t *>();
+        auto scale_value    = scale_handle.force_to<float *>()[0];
+        std::vector<float> weight_data(data_size, 0);
+        for (int i = 0; i < data_size; i++) {
+            weight_data[i] = scale_value * (float)(weight_ptr[i]);
+        }
+
+        RawBuffer weight_buf(data_size * sizeof(float));
+        memcpy(weight_buf.force_to<float *>(), weight_data.data(), data_size * sizeof(float));
+        weight_buf.SetDataType(DATA_TYPE_FLOAT);
+        weight_buf.SetBufferDims(matmul_resource->weight_handle.GetBufferDims());
+
+        matmul_resource->weight_handle        = weight_buf;
         layer->param->dynamic_range_quantized = false;
         return TNN_OK;
     }
