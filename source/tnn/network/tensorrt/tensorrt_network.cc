@@ -16,6 +16,8 @@
 #include <sstream>
 #include <mutex>
 
+#include <string>
+
 #include "tnn/device/cuda/cuda_context.h"
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
@@ -29,6 +31,10 @@
 #include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
+
+const static std::string engine_encode_key = std::string("(8Xo@8Z9^@x7<1$x~-1l$=+[:z'/?\
+      E6775aA9CA9A6FEB02a6A844DcB89Ec94c50bFeDD2a7Ae04d0e3F35D23cd1eB2b1\
+      24faBDE1Ce0edB7d0a53b4b40");
 
 #define MAX_SCRATCH_MEMORY (1<<31 - 1)
 #define TENSORRT_SERIALIZE_VERSION "v1.5"
@@ -167,6 +173,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         deploy_input.seekg(0, deploy_input.beg);
         char *model_stream = new char[size + 1];
         deploy_input.read(model_stream, size);
+        xor_encode(model_stream, size, engine_encode_key.c_str(), engine_encode_key.length());
         IRuntime* runtime = createInferRuntime(m_trt_logger);
         m_trt_engine = runtime->deserializeCudaEngine(model_stream, size);
         delete[] model_stream;
@@ -710,6 +717,7 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
         model_stream = m_trt_engine->serialize();
         std::ofstream deploy_output(cache_file_name, std::ofstream::binary);
         char *model_stream_ptr = reinterpret_cast<char*>(model_stream->data());
+        xor_encode(model_stream_ptr, model_stream->size(), engine_encode_key.c_str(), engine_encode_key.length());
         deploy_output.write(model_stream_ptr, model_stream->size());
         deploy_output.close();
         delete model_stream_ptr;

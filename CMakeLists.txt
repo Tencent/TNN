@@ -17,7 +17,7 @@ ENABLE_LANGUAGE(ASM)
 set(TNN_MAJOR_VERSION 0)
 set(TNN_MINOR_VERSION 3)
 set(TNN_PATCH_VERSION 0)
-set(TNN_BUILD_VERSION 0)
+set(TNN_BUILD_VERSION 33)
 set(TNN_VERSION "${TNN_MAJOR_VERSION}.${TNN_MINOR_VERSION}.${TNN_PATCH_VERSION}.${TNN_BUILD_VERSION}")
 
 option(TNN_CPU_ENABLE "Enable Cpu" ON)
@@ -45,6 +45,7 @@ option(TNN_PROFILER_ENABLE "Enable Profiler" OFF)
 option(TNN_QUANTIZATION_ENABLE "Enable Quantization" OFF)
 option(TNN_EVALUATION_ENABLE "Enable Evaluation" OFF)
 option(TNN_MODEL_CHECK_ENABLE "Enable Model Check" OFF)
+option(TNN_MODEL_CONVERT_ENABLE "Enable Model Convert" OFF)
 option(TNN_BENCHMARK_MODE "Enable Benchmark" OFF)
 option(TNN_UNIT_TEST_BENCHMARK "Enable Benchmark Layer" OFF)
 option(TNN_CONVERTER_ENABLE "Enable Model Converter" OFF)
@@ -54,6 +55,7 @@ option(TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE "Enable Build Benchmark Test Lib" OFF
 option(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE "Enable Use CXX11 ABI" ON)
 option(TNN_METAL_FLOAT32 "Enable Metal Float32" OFF)
 option(TNN_COREML_FLOAT32 "Enable Float32 CoreML Model" ON)
+option(TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE "Enable Dynamic Range Quantization" OFF)
 
 set(TNN_USE_GFLAGS OFF)
 
@@ -135,9 +137,13 @@ if(TNN_CONVERTER_ENABLE OR TNN_ONNX2TNN_ENABLE)
     add_definitions(-DTNN_CONVERTER_RUNTIME)
 endif()
 
-if(TNN_QUANTIZATION_ENABLE OR TNN_MODEL_CHECK_ENABLE)
+if(TNN_QUANTIZATION_ENABLE OR TNN_MODEL_CHECK_ENABLE OR TNN_MODEL_CONVERT_ENABLE)
     set(TNN_SYMBOL_HIDE OFF)
     add_definitions(-DFORWARD_CALLBACK_ENABLE)
+endif()
+
+if (TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
+    set(TNN_SYMBOL_HIDE OFF)
 endif()
 
 if(TNN_QUANTIZATION_ENABLE OR TNN_UNIT_TEST_ENABLE)
@@ -254,6 +260,7 @@ message(STATUS "\tTEST:\t${TNN_TEST_ENABLE}")
 message(STATUS "\t--Unit Test:\t${TNN_UNIT_TEST_ENABLE}")
 message(STATUS "\tQuantization:\t${TNN_QUANTIZATION_ENABLE}")
 message(STATUS "\tModelCheck:\t${TNN_MODEL_CHECK_ENABLE}")
+message(STATUS "\tModelConverter:\t${TNN_MODEL_CONVERT_ENABLE}")
 message(STATUS "\tDEBUG:\t${DEBUG}")
 message(STATUS "\tPROFILE:\t${TNN_PROFILER_ENABLE}")
 message(STATUS "\tBENCHMARK:\t${TNN_BENCHMARK_MODE}")
@@ -262,6 +269,7 @@ message(STATUS "\tModel Converter:\t${TNN_CONVERTER_ENABLE}")
 message(STATUS "\tONNX2TNN Converter:\t${TNN_ONNX2TNN_ENABLE}")
 message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 message(STATUS "\tBENCHMARK Test Lib:\t${TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE}")
+message(STATUS "\tDynamic Range Quantization:\t${TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE}")
 
 include_directories(include)
 include_directories(source)
@@ -290,9 +298,16 @@ if(SYSTEM.Linux AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND ANDROID_API_LEVAL)
     add_definitions(-D__ANDROID_API__=${ANDROID_API_LEVAL})
 endif()
 
+if(SYSTEM.Windows AND TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
+    set(TNN_BUILD_SHARED OFF)
+endif()
+
 if(TNN_X86_ENABLE)
+    # compile with avx2 by default
+    option(TNN_X86_AVX2_ENABLE  "Enable X86 AVX2" ON)
     add_subdirectory(source/tnn/device/x86)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86>")
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNX86ACC>")
 endif()
 
 if(TNN_CPU_ENABLE)
@@ -355,6 +370,22 @@ if(TNN_CUDA_ENABLE)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNCuda>")
 endif()
 
+if(TNN_DSP_ENABLE)
+    add_subdirectory(source/tnn/device/dsp)
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNDSP>")
+    if(ANDROID_ABI STREQUAL "armeabi-v7a")
+        link_directories(
+            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/arm-android-clang6.0
+            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/dsp
+            )
+    else()
+        link_directories(
+            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/aarch64-android-clang6.0
+            ${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/dsp/thirdparty/snpe/lib/dsp
+            )
+    endif()
+endif()
+
 if(TNN_HUAWEI_NPU_ENABLE)
     if(ANDROID_ABI STREQUAL "armeabi-v7a")
         link_directories(
@@ -367,6 +398,40 @@ if(TNN_HUAWEI_NPU_ENABLE)
     endif()
     add_subdirectory(source/tnn/device/huawei_npu)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
+endif()
+
+if(TNN_ATLAS_ENABLE)
+    add_subdirectory(source/tnn/device/atlas)
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNAtlas>")
+    include_directories(${CMAKE_SOURCE_DIR}/source/tnn/device/atlas)
+
+    set(ASCEND_PATH $ENV{DDK_PATH})
+
+    if (NOT DEFINED ENV{DDK_PATH})
+        set(ASCEND_PATH "/usr/local/Ascend")
+        message(STATUS "set default ASCEND_PATH: ${ASCEND_PATH}")
+    else ()
+        message(STATUS "env ASCEND_PATH: ${ASCEND_PATH}")
+    endif()
+
+    set(ACL_LIB_PATH $ENV{NPU_HOST_LIB})
+
+    if (NOT DEFINED ENV{NPU_HOST_LIB})
+        set(ACL_LIB_PATH "/usr/local/Ascend/acllib/lib64/stub/")
+        message(STATUS "set default ACL_LIB_PATH: ${ACL_LIB_PATH}")
+    else ()
+        message(STATUS "env ACL_LIB_PATH: ${ACL_LIB_PATH}")
+    endif()
+
+    # Header path
+    include_directories(
+        ${ASCEND_PATH}/acllib/include/
+        )
+
+    # add host lib path
+    link_directories(
+        ${ACL_LIB_PATH}
+        )
 endif()
 
 if(TNN_RK_NPU_ENABLE)
@@ -407,6 +472,10 @@ if(TNN_QUANTIZATION_ENABLE)
     add_subdirectory(tools/quantization)
 endif()
 
+if(TNN_MODEL_CONVERT_ENABLE)
+    add_subdirectory(tools/model_convert)
+endif()
+
 if(SYSTEM.Linux)
     include(platforms/linux/CMakeLists.txt)
 elseif(SYSTEM.Android)
@@ -419,7 +488,7 @@ elseif(SYSTEM.Windows)
     include(platforms/windows/CMakeLists.txt)
 endif()
 
-if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE OR TNN_MODEL_CHECK_ENABLE)
+if (TNN_TEST_ENABLE OR TNN_CONVERTER_ENABLE OR TNN_MODEL_CHECK_ENABLE OR TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
     set(TNN_USE_GFLAGS ON)
 endif ()
 
@@ -457,4 +526,8 @@ endif()
 
 if(TNN_EVALUATION_ENABLE)
     add_subdirectory(tools/evaluation)
+endif()
+
+if(TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
+    add_subdirectory(tools/dynamic_range_quantization)
 endif()

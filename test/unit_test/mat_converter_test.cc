@@ -373,7 +373,7 @@ TEST_P(MatConverterTest, MatConverterTest) {
         }
         case MatConverterType::WarpAffine:
         {
-            TNN_NS::Status status = MatUtils::WarpAffine(cpu_in_mat, cpu_ref_mat,
+            Status status = MatUtils::WarpAffine(cpu_in_mat, cpu_ref_mat,
                                                            mat_converter_test_param.warp_affine_param,
                                                            device_command_queue);
             CHECK_STATUS;

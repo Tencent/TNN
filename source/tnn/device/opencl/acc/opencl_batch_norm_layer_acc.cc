@@ -73,7 +73,7 @@ Status OpenCLBatchNormLayerAcc::Init(Context *context, LayerParam *param, LayerR
 
     // create kernel
     std::string kernel_name = "BatchNormGS3D";
-    ret                     = CreateExecuteUnit(execute_units_[0], "batch_norm", kernel_name);
+    ret                     = CreateExecuteUnit(execute_units_[0], "batch_norm", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;
@@ -101,7 +101,9 @@ Status OpenCLBatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
 
 REGISTER_OPENCL_ACC(BatchNorm, LAYER_BATCH_NORM)
 REGISTER_OPENCL_ACC(BatchNorm, LAYER_SCALE)
+REGISTER_OPENCL_ACC(BatchNorm, LAYER_BATCH_NORM_EX)
 REGISTER_OPENCL_LAYOUT(LAYER_BATCH_NORM, DATA_FORMAT_NHC4W4);
 REGISTER_OPENCL_LAYOUT(LAYER_SCALE, DATA_FORMAT_NHC4W4);
+REGISTER_OPENCL_LAYOUT(LAYER_BATCH_NORM_EX, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

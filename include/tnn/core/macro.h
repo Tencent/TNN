@@ -22,7 +22,7 @@
 // TNN namespcae
 #define TNN_NS__(x) tnn##x
 #define TNN_NS_(x) TNN_NS__(x)
-#define TNN_NS TNN_NS_()
+#define TNN_NS TNN_NS_(i)
 
 // TNN profile
 #ifndef TNN_PROFILE

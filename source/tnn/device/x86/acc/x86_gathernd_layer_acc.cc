@@ -62,6 +62,7 @@ Status X86GatherNDLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
                input_data_ptr + input_index*ele_size,
                1 * ele_size);
     }
+    return TNN_OK;
 }
 
 REGISTER_X86_ACC(GatherND, LAYER_GATHERND);

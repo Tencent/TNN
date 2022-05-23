@@ -261,14 +261,15 @@ namespace test {
         ModelConfig config;
         config.model_type = ConvertModelType(FLAGS_mt);
         if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_OPENVINO ||
-            config.model_type == MODEL_TYPE_NCNN) {
+            config.model_type == MODEL_TYPE_RAPIDNET || config.model_type == MODEL_TYPE_NCNN) {
             std::string network_path = FLAGS_mp;
             int size                 = static_cast<int>(network_path.size());
             std::string model_path;
 
             // TNN file names: xxx.tnnproto  xxx.tnnmodel
             // NCNN file names: xxx.param xxx.bin
-            if (config.model_type == MODEL_TYPE_TNN) {
+            if (config.model_type == MODEL_TYPE_TNN  ||
+                config.model_type == MODEL_TYPE_RAPIDNET) {
                 model_path = network_path.substr(0, size - 5) + "model";
             } else if (config.model_type == MODEL_TYPE_NCNN) {
                 model_path = network_path.substr(0, size - 5) + "bin";
@@ -285,7 +286,8 @@ namespace test {
                     std::string((std::istreambuf_iterator<char>(proto_stream)), std::istreambuf_iterator<char>());
             config.params.push_back(buffer);
 
-            if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_NCNN) {
+            if (config.model_type == MODEL_TYPE_TNN || config.model_type == MODEL_TYPE_RAPIDNET || 
+                config.model_type == MODEL_TYPE_NCNN) {
                 std::ifstream model_stream(model_path, std::ios::binary);
                 if (!model_stream.is_open() || !model_stream.good()) {
                     config.params.push_back("");
@@ -378,7 +380,6 @@ namespace test {
         }
         return mat_map;
     }
-
 
     void InitInputMatMap(MatMap& mat_map) {
         for (auto iter : mat_map) {

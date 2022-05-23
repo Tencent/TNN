@@ -63,6 +63,16 @@ struct PUBLIC WarpAffineParam {
     float border_val       = 0.0f;
 };
 
+typedef enum {
+    PASTE_TYPE_TOP_LEFT_ALIGN = 0x00,
+    PASTE_TYPE_CENTER_ALIGN   = 0x01,
+} PUBLIC PasteType;
+
+struct PUBLIC PasteParam {
+    PasteType type = PASTE_TYPE_TOP_LEFT_ALIGN;
+    int pad_value  = 0;
+};
+
 struct PUBLIC CopyMakeBorderParam {
     int top    = 0;
     int bottom = 0;
@@ -90,6 +100,28 @@ public:
 
     //src and dst device type must be same.
     static Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue);
+
+    // @brief mat resize and paste to dst
+    // @param src  src mat
+    // @param dst mat to paste
+    // @param param  param to use for resize
+    // @param paste_param  param to use for paste
+    // @param command_queue  device related command queue
+    // @return ret  return val
+    static Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue);
+
+    // @brief mat concat with batch
+    // @param src_vec  src mat vector
+    // @param dst mat
+    // @param command_queue  device related command queue
+    // @return ret  return val
+    static Status ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue);
+
+    // @brief get mat data buffer size
+    // @param src mat
+    // @param byte_size  buffer byte size
+    // @return ret  return val 
+    static Status GetMatByteSize(Mat& src, int& byte_size);
 
     //src and dst device type must be same. param top, bottom, left and right must be non-negative.
     static Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue);

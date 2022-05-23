@@ -30,7 +30,7 @@ Status OpenCLHardSigmoidLayerAcc::Init(Context *context, LayerParam *param, Laye
 
     // create kernel
     std::string kernel_name = "HardSigmoid";
-    ret                     = CreateExecuteUnit(execute_units_[0], "hard_sigmoid", kernel_name);
+    ret                     = CreateExecuteUnit(execute_units_[0], "hard_sigmoid", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

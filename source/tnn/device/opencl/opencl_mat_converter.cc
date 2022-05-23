@@ -516,6 +516,14 @@ Status OpenCLMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType t
     return Status(TNNERR_OPENCL_UNSUPPORT_ERROR, "opencl not support color conversion");
 }
 
+Status OpenCLMatConverterAcc::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue) {
+    return Status(TNNERR_OPENCL_UNSUPPORT_ERROR, "opencl not support ResizeAndPaste conversion");
+}
+
+Status OpenCLMatConverterAcc::ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue) {
+    return Status(TNNERR_OPENCL_UNSUPPORT_ERROR, "opencl not support ConcatMatWithBatch conversion");
+}
+
 Status OpenCLMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
     Status ret            = TNN_OK;
     if(src.GetDeviceType() != dst.GetDeviceType()) {

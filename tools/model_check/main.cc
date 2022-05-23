@@ -196,6 +196,7 @@ int main(int argc, char* argv[]) {
     NetworkConfig net_config;
     net_config.device_type = ConvertDeviceType(FLAGS_d);
     ModelConfig model_config;
+    model_config.model_type = MODEL_TYPE_RAPIDNET;
 
     ModelCheckerParam model_checker_param;
     model_checker_param.input_file        = std::make_pair("", NOTSUPPORT);

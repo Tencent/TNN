@@ -19,6 +19,46 @@
 namespace TNN_NS {
 
 template <class T>
+static Status ConvertFromNCHWToNHWC(T *src, T *dst, int num, int channel, int height, int width) {
+    for (int n = 0; n < num; n++) {
+        auto n_dst = dst + n * channel * height * width;
+        auto n_src = src + n * channel * height * width;
+        for (int c = 0; c < channel; c++) {
+            auto z_dst = n_dst + c;
+            auto z_src = n_src + c * height * width;
+            for (int h = 0; h < height; h++) {
+                for (int w = 0; w < width; w++) {
+                    // to   [h][w][c]
+                    // from [c][h][w]
+                    z_dst[h * width * channel + w * channel] = z_src[h * width + w];
+                }
+            }
+        }
+    }
+    return TNN_OK;
+};
+
+template <class T>
+static Status ConvertFromNHWCToNCHW(T *src, T *dst, int num, int channel, int height, int width) {
+    for (int n = 0; n < num; n++) {
+        auto n_dst = dst + n * channel * height * width;
+        auto n_src = src + n * channel * height * width;
+        for (int c = 0; c < channel; c++) {
+            auto z_dst = n_dst + c * height * width;
+            auto z_src = n_src + c;
+            for (int h = 0; h < height; h++) {
+                for (int w = 0; w < width; w++) {
+                    // to   [c][h][w]
+                    // from [h][w][c]
+                    z_dst[h * width + w] = z_src[h * width * channel + w * channel];
+                }
+            }
+        }
+    }
+    return TNN_OK;
+};
+
+template <class T>
 static Status ConvertWeightsFromGOIHWToGOIHW16(T *src, T *dst, int group, int input_channel, int output_channel,
                                                int height, int width, bool tanspose = false) {
     const int goc       = output_channel / group;
@@ -211,6 +251,14 @@ static Status ConvertFromNHWC4ToNCHW(T *src, T *dst, int num, int channel, int h
     return TNN_OK;
 };
 
+Status DataFormatConverter::ConvertFromNCHWToNHWCFloat(float *src, float *dst, int num, int channel, int height, int width) {
+    return ConvertBetweenNHWCAndNCHW<float>(src, dst, num, channel, height, width, NCHW2NHWC);
+}
+
+Status DataFormatConverter::ConvertFromNHWCToNCHWFloat(float *src, float *dst, int num, int channel, int height, int width) {
+    return ConvertBetweenNHWCAndNCHW<float>(src, dst, num, channel, height, width, NHWC2NCHW);
+}
+
 Status DataFormatConverter::ConvertFromGOIHWToGOIHW16Float(float *src, float *dst, int group, int input_channel,
                                                            int output_channel, int height, int width, bool tanspose) {
     return ConvertWeightsFromGOIHWToGOIHW16<float>(src, dst, group, input_channel, output_channel, height, width,
@@ -282,6 +330,35 @@ Status DataFormatConverter::ConvertFromInt8ToFloatNCHW(int8_t *src, float *dst, 
 #pragma clang loop vectorize(enable)
             for (int hw = 0; hw < height * width; hw++) {
                 z_dst[hw] = static_cast<float>(z_src[hw]) * scale[scale_idx];
+            }
+        }
+    }
+
+    return 0;
+}
+
+Status DataFormatConverter::ConvertFromInt64ToFloatNCHW(int64_t *src, float *dst, int num, int channel, int height, int width) {
+    for (int n = 0; n < num; n++) {
+        for (int c = 0; c < channel; c++) {
+            for (int hw = 0; hw < height * width; hw++) {
+                int offset = n * channel * height * width + c * height * width + hw;
+                dst[offset] = (float)src[offset];
+            }
+        }
+    }
+
+    return 0;
+}
+
+Status DataFormatConverter::ConvertFromInt64NHWCToFloatNCHW(int64_t *src, float *dst, int num, int channel, int height, int width) {
+    for (int n = 0; n < num; n++) {
+        for (int h = 0; h < height; h++) {
+            for (int w = 0; w < width; w++) {
+                for (int c = 0; c < channel; c++) {
+                    int src_idx = n * height * width * channel + h * width * channel + w * channel + c;
+                    int dst_idx = n * channel * height * width + c * height * width + h * width + w;
+                    dst[dst_idx] = (float)src[src_idx];
+                }
             }
         }
     }

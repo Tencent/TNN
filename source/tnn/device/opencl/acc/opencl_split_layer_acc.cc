@@ -31,7 +31,7 @@ Status OpenCLSplitLayerAcc::Init(Context *context, LayerParam *param, LayerResou
     // create kernel
     execute_units_.resize(outputs.size());
     for (size_t i = 0; i < execute_units_.size(); i++) {
-        ret = CreateExecuteUnit(execute_units_[i], "copy", "CopyImage");
+        ret = CreateExecuteUnit(execute_units_[i], "copy", "CopyImage", build_options_);
         if (ret != TNN_OK) {
             LOGE("create execute unit failed!\n");
             return ret;

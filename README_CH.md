@@ -1,20 +1,24 @@
 [English Version](README.md)
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
+<div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/TNN.png"/>
 
 ## 简介
 
-TNN：由腾讯优图实验室开源的高性能、轻量级神经网络推理框架，同时拥有跨平台、高性能、模型压缩、代码裁剪等众多突出优势。TNN框架在原有Rapidnet、ncnn框架的基础上进一步加强了移动端设备的支持以及性能优化，同时借鉴了业界主流开源框架高性能和良好拓展性的特性，拓展了对于后台X86, NV GPU的支持。手机端 TNN已经在手Q、微视、P图等众多应用中落地，服务端TNN作为腾讯云AI基础加速框架已为众多业务落地提供加速支持。欢迎大家参与协同共建，促进TNN推理框架进一步完善。
+TNN：由腾讯优图实验室开源的高性能、轻量级神经网络推理框架，同时拥有跨平台、高性能、模型压缩、代码裁剪等众多突出优势。TNN框架在原有Rapidnet、ncnn框架的基础上进一步加强了移动端设备的支持以及性能优化，同时借鉴了业界主流开源框架高性能和良好拓展性的特性，拓展了对于后台X86, NV GPU的支持。手机端 TNN已经在手机QQ、微视、P图等众多应用中落地，服务端TNN作为腾讯云AI基础加速框架已为众多业务落地提供加速支持。欢迎大家参与协同共建，促进TNN推理框架进一步完善。
 
 
 ## 效果示例
 
-人脸检测(blazeface)   |   物体检测(yolov5s)    |  人脸配准(腾讯优图)  |   头发分割(腾讯光影)
-:-------------------------: | :------: | :------: | :------:
-[![face_detection](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) <br> 模型链接: [tflite](https://github.com/google/mediapipe/blob/master/mediapipe/models/face_detection_front.tflite) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) | [![yolov5](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) <br> 模型链接: [onnx](https://github.com/ultralytics/yolov5/blob/master/models/export.py) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) | [![youtu_face_alignment](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) <br> 模型链接: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) | [![hair_segmentation](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation) <br> 模型链接: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation)
+人脸检测(blazeface)   |  人脸配准(腾讯优图)  |   头发分割(腾讯光影)
+:-------------------------: | :------: | :------:
+[![face_detection](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) <br> 模型链接: [tflite](https://github.com/google/mediapipe/blob/master/mediapipe/models/face_detection_front.tflite) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) | [![youtu_face_alignment](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) <br> 模型链接: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) | [![hair_segmentation](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation) <br> 模型链接: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation)
 
-姿势估计(腾讯光流)   |   姿势估计(blazepose)    |  中文字符识别 |  阅读理解
-:--------------------------: | :------: | :------: | :------:
-[![skeleton](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_guangliu.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) <br> 模型链接: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) | [![blazepose](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_blazepose.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) <br> 模型链接: [tflite](https://github.com/google/mediapipe/blob/master/mediapipe/modules/pose_landmark/pose_landmark_full_body.tflite) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) | [![chinese-ocr](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/chinese-ocr.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr) <br> 模型链接: [onnx](https://github.com/DayBreak-u/chineseocr_lite/tree/onnx/models) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr) | [![bertsquad10](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/bert_squad.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10) <br> 模型链接: [onnx](https://github.com/onnx/models/blob/master/text/machine_comprehension/bert-squad/model/bertsquad-10.onnx) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10)
+姿势估计(腾讯光流)   |   姿势估计(blazepose)    |  中文字符识别 
+:--------------------------: | :------: | :------: 
+[![skeleton](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_guangliu.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) <br> 模型链接: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) | [![blazepose](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_blazepose.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) <br> 模型链接: [tflite](https://github.com/google/mediapipe/blob/master/mediapipe/modules/pose_landmark/pose_landmark_full_body.tflite) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) | [![chinese-ocr](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/chinese-ocr.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr) <br> 模型链接: [onnx](https://github.com/DayBreak-u/chineseocr_lite/tree/onnx/models) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr)
+
+物体检测(yolov5s)    |    物体检测(MobilenetV2-SSD)    |  阅读理解
+:-------------------------: |:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:| :------: 
+[![yolov5](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) <br> 模型链接: [onnx](https://github.com/ultralytics/yolov5/blob/master/models/export.py) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) | [![mobilenetv2_ssd](tutorial/mobilenet_v2_ssd/imgs/mobilenetv2_ssd_tf_fix_box.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/mobilenet_v2-ssd) <br> 模型链接: [tensorflow](http://download.tensorflow.org/models/object_detection/ssdlite_mobilenet_v2_coco_2018_05_09.tar.gz) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/mobilenet_v2-ssd) |  [![bertsquad10](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/bert_squad.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10) <br> 模型链接: [onnx](https://github.com/onnx/models/blob/master/text/machine_comprehension/bert-squad/model/bertsquad-10.onnx) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10)
 
 <small>中文字符识别demo是[chineseocr_lite](https://github.com/DayBreak-u/chineseocr_lite)的TNN实现，是一个超轻量级的中文ocr，支持倾斜、旋转和竖排文字识别。</small>
 
@@ -43,7 +47,7 @@ demo                                                                            
 3. 最后一步就是使用编译好的 TNN 引擎进行推理，你可以在自己的应用程序中嵌入对 TNN 的调用，这方面我们提供了丰富而详实的 demo 来帮助你完成。
     *  [从0开始跑通一个iOS Demo](doc/cn/user/demo.md)
     *  [从0开始跑通一个Android Demo](doc/cn/user/demo.md)
-    *  [从0开始跑通一个Windows/Linux Demo](doc/cn/user/demo.md#四)
+    *  [从0开始跑通一个Windows/Linux Demo](doc/cn/user/demo.md)
 
 ## 技术方案
 
@@ -68,7 +72,7 @@ demo                                                                            
 
 * TNN架构图：
 
-   <div><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/tnn_architect.jpg"/>
+   <div><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/cn/imgs/tnn_architect.jpg"/>
 
 * 通过 ONNX 支持 TensorFlow， PyTorch， MXNet， Caffe 等多种训练框架，充分利用和融入不断完善的 ONNX 开源生态。当前支持 ONNX 算子100+，覆盖主流CNN, NLP网络。
 * 支持主流安卓、iOS、Embedded Linux 操作系统, Windows, Linux，支持 ARM CPU, x86, Mali GPU, Adreno GPU, NV GPU, 达芬奇NPU，RK NPU。
@@ -89,6 +93,8 @@ demo                                                                            
     * [模型可视化Netron](https://lutzroeder.github.io/netron/)
     * [性能分析工具](doc/cn/development/profiling.md)
     * [模型对齐工具](doc/cn/development/model_check.md)
+* [教程]()
+    * [基于 SSD 的 TNN 模型转换和部署](tutorial/mobilenet_v2_ssd/doc/ssd_conversion_and_deployment.md)
 
 ## API文档
 * [API调用](doc/cn/user/api.md)
@@ -127,7 +133,7 @@ TNN参考和借鉴了下列项目：
 
 * 欢迎大家参与，协同共建，打造业界最好的高性能推理框架。
 
-* 技术交流 QQ 群： 913940506 答案：TNN
+* 技术交流 QQ 群： 704900079 答案：TNN
 
 * QQ 群二维码：
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN-QQ.png"/>
+<div align=left ><img src="TNN-QQ.png"/>

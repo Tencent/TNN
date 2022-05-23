@@ -127,7 +127,7 @@ struct BenchResult {
                return [obj1 compare:obj2 options:NSCaseInsensitiveSearch|NSNumericSearch|
                        NSWidthInsensitiveSearch|NSForcedOrderingSearch range:range];
            };
-           
+
            BenchModel model;
            model.name = modelDir.UTF8String;
            
@@ -135,7 +135,7 @@ struct BenchResult {
                                                                                      error:nil];
            NSArray<NSString *> *protos = [[modelFiles filteredArrayUsingPredicate:predicateProto] sortedArrayUsingComparator:sort];
            NSArray<NSString *> *models = [[modelFiles filteredArrayUsingPredicate:predicateModel] sortedArrayUsingComparator:sort];
-           
+
            //support multiple models in the same directory
            for (size_t index = 0; index < std::min(protos.count, models.count); index++) {
                auto proto_prefix = [protos[index] substringToIndex:protos[index].length - @".tnnproto".length];
@@ -144,19 +144,19 @@ struct BenchResult {
                    continue;
                }
                model.name = proto_prefix.UTF8String;
-               
+
                auto proto = [NSString stringWithContentsOfFile:[modelDirPath stringByAppendingPathComponent:protos[index]]
                                                         encoding:NSUTF8StringEncoding
                                                            error:nil];
                if (proto.length > 0) {
                    model.tnn_proto_content = proto.UTF8String;
-                   
+
     //               model.tnn_model_content = [modelDirPath stringByAppendingPathComponent:models[0]].UTF8String;
                    NSData *data = [NSData dataWithContentsOfFile:[modelDirPath
                                                                   stringByAppendingPathComponent:models[index]]];
                    model.tnn_model_content = string((const char *)[data bytes], [data length]);
                }
-               
+
                netmodels.push_back(model);
            }
 
@@ -202,7 +202,7 @@ struct BenchResult {
     for (auto model : allModels) {
         NSLog(@"model: %s", model.name.c_str());
         allResult = [allResult stringByAppendingFormat:@"model: %s\n", model.name.c_str()];
-    
+
         //benchmark on cpu
         auto result_cpu = [self benchmarkWithProtoContent:model.tnn_proto_content
                                                 model:model.tnn_model_content
@@ -238,7 +238,7 @@ struct BenchResult {
         NSLog(@"npu: \ntime: %s", result_npu.description().c_str());
         allResult = [allResult stringByAppendingFormat:@"npu: \ntime: %s\n",
                      result_npu.description().c_str()];
-        
+
     }
     
     self.textViewResult.text = allResult;
@@ -261,7 +261,7 @@ struct BenchResult {
     {
         ModelConfig config;
         if (protoContent.length() > 0 && modelPathOrContent.length() > 0) {
-            config.model_type = MODEL_TYPE_TNN;
+            config.model_type = MODEL_TYPE_RAPIDNET;
             config.params = {protoContent, modelPathOrContent};
         } else if (coremlDir.length() > 0) {
             config.model_type = MODEL_TYPE_COREML;
@@ -288,7 +288,7 @@ struct BenchResult {
             NSLog(@"net.CreateInst Error: %s", result.status.description().c_str());
             return result;
         }
-        
+
     }
     
     //warm cpu, only used when benchmark

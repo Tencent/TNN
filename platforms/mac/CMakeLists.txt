@@ -1,3 +1,5 @@
+ set(CMAKE_MACOSX_RPATH ON)
+
 if(TNN_OPENCL_ENABLE)
     find_package(OpenCL)
     target_link_libraries(TNN ${OpenCL_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
@@ -9,7 +11,6 @@ if(TNN_METAL_ENABLE OR TNN_APPLE_NPU_ENABLE)
     target_link_libraries(TNN "-framework Metal")
     target_link_libraries(TNN "-framework CoreML")
 endif()
-
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/tnn/device/opencl)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/opencl/include)
@@ -53,3 +54,4 @@ if(TNN_OPENVINO_ENABLE)
 
     target_link_libraries(TNN inference_engine inference_engine_legacy inference_engine_transformations inference_engine_lp_transformations ngraph)
 endif()
+

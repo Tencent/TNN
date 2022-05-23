@@ -127,6 +127,7 @@ typedef enum {
 
 typedef enum {
     MODEL_TYPE_TNN      = 0x0001,
+    MODEL_TYPE_RAPIDNET = 0x0002,
     MODEL_TYPE_NCNN     = 0x0100,
     MODEL_TYPE_OPENVINO = 0x1000,
     MODEL_TYPE_COREML   = 0x2000,
@@ -171,7 +172,7 @@ struct PUBLIC NetworkConfig {
 };
 
 struct PUBLIC ModelConfig {
-    ModelType model_type = MODEL_TYPE_TNN;
+    ModelType model_type = MODEL_TYPE_RAPIDNET;
 
     // tnn model need two params: order is proto content, model content.
     // ncnn need two: params: order is param, weights.
@@ -179,8 +180,22 @@ struct PUBLIC ModelConfig {
     // coreml model need one param: coreml model dir.
     // snpe model need one param: dlc model dir.
     // hiai model need two params: order is model name, model_file_path.
-    // atlas model need one param: config string.
+    // atlas model need one param: om file path.
     std::vector<std::string> params = {};
+
+    // params can also add extra config for specific layer
+    // tnn model use [layer_name:string] as key-value pair,
+    // to add extra config for some layer.
+    // for example: "ExtraConfig:Conv_0:arm_fp16_winograd_unit2,arm_fp32_gemm;Conv_1:arm_fp32_gemm"
+    // set Conv_0 layer to run winograd_unit2 conv if precision is fp16
+    // set Conv_1 layer to run gemm conv if precision is fp32
+    // the config format is: device_type + precision + option
+    // in OpenCL, if you want the specified layer to use fp32 inference, you can use the following config,
+    // "ExtraConfig:Conv_0:opencl_force_fp32;Conv_1:opencl_force_fp32;"
+    // set Conv_0 layer to use fp32 inference
+    // set Conv_1 layer to use fp32 inference
+    // in OpenCL, the result of conv is incorrect on some chips, you can use the unoptimized conv with following config,
+    // "ExtraConfig:Conv_0:opencl_use_unoptimized_conv;"
 };
 
 typedef enum {

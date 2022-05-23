@@ -9,7 +9,11 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/opencl/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/stb)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src)
 
-set(COMMON_SRC ${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src/test_common.cc)
+set(COMMON_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/platforms/android/src/test_common.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/platforms/linux/src/atlas_common.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/platforms/linux/src/memory_usage.cc
+    )
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND ANDROID_API_LEVAL)
     target_link_libraries(TNN dl log)
@@ -65,6 +69,30 @@ if(TNN_CUDA_ENABLE)
     set_target_properties(nvinfer_plugin PROPERTIES IMPORTED_LOCATION $ENV{TENSORRT_ROOT_DIR}/lib/libnvinfer_plugin.so)
     set_target_properties(cudnn PROPERTIES IMPORTED_LOCATION $ENV{CUDNN_ROOT_DIR}/lib64/libcudnn.so)
     target_link_libraries(TNN nvinfer nvinfer_plugin cudnn)
+endif()
+
+if(TNN_ATLAS_ENABLE)
+    target_link_libraries(TNN ascendcl acl_dvpp)
+
+    if(LINUX_TEST_ENABLE)
+        add_executable(AtlasTest ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas.cc)
+        target_link_libraries(AtlasTest TNN)
+
+        add_executable(AtlasTestImageList ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_image_list.cc)
+        target_link_libraries(AtlasTestImageList TNN)
+
+        add_executable(AtlasTestMultiThread ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_multi_thread.cc)
+        target_link_libraries(AtlasTestMultiThread TNN)
+
+        add_executable(ArmTestMultiThread ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_arm_multi_thread.cc)
+        target_link_libraries(ArmTestMultiThread TNN)
+
+        add_executable(AtlasTestMultiModel ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_multi_model.cc)
+        target_link_libraries(AtlasTestMultiModel TNN)
+
+        add_executable(AtlasTestResizeCrop ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas_resize_crop.cc)
+        target_link_libraries(AtlasTestResizeCrop TNN)
+    endif()
 endif()
 
 if(TNN_RK_NPU_ENABLE)

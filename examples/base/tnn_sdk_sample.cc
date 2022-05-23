@@ -563,7 +563,7 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #if TNN_SDK_USE_NCNN_MODEL
         config.model_type = TNN_NS::MODEL_TYPE_NCNN;
 #else
-        config.model_type = TNN_NS::MODEL_TYPE_TNN;
+        config.model_type = TNN_NS::MODEL_TYPE_RAPIDNET;
 #endif
         config.params = {option->proto_content, option->model_content, model_path_str_};
 

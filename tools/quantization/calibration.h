@@ -20,6 +20,7 @@
 #include "tnn/core/instance.h"
 #include "tnn/core/layer_type.h"
 #include "tnn/core/status.h"
+#include "tnn/interpreter/rapidnetv3/objseri.h"
 #include "tnn/interpreter/default_model_interpreter.h"
 
 #include "calibration_common.h"
@@ -49,6 +50,10 @@ public:
     // @brief int net with network config, net structure and net resource info
     // @param dataset calibration inputs
     Status RunCalibration(DataSet& dataset);
+
+    // @brief set model version to save
+    // @param ver, model version
+    void SetModelVersion(rapidnetv3::ModelVersion ver);
 
     // @brief int net with network config, net structure and net resource info
     // @param proto_path, file path to save the quantized proto.
@@ -80,6 +85,7 @@ private:
     std::shared_ptr<Instance> instance_;
     std::map<Blob*, std::shared_ptr<ScaleCalculator>> feature_map_;
     CalibrationParam cali_params_;
+    rapidnetv3::ModelVersion model_version_;
 };
 
 }  // namespace TNN_NS

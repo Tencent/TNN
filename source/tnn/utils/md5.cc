@@ -362,4 +362,16 @@ std::string md5(const std::string str)
     return md5.hexdigest();
 }
 
+void xor_encode(char * value, const size_t value_size, const char * key, const size_t key_size) {
+  const size_t key_len = key_size;
+  unsigned long key_offset = 0;
+  for(unsigned long i = 0;i < value_size;i++) {
+      value[i] = value[i] ^ key[key_offset];
+      key_offset = (key_offset + 1) % key_len;
+      if (key_offset ==0) {
+        key_offset += (i / key_len ) % 8;
+      }
+  }
+}
+
 } // namespace TNN_NS

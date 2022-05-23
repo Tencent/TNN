@@ -44,6 +44,11 @@ NpuNetwork::~NpuNetwork() {
     DeInit();
 }
 
+bool NpuNetwork::InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config) {
+    return net_config.device_type != DEVICE_HUAWEI_NPU || model_config.model_type != MODEL_TYPE_TNN ||
+           model_config.model_type != MODEL_TYPE_RAPIDNET;
+}
+
 Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                         InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder) {
     // config check
@@ -101,10 +106,6 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     }
 
     return TNN_OK;
-}
-
-bool NpuNetwork::InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config) {
-    return net_config.device_type != DEVICE_HUAWEI_NPU || model_config.model_type != MODEL_TYPE_TNN;
 }
 
 // check Npu init situation

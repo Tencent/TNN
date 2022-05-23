@@ -228,6 +228,14 @@ Status CpuMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType type
     return ret;
 }
 
+Status CpuMatConverterAcc::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue) {
+    return Status(TNNERR_PARAM_ERR, "cpu not support ResizeAndPaste conversion");
+}
+
+Status CpuMatConverterAcc::ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue) {
+    return Status(TNNERR_PARAM_ERR, "cpu not support ConcatMatWithBatch conversion");
+}
+
 Status CpuMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
     Status ret            = TNN_OK;
 

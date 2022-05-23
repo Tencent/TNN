@@ -178,7 +178,7 @@ bool CheckFileName(std::string name) {
 void PrintConfig() {
     printf(
         "usage:\n./quantization_cmd [-h] [-p] <proto file> [-m] <model file> [-i] <input folder> [-b] <val> [-w] <val> "
-        "[-n] <val> [-s] <val> [-t] <val> [-o] <output_name>\n"
+        "[-n] <val> [-s] <val> [-t] <val> [-o] <output_name> [-v]\n"
         "\t-h, --help        \t show this message\n"
         "\t-p, --proto       \t(require) tnn proto file name\n"
         "\t-m, --model       \t(require) tnn model file name\n"
@@ -207,6 +207,10 @@ void PrintConfig() {
         "\t\t0: per-channel mode  (default)\n"
         "\t\t1: mix mode          weight: per-channel  blob: per-tensor\n"
         "\t\t2: per-tersor mode\n"
+        "\t-v, --version      \t(optional) the model versoin to save\n"
+        "\t\t0: RapidnetV1\n"
+        "\t\t1: TNN\n"
+        "\t\t0: RapidnetV3 (default)\n"
         "\t-o, --output       \t(optional) specify the name of output\n");
 }
 
@@ -215,6 +219,7 @@ int main(int argc, char* argv[]) {
     std::string proto_file_name;
     std::string model_file_name;
     std::string input_path;
+    rapidnetv3::ModelVersion model_version = rapidnetv3::MV_RPNV3;
     std::string output_name = "model";
 
     CalibrationParam cali_params;
@@ -227,12 +232,13 @@ int main(int argc, char* argv[]) {
                                     {"reverse_channel", required_argument, 0, 'r'},
                                     {"bias", required_argument, 0, 'n'},
                                     {"scale", required_argument, 0, 's'},
-                                    {"merge_type", required_argument, 0, 't'},
+                                    {"merge_type", no_argument, 0, 't'},
+                                    {"version", optional_argument, 0, 'v'},
                                     {"output", required_argument, 0, 'o'},
                                     {"help", no_argument, 0, 'h'},
                                     {0, 0, 0, 0}};
 
-    const char* optstring = "p:m:i:b:w:r:n:s:t:o:h";
+    const char* optstring = "p:m:i:b:w:r:n:s:t:v:o:h";
 
     if (argc == 1) {
         PrintConfig();
@@ -317,6 +323,10 @@ int main(int argc, char* argv[]) {
                     cali_params.merge_weights_channel = false;
                 }
             } break;
+            case 'v':
+                printf("model version: %s\n", optarg);
+                model_version = (rapidnetv3::ModelVersion)atoi(optarg);
+                break;
             case 'o':
                 printf("output name: %s\n", optarg);
                 output_name = optarg;
@@ -336,6 +346,7 @@ int main(int argc, char* argv[]) {
     }
 
     ModelConfig model_config;
+    model_config.model_type = MODEL_TYPE_RAPIDNET;
     int ret = InitModelConfig(model_config, proto_file_name, model_file_name);
     if (CheckResult("init model config", ret) != true)
         return -1;
@@ -348,6 +359,7 @@ int main(int argc, char* argv[]) {
         return -1;
 
     Calibration calibration;
+    calibration.SetModelVersion(model_version);
     Status status = calibration.Init(net_config, model_config);
     if (status != TNN_OK) {
         printf("calibration init failed!\n");

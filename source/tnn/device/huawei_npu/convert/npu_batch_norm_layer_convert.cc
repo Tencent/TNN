@@ -115,6 +115,7 @@ Status NpuBatchNormLayer::Convert() {
 }
 
 REGISTER_NPU_LAYER(BatchNorm, LAYER_BATCH_NORM)
+REGISTER_NPU_LAYER(BatchNorm, LAYER_BATCH_NORM_EX)
 REGISTER_NPU_LAYER(BatchNorm, LAYER_SCALE)
 
 }  // namespace TNN_NS

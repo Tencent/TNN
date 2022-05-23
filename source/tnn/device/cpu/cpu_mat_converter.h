@@ -31,6 +31,8 @@ public:
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL);
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL);
     virtual Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL);
+    virtual Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue = NULL);
+    virtual Status ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue = NULL);
     virtual Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue = NULL);
 
 private:

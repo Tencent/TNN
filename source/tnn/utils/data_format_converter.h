@@ -27,7 +27,7 @@ namespace TNN_NS {
 class DataFormatConverter {
 public:
     // @brief convert weights from [g][o][i][h][w] to [g][o/4][i/4][h][w][16]
-    // @param data_tyep data type info
+    // @param data_type data type info
     static Status ConvertFromGOIHWToGOIHW16Float(float *src, float *dst, int group, int input_channel,
                                                  int output_channel, int height, int width, bool tanspose = false);
     static Status ConvertFromGOIHWToGOIHW16Half(short *src, short *dst, int group, int input_channel,
@@ -36,7 +36,10 @@ public:
                                                 int output_channel, int height, int width, bool tanspose = false);
 
     // @brief convert weights from [n][c][h][w] to [n][c/4][h][w][4]
-    // @param data_tyep data type info
+    // @param data_type data type info
+    static Status ConvertFromNCHWToNHWCFloat(float *src, float *dst, int num, int channel, int height, int width);
+    static Status ConvertFromNHWCToNCHWFloat(float *src, float *dst, int num, int channel, int height, int width);
+
     static Status ConvertFromNCHWToNCHW4Float(float *src, float *dst, int num, int channel, int height, int width, bool transpose = false);
     static Status ConvertFromNCHWToNCHW4Half(short *src, short *dst, int num, int channel, int height, int width, bool transpose = false);
     static Status ConvertFromNCHWToNHWC4Int8(int8_t *src, int8_t *dst, int num, int channel, int hw);
@@ -52,6 +55,8 @@ public:
 
     static Status ConvertFromInt8ToFloatNHWC4(int8_t *src, float *dst, float *scale, int scale_len, int num,
                                               int channel, int height, int width);
+    static Status ConvertFromInt64ToFloatNCHW(int64_t *src, float *dst, int num, int channel, int height, int width);
+    static Status ConvertFromInt64NHWCToFloatNCHW(int64_t *src, float *dst, int num, int channel, int height, int width);
 
     enum CVT_DIR { NHWC2NCHW, NCHW2NHWC };
 
@@ -89,7 +94,9 @@ public:
         }
         return TNN_OK;
     }
-
+    static char* GetBlobPtr(BlobHandle handle) {
+        return static_cast<char *>(handle.base) + handle.bytes_offset; 
+    }
     template <class T>
     static Status ConvertFromNCHWToNHWC(Blob *src, Blob *dst) {
         ASSERT(src != nullptr);
@@ -99,8 +106,8 @@ public:
         const int channel = src_dims.size() > 1 ? src_dims[1] : 1;
         const int height  = src_dims.size() > 2 ? src_dims[2] : 1;
         const int width   = src_dims.size() > 3 ? src_dims[3] : 1;
-        T *src_data_ptr   = (T *)src->GetHandle().base;
-        T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
+        T *src_data_ptr   = (T *)GetBlobPtr(src->GetHandle());
+        T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)GetBlobPtr(dst->GetHandle());
 
         auto status = ConvertBetweenNHWCAndNCHW<T>(src_data_ptr, dst_data_ptr, num, channel, height, width, NCHW2NHWC);
         return status;
@@ -115,8 +122,8 @@ public:
         const int channel = src_dims.size() > 1 ? src_dims[1] : 1;
         const int height  = src_dims.size() > 2 ? src_dims[2] : 1;
         const int width   = src_dims.size() > 3 ? src_dims[3] : 1;
-        T *src_data_ptr   = (T *)src->GetHandle().base;
-        T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)dst->GetHandle().base;
+        T *src_data_ptr   = (T *)GetBlobPtr(src->GetHandle());
+        T *dst_data_ptr   = dst == nullptr ? nullptr : (T *)GetBlobPtr(dst->GetHandle());
 
         auto status = ConvertBetweenNHWCAndNCHW<T>(src_data_ptr, dst_data_ptr, num, channel, height, width, NHWC2NCHW);
         return status;

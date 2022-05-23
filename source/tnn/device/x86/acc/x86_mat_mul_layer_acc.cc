@@ -15,10 +15,30 @@
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/device/x86/acc/x86_mat_mul_layer_acc.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 
 namespace TNN_NS {
 
 X86MatMulLayerAcc::~X86MatMulLayerAcc() {}
+
+Status X86MatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                               const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto res = dynamic_cast<MatMulLayerResource *>(resource);
+    CHECK_PARAM_NULL(res);
+
+    Status ret;
+    if (res->weight.GetDataType() == DATA_TYPE_HALF) {
+        LayerResource *fp32_res = nullptr;
+        RETURN_ON_NEQ(ConvertHalfResource(LAYER_MATMUL, res, &fp32_res), TNN_OK);
+        matmul_acc_f32_resource_ = std::shared_ptr<LayerResource>(fp32_res);
+        ret                      = X86LayerAcc::Init(context, param, matmul_acc_f32_resource_.get(), inputs, outputs);
+    } else {
+        ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+    }
+
+    RETURN_ON_NEQ(ret, TNN_OK);
+    return TNN_OK;
+}
 
 Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param               = dynamic_cast<MatMulLayerParam *>(param_);
