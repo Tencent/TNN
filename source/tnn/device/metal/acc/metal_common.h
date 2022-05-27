@@ -702,7 +702,7 @@ struct MetalPermuteParams {
 
     int strides[4];
     int orders[4];
-    int channel_dim_size; // the input size alongside the new chanel dimension
+    int channel_dim_size; // the input size alongside the new channel dimension
     int channel_dim; // which axis of the output corresponds the input channel
 };
 
@@ -722,7 +722,7 @@ struct MetalDynamicPermuteParams {
 
     int strides[MAX_DIM_COUNT];
 
-    int channel_dim_size; // the input size alongside the new chanel dimension
+    int channel_dim_size; // the input size alongside the new channel dimension
     int channel_dim; // which axis of the output corresponds the input channel
 };
 

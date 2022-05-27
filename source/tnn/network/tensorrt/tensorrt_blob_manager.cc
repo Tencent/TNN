@@ -136,7 +136,7 @@ Status TensorRTBlobManager::AllocateBlobMemory(int flag) {
     Status status = TNN_OK;
 
     do {
-            // ignore share memory mode, allocated the blob memory seperately.
+            // ignore share memory mode, allocated the blob memory separately.
             MemorySeperateAssignStrategy strategy;
             for (auto blob_memory_pool_iter : blob_memory_pool_map_) {
                 status = blob_memory_pool_iter.second->AssignAllBlobMemory(strategy);

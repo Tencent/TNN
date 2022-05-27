@@ -318,7 +318,7 @@ namespace optimizer {
                                                      std::vector<std::string> &reformat_outs,
                                                      const std::string &reformat_name_suffix, const int index,
                                                      const int count) {
-        // change blobs for for layers to read blob data correctly
+        // change blobs for layers to read blob data correctly
         new_layer->inputs = reformat_outs;
         for (auto cur_out : reformat_outs) {
             auto new_out = cur_out + reformat_name_suffix;
