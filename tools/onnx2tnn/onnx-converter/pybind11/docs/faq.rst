@@ -244,7 +244,7 @@ Visual Studio 2015 into a Python distribution that was compiled using Visual
 Studio 2008. However, no such issue exists: it's perfectly legitimate to
 interface DLLs that are built with different compilers and/or C libraries.
 Common gotchas to watch out for involve not ``free()``-ing memory region
-that that were ``malloc()``-ed in another shared library, using data
+that were ``malloc()``-ed in another shared library, using data
 structures with incompatible ABIs, and so on. pybind11 is very careful not
 to make these types of mistakes.
 
