@@ -195,4 +195,4 @@ check_read_buffer(fb3)
 // Additional tests.
 test_optional_scalars()
 
-print "Lobster test succesful!"
+print "Lobster test successful!"

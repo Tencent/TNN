@@ -95,7 +95,7 @@ struct JsonPrinter {
     if (!opts.protobuf_ascii_alike) text += ',';
   }
 
-  // Print a vector or an array of JSON values, comma seperated, wrapped in
+  // Print a vector or an array of JSON values, comma separated, wrapped in
   // "[]".
   template<typename Container>
   bool PrintContainer(PrintScalarTag, const Container &c, size_t size,
@@ -117,7 +117,7 @@ struct JsonPrinter {
     return true;
   }
 
-  // Print a vector or an array of JSON values, comma seperated, wrapped in
+  // Print a vector or an array of JSON values, comma separated, wrapped in
   // "[]".
   template<typename Container>
   bool PrintContainer(PrintPointerTag, const Container &c, size_t size,

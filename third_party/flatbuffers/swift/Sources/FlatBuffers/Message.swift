@@ -25,7 +25,7 @@ public protocol FlatBufferGRPCMessage {
   init(byteBuffer: ByteBuffer)
 }
 
-/// Message is a wrapper around Buffers to to able to send Flatbuffers `Buffers` through the
+/// Message is a wrapper around Buffers to send Flatbuffers `Buffers` through the
 /// GRPC library
 public struct Message<T: FlatBufferObject>: FlatBufferGRPCMessage {
   internal var buffer: ByteBuffer

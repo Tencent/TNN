@@ -51,7 +51,7 @@ DEFINE_bool(some_bool_flag_2,
 
 DEFINE_bool(some_bool_flag_3,
             "false",
-            "false in in quotes, which is wrong");
+            "false in quotes, which is wrong");
 
 #elif defined(TEST_NC_SANITY)
 
