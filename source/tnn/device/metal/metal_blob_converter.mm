@@ -63,7 +63,7 @@ bool MetalBlobConverterAcc::CheckDeviceAndMat(DeviceType device_type, MatType ma
     bool device_supported = (device_type == DEVICE_METAL || device_type == DEVICE_ARM || 
             device_type == DEVICE_X86 || device_type == DEVICE_NAIVE);
 
-    bool mat_supported = (mat_type == N8UC4 || mat_type == N8UC3 ||
+    bool mat_supported = (mat_type == N8UC4 || mat_type == N8UC3 || mat_type == NGRAY||
             mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32);
 
     return device_supported && mat_supported;
@@ -93,7 +93,7 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
         bias_texture_buffer  = is_mat_to_blob ? 1.0    : 1.0 / 255.0f;
     }
 
-    if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32) {
+    if (mat_type == NCHW_FLOAT || mat_type == NGRAY || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32) {
         // scale and bias should at least have channel elements, so we use another buffer instead of metal_param
         if (param.scale.size() < metal_param.channel || param.bias.size() < metal_param.channel) {
             // invalid scale and bias
@@ -213,6 +213,18 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
                 LOGD("image_converter_buffer_nc4hw4_2_buffer_bgr\n");
             }
         }
+    } else if (mat_type == NGRAY) {
+            if (is_mat_to_blob) {
+                if (blob_data_format == DATA_FORMAT_NC4HW4) {
+                    func_name = @"data_converter_ngray_2_nc4hw4_float_v2";
+                    LOGD("data_converter_ngray_2_nc4hw4_float_v2\n");
+                }
+            } else {
+                if (blob_data_format == DATA_FORMAT_NC4HW4) {
+                    func_name = @"data_converter_nc4hw4_2_ngray_v2";
+                    LOGD("data_converter_nc4hw4_2_ngray_v2\n");
+                }
+            }
     } else if (mat_type == NCHW_FLOAT) {
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NCHW) {
@@ -415,12 +427,14 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
 
         [command_buffer waitUntilCompleted];
         memcpy(output_mat.GetData(), output_mtl_buffer.contents, count * bytes_size);
-    } else if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
+    } else if (mat_type == NGRAY ||mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
         auto input_buffer_blob          = dynamic_cast<Blob *>(input_blob);
         id<MTLBuffer> output_mtl_buffer = nil;
 
         int count = DimsVectorUtils::Count(dims);
-        const auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : sizeof(fp16_t);
+        auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : sizeof(fp16_t);
+        bytes_size = (mat_type == NGRAY) ? sizeof(unsigned char) : bytes_size;
+        
         if (output_mat_device == DEVICE_METAL) {
             output_mtl_buffer = (__bridge id<MTLBuffer>)(output_mat.GetData());
         } else if (output_mat_device == DEVICE_ARM || output_mat_device == DEVICE_NAIVE || mat_device_type == DEVICE_X86) {
@@ -710,11 +724,13 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                 [command_buffer waitUntilScheduled];
             }
             return TNN_OK;
-        } else if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
+        } else if (mat_type == NGRAY || mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
             // For Buffer input
 
             id<MTLBuffer> input_buffer = nil;
-            const auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : sizeof(fp16_t);
+            auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : sizeof(fp16_t);
+            bytes_size = (mat_type == NGRAY) ? sizeof(unsigned char) : bytes_size;
+
             if (mat_device_type == DEVICE_METAL) {
                 input_buffer = (__bridge id<MTLBuffer>)(input_mat.GetData());
             } else if (mat_device_type == DEVICE_NAIVE || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_X86) {
