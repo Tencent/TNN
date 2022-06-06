@@ -432,8 +432,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         id<MTLBuffer> output_mtl_buffer = nil;
 
         int count = DimsVectorUtils::Count(dims);
-        auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : sizeof(fp16_t);
-        bytes_size = (mat_type == NGRAY) ? sizeof(unsigned char) : bytes_size;
+        const auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : ((mat_type == NGRAY) ? sizeof(unsigned char) : sizeof(fp16_t));
         
         if (output_mat_device == DEVICE_METAL) {
             output_mtl_buffer = (__bridge id<MTLBuffer>)(output_mat.GetData());
@@ -728,8 +727,7 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             // For Buffer input
 
             id<MTLBuffer> input_buffer = nil;
-            auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : sizeof(fp16_t);
-            bytes_size = (mat_type == NGRAY) ? sizeof(unsigned char) : bytes_size;
+            const auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : ((mat_type == NGRAY) ? sizeof(unsigned char) : sizeof(fp16_t));
 
             if (mat_device_type == DEVICE_METAL) {
                 input_buffer = (__bridge id<MTLBuffer>)(input_mat.GetData());
