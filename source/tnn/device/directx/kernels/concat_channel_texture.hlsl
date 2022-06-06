@@ -81,7 +81,7 @@ void CSMain( uint3 DTid : SV_DispatchThreadID )
         float4 data1 = {0, 0, 0, 0};
         if (((input1_channel_idx + 1) << 2) < input1_channel) {
             int2 pos_in1 = {mad((input1_channel_idx + 1), width, width_idx), hb_idx};
-            float4 data1 = input1[pos_in1];
+            data1 = input1[pos_in1];
         }
 
         if (channel0_mod_4 == 1){

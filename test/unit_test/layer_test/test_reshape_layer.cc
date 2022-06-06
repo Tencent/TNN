@@ -52,6 +52,21 @@ TEST_P(ReshapeLayerTest, ReshapeLayer) {
         GTEST_SKIP();
     }
 
+    // DirectX only support float now
+    if (DATA_TYPE_FLOAT != data_type && DEVICE_DIRECTX == dev) {
+        GTEST_SKIP();
+    }
+
+    // DirectX can not support dim > 4
+    if ((dim_size > 4) && DEVICE_DIRECTX == dev) {
+        GTEST_SKIP();
+    }
+
+    // DirectX can not support reshape_type=1
+    if (reshape_type == 1 && DEVICE_DIRECTX == dev) {
+        GTEST_SKIP();
+    }
+
     // APPLE_NPU can not support dim > 5
     if ((dim_size > 5)&& DEVICE_APPLE_NPU == dev) {
         GTEST_SKIP();

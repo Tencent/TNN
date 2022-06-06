@@ -34,7 +34,7 @@
 #define ActivationProcess(output, activation_type) \
     output = (activation_type == ActivationType_ReLU) ? max(output, (float4)0) : \
     ((activation_type == ActivationType_ReLU6) ? clamp(output,(float4)0,(float4)6) : \
-    ((activation_type == ActivationType_SIGMOID_MUL) ? rcp((float4)1 + mul(exp(-output), output)) : \
+    ((activation_type == ActivationType_SIGMOID_MUL) ? mul(rcp((float4)1+exp(-output)),output) : \
     output ))
 
 cbuffer Shapes: register( b0 )

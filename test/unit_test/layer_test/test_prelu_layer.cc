@@ -41,6 +41,11 @@ TEST_P(PReluLayerTest, PReluLayer) {
         GTEST_SKIP();
     }
 
+    // DirectX can not support dim > 4
+    if (DEVICE_DIRECTX == dev && dim_count > 4) {
+        GTEST_SKIP();
+    }
+
     if (DEVICE_OPENCL == dev && dim_count > 4) {
         GTEST_SKIP();
     }

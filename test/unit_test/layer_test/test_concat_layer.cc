@@ -53,6 +53,10 @@ TEST_P(ConcatLayerTest, ConcatLayer) {
         GTEST_SKIP();
     }
 
+    if ((input_count != 2 || axis != 1 || dim_count > 4) && DEVICE_DIRECTX == dev) {
+        GTEST_SKIP();
+    }
+
     if (DEVICE_OPENCL == dev && dim_count > 5) {
         GTEST_SKIP();
     }

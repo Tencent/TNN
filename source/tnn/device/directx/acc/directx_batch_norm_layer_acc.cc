@@ -77,7 +77,6 @@ DirectXBatchNormLayerAcc::~DirectXBatchNormLayerAcc() {}
 
 Status DirectXBatchNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     LOGD("BatchNorm Layer Reshape\n");
-    ASSERT(inputs.size() == 1);
     Status ret = DirectXLayerAcc::Reshape(inputs, outputs);
     RETURN_ON_NEQ(ret, TNN_OK);
 
@@ -144,7 +143,9 @@ Status DirectXBatchNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, co
 }
 
 REGISTER_DIRECTX_ACC(BatchNorm, LAYER_BATCH_NORM)
+REGISTER_DIRECTX_ACC(BatchNorm, LAYER_SCALE)
 REGISTER_DIRECTX_LAYOUT(LAYER_BATCH_NORM, DATA_FORMAT_NHC4W4);
+REGISTER_DIRECTX_LAYOUT(LAYER_SCALE, DATA_FORMAT_NHC4W4);
 
 } // namespace directx
 

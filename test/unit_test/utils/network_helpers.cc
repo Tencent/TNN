@@ -42,7 +42,7 @@ Status BlobHandleFree(Blob* blob, AbstractDevice* device) {
 }
 
 DataFormat GetDefaultDataFormat(DeviceType device_type) {
-    if (device_type == DEVICE_OPENCL) {
+    if (device_type == DEVICE_OPENCL || device_type == DEVICE_DIRECTX) {
         return DATA_FORMAT_NHC4W4;
     } else if (device_type == DEVICE_METAL || device_type == DEVICE_ARM) {
         return DATA_FORMAT_NC4HW4;

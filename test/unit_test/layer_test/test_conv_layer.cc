@@ -69,6 +69,10 @@ TEST_P(ConvLayerTest, ConvLayer) {
         GTEST_SKIP();
     }
 
+    if ((activation_type == ActivationType_SIGMOID_MUL || dilation != 1 || channel_per_group != 1) && DEVICE_DIRECTX == dev) {
+        GTEST_SKIP();
+    }
+
     if (activation_type == ActivationType_SIGMOID_MUL && DEVICE_APPLE_NPU == dev) {
         GTEST_SKIP();
     }
