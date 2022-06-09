@@ -35,7 +35,7 @@ static void softmax_channel_func(float *input_ptr, float *output_ptr, int channe
     auto v_max = VEC(temp[0]);
     float vec_buf[pack];
     for (; ele + pack - 1 < channel; ele += pack) {
-        v_max = VEC::max(v_max, VEC::load(input_ptr + ele));
+        v_max = VEC::max(v_max, VEC::loadu(input_ptr + ele));
     }
     for (; ele < channel; ele++) {
         temp[0] = std::max(temp[0], input_ptr[ele]);
@@ -173,7 +173,7 @@ Status X86SoftMaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     auto workspace = context_->GetSharedWorkSpace(count * sizeof(float));
 
     auto func = softmax_func<Float8, 8>;
-    if (arch_ == sse42 || stride % 8 != 0) {
+    if (arch_ == sse42) {
         func = softmax_func<Float4, 4>;
     }
 
