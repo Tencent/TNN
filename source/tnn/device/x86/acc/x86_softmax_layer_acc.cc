@@ -168,7 +168,6 @@ Status X86SoftMaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     int batch          = DimsVectorUtils::Count(dims, 0, axis);
     int channel        = dims[axis];
     int count          = DimsVectorUtils::Count(dims, axis + 1);
-    int stride         = channel * count;
 
     auto workspace = context_->GetSharedWorkSpace(count * sizeof(float));
 
