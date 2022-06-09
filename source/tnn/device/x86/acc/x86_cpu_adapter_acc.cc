@@ -24,15 +24,15 @@ namespace TNN_NS {
 
 X86CpuAdapterAcc::X86CpuAdapterAcc(LayerType impl_layer_type) {
     impl_layer_type_         = impl_layer_type;
-    cpu_adapter_acc_         = NULL;
+    cpu_adapter_acc_         = nullptr;
     impl_device_type_        = DEVICE_NAIVE;
-    impl_device_context_     = NULL;
+    impl_device_context_     = nullptr;
     DeviceType device_list[] = {DEVICE_NAIVE};
     for (auto device_type : device_list) {
         auto device = GetDevice(device_type);
-        if (device != NULL) {
+        if (device != nullptr) {
             auto acc = device->CreateLayerAcc(impl_layer_type_);
-            if (acc != NULL) {
+            if (acc != nullptr) {
                 cpu_adapter_acc_     = acc;
                 impl_device_type_    = device_type;
                 impl_device_         = device;
@@ -45,8 +45,8 @@ X86CpuAdapterAcc::X86CpuAdapterAcc(LayerType impl_layer_type) {
 
 Status X86CpuAdapterAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                               const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    if (cpu_adapter_acc_ == NULL) {
-        return Status(TNNERR_LAYER_ERR, "cpu adapter acc is null");
+    if (cpu_adapter_acc_ == nullptr) {
+        return Status(TNNERR_LAYER_ERR, "cpu adapter acc is nil");
     }
     auto status = AbstractLayerAcc::Init(context, param, resource, inputs, outputs);
     RETURN_ON_NEQ(status, TNN_OK);
@@ -62,7 +62,7 @@ Status X86CpuAdapterAcc::Init(Context *context, LayerParam *param, LayerResource
     for (auto input : inputs) {
         auto desc = input->GetBlobDesc();
         if (support_data_types.count(desc.data_type) == 0) {
-            LOGE("layer acc with tyoe (%d) is nil\n", (int)impl_layer_type_);
+            LOGE("layer acc with type (%d) is nil\n", (int)impl_layer_type_);
             return Status(TNNERR_NULL_PARAM, "layer acc is nil");
         }
     }
@@ -70,7 +70,7 @@ Status X86CpuAdapterAcc::Init(Context *context, LayerParam *param, LayerResource
     for (auto output : outputs) {
         auto desc = output->GetBlobDesc();
         if (support_data_types.count(desc.data_type) == 0) {
-            LOGE("layer acc with tyoe (%d) is nil\n", (int)impl_layer_type_);
+            LOGE("layer acc with type (%d) is nil\n", (int)impl_layer_type_);
             return Status(TNNERR_NULL_PARAM, "layer acc is nil");
         }
     }
