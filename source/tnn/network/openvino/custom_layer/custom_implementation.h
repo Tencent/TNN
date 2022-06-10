@@ -258,7 +258,7 @@ public:
 
     // @brief register ngraph::Op
     template <typename T>
-    static Status RegisterCustomOp() {
+    static void RegisterCustomOp() {
         ngraph::OpSet& opset = getCustomOpSet();
         opset.insert<T>();
     }
