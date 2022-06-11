@@ -59,8 +59,8 @@ Status X86NormalizeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     int channel       = output_dims[1];
     int channel_size  = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+        float *input_data  = handle_ptr<float *>(input_blob->GetHandle());
+        float *output_data = handle_ptr<float *>(output_blob->GetHandle());
 
         float *denominator = reinterpret_cast<float *>(context_->GetSharedWorkSpace(channel_size * sizeof(float)));
 

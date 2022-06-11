@@ -29,11 +29,14 @@ Status X86FlattenLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     auto input  = inputs[0];
     auto output = outputs[0];
 
-    if (output->GetHandle().base != input->GetHandle().base) {
+    void * in_ptr = handle_ptr<void*>(input->GetHandle());
+    void * out_ptr = handle_ptr<void*>(output->GetHandle());
+
+    if (out_ptr != in_ptr) {
         auto dims_input    = input->GetBlobDesc().dims;
         int data_byte_size = DataTypeUtils::GetBytesSize(output->GetBlobDesc().data_type);
         auto size_in_bytes = DimsVectorUtils::Count(dims_input) * data_byte_size;
-        memcpy(output->GetHandle().base, input->GetHandle().base, size_in_bytes);
+        memcpy(out_ptr, in_ptr, size_in_bytes);
     }
 
     return TNN_OK;
