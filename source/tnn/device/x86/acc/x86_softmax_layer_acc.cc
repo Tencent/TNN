@@ -160,8 +160,8 @@ Status X86SoftMaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
 
     Blob *input_blob   = inputs[0];
     Blob *output_blob  = outputs[0];
-    float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-    float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+    float *input_data  = handle_ptr<float *>(input_blob->GetHandle());
+    float *output_data = handle_ptr<float *>(output_blob->GetHandle());
     auto dims          = input_blob->GetBlobDesc().dims;
     int axis           = params->axis;
     axis               = static_cast<int>((axis + dims.size()) % dims.size());

@@ -63,8 +63,8 @@ Status X86StrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
     }
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        float *input_data  = reinterpret_cast<float *>(input_blob->GetHandle().base);
-        float *output_data = reinterpret_cast<float *>(output_blob->GetHandle().base);
+        float *input_data  = handle_ptr<float *>(input_blob->GetHandle());
+        float *output_data = handle_ptr<float *>(output_blob->GetHandle());
 
         X86StrideSliceImpl(begins, strides, dims_output, input_strides, output_strides, input_data, output_data);
     } else {

@@ -58,14 +58,14 @@ Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         float *matrix_b;
 
         if (inputs.size() == 2) {
-            matrix_a = static_cast<float *>(inputs[0]->GetHandle().base);
-            matrix_b = static_cast<float *>(inputs[1]->GetHandle().base);
+            matrix_a = handle_ptr<float *>(inputs[0]->GetHandle());
+            matrix_b = handle_ptr<float *>(inputs[1]->GetHandle());
         } else {
             auto weight = resource->weight.force_to<float *>();
-            matrix_a    = param->weight_position == 0 ? weight : static_cast<float *>(inputs[0]->GetHandle().base);
-            matrix_b    = param->weight_position == 1 ? weight : static_cast<float *>(inputs[0]->GetHandle().base);
+            matrix_a    = param->weight_position == 0 ? weight : handle_ptr<float *>(inputs[0]->GetHandle());
+            matrix_b    = param->weight_position == 1 ? weight : handle_ptr<float *>(inputs[0]->GetHandle());
         }
-        auto matrix_c = static_cast<float *>(outputs[0]->GetHandle().base);
+        auto matrix_c = handle_ptr<float *>(outputs[0]->GetHandle());
 
         int k_c = conv_gemm_conf_.K_c_;
         int m_c = conv_gemm_conf_.M_c_;
