@@ -45,6 +45,7 @@ namespace TNN_NS {
 ngraph::element::Type_t ConvertToOVDataType(DataType type);
 std::shared_ptr<ngraph::op::Constant> ConvertToConstNode(RawBuffer *buffer);
 DataType ConvertOVPrecisionToDataType(const InferenceEngine::Precision &precision);
+InferenceEngine::Precision ConvertOVTypeToPrecision(ngraph::element::Type_t type);
 
 }  //  namespace TNN_NS
 
