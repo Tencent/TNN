@@ -38,8 +38,8 @@ Status X86Unary2LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     auto dims = output->GetBlobDesc().dims;
 
     int count        = DimsVectorUtils::Count(dims);
-    auto input_data  = static_cast<float *>(input->GetHandle().base);
-    auto output_data = static_cast<float *>(output->GetHandle().base);
+    auto input_data  = handle_ptr<float *>(input->GetHandle());
+    auto output_data = handle_ptr<float *>(output->GetHandle());
 
     RETURN_ON_NEQ(X86_UNARY2_CALCULATE(dims, input_data, output_data, type_, arch_, param_), TNN_OK);
 

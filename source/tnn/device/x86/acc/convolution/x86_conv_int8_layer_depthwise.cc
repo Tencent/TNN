@@ -103,8 +103,8 @@ Status X86ConvInt8LayerDepthwise::DoForward(const std::vector<Blob *> &inputs, c
     const int dst_y_step = output_width * oc_r4;
     const int src_y_step = input_width * ic_r4;
 
-    int8_t *input_data  = reinterpret_cast<int8_t *>(input->GetHandle().base);
-    int8_t *output_data = reinterpret_cast<int8_t *>(output->GetHandle().base);
+    int8_t *input_data  = handle_ptr<int8_t *>(input->GetHandle());
+    int8_t *output_data = handle_ptr<int8_t *>(output->GetHandle());
 
     const int32_t *bias_data = buffer_bias_.force_to<int32_t *>();
     const float *scale_data  = buffer_scale_.force_to<float *>();

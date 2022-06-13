@@ -45,21 +45,21 @@ Status X86Pool1DLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 
     if (output->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         if (param->is_adaptive_pool) {
-            NaiveAdaptivePooling<float, float>(reinterpret_cast<float *>(input->GetHandle().base),
-                                               reinterpret_cast<float *>(output->GetHandle().base), dims_input,
+            NaiveAdaptivePooling<float, float>(handle_ptr<float *>(input->GetHandle()),
+                                               handle_ptr<float *>(output->GetHandle()), dims_input,
                                                dims_output, pool_type);
         } else {
-            NaivePooling<float, float>(reinterpret_cast<float *>(input->GetHandle().base),
-                                       reinterpret_cast<float *>(output->GetHandle().base), dims_input, dims_output,
+            NaivePooling<float, float>(handle_ptr<float *>(input->GetHandle()),
+                                       handle_ptr<float *>(output->GetHandle()), dims_input, dims_output,
                                        stride_y, stride_x, kernel_y, kernel_x, pad_y, pad_x, pool_type);
         }
     } else if (output->GetBlobDesc().data_type == DATA_TYPE_BFP16) {
-        NaivePooling<bfp16_t, float>(reinterpret_cast<bfp16_t *>(input->GetHandle().base),
-                                     reinterpret_cast<bfp16_t *>(output->GetHandle().base), dims_input, dims_output,
+        NaivePooling<bfp16_t, float>(handle_ptr<bfp16_t *>(input->GetHandle()),
+                                     handle_ptr<bfp16_t *>(output->GetHandle()), dims_input, dims_output,
                                      stride_y, stride_x, kernel_y, kernel_x, pad_y, pad_x, pool_type);
     } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        NaivePooling<int8_t, int32_t>(reinterpret_cast<int8_t *>(input->GetHandle().base),
-                                      reinterpret_cast<int8_t *>(output->GetHandle().base), dims_input, dims_output,
+        NaivePooling<int8_t, int32_t>(handle_ptr<int8_t *>(input->GetHandle()),
+                                      handle_ptr<int8_t *>(output->GetHandle()), dims_input, dims_output,
                                       stride_y, stride_x, kernel_y, kernel_x, pad_y, pad_x, pool_type);
     }
 
