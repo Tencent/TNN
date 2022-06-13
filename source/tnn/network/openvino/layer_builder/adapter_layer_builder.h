@@ -12,36 +12,28 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <cmath>
-#include <memory>
+#ifndef TNN_SOURCE_TNN_DEVICE_OPENVINO_LAYER_BUILDER_ADAPTER_LAYER_BUILDER_H_
+#define TNN_SOURCE_TNN_DEVICE_OPENVINO_LAYER_BUILDER_ADAPTER_LAYER_BUILDER_H_
 
-#include <ngraph/node.hpp>
-#include <ngraph/ngraph.hpp>
-#include <ngraph/op/op.hpp>
-#include <ngraph/opsets/opset.hpp>
-#include <ngraph/opsets/opset1.hpp>
-#include <inference_engine.hpp>
-
-#include "tnn/layer/base_layer.h"
 #include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
-#include "tnn/extern_wrapper/foreign_blob.h"
-#include "tnn/extern_wrapper/foreign_tensor.h"
-#include "tnn/network/openvino/openvino_types.h"
-#include "tnn/utils/data_type_utils.h"
-#include "tnn/network/openvino/custom_layer/custom_gathernd.h"
-#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
 
-DECLARE_OPENVINO_LAYER_BUILDER(GatherND, LAYER_GATHERND);
+class AdapterOVLayerBuilder : public OpenVINOLayerBuilder {
+public:
+    AdapterOVLayerBuilder(LayerType layer_type) : OpenVINOLayerBuilder(layer_type){};
+    virtual ~AdapterOVLayerBuilder(){};
 
-Status GatherNDOVLayerBuilder::Build() {
+protected:
+    virtual Status InferOutputShape() {
+        return TNN_OK;
+    };
+    virtual Status InferOutputDataType() {
+        return TNN_OK;
+    };
+    virtual Status Build();
+};
 
-    ADD_CUSTOM_NODE(GatherND, param_->name);
+}  // namespace TNN_NS
 
-    return TNN_OK;
-}
-
-REGISTER_OPENVINO_LAYER_BUILDER(GatherND, LAYER_GATHERND);
-
-}
+#endif  // TNN_SOURCE_TNN_DEVICE_OPENVINO_LAYER_BUILDER_ADAPTER_LAYER_BUILDER_H__

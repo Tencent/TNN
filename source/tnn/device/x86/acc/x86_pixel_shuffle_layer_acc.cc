@@ -31,8 +31,8 @@ Status X86PixelShuffleLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
     auto input_h       = input_dims[2];
     auto input_w       = input_dims[3];
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        auto input_prt  = static_cast<float *>(input_blob->GetHandle().base);
-        auto output_ptr = static_cast<float *>(output_blob->GetHandle().base);
+        auto input_prt  = handle_ptr<float *>(input_blob->GetHandle());
+        auto output_ptr = handle_ptr<float *>(output_blob->GetHandle());
         for (int s = 0; s < slice_size; ++s) {
             for (int i = 0; i < upscale_factor; ++i) {
                 for (int j = 0; j < upscale_factor; ++j) {

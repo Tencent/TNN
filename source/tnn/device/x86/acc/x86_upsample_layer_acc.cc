@@ -229,8 +229,8 @@ Status X86UpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
 
     DataType data_type = output_blob->GetBlobDesc().data_type;
 
-    float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-    float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+    float *input_data  = handle_ptr<float *>(input_blob->GetHandle());
+    float *output_data = handle_ptr<float *>(output_blob->GetHandle());
 
     RawBuffer buffer_scale_;
     bool do_scale_;

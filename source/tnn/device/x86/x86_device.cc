@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn/device/x86/acc/x86_cpu_adapter_acc.h"
 #include "tnn/device/x86/x86_device.h"
 #include "tnn/device/x86/x86_context.h"
 #include "tnn/utils/blob_memory_size_utils.h"
@@ -104,8 +105,9 @@ AbstractLayerAcc* X86Device::CreateLayerAcc(LayerType type) {
     auto &layer_creator_map = GetLayerCreatorMap();
     if (layer_creator_map.count(type) > 0) {
         return layer_creator_map[type]->CreateLayerAcc(type);
+    } else {
+        return new X86CpuAdapterAcc(type);
     }
-    return NULL;
 }
 
 Context* X86Device::CreateContext(int device_id) {
