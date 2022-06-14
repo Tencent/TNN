@@ -42,8 +42,8 @@ Status X86ScaleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     RawBuffer bias_handle  = resource->bias_handle;
     bool has_bias          = bias_handle.GetDataCount() > 0; 
 
-    x86_fma_func(static_cast<float *>(input_blob->GetHandle().base),
-            static_cast<float *>(output_blob->GetHandle().base),
+    x86_fma_func(handle_ptr<float *>(input_blob->GetHandle()),
+            handle_ptr<float *>(output_blob->GetHandle()),
             scale_handle.force_to<float *>(), bias_handle.force_to<float *>(),
             shared_channel, has_bias, output_blob->GetBlobDesc().dims);
 

@@ -25,6 +25,7 @@
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/device/x86/x86_device.h"
 #include "tnn/network/openvino/custom_layer/custom_implementation.h"
+#include "tnn/network/openvino/layer_builder/adapter_layer_builder.h"
 
 namespace TNN_NS {
 
@@ -135,6 +136,8 @@ OpenVINOLayerBuilder* CreateOpenVINOLayerBuilder(LayerType type) {
     if (map.count(type) > 0) {
         auto base_layer = map[type]->CreateLayerBuilder();
         cur_layer = dynamic_cast<OpenVINOLayerBuilder*>(base_layer);
+    } else {
+        return new AdapterOVLayerBuilder(type);
     }
     return cur_layer;
 }

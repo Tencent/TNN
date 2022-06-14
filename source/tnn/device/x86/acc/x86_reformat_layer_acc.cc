@@ -89,12 +89,12 @@ Status X86ReformatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         int channel = dims[1];
         int hw      = DimsVectorUtils::Count(dims, 2);
         if (param->type == DEQUANT_ONLY) {
-            X86Int8ToFloat(reinterpret_cast<float *>(outputs[i]->GetHandle().base),
-                           reinterpret_cast<int8_t *>(inputs[i]->GetHandle().base),
+            X86Int8ToFloat(handle_ptr<float *>(outputs[i]->GetHandle()),
+                           handle_ptr<int8_t *>(inputs[i]->GetHandle()),
                            scale_buffer_[i].force_to<float *>(), batch, channel, hw);
         } else if (param->type == QUANT_ONLY) {
-            X86FloatToInt8(reinterpret_cast<int8_t *>(outputs[i]->GetHandle().base),
-                           reinterpret_cast<float *>(inputs[i]->GetHandle().base), scale_buffer_[i].force_to<float *>(),
+            X86FloatToInt8(handle_ptr<int8_t *>(outputs[i]->GetHandle()),
+                           handle_ptr<float *>(inputs[i]->GetHandle()), scale_buffer_[i].force_to<float *>(),
                            batch, channel, hw);
         }
     }

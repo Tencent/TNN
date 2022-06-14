@@ -56,10 +56,10 @@ Status X86HardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
         channel_size = DimsVectorUtils::Count(input_dim0, 2);
     }
 
-    auto input_ptr0 = reinterpret_cast<float *>(input_blob0->GetHandle().base);
-    auto input_ptr1 = reinterpret_cast<float *>(input_blob1->GetHandle().base);
+    auto input_ptr0 = handle_ptr<float *>(input_blob0->GetHandle());
+    auto input_ptr1 = handle_ptr<float *>(input_blob1->GetHandle());
 
-    auto output_ptr = reinterpret_cast<float *>(outputs[0]->GetHandle().base);
+    auto output_ptr = handle_ptr<float *>(outputs[0]->GetHandle());
 
 #ifdef __AVX__
     __m256 alpha_, beta_, zero_, one_, tmp00_, tmp01_, tmp02_, tmp03_, tmp10_, tmp11_, tmp12_, tmp13_;

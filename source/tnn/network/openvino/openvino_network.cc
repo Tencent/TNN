@@ -220,7 +220,7 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
         }
 
         BlobHandle handle;
-        handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
+        handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::UNSPECIFIED>::value_type *>();
 
         if (input_blob_map_.find(key) != input_blob_map_.end())  {
             input_blob_map_[key]->SetBlobDesc(desc);
@@ -244,7 +244,7 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
             desc.dims.push_back(dims[index]);
         }
         BlobHandle handle;
-        handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
+        handle.base = blob_ptr->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::UNSPECIFIED>::value_type *>();
         if (output_blob_map_.find(key) != output_blob_map_.end())  {
             output_blob_map_[key]->SetBlobDesc(desc);
             output_blob_map_[key]->SetHandle(handle);
