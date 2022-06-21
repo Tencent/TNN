@@ -37,7 +37,7 @@ Status X86GatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         input_data_ptr = layer_resource->data.force_to<char*>();
     } else {
         input_data_dims = (*(inputs.begin()))->GetBlobDesc().dims;
-        input_data_ptr = (char*)(*(inputs.begin()))->GetHandle().base;
+        input_data_ptr = handle_ptr<char*>((*(inputs.begin()))->GetHandle());
     }
     
     DimsVector indices_dims;
@@ -47,7 +47,7 @@ Status X86GatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         indices_data_ptr = layer_resource->indices.force_to<int*>();
     } else {
         indices_dims = (*(inputs.rbegin()))->GetBlobDesc().dims;
-        indices_data_ptr = (int *)(*(inputs.rbegin()))->GetHandle().base;
+        indices_data_ptr = handle_ptr<int *>((*(inputs.rbegin()))->GetHandle());
     }
     
     const int slice_size = DimsVectorUtils::Count(input_data_dims, axis+1);
@@ -58,7 +58,7 @@ Status X86GatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     const int output_slice_count = DimsVectorUtils::Count(indices_dims);
     
     const int ele_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
-    auto output_data_ptr = (char*)outputs[0]->GetHandle().base;
+    auto output_data_ptr = handle_ptr<char*>(outputs[0]->GetHandle());
     
     for (int b=0; b<batch; b++) {
         int input_index_b = b*input_slice_count*slice_size;

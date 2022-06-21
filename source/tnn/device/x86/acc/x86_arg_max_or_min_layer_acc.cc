@@ -32,8 +32,8 @@ Status X86ArgMaxOrMinLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
         stride = 1;
     }
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
-        auto input_ptr  = static_cast<float *>(input_blob->GetHandle().base);
-        auto output_ptr = static_cast<int *>(output_blob->GetHandle().base);
+        auto input_ptr  = handle_ptr<float *>(input_blob->GetHandle());
+        auto output_ptr = handle_ptr<int *>(output_blob->GetHandle());
         for (int n = 0; n < num; ++n) {
             for (int s = 0; s < stride; ++s) {
                 int guard_index = 0;

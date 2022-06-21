@@ -56,6 +56,7 @@ int main(int argc, char* argv[]) {
     {
         std::ifstream proto_stream(tnn_proto);
         if (!proto_stream.is_open() || !proto_stream.good()) {
+            LOGE("Dynamic_range_quantization: open %s failed\n", tnn_proto.c_str());
             return -1;
         }
         auto buffer = std::string((std::istreambuf_iterator<char>(proto_stream)), std::istreambuf_iterator<char>());
@@ -65,6 +66,7 @@ int main(int argc, char* argv[]) {
     {
         std::ifstream model_stream(tnn_model);
         if (!model_stream.is_open() || !model_stream.good()) {
+            LOGE("Dynamic_range_quantization: open %s failed\n", tnn_model.c_str());
             return -1;
         }
         auto buffer = std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());

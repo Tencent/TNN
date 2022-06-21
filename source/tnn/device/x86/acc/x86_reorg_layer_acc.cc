@@ -33,8 +33,8 @@ Status X86ReorgLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     int mode    = layer_param->mode;
 
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        float *bottom_data = static_cast<float *>(input_blob->GetHandle().base);
-        float *top_data    = static_cast<float *>(output_blob->GetHandle().base);
+        float *bottom_data = handle_ptr<float *>(input_blob->GetHandle());
+        float *top_data    = handle_ptr<float *>(output_blob->GetHandle());
         if (forward) {
             DimsVector input_dims = input_blob->GetBlobDesc().dims;
             int batch             = input_dims[0];

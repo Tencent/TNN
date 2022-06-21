@@ -34,8 +34,8 @@ Status X86UnaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     auto dims = output->GetBlobDesc().dims;
 
     int count = DimsVectorUtils::Count(dims);
-    auto input_data  = static_cast<float*>(input->GetHandle().base);
-    auto output_data = static_cast<float*>(output->GetHandle().base);
+    auto input_data  = handle_ptr<float*>(input->GetHandle());
+    auto output_data = handle_ptr<float*>(output->GetHandle());
 
     OMP_PARALLEL_FOR_GUIDED_
     for (int n = 0; n < count; n++) {

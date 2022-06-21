@@ -38,6 +38,7 @@ namespace optimizer {
         Status DequantConv(std::shared_ptr<LayerInfo> &layer, NetStructure *structure, NetResource *resource);
         Status DequantLSTM(std::shared_ptr<LayerInfo> &layer, NetStructure *structure, NetResource *resource);
         Status DequantMatMul(std::shared_ptr<LayerInfo> &layer, NetStructure *structure, NetResource *resource);
+        Status DequantInnerProduct(std::shared_ptr<LayerInfo> &layer, NetStructure *structure, NetResource *resource);
     };
 
 }  // namespace optimizer

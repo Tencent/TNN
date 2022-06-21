@@ -40,8 +40,8 @@ Status X86ReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         auto dims = inputs[0]->GetBlobDesc().dims;
         long count = dims[0] * ROUND_UP(dims[1], 4) * DimsVectorUtils::Count(dims, 2);
-        X86ReluInt8(reinterpret_cast<int8_t *>(outputs[0]->GetHandle().base),
-                    reinterpret_cast<int8_t *>(inputs[0]->GetHandle().base), count);
+        X86ReluInt8(handle_ptr<int8_t *>(outputs[0]->GetHandle()),
+                    handle_ptr<int8_t *>(inputs[0]->GetHandle()), count);
         return TNN_OK;
     } else {
         return X86Unary2LayerAcc::DoForward(inputs, outputs);
