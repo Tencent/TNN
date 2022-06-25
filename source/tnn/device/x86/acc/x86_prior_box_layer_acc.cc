@@ -27,7 +27,7 @@ Status X86PriorBoxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     }
 
     Blob *output_blob  = outputs[0];
-    void *output_data  = output_blob->GetHandle().base;
+    void *output_data  = handle_ptr<void*>(output_blob->GetHandle());
     DataType data_type = output_blob->GetBlobDesc().data_type;
 
     // compute

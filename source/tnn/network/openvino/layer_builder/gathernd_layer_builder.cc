@@ -29,6 +29,7 @@
 #include "tnn/network/openvino/openvino_types.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/network/openvino/custom_layer/custom_gathernd.h"
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
 
@@ -36,23 +37,7 @@ DECLARE_OPENVINO_LAYER_BUILDER(GatherND, LAYER_GATHERND);
 
 Status GatherNDOVLayerBuilder::Build() {
 
-    auto paramlist = dynamic_cast<GatherNDLayerParam*>(param_);
-
-    if (GetInputNodes().size() <= 2) {
-        LOGE("Error: GatherND needs 2 inputs, but got less than 2.\n");
-        return TNNERR_INIT_LAYER;
-    }
-    ngraph::OutputVector input_nodes;
-    input_nodes.push_back(GetInputNodes()[0]->output(0));
-    input_nodes.push_back(GetInputNodes()[1]->output(0));
-
-
-    // use custom x86 gatherND layer
-    auto gatherNDNode = std::make_shared<CustomGatherNDOp>(input_nodes, base_layer_, GetInputBlobs(), GetOutputBlobs());
-    gatherNDNode->set_friendly_name(param_->name);
-    ngraph::NodeVector outputNodes;
-    outputNodes.push_back(gatherNDNode);
-    SetOutputTensors(outputNodes);   
+    ADD_CUSTOM_NODE(GatherND, param_->name);
 
     return TNN_OK;
 }

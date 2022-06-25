@@ -66,12 +66,12 @@ Status X86ConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     }
 
     auto datasize                 = DataTypeUtils::GetBytesSize(input->GetBlobDesc().data_type);
-    int8_t *output_data           = static_cast<int8_t *>(output->GetHandle().base);
+    int8_t *output_data           = handle_ptr<int8_t *>(output->GetHandle());
     int output_concat_axis        = output->GetBlobDesc().dims[axis];
     int output_concat_axis_offset = 0;
     for (size_t i = 0; i < inputs.size(); ++i) {
         // use int8_t for all types
-        int8_t *input_data          = static_cast<int8_t *>(inputs[i]->GetHandle().base);
+        int8_t *input_data          = handle_ptr<int8_t *>(inputs[i]->GetHandle());
         const int input_concat_axis = inputs[i]->GetBlobDesc().dims[axis];
         for (int n = 0; n < num_concats; ++n) {
             memcpy(output_data + (n * output_concat_axis + output_concat_axis_offset) * concate_size * datasize,

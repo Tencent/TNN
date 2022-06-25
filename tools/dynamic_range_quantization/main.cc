@@ -20,7 +20,7 @@ using namespace TNN_NS;
 
 void ShowUsage() {
     printf(
-        "usage:\n./model_check [-h] [-p] <tnnproto> [-m] <tnnmodel> [-qp] <quant_tnnproto> [-qm] <quant_tnnmodel> \n");
+        "usage:\n./dynamic_range_quantization [-h] [-p] <tnnproto> [-m] <tnnmodel> [-qp] <quant_tnnproto> [-qm] <quant_tnnmodel> \n");
     printf("\t-h, <help>     \t\t\t%s\n", TNN_NS::help_message);
     printf("\t-p, <proto>    \t\t\t%s\n", TNN_NS::proto_message);
     printf("\t-m, <model>    \t\t\t%s\n", TNN_NS::model_message);
@@ -56,6 +56,7 @@ int main(int argc, char* argv[]) {
     {
         std::ifstream proto_stream(tnn_proto);
         if (!proto_stream.is_open() || !proto_stream.good()) {
+            LOGE("Dynamic_range_quantization: open %s failed\n", tnn_proto.c_str());
             return -1;
         }
         auto buffer = std::string((std::istreambuf_iterator<char>(proto_stream)), std::istreambuf_iterator<char>());
@@ -65,6 +66,7 @@ int main(int argc, char* argv[]) {
     {
         std::ifstream model_stream(tnn_model);
         if (!model_stream.is_open() || !model_stream.good()) {
+            LOGE("Dynamic_range_quantization: open %s failed\n", tnn_model.c_str());
             return -1;
         }
         auto buffer = std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());

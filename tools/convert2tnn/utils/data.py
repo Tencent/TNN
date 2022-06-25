@@ -40,7 +40,7 @@ def gene_random_data(input_info: dict) -> str:
         if data_type == 0:
             data[name] = np.random.rand(*shape)
             np.savetxt(data_file, data[name].reshape(-1), fmt="%0.6f")
-        elif data_type == 3:
+        elif data_type == 2 or data_type == 3:
             # range [low, high)
             data[name] = np.random.randint(low=0, high=2, size=shape)
             np.savetxt(data_file, data[name].reshape(-1), fmt="%i")

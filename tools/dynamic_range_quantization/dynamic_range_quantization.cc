@@ -45,6 +45,9 @@ Status DynamicRangeQuantizer::GetDynamicRangeQuantModel(std::shared_ptr<NetStruc
             case LAYER_MATMUL:
                 QuantMatMul(layer, resource_map, constant_map);
                 break;
+            case LAYER_INNER_PRODUCT:
+                QuantInnerProduct(layer, resource_map, constant_map);
+                break;
             default:
                 break;
         }
@@ -108,11 +111,12 @@ Status DynamicRangeQuantizer::QuantLSTM(std::shared_ptr<LayerInfo>& layer,
 Status DynamicRangeQuantizer::QuantMatMul(std::shared_ptr<LayerInfo>& layer,
                                           std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
                                           std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
-    auto matmul_param                     = std::dynamic_pointer_cast<MatMulLayerParam>(layer->param);
-    matmul_param->dynamic_range_quantized = true;
+    auto matmul_param = std::dynamic_pointer_cast<MatMulLayerParam>(layer->param);
     if (matmul_param->weight_position != 1) {
         return TNN_OK;
     }
+
+    matmul_param->dynamic_range_quantized         = true;
     std::shared_ptr<LayerResource> layer_resource = nullptr;
     if (resource_map.find(layer->name) != resource_map.end()) {
         layer_resource = resource_map[layer->name];
@@ -196,4 +200,23 @@ float DynamicRangeQuantizer::GetAbsMax(float* data, int data_size) {
 
     return max_value;
 }
+
+Status DynamicRangeQuantizer::QuantInnerProduct(std::shared_ptr<LayerInfo>& layer,
+                                                std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
+                                                std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
+    auto matmul_param                             = std::dynamic_pointer_cast<InnerProductLayerParam>(layer->param);
+    matmul_param->dynamic_range_quantized         = true;
+    std::shared_ptr<LayerResource> layer_resource = nullptr;
+    if (resource_map.find(layer->name) != resource_map.end()) {
+        layer_resource = resource_map[layer->name];
+    }
+    RawBuffer quant_buf;
+    RawBuffer scale_buf;
+    auto matmul_resource = std::dynamic_pointer_cast<InnerProductLayerResource>(layer_resource);
+    PerTensorQuant(matmul_resource->weight_handle, quant_buf, scale_buf);
+    matmul_resource->weight_handle = quant_buf;
+    matmul_resource->scale_handle  = scale_buf;
+    return TNN_OK;
+}
+
 }  // namespace TNN_NS

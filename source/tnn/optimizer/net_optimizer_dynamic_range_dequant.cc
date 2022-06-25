@@ -60,6 +60,9 @@ namespace optimizer {
                 case LAYER_MATMUL:
                     DequantMatMul(layer, structure, resource);
                     break;
+                case LAYER_INNER_PRODUCT:
+                    DequantInnerProduct(layer, structure, resource);
+                    break;
                 default:
                     break;
             }
@@ -73,6 +76,11 @@ namespace optimizer {
         auto layer_name    = layer->name;
         auto conv_resource = std::dynamic_pointer_cast<ConvLayerResource>(resource->resource_map[layer_name]);
         auto filter_handle = conv_resource->filter_handle;
+        if (filter_handle.GetDataType() != DATA_TYPE_INT8) {
+            LOGD("dynamic range dequantize layer(%s) weight data type is not int8_t."
+                "This weight might have been dequantized before.\n", layer_name.c_str());
+            return TNN_OK;
+        }
         auto scale_handler = conv_resource->scale_handle;
 
         const auto filter_dims = filter_handle.GetBufferDims();
@@ -96,6 +104,7 @@ namespace optimizer {
         conv_resource->filter_handle = weight_buf;
         conv_resource->scale_handle  = RawBuffer();
 
+        layer->param->dynamic_range_quantized = false;
         return TNN_OK;
     }
 
@@ -107,6 +116,11 @@ namespace optimizer {
             auto scale_name  = buffer_name + DynamicRangeQuantScaleSuffix;
             auto buffer      = resource->constant_map[buffer_name];
             auto scale       = resource->constant_map[scale_name];
+            if (buffer->GetDataType() != DATA_TYPE_INT8) {
+                LOGD("dynamic range dequantize layer(%s) weight data type is not int8_t."
+                    "This weight might have been dequantized before.\n", layer->name.c_str());
+                return TNN_OK;
+            }
 
             const int data_size = buffer->GetDataCount();
             auto weight_ptr     = buffer->force_to<int8_t *>();
@@ -128,6 +142,8 @@ namespace optimizer {
                 resource->constant_map.erase(scale_name);
             }
         }
+
+        layer->param->dynamic_range_quantized = false;
         return TNN_OK;
     }
 
@@ -136,6 +152,11 @@ namespace optimizer {
         auto layer_name      = layer->name;
         auto matmul_resource = std::dynamic_pointer_cast<MatMulLayerResource>(resource->resource_map[layer_name]);
         auto scale_handle    = matmul_resource->scale_handle;
+        if (matmul_resource->weight.GetDataType() != DATA_TYPE_INT8) {
+            LOGD("Dynamic range dequantize layer(%s) weight data type is not int8_t."
+                "This weight might have been dequantized before.\n", layer_name.c_str());
+            return TNN_OK;
+        }
 
         const int data_size = matmul_resource->weight.GetDataCount();
         auto weight_ptr     = matmul_resource->weight.force_to<int8_t *>();
@@ -150,8 +171,39 @@ namespace optimizer {
         weight_buf.SetDataType(DATA_TYPE_FLOAT);
         weight_buf.SetBufferDims(matmul_resource->weight.GetBufferDims());
 
-        matmul_resource->weight = weight_buf;
+        matmul_resource->weight               = weight_buf;
+        layer->param->dynamic_range_quantized = false;
+        return TNN_OK;
+    }
 
+    Status NetOptimizerDynamicRangeDequant::DequantInnerProduct(std::shared_ptr<LayerInfo> &layer,
+                                                                NetStructure *structure, NetResource *resource) {
+        auto layer_name      = layer->name;
+        auto matmul_resource = std::dynamic_pointer_cast<InnerProductLayerResource>(resource->resource_map[layer_name]);
+        auto scale_handle    = matmul_resource->scale_handle;
+        if (matmul_resource->weight_handle.GetDataType() != DATA_TYPE_INT8) {
+            LOGD(
+                "Dynamic range dequantize layer(%s) weight data type is not int8_t."
+                "This weight might have been dequantized before.\n",
+                layer_name.c_str());
+            return TNN_OK;
+        }
+
+        const int data_size = matmul_resource->weight_handle.GetDataCount();
+        auto weight_ptr     = matmul_resource->weight_handle.force_to<int8_t *>();
+        auto scale_value    = scale_handle.force_to<float *>()[0];
+        std::vector<float> weight_data(data_size, 0);
+        for (int i = 0; i < data_size; i++) {
+            weight_data[i] = scale_value * (float)(weight_ptr[i]);
+        }
+
+        RawBuffer weight_buf(data_size * sizeof(float));
+        memcpy(weight_buf.force_to<float *>(), weight_data.data(), data_size * sizeof(float));
+        weight_buf.SetDataType(DATA_TYPE_FLOAT);
+        weight_buf.SetBufferDims(matmul_resource->weight_handle.GetBufferDims());
+
+        matmul_resource->weight_handle        = weight_buf;
+        layer->param->dynamic_range_quantized = false;
         return TNN_OK;
     }
 
