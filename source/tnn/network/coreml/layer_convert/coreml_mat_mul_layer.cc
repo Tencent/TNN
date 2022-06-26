@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "coreml_base_layer.h"
+#include "coreml_const_layer.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
@@ -123,7 +124,20 @@ Status CoreMLMatMulLayer::BuildLayerParam() {
 }
 
 Status CoreMLMatMulLayer::BuildConstantWeightsLayer() {
-    return CoreMLBaseLayer::BuildConstantWeightsLayer();
+    if (layer_info_ && layer_info_->inputs.size() > 1) {
+        //weight in constantmap
+        for (auto iter : layer_info_->inputs) {
+            if (net_resource_->constant_map.find(iter) != net_resource_->constant_map.end()) {
+                auto weight_buffer = net_resource_->constant_map[iter];
+                auto weight_layer = std::make_shared<CoreMLConstLayer>(LAYER_CONST);
+                auto status = weight_layer->Init(iter, *(weight_buffer.get()));
+                RETURN_ON_NEQ(status, TNN_OK);
+                
+                coreml_layer_constant_weights_.push_back(weight_layer);
+            }
+        }
+    }
+    return TNN_OK;
 }
 
 std::vector<std::string> CoreMLMatMulLayer::BuildLayerInputs() {
