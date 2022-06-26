@@ -119,8 +119,9 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     if (runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
         std::unique_lock<std::mutex> lck(optimize_mtx_);
         auto optimizer = optimizer::NetOptimizerManager::GetNetOptimizerByName("net_optimizer_dynamic_range_dequant");
-        ret            = optimizer->Optimize(net_structure, net_resource);
-        RETURN_ON_NEQ(ret, TNN_OK);
+        if (optimizer) {
+            RETURN_ON_NEQ(optimizer->Optimize(net_structure, net_resource), TNN_OK);
+        }
     }
 
     blob_manager_ = new BlobManager(device_);
