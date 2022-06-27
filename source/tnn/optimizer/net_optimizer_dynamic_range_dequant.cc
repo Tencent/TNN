@@ -115,12 +115,20 @@ namespace optimizer {
             auto buffer_name = layer->inputs.at(idx);
             auto scale_name  = buffer_name + DynamicRangeQuantScaleSuffix;
             auto buffer      = resource->constant_map[buffer_name];
-            auto scale       = resource->constant_map[scale_name];
             if (buffer->GetDataType() != DATA_TYPE_INT8) {
-                LOGD("dynamic range dequantize layer(%s) weight data type is not int8_t."
-                    "This weight might have been dequantized before.\n", layer->name.c_str());
+                LOGD(
+                    "dynamic range dequantize layer(%s) weight data type is not int8_t."
+                    "This weight might have been dequantized before.\n",
+                    layer->name.c_str());
                 return TNN_OK;
             }
+
+            if (resource->constant_map.count(scale_name) == 0) {
+                LOGE("scale is not found in constant map, its name is %s\n", scale_name.c_str());
+                return Status(TNNERR_PARAM_ERR, "scale is not found in constant map");
+            }
+
+            auto scale = resource->constant_map[scale_name];
 
             const int data_size = buffer->GetDataCount();
             auto weight_ptr     = buffer->force_to<int8_t *>();
@@ -187,7 +195,6 @@ namespace optimizer {
             auto buffer_name = input0_iter != resource->constant_map.end() ? layer->inputs[0] : layer->inputs[1];
             auto scale_name  = buffer_name + DynamicRangeQuantScaleSuffix;
             auto buffer      = resource->constant_map[buffer_name];
-            auto scale       = resource->constant_map[scale_name];
             if (buffer->GetDataType() != DATA_TYPE_INT8) {
                 LOGD(
                     "dynamic range dequantize layer(%s) weight data type is not int8_t."
@@ -195,6 +202,12 @@ namespace optimizer {
                     layer->name.c_str());
                 return TNN_OK;
             }
+            if(resource->constant_map.count(scale_name) == 0) {
+                LOGE("scale is not found in constant map, its name is %s\n", scale_name.c_str());
+                return Status(TNNERR_PARAM_ERR, "scale is not found in constant map");
+            }
+
+            auto scale       = resource->constant_map[scale_name];
 
             const int data_size = buffer->GetDataCount();
             auto weight_ptr     = buffer->force_to<int8_t *>();
