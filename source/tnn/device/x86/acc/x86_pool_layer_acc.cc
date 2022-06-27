@@ -26,6 +26,7 @@
 #include "tnn/device/x86/acc/Float4.h"
 
 namespace TNN_NS {
+using namespace x86;
 
 X86PoolLayerAcc::~X86PoolLayerAcc() {}
 
