@@ -16,6 +16,18 @@
 
 #include "utils.h"
 
+template <typename T>
+T GetAbsMax(T* data, int data_size) {
+    float max_value = fabs(data[0]);
+    for (int i = 1; i < data_size; i++) {
+        float value = fabs(data[i]);
+        if (value > max_value) {
+            max_value = value;
+        }
+    }
+    return max_value;
+}
+
 namespace TNN_NS {
 DynamicRangeQuantizer::DynamicRangeQuantizer(const std::shared_ptr<NetStructure>& net_structure,
                                              const std::shared_ptr<NetResource>& net_resource) {
@@ -78,7 +90,6 @@ Status DynamicRangeQuantizer::QuantConvolution(std::shared_ptr<LayerInfo>& layer
     conv_param->dynamic_range_quantized = true;
     conv_resource->filter_handle        = quant_buf;
     conv_resource->scale_handle         = scale_buf;
-
     return TNN_OK;
 }
 
@@ -145,19 +156,33 @@ Status DynamicRangeQuantizer::PerChannelQuant(RawBuffer& weight_buf, RawBuffer& 
                                               int num_kernel) {
     const int weight_size = weight_buf.GetDataCount();
     const int kernel_size = weight_size / num_kernel;
-    auto weight_data_ptr  = weight_buf.force_to<float*>();
-
     std::vector<int8_t> quant_data(weight_size, 0);
     std::vector<float> scale_data(num_kernel, 0.0f);
-
-    int begin_index = 0;
-    for (int k = 0; k < num_kernel; k++) {
-        begin_index    = k * kernel_size;
-        auto max_value = GetAbsMax(weight_data_ptr + begin_index, kernel_size);
-        scale_data[k]  = max_value / threshold_;
-        for (int i = 0; i < kernel_size; i++) {
-            quant_data[begin_index + i] = int8_t(std::round(weight_data_ptr[begin_index + i] / scale_data[k]));
+    const DataType data_type = weight_buf.GetDataType();
+    if (data_type == DATA_TYPE_FLOAT) {
+        auto weight_data_ptr  = weight_buf.force_to<float*>();
+        int begin_index = 0;
+        for (int k = 0; k < num_kernel; k++) {
+            begin_index    = k * kernel_size;
+            auto max_value = GetAbsMax(weight_data_ptr + begin_index, kernel_size);
+            scale_data[k]  = max_value / threshold_;
+            for (int i = 0; i < kernel_size; i++) {
+                quant_data[begin_index + i] = int8_t(std::round(weight_data_ptr[begin_index + i] / scale_data[k]));
+            }
         }
+    } else if (data_type == DATA_TYPE_HALF) {
+        fp16_t* weight_data_ptr  = weight_buf.force_to<fp16_t *>();
+        int begin_index = 0;
+        for (int k = 0; k < num_kernel; k++) {
+            begin_index    = k * kernel_size;
+            auto max_value = GetAbsMax(weight_data_ptr + begin_index, kernel_size);
+            scale_data[k]  = max_value / threshold_;
+            for (int i = 0; i < kernel_size; i++) {
+                quant_data[begin_index + i] = int8_t(std::round(weight_data_ptr[begin_index + i] / scale_data[k]));
+            }
+        }
+    } else {
+        LOGE("PerChannelQuant does not support data type\n");
     }
 
     quant_buf = RawBuffer(weight_size * sizeof(int8_t));
@@ -195,18 +220,6 @@ Status DynamicRangeQuantizer::PerTensorQuant(RawBuffer& weight_buf, RawBuffer& q
     scale_buf.SetBufferDims({1});
 
     return TNN_OK;
-}
-
-float DynamicRangeQuantizer::GetAbsMax(float* data, int data_size) {
-    float max_value = fabs(data[0]);
-    for (int i = 1; i < data_size; i++) {
-        float value = fabs(data[i]);
-        if (value > max_value) {
-            max_value = value;
-        }
-    }
-
-    return max_value;
 }
 
 Status DynamicRangeQuantizer::QuantInnerProduct(std::shared_ptr<LayerInfo>& layer,
