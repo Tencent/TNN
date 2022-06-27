@@ -748,19 +748,19 @@ Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
             // bias as another input
             input_ptrs.push_back(layer_res->element_handle.force_to<float *>());
 
-            input_ptrs.push_back(reinterpret_cast<float *>(inputs[0]->GetHandle().base));
+            input_ptrs.push_back(handle_ptr<float *>(inputs[0]->GetHandle()));
         } else {
-            input_ptrs.push_back(reinterpret_cast<float *>(inputs[0]->GetHandle().base));
+            input_ptrs.push_back(handle_ptr<float *>(inputs[0]->GetHandle()));
 
             input_ptrs.push_back(layer_res->element_handle.force_to<float *>());
         }
     } else {
         if (inputs.size() == 1) {
-            input_ptrs.push_back(reinterpret_cast<float *>(inputs[0]->GetHandle().base));
-            input_ptrs.push_back(reinterpret_cast<float *>(inputs[0]->GetHandle().base));
+            input_ptrs.push_back(handle_ptr<float *>(inputs[0]->GetHandle()));
+            input_ptrs.push_back(handle_ptr<float *>(inputs[0]->GetHandle()));
         } else {
             for (size_t inid = 0; inid < inputs.size(); inid++) {
-                input_ptrs.push_back(reinterpret_cast<float *>(inputs[inid]->GetHandle().base));
+                input_ptrs.push_back(handle_ptr<float *>(inputs[inid]->GetHandle()));
             }
         }
     }
@@ -769,10 +769,10 @@ Status X86BinaryOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
         LOGE("Error: unknown broadcast type\n");
         return Status(TNNERR_LAYER_ERR, "Error: Binary layer unknown broadcast type");
     } else if (btype_ == BroadcastTypeGeneral) {
-        auto output_ptr = reinterpret_cast<float *>(output->GetHandle().base);
+        auto output_ptr = handle_ptr<float *>(output->GetHandle());
         binary_general_func_(dims, input_shapes_, output_ptr, input_ptrs);
     } else {
-        auto output_ptr = reinterpret_cast<float *>(output->GetHandle().base);
+        auto output_ptr = handle_ptr<float *>(output->GetHandle());
         auto input0_ptr = reinterpret_cast<float *>(input_ptrs[0]);
         auto input1_ptr = reinterpret_cast<float *>(input_ptrs[1]);
 

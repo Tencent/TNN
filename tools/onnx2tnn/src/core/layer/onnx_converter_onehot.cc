@@ -15,11 +15,21 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-DECLARE_OP_CONVERTER(OneHot);
+DECLARE_OP_CONVERTER_WITH_FUNC(OneHot, virtual std::vector<std::string> GetValidInputNames(NodeProto &node,
+                                                                                           OnnxNetInfo &net_info););
 
 string OnnxOpConverterOneHot::TNNOpType(NodeProto &node,
                                            OnnxNetInfo &net_info) {
     return "OneHot";
+}
+
+std::vector<std::string> OnnxOpConverterOneHot::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+    const int input_size = node.input_size();
+    std::vector<std::string> inputs(input_size);
+    for (int i = 0; i < input_size; i++) {
+        inputs[i] = node.input(i);
+    }
+    return inputs;
 }
 
 string OnnxOpConverterOneHot::TNNLayerParam(NodeProto &node,

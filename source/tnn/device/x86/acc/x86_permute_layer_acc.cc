@@ -130,13 +130,13 @@ Status X86PermuteLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     }
 
     if (data_type != DATA_TYPE_INT8) {
-        float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+        float *input_data  = handle_ptr<float *>(input_blob->GetHandle());
+        float *output_data = handle_ptr<float *>(output_blob->GetHandle());
         X86Permute<float>(output_count, output_dims, input_data, param->orders, input_step, output_step, num_dims, output_data);
     } else {
         // DATA_TYPE_INT8
-        int8_t *input_data  = static_cast<int8_t *>(input_blob->GetHandle().base);
-        int8_t *output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
+        int8_t *input_data  = handle_ptr<int8_t *>(input_blob->GetHandle());
+        int8_t *output_data = handle_ptr<int8_t *>(output_blob->GetHandle());
         X86Permute<int8_t>(output_count, output_dims, input_data, param->orders, input_step, output_step, num_dims, output_data);
     }
     return TNN_OK;
