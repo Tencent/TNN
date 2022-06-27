@@ -14,11 +14,14 @@
 
 #include "dynamic_range_quantization.h"
 
+#include "tnn/utils/half_utils_inner.h"
 #include "utils.h"
+
+namespace TNN_NS {
 
 template <typename T>
 T GetAbsMax(T* data, int data_size) {
-    float max_value = fabs(data[0]);
+    T max_value = fabs(data[0]);
     for (int i = 1; i < data_size; i++) {
         float value = fabs(data[i]);
         if (value > max_value) {
@@ -28,7 +31,6 @@ T GetAbsMax(T* data, int data_size) {
     return max_value;
 }
 
-namespace TNN_NS {
 DynamicRangeQuantizer::DynamicRangeQuantizer(const std::shared_ptr<NetStructure>& net_structure,
                                              const std::shared_ptr<NetResource>& net_resource) {
     net_structure_ = net_structure;
@@ -160,8 +162,8 @@ Status DynamicRangeQuantizer::PerChannelQuant(RawBuffer& weight_buf, RawBuffer& 
     std::vector<float> scale_data(num_kernel, 0.0f);
     const DataType data_type = weight_buf.GetDataType();
     if (data_type == DATA_TYPE_FLOAT) {
-        auto weight_data_ptr  = weight_buf.force_to<float*>();
-        int begin_index = 0;
+        auto weight_data_ptr = weight_buf.force_to<float*>();
+        int begin_index      = 0;
         for (int k = 0; k < num_kernel; k++) {
             begin_index    = k * kernel_size;
             auto max_value = GetAbsMax(weight_data_ptr + begin_index, kernel_size);
@@ -171,18 +173,19 @@ Status DynamicRangeQuantizer::PerChannelQuant(RawBuffer& weight_buf, RawBuffer& 
             }
         }
     } else if (data_type == DATA_TYPE_HALF) {
-        fp16_t* weight_data_ptr  = weight_buf.force_to<fp16_t *>();
-        int begin_index = 0;
+        auto weight_data_ptr = weight_buf.force_to<fp16_t*>();
+        int begin_index      = 0;
         for (int k = 0; k < num_kernel; k++) {
             begin_index    = k * kernel_size;
-            auto max_value = GetAbsMax(weight_data_ptr + begin_index, kernel_size);
-            scale_data[k]  = max_value / threshold_;
+            fp16_t max_value = GetAbsMax(weight_data_ptr + begin_index, kernel_size);
+            scale_data[k]  = (float )max_value / threshold_;
             for (int i = 0; i < kernel_size; i++) {
                 quant_data[begin_index + i] = int8_t(std::round(weight_data_ptr[begin_index + i] / scale_data[k]));
             }
         }
     } else {
         LOGE("PerChannelQuant does not support data type\n");
+        return TNNERR_INVALID_MODEL;
     }
 
     quant_buf = RawBuffer(weight_size * sizeof(int8_t));
@@ -198,14 +201,27 @@ Status DynamicRangeQuantizer::PerChannelQuant(RawBuffer& weight_buf, RawBuffer& 
     return TNN_OK;
 }
 Status DynamicRangeQuantizer::PerTensorQuant(RawBuffer& weight_buf, RawBuffer& quant_buf, RawBuffer& scale_buf) {
-    const int weight_size = weight_buf.GetDataCount();
-    auto weight_data_ptr  = weight_buf.force_to<float*>();
-    auto max_value        = GetAbsMax(weight_data_ptr, weight_size);
-    auto scale_data       = max_value / threshold_;
-
+    const int weight_size    = weight_buf.GetDataCount();
+    const DataType data_type = weight_buf.GetDataType();
     std::vector<int8_t> quant_data(weight_size, 0);
-    for (int i = 0; i < weight_size; i++) {
-        quant_data[i] = int8_t(std::round(weight_data_ptr[i] / scale_data));
+    float scale_data = 1.0f;
+    if (data_type == DATA_TYPE_FLOAT) {
+        auto weight_data_ptr = weight_buf.force_to<float*>();
+        auto max_value       = GetAbsMax(weight_data_ptr, weight_size);
+        scale_data      = max_value / threshold_;
+        for (int i = 0; i < weight_size; i++) {
+            quant_data[i] = int8_t(std::round(weight_data_ptr[i] / scale_data));
+        }
+    } else if (data_type == DATA_TYPE_HALF) {
+        auto weight_data_ptr = weight_buf.force_to<fp16_t*>();
+        fp16_t max_value     = GetAbsMax(weight_data_ptr, weight_size);
+        scale_data      = (float)max_value / threshold_;
+        for (int i = 0; i < weight_size; i++) {
+            quant_data[i] = int8_t(std::round(weight_data_ptr[i] / scale_data));
+        }
+    } else {
+        LOGE("PerTensorQuant does not support data type");
+        return TNNERR_INVALID_MODEL;
     }
 
     int x     = sizeof(int8_t);
@@ -240,7 +256,7 @@ Status DynamicRangeQuantizer::QuantInnerProduct(std::shared_ptr<LayerInfo>& laye
     PerTensorQuant(inner_product_resource->weight_handle, quant_buf, scale_buf);
     inner_product_resource->weight_handle = quant_buf;
     inner_product_resource->scale_handle  = scale_buf;
-    layer_param->dynamic_range_quantized         = true;
+    layer_param->dynamic_range_quantized  = true;
     return TNN_OK;
 }
 
