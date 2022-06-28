@@ -115,8 +115,9 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
 
     /*
      * decode dynamic quantization model for const folder.
+     * coreml can not support this optimize
      */
-    if (runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
+    if (runtime_model_ == RUNTIME_MODE_CONST_FOLD && net_config.network_type != NETWORK_TYPE_COREML) {
         std::unique_lock<std::mutex> lck(optimize_mtx_);
         auto optimizer = optimizer::NetOptimizerManager::GetNetOptimizerByName("net_optimizer_dynamic_range_dequant");
         ret            = optimizer->Optimize(net_structure, net_resource);
