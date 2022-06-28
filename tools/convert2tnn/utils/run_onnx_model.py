@@ -34,8 +34,10 @@ class OnnxRunner(BaseRunner):
             data_type = 0
             if ip.type == 'tensor(float)':
                 data_type = 0
-            elif ip.type == 'tensor(int64)':
+            elif ip.type == 'tensor(int64)' or ip.type == 'tensor(int32)':
                 data_type = 3
+            elif ip.type == 'tensor(bool)':
+                data_type = 2
             else:
                 logging.error("Do not support input date type")
             if type(shape[0]) is not int:
