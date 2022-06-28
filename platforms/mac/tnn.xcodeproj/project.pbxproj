@@ -550,18 +550,14 @@
 		9D852BCB24584E6A003F4E41 /* bfp16_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D852BC924584E6A003F4E41 /* bfp16_utils.cc */; };
 		9D852BCC24584E6A003F4E41 /* bfp16.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D852BCA24584E6A003F4E41 /* bfp16.h */; };
 		9DB341FD249B0A9300F23F65 /* metal_cpu_adapter_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DB341FB249B0A9300F23F65 /* metal_cpu_adapter_acc.mm */; };
-		9DD1FB31247CE9BE00800139 /* coreml_network.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FA8D247CE9BE00800139 /* coreml_network.mm */; };
 		9DD1FB33247CE9BE00800139 /* metal_command_queue.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FA8F247CE9BE00800139 /* metal_command_queue.h */; };
-		9DD1FB34247CE9BE00800139 /* coreml_network.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FA90247CE9BE00800139 /* coreml_network.h */; };
 		9DD1FB35247CE9BE00800139 /* metal_device.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FA91247CE9BE00800139 /* metal_device.mm */; };
-		9DD1FB36247CE9BE00800139 /* tnn_impl_coreml.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FA92247CE9BE00800139 /* tnn_impl_coreml.h */; };
 		9DD1FB37247CE9BE00800139 /* metal_macro.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FA93247CE9BE00800139 /* metal_macro.h */; };
 		9DD1FB38247CE9BE00800139 /* metal_blob_converter.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FA94247CE9BE00800139 /* metal_blob_converter.mm */; };
 		9DD1FB39247CE9BE00800139 /* metal_blob_converter.metal in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FA95247CE9BE00800139 /* metal_blob_converter.metal */; };
 		9DD1FB3A247CE9BE00800139 /* metal_device.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FA96247CE9BE00800139 /* metal_device.h */; };
 		9DD1FB3C247CE9BE00800139 /* metal_command_queue.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FA98247CE9BE00800139 /* metal_command_queue.mm */; };
 		9DD1FB3D247CE9BE00800139 /* metal_context.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FA99247CE9BE00800139 /* metal_context.mm */; };
-		9DD1FB3E247CE9BE00800139 /* tnn_impl_coreml.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FA9A247CE9BE00800139 /* tnn_impl_coreml.mm */; };
 		9DD1FB3F247CE9BE00800139 /* metal_context.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DD1FA9B247CE9BE00800139 /* metal_context.h */; };
 		9DD1FB40247CE9BE00800139 /* metal_sigmoid_layer_acc.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FA9D247CE9BE00800139 /* metal_sigmoid_layer_acc.mm */; };
 		9DD1FB41247CE9BE00800139 /* metal_permute_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = 9DD1FA9E247CE9BE00800139 /* metal_permute_layer_acc.metal */; };
@@ -1521,18 +1517,14 @@
 		9D852BC924584E6A003F4E41 /* bfp16_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bfp16_utils.cc; sourceTree = "<group>"; };
 		9D852BCA24584E6A003F4E41 /* bfp16.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bfp16.h; sourceTree = "<group>"; };
 		9DB341FB249B0A9300F23F65 /* metal_cpu_adapter_acc.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_cpu_adapter_acc.mm; sourceTree = "<group>"; };
-		9DD1FA8D247CE9BE00800139 /* coreml_network.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = coreml_network.mm; sourceTree = "<group>"; };
 		9DD1FA8F247CE9BE00800139 /* metal_command_queue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = metal_command_queue.h; sourceTree = "<group>"; };
-		9DD1FA90247CE9BE00800139 /* coreml_network.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coreml_network.h; sourceTree = "<group>"; };
 		9DD1FA91247CE9BE00800139 /* metal_device.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_device.mm; sourceTree = "<group>"; };
-		9DD1FA92247CE9BE00800139 /* tnn_impl_coreml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tnn_impl_coreml.h; sourceTree = "<group>"; };
 		9DD1FA93247CE9BE00800139 /* metal_macro.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = metal_macro.h; sourceTree = "<group>"; };
 		9DD1FA94247CE9BE00800139 /* metal_blob_converter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_blob_converter.mm; sourceTree = "<group>"; };
 		9DD1FA95247CE9BE00800139 /* metal_blob_converter.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_blob_converter.metal; sourceTree = "<group>"; };
 		9DD1FA96247CE9BE00800139 /* metal_device.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = metal_device.h; sourceTree = "<group>"; };
 		9DD1FA98247CE9BE00800139 /* metal_command_queue.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_command_queue.mm; sourceTree = "<group>"; };
 		9DD1FA99247CE9BE00800139 /* metal_context.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_context.mm; sourceTree = "<group>"; };
-		9DD1FA9A247CE9BE00800139 /* tnn_impl_coreml.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = tnn_impl_coreml.mm; sourceTree = "<group>"; };
 		9DD1FA9B247CE9BE00800139 /* metal_context.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = metal_context.h; sourceTree = "<group>"; };
 		9DD1FA9D247CE9BE00800139 /* metal_sigmoid_layer_acc.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = metal_sigmoid_layer_acc.mm; sourceTree = "<group>"; };
 		9DD1FA9E247CE9BE00800139 /* metal_permute_layer_acc.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_permute_layer_acc.metal; sourceTree = "<group>"; };
@@ -2820,18 +2812,14 @@
 			children = (
 				EC2CF72425078C1200EE3899 /* metal_mat_converter.metal */,
 				EC2CF72325078C1200EE3899 /* metal_mat_converter.mm */,
-				9DD1FA8D247CE9BE00800139 /* coreml_network.mm */,
 				9DD1FA8F247CE9BE00800139 /* metal_command_queue.h */,
-				9DD1FA90247CE9BE00800139 /* coreml_network.h */,
 				9DD1FA91247CE9BE00800139 /* metal_device.mm */,
-				9DD1FA92247CE9BE00800139 /* tnn_impl_coreml.h */,
 				9DD1FA93247CE9BE00800139 /* metal_macro.h */,
 				9DD1FA94247CE9BE00800139 /* metal_blob_converter.mm */,
 				9DD1FA95247CE9BE00800139 /* metal_blob_converter.metal */,
 				9DD1FA96247CE9BE00800139 /* metal_device.h */,
 				9DD1FA98247CE9BE00800139 /* metal_command_queue.mm */,
 				9DD1FA99247CE9BE00800139 /* metal_context.mm */,
-				9DD1FA9A247CE9BE00800139 /* tnn_impl_coreml.mm */,
 				9DD1FA9B247CE9BE00800139 /* metal_context.h */,
 				9DD1FA9C247CE9BE00800139 /* acc */,
 			);
@@ -3366,7 +3354,6 @@
 				9D289AB2275F1DFC000C4E25 /* conv_sgemm_avx_16_i.h in Headers */,
 				4E187D3F2672036B00804FDF /* metal_mat_mul_layer_acc.h in Headers */,
 				9D289AA1275F1DFC000C4E25 /* x86_prior_box_layer_acc.h in Headers */,
-				9DD1FB36247CE9BE00800139 /* tnn_impl_coreml.h in Headers */,
 				9D289AC9275F1DFC000C4E25 /* utils.h in Headers */,
 				9D289B0F275F1DFC000C4E25 /* x86_conv1d_layer_acc.h in Headers */,
 				9D289A5C275F1DFB000C4E25 /* x86_mat_converter.h in Headers */,
@@ -3418,7 +3405,6 @@
 				EC12EC8325E67549007ADDE4 /* net_optimizer_cbam_fused_reduce.h in Headers */,
 				9D289A64275F1DFB000C4E25 /* x86_blob_converter.h in Headers */,
 				9DF5444C258B162F006CEC97 /* blob_converter_default.h in Headers */,
-				9DD1FB34247CE9BE00800139 /* coreml_network.h in Headers */,
 				9DD1FB73247CE9BE00800139 /* metal_deconv_layer_acc.h in Headers */,
 				ECCDCEE325DF536000D7D297 /* cpu_deconv_layer_acc.h in Headers */,
 				9D289B02275F1DFC000C4E25 /* x86_conv_layer_1x1.h in Headers */,
@@ -3802,7 +3788,6 @@
 				9D32FF2D24557EED002DCDAB /* reshape_layer_interpreter.cc in Sources */,
 				EC0BE17825144C10009BD69A /* clip_layer_interpreter.cc in Sources */,
 				4E187D02267202BF00804FDF /* tile_layer_interpreter.cc in Sources */,
-				9DD1FB31247CE9BE00800139 /* coreml_network.mm in Sources */,
 				9D32FF7424557EED002DCDAB /* abstract_device.cc in Sources */,
 				EC0BE16325144BE4009BD69A /* arg_max_or_min_layer_interpreter.cc in Sources */,
 				9D32FCD224557EEC002DCDAB /* div_layer.cc in Sources */,
@@ -4278,7 +4263,6 @@
 				9D32FCDD24557EEC002DCDAB /* prior_box_layer.cc in Sources */,
 				ECCDCEEA25DF536000D7D297 /* cpu_cos_layer_acc.cc in Sources */,
 				9D32FCF324557EEC002DCDAB /* hdrguide_layer.cc in Sources */,
-				9DD1FB3E247CE9BE00800139 /* tnn_impl_coreml.mm in Sources */,
 				9DD1FB68247CE9BE00800139 /* metal_neg_layer_acc.metal in Sources */,
 				ECCDCF2B25E0F97500D7D297 /* squeeze_layer.cc in Sources */,
 				9DD1FB6D247CE9BE00800139 /* metal_hard_sigmoid_layer_acc.metal in Sources */,

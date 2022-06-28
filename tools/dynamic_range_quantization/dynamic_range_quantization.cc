@@ -130,26 +130,40 @@ Status DynamicRangeQuantizer::QuantMatMul(std::shared_ptr<LayerInfo>& layer,
                                           std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
                                           std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
     auto matmul_param = std::dynamic_pointer_cast<MatMulLayerParam>(layer->param);
-    if (matmul_param->weight_position != 1) {
+    if (matmul_param->weight_position == 1) {
+        matmul_param->dynamic_range_quantized         = true;
+        std::shared_ptr<LayerResource> layer_resource = nullptr;
+        if (resource_map.find(layer->name) != resource_map.end()) {
+            layer_resource = resource_map[layer->name];
+        }
+
+        RawBuffer quant_buf;
+        RawBuffer scale_buf;
+        auto matmul_resource = std::dynamic_pointer_cast<MatMulLayerResource>(layer_resource);
+        PerTensorQuant(matmul_resource->weight, quant_buf, scale_buf);
+
+        matmul_resource->weight       = quant_buf;
+        matmul_resource->scale_handle = scale_buf;
+        return TNN_OK;
+    } else if (matmul_param->weight_position == -1) {
+        auto input0_iter = constant_map.find(layer->inputs[0]);
+        auto input1_iter = constant_map.find(layer->inputs[1]);
+        if (input0_iter == constant_map.end() && input1_iter == constant_map.end()) {
+            return TNN_OK;
+        }
+        matmul_param->dynamic_range_quantized = true;
+        std::string weight_name               = input0_iter != constant_map.end() ? layer->inputs[0] : layer->inputs[1];
+        RawBuffer weight_buf                  = *constant_map[weight_name];
+
+        std::shared_ptr<RawBuffer> quant_weight_buf = std::make_shared<RawBuffer>();
+        std::shared_ptr<RawBuffer> scale_weight_buf = std::make_shared<RawBuffer>();
+        PerTensorQuant(weight_buf, *quant_weight_buf, *scale_weight_buf);
+
+        constant_map[weight_name]                                = quant_weight_buf;
+        constant_map[weight_name + DynamicRangeQuantScaleSuffix] = scale_weight_buf;
+
         return TNN_OK;
     }
-
-    std::shared_ptr<LayerResource> layer_resource = nullptr;
-    if (resource_map.find(layer->name) != resource_map.end()) {
-        layer_resource = resource_map[layer->name];
-    }
-    auto matmul_resource = std::dynamic_pointer_cast<MatMulLayerResource>(layer_resource);
-    if (!NeedPerTensorQuantize(matmul_resource->weight)) {
-        LOGE("The %s layer does need quantized.\n", layer->name.c_str());
-        return TNN_OK;
-    }
-    RawBuffer quant_buf;
-    RawBuffer scale_buf;
-    PerTensorQuant(matmul_resource->weight, quant_buf, scale_buf);
-
-    matmul_param->dynamic_range_quantized = true;
-    matmul_resource->weight               = quant_buf;
-    matmul_resource->scale_handle         = scale_buf;
 
     return TNN_OK;
 }
