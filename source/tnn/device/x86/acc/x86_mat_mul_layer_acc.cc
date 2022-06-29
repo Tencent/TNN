@@ -23,10 +23,16 @@ X86MatMulLayerAcc::~X86MatMulLayerAcc() {}
 
 Status X86MatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret;
+    if (inputs.size() == 2) {
+        ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+        RETURN_ON_NEQ(ret, TNN_OK);
+        return TNN_OK;
+    }
+
     auto res = dynamic_cast<MatMulLayerResource *>(resource);
     CHECK_PARAM_NULL(res);
 
-    Status ret;
     if (res->weight.GetDataType() == DATA_TYPE_HALF) {
         LayerResource *fp32_res = nullptr;
         RETURN_ON_NEQ(ConvertHalfResource(LAYER_MATMUL, res, &fp32_res), TNN_OK);
