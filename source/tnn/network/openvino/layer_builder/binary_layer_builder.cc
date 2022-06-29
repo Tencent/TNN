@@ -30,6 +30,7 @@
 #include "tnn/extern_wrapper/foreign_blob.h"
 #include "tnn/extern_wrapper/foreign_tensor.h"
 #include "tnn/network/openvino/openvino_types.h"
+#include "tnn/network/openvino/utils.h"
 
 namespace TNN_NS {
 namespace openvino {
@@ -55,8 +56,9 @@ Status BinaryLayerBuilder::Build() {
         DimsVector weight_shape = resource->element_shape;
         for(auto d : weight_shape) weight_node_shape.push_back(d);
 
-        auto weight_node = std::make_shared<ngraph::op::Constant>(
-            ngraph::element::Type_t::f32, weight_node_shape, resource->element_handle.force_to<float*>());
+        auto ov_dtype    = ConvertToOVDataType(resource->element_handle.GetDataType());
+        auto weight_node = std::make_shared<ngraph::op::Constant>(ov_dtype, weight_node_shape,
+                                                                  resource->element_handle.force_to<float *>());
         weight_node->validate_and_infer_types();
 
         if (weight_input_index == 0) {

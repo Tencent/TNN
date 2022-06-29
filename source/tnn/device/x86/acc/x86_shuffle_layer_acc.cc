@@ -46,8 +46,8 @@ Status X86ShuffleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     auto output = outputs[0];
     auto dims   = input->GetBlobDesc().dims;
 
-    const float *bottom_data = static_cast<float *>(input->GetHandle().base);
-    float *top_data          = static_cast<float *>(output->GetHandle().base);
+    const float *bottom_data = handle_ptr<float *>(input->GetHandle());
+    float *top_data          = handle_ptr<float *>(output->GetHandle());
 
     const int num              = dims[0];
     const int feature_map_size = DimsVectorUtils::Count(dims, 1);

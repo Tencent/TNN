@@ -28,7 +28,7 @@ Status X86ExpandLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inp
     if (inputs.size() == 2) {
         auto data_dims = inputs[0]->GetBlobDesc().dims;
         DimsVector shape_dims;
-        auto shape_data = (int *)inputs[1]->GetHandle().base;
+        auto shape_data = handle_ptr<int*>(inputs[1]->GetHandle());
         auto shape_data_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
         for (int i=0; i<shape_data_count; i++) {
             shape_dims.push_back(shape_data[i]);
@@ -128,8 +128,8 @@ Status X86ExpandLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     }
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        const float *input_data = reinterpret_cast<const float *>(input_blob->GetHandle().base);
-        float *output_data = reinterpret_cast<float *>(output_blob->GetHandle().base);
+        const float *input_data = handle_ptr<const float *>(input_blob->GetHandle());
+        float *output_data = handle_ptr<float *>(output_blob->GetHandle());
 
         X86Expand(output_dims, input_dims, output_data, input_data);
     } else {

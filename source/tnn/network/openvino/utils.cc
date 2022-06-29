@@ -48,6 +48,21 @@ DataType ConvertOVPrecisionToDataType(const InferenceEngine::Precision &precisio
     }
 }
 
+InferenceEngine::Precision ConvertOVTypeToPrecision(ngraph::element::Type_t type) {
+    switch (type) {
+        case ngraph::element::Type_t::f32:
+            return InferenceEngine::Precision::FP32;
+        case ngraph::element::Type_t::f16:
+            return InferenceEngine::Precision::FP16;
+        case ngraph::element::Type_t::i32:
+            return InferenceEngine::Precision::I32;
+        case ngraph::element::Type_t::i8:
+            return InferenceEngine::Precision::I8;
+        default:
+            return InferenceEngine::Precision::FP32;
+    }
+}
+
 std::shared_ptr<ngraph::op::Constant> ConvertToConstNode(RawBuffer *buffer) {
     ngraph::Shape constShape;
 

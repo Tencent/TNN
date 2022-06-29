@@ -113,8 +113,8 @@ Status X86ConvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const st
     Blob *output_blob   = outputs[0];
     auto input_dims     = inputs[0]->GetBlobDesc().dims;
     auto output_dims    = outputs[0]->GetBlobDesc().dims;
-    void *input_ptr     = input_blob->GetHandle().base;
-    void *output_ptr    = output_blob->GetHandle().base;
+    void *input_ptr     = handle_ptr<void*>(input_blob->GetHandle());
+    void *output_ptr    = handle_ptr<void*>(output_blob->GetHandle());
     auto param = dynamic_cast<ConvLayerParam *>(param_);
 
     auto ih = DimsFunctionUtils::GetDim(input_dims, 2);
