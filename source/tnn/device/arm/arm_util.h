@@ -26,6 +26,7 @@
 #include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
+namespace arm {
 #if TNN_PROFILE
 struct Timer {
 public:
@@ -151,6 +152,7 @@ void RGBToGray(const unsigned char *rgb, unsigned char *gray, int height, int wi
 
 void RGBAToGray(const unsigned char *rgba, unsigned char *gray, int height, int width);
 
+}  // namespace arm
 }  // namespace TNN_NS
 
 #endif

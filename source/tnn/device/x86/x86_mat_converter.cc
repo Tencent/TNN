@@ -20,6 +20,7 @@
 #include "tnn/utils/mat_converter_utils.h"
 
 namespace TNN_NS {
+using namespace x86;
 
 Status X86MatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret = TNN_OK;
