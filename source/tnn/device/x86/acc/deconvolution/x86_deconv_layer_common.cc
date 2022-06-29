@@ -18,6 +18,8 @@
 #include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
+using namespace x86;
+
 /*
 X86DeconvLayerCommonas as the last solution, always return true
 handle the case group != 1, dilate != 1, any pads and strides

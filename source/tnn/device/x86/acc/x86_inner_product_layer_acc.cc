@@ -22,6 +22,7 @@
 #include "tnn/interpreter/layer_resource_generator.h"
 
 namespace TNN_NS {
+using namespace x86;
 
 Status X86InnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {

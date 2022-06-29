@@ -18,6 +18,7 @@
 #include "tnn/utils/pad_utils.h"
 
 namespace TNN_NS {
+using namespace arm;
 
 DECLARE_ARM_ACC(PadV2, LAYER_PADV2);
 

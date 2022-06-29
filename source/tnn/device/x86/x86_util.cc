@@ -21,6 +21,7 @@
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
+namespace x86 {
 
 #define _MM_TRANSPOSE4_LEFT(row0, row1, row2, row3) \
   __m128 tmp3, tmp2, tmp1, tmp0; \
@@ -505,4 +506,5 @@ int PackINT8Weight(int8_t *src, int8_t *dst, int input_channel, int output_chann
     return 0;
 }
 
-}
+}  // namespace x86
+}  // namespace TNN
