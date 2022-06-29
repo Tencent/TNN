@@ -31,8 +31,8 @@ Status X86InstanceNormLayerAcc::DoForward(const std::vector<Blob*> &inputs, cons
 
     auto input_blob         = inputs[0];
     auto output_blob        = outputs[0];
-    float *input_data       = static_cast<float*>(input_blob->GetHandle().base);
-    float *output_data      = static_cast<float*>(output_blob->GetHandle().base);
+    float *input_data       = handle_ptr<float*>(input_blob->GetHandle());
+    float *output_data      = handle_ptr<float*>(output_blob->GetHandle());
 
     int batch    = output_blob->GetBlobDesc().dims[0];
     int channels = output_blob->GetBlobDesc().dims[1];

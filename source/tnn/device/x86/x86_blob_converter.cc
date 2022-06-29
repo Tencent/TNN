@@ -78,7 +78,7 @@ Status X86BlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam param,
             fused_int8_bias[i]  = param.bias[i];
         }
 
-        auto cvt_handle_ptr = reinterpret_cast<char *>(blob_->GetHandle().base);
+        auto cvt_handle_ptr = handle_ptr<char *>(blob_->GetHandle());
 
         ret = GetBlobConvertFunc(image.GetMatType(), DATA_TYPE_INT8, CVT_DIR_BLOB2MAT, cvt_func_);
         if (ret == TNN_OK) {
@@ -121,7 +121,7 @@ Status X86BlobConverterAcc::ConvertFromMatAsync(Mat &image, MatConvertParam para
             }
         }
 
-        auto cvt_handle_ptr = reinterpret_cast<char *>(blob_->GetHandle().base);
+        auto cvt_handle_ptr = handle_ptr<char *>(blob_->GetHandle());
 
         ret = GetBlobConvertFunc(image.GetMatType(), DATA_TYPE_INT8, CVT_DIR_MAT2BLOB, cvt_func_);
         if (ret == TNN_OK) {

@@ -35,7 +35,7 @@ static void softmax_channel_func(float *input_ptr, float *output_ptr, int channe
     auto v_max = VEC(temp[0]);
     float vec_buf[pack];
     for (; ele + pack - 1 < channel; ele += pack) {
-        v_max = VEC::max(v_max, VEC::load(input_ptr + ele));
+        v_max = VEC::max(v_max, VEC::loadu(input_ptr + ele));
     }
     for (; ele < channel; ele++) {
         temp[0] = std::max(temp[0], input_ptr[ele]);
@@ -160,8 +160,8 @@ Status X86SoftMaxLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
 
     Blob *input_blob   = inputs[0];
     Blob *output_blob  = outputs[0];
-    float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-    float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+    float *input_data  = handle_ptr<float *>(input_blob->GetHandle());
+    float *output_data = handle_ptr<float *>(output_blob->GetHandle());
     auto dims          = input_blob->GetBlobDesc().dims;
     int axis           = params->axis;
     axis               = static_cast<int>((axis + dims.size()) % dims.size());

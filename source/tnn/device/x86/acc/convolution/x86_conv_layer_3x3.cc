@@ -644,8 +644,8 @@ Status X86ConvLayer3x3::DoForward(const std::vector<Blob *> &inputs, const std::
     auto dims_input  = input->GetBlobDesc().dims;
     auto dims_output = output->GetBlobDesc().dims;
 
-    auto src_origin = reinterpret_cast<float *>(input->GetHandle().base);
-    auto dst_origin = reinterpret_cast<float *>(output->GetHandle().base);
+    auto src_origin = handle_ptr<float *>(input->GetHandle());
+    auto dst_origin = handle_ptr<float *>(output->GetHandle());
 
     const int batch       = dims_output[0];
     const int channel_in  = dims_input[1];

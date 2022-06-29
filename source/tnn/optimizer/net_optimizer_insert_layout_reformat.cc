@@ -49,15 +49,14 @@ namespace optimizer {
         device_        = GetDevice(device);
         // possible adapter devices
         static DeviceType adapter_device_list[2] = {DEVICE_ARM, DEVICE_X86};
-        adaptor_device_                          = nullptr;
         auto adaptor_device                      = device;
         for (const auto &dev : adapter_device_list) {
-            adaptor_device_ = GetDevice(dev);
-            if (adaptor_device_) {
+            if (GetDevice(dev)) {
                 adaptor_device = dev;
                 break;
             }
         }
+        adaptor_device_ = GetDevice(adaptor_device);
 
         return device == DEVICE_ARM || device == DEVICE_OPENCL || device == DEVICE_METAL;
     }
