@@ -167,9 +167,9 @@ Status MetalStrideSliceV2LayerAcc::ComputeThreadSize(const std::vector<Blob *> &
                                         const std::vector<Blob *> &outputs,
                                         MTLSize &size) {
        auto dims_output  = outputs[0]->GetBlobDesc().dims;
-       const auto batch  = dims_output[0];
-       const auto slice  = UP_DIV(dims_output[1], 4);
-       const auto height = dims_output[2];
+       const auto batch  = DimsFunctionUtils::GetDim(dims_output,0);
+       const auto slice  = UP_DIV(DimsFunctionUtils::GetDim(dims_output,1), 4);
+       const auto height = DimsFunctionUtils::GetDim(dims_output,2);
        const auto isize  = DimsFunctionUtils::GetDimProduct(dims_output, 3);
        size = MTLSizeMake(isize, height, batch * slice);
        return TNN_OK;
