@@ -14,7 +14,23 @@
 
 #include "dynamic_range_quantization.h"
 
+#include "tnn/utils/half_utils_inner.h"
+#include "utils.h"
+
 namespace TNN_NS {
+
+template <typename T>
+T GetAbsMax(T* data, int data_size) {
+    T max_value = fabs(data[0]);
+    for (int i = 1; i < data_size; i++) {
+        float value = fabs(data[i]);
+        if (value > max_value) {
+            max_value = value;
+        }
+    }
+    return max_value;
+}
+
 DynamicRangeQuantizer::DynamicRangeQuantizer(const std::shared_ptr<NetStructure>& net_structure,
                                              const std::shared_ptr<NetResource>& net_resource) {
     net_structure_ = net_structure;
@@ -60,20 +76,22 @@ Status DynamicRangeQuantizer::QuantConvolution(std::shared_ptr<LayerInfo>& layer
                                                std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
                                                std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
     auto conv_param                               = std::dynamic_pointer_cast<ConvLayerParam>(layer->param);
-    conv_param->dynamic_range_quantized           = true;
     std::shared_ptr<LayerResource> layer_resource = nullptr;
     if (resource_map.find(layer->name) != resource_map.end()) {
         layer_resource = resource_map[layer->name];
     }
-
+    auto conv_resource = std::dynamic_pointer_cast<ConvLayerResource>(layer_resource);
+    if (!NeedPerChannelQuantize(conv_resource->filter_handle, conv_param->output_channel)) {
+        LOGE("The %s layer does need quantized.\n", layer->name.c_str());
+        return TNN_OK;
+    }
     RawBuffer quant_buf;
     RawBuffer scale_buf;
-    auto conv_resource = std::dynamic_pointer_cast<ConvLayerResource>(layer_resource);
     PerChannelQuant(conv_resource->filter_handle, quant_buf, scale_buf, conv_param->output_channel);
 
-    conv_resource->filter_handle = quant_buf;
-    conv_resource->scale_handle  = scale_buf;
-
+    conv_param->dynamic_range_quantized = true;
+    conv_resource->filter_handle        = quant_buf;
+    conv_resource->scale_handle         = scale_buf;
     return TNN_OK;
 }
 
@@ -112,23 +130,47 @@ Status DynamicRangeQuantizer::QuantMatMul(std::shared_ptr<LayerInfo>& layer,
                                           std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
                                           std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
     auto matmul_param = std::dynamic_pointer_cast<MatMulLayerParam>(layer->param);
-    if (matmul_param->weight_position != 1) {
+    if (matmul_param->weight_position == 1) {
+        std::shared_ptr<LayerResource> layer_resource = nullptr;
+        if (resource_map.find(layer->name) != resource_map.end()) {
+            layer_resource = resource_map[layer->name];
+        }
+
+        RawBuffer quant_buf;
+        RawBuffer scale_buf;
+        auto matmul_resource = std::dynamic_pointer_cast<MatMulLayerResource>(layer_resource);
+        if (!NeedPerTensorQuantize(matmul_resource->weight)) {
+            LOGE("The %s layer does need quantized.\n", layer->name.c_str());
+            return TNN_OK;
+        }
+        PerTensorQuant(matmul_resource->weight, quant_buf, scale_buf);
+        matmul_resource->weight               = quant_buf;
+        matmul_resource->scale_handle         = scale_buf;
+        matmul_param->dynamic_range_quantized = true;
+        return TNN_OK;
+    } else if (matmul_param->weight_position == -1) {
+        auto input0_iter = constant_map.find(layer->inputs[0]);
+        auto input1_iter = constant_map.find(layer->inputs[1]);
+        if (input0_iter == constant_map.end() && input1_iter == constant_map.end()) {
+            return TNN_OK;
+        }
+        std::string weight_name = input0_iter != constant_map.end() ? layer->inputs[0] : layer->inputs[1];
+        RawBuffer weight_buf    = *constant_map[weight_name];
+
+        std::shared_ptr<RawBuffer> quant_weight_buf = std::make_shared<RawBuffer>();
+        std::shared_ptr<RawBuffer> scale_weight_buf = std::make_shared<RawBuffer>();
+        PerTensorQuant(weight_buf, *quant_weight_buf, *scale_weight_buf);
+        if (!NeedPerTensorQuantize(weight_buf)) {
+            LOGE("The %s layer does need quantized.\n", layer->name.c_str());
+            return TNN_OK;
+        }
+
+        constant_map[weight_name]                                = quant_weight_buf;
+        constant_map[weight_name + DynamicRangeQuantScaleSuffix] = scale_weight_buf;
+        matmul_param->dynamic_range_quantized                    = true;
+
         return TNN_OK;
     }
-
-    matmul_param->dynamic_range_quantized         = true;
-    std::shared_ptr<LayerResource> layer_resource = nullptr;
-    if (resource_map.find(layer->name) != resource_map.end()) {
-        layer_resource = resource_map[layer->name];
-    }
-
-    RawBuffer quant_buf;
-    RawBuffer scale_buf;
-    auto matmul_resource = std::dynamic_pointer_cast<MatMulLayerResource>(layer_resource);
-    PerTensorQuant(matmul_resource->weight, quant_buf, scale_buf);
-
-    matmul_resource->weight       = quant_buf;
-    matmul_resource->scale_handle = scale_buf;
 
     return TNN_OK;
 }
@@ -137,19 +179,34 @@ Status DynamicRangeQuantizer::PerChannelQuant(RawBuffer& weight_buf, RawBuffer& 
                                               int num_kernel) {
     const int weight_size = weight_buf.GetDataCount();
     const int kernel_size = weight_size / num_kernel;
-    auto weight_data_ptr  = weight_buf.force_to<float*>();
-
     std::vector<int8_t> quant_data(weight_size, 0);
     std::vector<float> scale_data(num_kernel, 0.0f);
-
-    int begin_index = 0;
-    for (int k = 0; k < num_kernel; k++) {
-        begin_index    = k * kernel_size;
-        auto max_value = GetAbsMax(weight_data_ptr + begin_index, kernel_size);
-        scale_data[k]  = max_value / threshold_;
-        for (int i = 0; i < kernel_size; i++) {
-            quant_data[begin_index + i] = int8_t(std::round(weight_data_ptr[begin_index + i] / scale_data[k]));
+    const DataType data_type = weight_buf.GetDataType();
+    if (data_type == DATA_TYPE_FLOAT) {
+        auto weight_data_ptr = weight_buf.force_to<float*>();
+        int begin_index      = 0;
+        for (int k = 0; k < num_kernel; k++) {
+            begin_index    = k * kernel_size;
+            auto max_value = GetAbsMax(weight_data_ptr + begin_index, kernel_size);
+            scale_data[k]  = max_value / threshold_;
+            for (int i = 0; i < kernel_size; i++) {
+                quant_data[begin_index + i] = int8_t(std::round(weight_data_ptr[begin_index + i] / scale_data[k]));
+            }
         }
+    } else if (data_type == DATA_TYPE_HALF) {
+        auto weight_data_ptr = weight_buf.force_to<fp16_t*>();
+        int begin_index      = 0;
+        for (int k = 0; k < num_kernel; k++) {
+            begin_index    = k * kernel_size;
+            fp16_t max_value = GetAbsMax(weight_data_ptr + begin_index, kernel_size);
+            scale_data[k]  = (float )max_value / threshold_;
+            for (int i = 0; i < kernel_size; i++) {
+                quant_data[begin_index + i] = int8_t(std::round(weight_data_ptr[begin_index + i] / scale_data[k]));
+            }
+        }
+    } else {
+        LOGE("PerChannelQuant does not support data type\n");
+        return TNNERR_INVALID_MODEL;
     }
 
     quant_buf = RawBuffer(weight_size * sizeof(int8_t));
@@ -165,14 +222,27 @@ Status DynamicRangeQuantizer::PerChannelQuant(RawBuffer& weight_buf, RawBuffer& 
     return TNN_OK;
 }
 Status DynamicRangeQuantizer::PerTensorQuant(RawBuffer& weight_buf, RawBuffer& quant_buf, RawBuffer& scale_buf) {
-    const int weight_size = weight_buf.GetDataCount();
-    auto weight_data_ptr  = weight_buf.force_to<float*>();
-    auto max_value        = GetAbsMax(weight_data_ptr, weight_size);
-    auto scale_data       = max_value / threshold_;
-
+    const int weight_size    = weight_buf.GetDataCount();
+    const DataType data_type = weight_buf.GetDataType();
     std::vector<int8_t> quant_data(weight_size, 0);
-    for (int i = 0; i < weight_size; i++) {
-        quant_data[i] = int8_t(std::round(weight_data_ptr[i] / scale_data));
+    float scale_data = 1.0f;
+    if (data_type == DATA_TYPE_FLOAT) {
+        auto weight_data_ptr = weight_buf.force_to<float*>();
+        auto max_value       = GetAbsMax(weight_data_ptr, weight_size);
+        scale_data      = max_value / threshold_;
+        for (int i = 0; i < weight_size; i++) {
+            quant_data[i] = int8_t(std::round(weight_data_ptr[i] / scale_data));
+        }
+    } else if (data_type == DATA_TYPE_HALF) {
+        auto weight_data_ptr = weight_buf.force_to<fp16_t*>();
+        fp16_t max_value     = GetAbsMax(weight_data_ptr, weight_size);
+        scale_data      = (float)max_value / threshold_;
+        for (int i = 0; i < weight_size; i++) {
+            quant_data[i] = int8_t(std::round(weight_data_ptr[i] / scale_data));
+        }
+    } else {
+        LOGE("PerTensorQuant does not support data type");
+        return TNNERR_INVALID_MODEL;
     }
 
     int x     = sizeof(int8_t);
@@ -189,33 +259,25 @@ Status DynamicRangeQuantizer::PerTensorQuant(RawBuffer& weight_buf, RawBuffer& q
     return TNN_OK;
 }
 
-float DynamicRangeQuantizer::GetAbsMax(float* data, int data_size) {
-    float max_value = fabs(data[0]);
-    for (int i = 1; i < data_size; i++) {
-        float value = fabs(data[i]);
-        if (value > max_value) {
-            max_value = value;
-        }
-    }
-
-    return max_value;
-}
-
 Status DynamicRangeQuantizer::QuantInnerProduct(std::shared_ptr<LayerInfo>& layer,
                                                 std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
                                                 std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
-    auto matmul_param                             = std::dynamic_pointer_cast<InnerProductLayerParam>(layer->param);
-    matmul_param->dynamic_range_quantized         = true;
+    auto layer_param                              = std::dynamic_pointer_cast<InnerProductLayerParam>(layer->param);
     std::shared_ptr<LayerResource> layer_resource = nullptr;
     if (resource_map.find(layer->name) != resource_map.end()) {
         layer_resource = resource_map[layer->name];
     }
+    auto inner_product_resource = std::dynamic_pointer_cast<InnerProductLayerResource>(layer_resource);
+    if (!NeedPerTensorQuantize(inner_product_resource->weight_handle)) {
+        LOGE("The %s layer does need quantized.\n", layer->name.c_str());
+        return TNN_OK;
+    }
     RawBuffer quant_buf;
     RawBuffer scale_buf;
-    auto matmul_resource = std::dynamic_pointer_cast<InnerProductLayerResource>(layer_resource);
-    PerTensorQuant(matmul_resource->weight_handle, quant_buf, scale_buf);
-    matmul_resource->weight_handle = quant_buf;
-    matmul_resource->scale_handle  = scale_buf;
+    PerTensorQuant(inner_product_resource->weight_handle, quant_buf, scale_buf);
+    inner_product_resource->weight_handle = quant_buf;
+    inner_product_resource->scale_handle  = scale_buf;
+    layer_param->dynamic_range_quantized  = true;
     return TNN_OK;
 }
 
