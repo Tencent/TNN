@@ -14,7 +14,7 @@ cd %ROOT_DIR%\..\..\..\examples\windows\x86\
 mkdir build_msvc_native
 cd build_msvc_native
 
-cmake .. -G "Ninja" ^
+cmake .. ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_SYSTEM_NAME=Windows ^
     -DCMAKE_SYSTEM_PROCESSOR=AMD64 ^
