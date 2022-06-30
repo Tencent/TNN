@@ -24,6 +24,8 @@
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
+using namespace x86;
+
 /*
 X86ConvInt8LayerCommon as the last conv int8 solution
 */

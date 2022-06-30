@@ -24,6 +24,7 @@
 #include "tnn/utils/bfp16.h"
 
 namespace TNN_NS {
+namespace arm {
 
 #define GET_OFFSET_PTR(ptr, offset) (reinterpret_cast<int8_t*>(ptr) + offset)
 
@@ -67,6 +68,7 @@ void WarpAffineNearestC4(const uint8_t* src, int batch, int src_w, int src_h, ui
 void WarpAffineNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int w, int h,
                                const float (*transform)[3], const float border_val = 0.0);
 
+}  // namespace arm
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_MAT_UTIL_H_

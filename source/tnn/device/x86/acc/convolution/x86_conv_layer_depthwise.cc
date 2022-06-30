@@ -23,6 +23,8 @@
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
+using namespace x86;
+
 bool X86ConvLayerDepthwise::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                        const std::vector<Blob *> &outputs) {
     if (!param) {

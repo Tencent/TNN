@@ -21,6 +21,7 @@
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
+using namespace x86;
 
 std::string X86BlobConverterAcc::GetUniqueBlobConvertKey(MatType mat_type, DataType data_type,
                                                          BlobConvertDirection cvt_dir) {

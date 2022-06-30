@@ -20,6 +20,7 @@
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
+using namespace x86;
 
 // rounding to zero(val + (val >= 0.f ? 0.5f : -0.5f)) = rounding to nearest ties away from zero
 #define DeclareRounding()                                             \

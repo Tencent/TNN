@@ -25,6 +25,7 @@
 #include "tnn/core/macro.h"
 
 namespace TNN_NS {
+namespace x86 {
 #if TNN_PROFILE
 using std::chrono::duration_cast;
 using std::chrono::microseconds;
@@ -70,6 +71,7 @@ T handle_ptr(BlobHandle &&handle) {
     return reinterpret_cast<T>(((char*)handle.base) + handle.bytes_offset);
 }
 
+}  // namespace x86
 }  // namespace TNN_NS
 
 #endif
