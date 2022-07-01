@@ -22,7 +22,67 @@ int Onnx2TNN::FuseDeconv(onnx::GraphProto* mutable_graph,
                               std::map<std::string, int>& node_reference,
                               std::set<std::string>& blob_names) {
     auto const node_count = index_nodes.size();
+    //ConvTranspose <= ConvTranspose - Add
+    for (int i = 0; i < node_count; i++) {
+        auto node = index_nodes[i].node;
 
+        do {
+            if (node->op_type() == "ConvTranspose" && i + 1 < node_count) {
+                auto node_deconv = node;
+                std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
+                if (next_indexes.size() != 1 || next_indexes[0] != i+1) {
+                    break;
+                }
+                auto node_add = index_nodes[next_indexes[0]].node;
+
+                // check op
+                if (node_add->op_type() != "Add")
+                    break;
+                
+                //check constant
+                std::string add_name = "";
+                if (weights.find(node_add->input(0)) != weights.end()) {
+                    add_name = node_add->input(0);
+                } else if (weights.find(node_add->input(1)) != weights.end()) {
+                    add_name = node_add->input(1);
+                } else {
+                    break;
+                }
+                const onnx::TensorProto& add_tensor = weights[add_name];
+                
+                //check channel
+                int group = (int)get_node_attr_i(*node_deconv, "group", 1);
+                auto& deconv_weight_tensor = weights[node_deconv->input(1)];
+                int channel_output  = (int)deconv_weight_tensor.dims(1) * group;
+                if (channel_output != get_tensor_proto_data_size(add_tensor)) {
+                    break;
+                }
+                
+                if (node_deconv->input_size() == 2) {
+                    node_deconv->add_input(add_name);
+                } else if (node_deconv->input_size() > 2) {
+                    auto add_data = get_tensor_proto_data(add_tensor);
+                    auto bias_weights = get_tensor_proto_mutable_data(weights[node_deconv->input(2)]);
+                    for (int j = 0; j < channel_output; j++) {
+                        bias_weights[j] = bias_weights[j] + add_data[j];
+                    }
+                } else {
+                    break;
+                }
+                
+                node_add->set_op_type(k_tnn_noop_type);
+                node_reference.erase(node_reference.find(node_deconv->output(0)));
+                blob_names.erase(node_deconv->output(0));
+                node_deconv->set_output(0, node_add->output(0));
+                
+                i += 1;
+            }
+        } while (0);
+
+    }
+    ClearEmptyNode(index_nodes);
+    
+    
     //ConvTranspose <= ConvTranspose - BatchNormalization
     for (int i = 0; i < node_count; i++) {
         auto node = index_nodes[i].node;
@@ -30,11 +90,11 @@ int Onnx2TNN::FuseDeconv(onnx::GraphProto* mutable_graph,
         do {
             if (node->op_type() == "ConvTranspose" && i + 1 < node_count) {
                 auto node_deconv = node;
-                auto node_batchnorm = index_nodes[i+1].node;
                 std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
                 if (next_indexes.size() != 1) {
                     break;
                 }
+                auto node_batchnorm = index_nodes[next_indexes[0]].node;
 
                 // check op
                 if (!(node_batchnorm->op_type() == "BatchNormalization"))
