@@ -22,6 +22,8 @@
 #include "tnn/utils/cpu_utils.h"
 
 namespace TNN_NS {
+using namespace arm;
+
 inline MatType MatTypeByBlob(const BlobDesc& desc) {    
     if (desc.data_type == DATA_TYPE_FLOAT)
         return NCHW_FLOAT;

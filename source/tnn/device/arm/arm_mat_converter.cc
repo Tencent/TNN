@@ -21,6 +21,7 @@
 #include "tnn/utils/mat_converter_utils.h"
 
 namespace TNN_NS {
+using namespace arm;
 
 Status ArmMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     Status ret = TNN_OK;

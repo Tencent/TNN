@@ -62,6 +62,31 @@
 		3623EFAE2695996E00932B9F /* metal_inverse_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = 3623EFA82695996E00932B9F /* metal_inverse_layer_acc.metal */; };
 		3623EFAF2695996E00932B9F /* metal_padv2_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = 3623EFA92695996E00932B9F /* metal_padv2_layer_acc.metal */; };
 		3623EFB02695996E00932B9F /* metal_grid_sample_layer_acc.metal in Sources */ = {isa = PBXBuildFile; fileRef = 3623EFAA2695996E00932B9F /* metal_grid_sample_layer_acc.metal */; };
+		366E583F286D573000DFFEF3 /* safe_map.h in Headers */ = {isa = PBXBuildFile; fileRef = 366E583E286D573000DFFEF3 /* safe_map.h */; };
+		366E5842286D573A00DFFEF3 /* net_optimizer_dynamic_range_dequant.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5840286D573A00DFFEF3 /* net_optimizer_dynamic_range_dequant.cc */; };
+		366E5843286D573A00DFFEF3 /* net_optimizer_dynamic_range_dequant.h in Headers */ = {isa = PBXBuildFile; fileRef = 366E5841286D573A00DFFEF3 /* net_optimizer_dynamic_range_dequant.h */; };
+		366E584B286D576B00DFFEF3 /* less_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5844286D576A00DFFEF3 /* less_layer.cc */; };
+		366E584C286D576B00DFFEF3 /* scatter_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5845286D576A00DFFEF3 /* scatter_layer.cc */; };
+		366E584D286D576B00DFFEF3 /* pooling_1d_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5846286D576A00DFFEF3 /* pooling_1d_layer.cc */; };
+		366E584E286D576B00DFFEF3 /* non_max_suppression_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5847286D576A00DFFEF3 /* non_max_suppression_layer.cc */; };
+		366E584F286D576B00DFFEF3 /* not_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5848286D576A00DFFEF3 /* not_layer.cc */; };
+		366E5850286D576B00DFFEF3 /* and_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5849286D576A00DFFEF3 /* and_layer.cc */; };
+		366E5851286D576B00DFFEF3 /* greater_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E584A286D576B00DFFEF3 /* greater_layer.cc */; };
+		366E5858286D578D00DFFEF3 /* less_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5852286D578D00DFFEF3 /* less_layer_interpreter.cc */; };
+		366E5859286D578D00DFFEF3 /* pooling_1d_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5853286D578D00DFFEF3 /* pooling_1d_layer_interpreter.cc */; };
+		366E585A286D578D00DFFEF3 /* scatter_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5854286D578D00DFFEF3 /* scatter_layer_interpreter.cc */; };
+		366E585B286D578D00DFFEF3 /* non_max_suppression_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5855286D578D00DFFEF3 /* non_max_suppression_layer_interpreter.cc */; };
+		366E585C286D578D00DFFEF3 /* and_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5856286D578D00DFFEF3 /* and_layer_interpreter.cc */; };
+		366E585D286D578D00DFFEF3 /* greater_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5857286D578D00DFFEF3 /* greater_layer_interpreter.cc */; };
+		366E5865286D583800DFFEF3 /* cpu_and_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E585E286D583700DFFEF3 /* cpu_and_layer_acc.cc */; };
+		366E5866286D583800DFFEF3 /* cpu_not_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E585F286D583700DFFEF3 /* cpu_not_layer_acc.cc */; };
+		366E5867286D583800DFFEF3 /* cpu_pool_1d_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5860286D583800DFFEF3 /* cpu_pool_1d_layer_acc.cc */; };
+		366E5868286D583800DFFEF3 /* cpu_non_max_suppression.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5861286D583800DFFEF3 /* cpu_non_max_suppression.cc */; };
+		366E5869286D583800DFFEF3 /* cpu_less_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5862286D583800DFFEF3 /* cpu_less_layer_acc.cc */; };
+		366E586A286D583800DFFEF3 /* cpu_greater_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5863286D583800DFFEF3 /* cpu_greater_layer_acc.cc */; };
+		366E586B286D583800DFFEF3 /* cpu_scatter_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E5864286D583800DFFEF3 /* cpu_scatter_layer_acc.cc */; };
+		366E586E286D587900DFFEF3 /* arm_conv1d_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 366E586C286D587900DFFEF3 /* arm_conv1d_layer_acc.cc */; };
+		366E586F286D587900DFFEF3 /* arm_conv1d_layer_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = 366E586D286D587900DFFEF3 /* arm_conv1d_layer_acc.h */; };
 		368F9EA927953079008B53A5 /* arm_layer_norm_fp16_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 368F9EA827953079008B53A5 /* arm_layer_norm_fp16_layer.cc */; };
 		369005C5267314D900412264 /* pad_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 369005C3267314D900412264 /* pad_utils.cc */; };
 		369005C6267314D900412264 /* pad_utils.h in Headers */ = {isa = PBXBuildFile; fileRef = 369005C4267314D900412264 /* pad_utils.h */; };
@@ -1155,6 +1180,31 @@
 		3623EFA82695996E00932B9F /* metal_inverse_layer_acc.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_inverse_layer_acc.metal; sourceTree = "<group>"; };
 		3623EFA92695996E00932B9F /* metal_padv2_layer_acc.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_padv2_layer_acc.metal; sourceTree = "<group>"; };
 		3623EFAA2695996E00932B9F /* metal_grid_sample_layer_acc.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = metal_grid_sample_layer_acc.metal; sourceTree = "<group>"; };
+		366E583E286D573000DFFEF3 /* safe_map.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = safe_map.h; sourceTree = "<group>"; };
+		366E5840286D573A00DFFEF3 /* net_optimizer_dynamic_range_dequant.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_dynamic_range_dequant.cc; sourceTree = "<group>"; };
+		366E5841286D573A00DFFEF3 /* net_optimizer_dynamic_range_dequant.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_optimizer_dynamic_range_dequant.h; sourceTree = "<group>"; };
+		366E5844286D576A00DFFEF3 /* less_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = less_layer.cc; sourceTree = "<group>"; };
+		366E5845286D576A00DFFEF3 /* scatter_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = scatter_layer.cc; sourceTree = "<group>"; };
+		366E5846286D576A00DFFEF3 /* pooling_1d_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pooling_1d_layer.cc; sourceTree = "<group>"; };
+		366E5847286D576A00DFFEF3 /* non_max_suppression_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = non_max_suppression_layer.cc; sourceTree = "<group>"; };
+		366E5848286D576A00DFFEF3 /* not_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = not_layer.cc; sourceTree = "<group>"; };
+		366E5849286D576A00DFFEF3 /* and_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = and_layer.cc; sourceTree = "<group>"; };
+		366E584A286D576B00DFFEF3 /* greater_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = greater_layer.cc; sourceTree = "<group>"; };
+		366E5852286D578D00DFFEF3 /* less_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = less_layer_interpreter.cc; sourceTree = "<group>"; };
+		366E5853286D578D00DFFEF3 /* pooling_1d_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pooling_1d_layer_interpreter.cc; sourceTree = "<group>"; };
+		366E5854286D578D00DFFEF3 /* scatter_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = scatter_layer_interpreter.cc; sourceTree = "<group>"; };
+		366E5855286D578D00DFFEF3 /* non_max_suppression_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = non_max_suppression_layer_interpreter.cc; sourceTree = "<group>"; };
+		366E5856286D578D00DFFEF3 /* and_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = and_layer_interpreter.cc; sourceTree = "<group>"; };
+		366E5857286D578D00DFFEF3 /* greater_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = greater_layer_interpreter.cc; sourceTree = "<group>"; };
+		366E585E286D583700DFFEF3 /* cpu_and_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_and_layer_acc.cc; sourceTree = "<group>"; };
+		366E585F286D583700DFFEF3 /* cpu_not_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_not_layer_acc.cc; sourceTree = "<group>"; };
+		366E5860286D583800DFFEF3 /* cpu_pool_1d_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_pool_1d_layer_acc.cc; sourceTree = "<group>"; };
+		366E5861286D583800DFFEF3 /* cpu_non_max_suppression.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_non_max_suppression.cc; sourceTree = "<group>"; };
+		366E5862286D583800DFFEF3 /* cpu_less_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_less_layer_acc.cc; sourceTree = "<group>"; };
+		366E5863286D583800DFFEF3 /* cpu_greater_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_greater_layer_acc.cc; sourceTree = "<group>"; };
+		366E5864286D583800DFFEF3 /* cpu_scatter_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_scatter_layer_acc.cc; sourceTree = "<group>"; };
+		366E586C286D587900DFFEF3 /* arm_conv1d_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_conv1d_layer_acc.cc; sourceTree = "<group>"; };
+		366E586D286D587900DFFEF3 /* arm_conv1d_layer_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_conv1d_layer_acc.h; sourceTree = "<group>"; };
 		368F9EA827953079008B53A5 /* arm_layer_norm_fp16_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_layer_norm_fp16_layer.cc; sourceTree = "<group>"; };
 		369005C3267314D900412264 /* pad_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pad_utils.cc; sourceTree = "<group>"; };
 		369005C4267314D900412264 /* pad_utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pad_utils.h; sourceTree = "<group>"; };
@@ -2279,8 +2329,8 @@
 		9D32F95D24557EE7002DCDAB /* optimizer */ = {
 			isa = PBXGroup;
 			children = (
-				9DAD93E828689F6300170339 /* net_optimizer_dynamic_range_dequant.cc */,
-				9DAD93E928689F6300170339 /* net_optimizer_dynamic_range_dequant.h */,
+				366E5840286D573A00DFFEF3 /* net_optimizer_dynamic_range_dequant.cc */,
+				366E5841286D573A00DFFEF3 /* net_optimizer_dynamic_range_dequant.h */,
 				EC12EC7E25E67549007ADDE4 /* net_optimizer_cbam_fused_pooling.cc */,
 				EC12EC7825E67548007ADDE4 /* net_optimizer_cbam_fused_pooling.h */,
 				EC12EC7A25E67548007ADDE4 /* net_optimizer_cbam_fused_reduce.cc */,
@@ -2348,6 +2398,7 @@
 		9D32F98824557EE7002DCDAB /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				366E583E286D573000DFFEF3 /* safe_map.h */,
 				3620404926E8D51F00935711 /* exclusive_file.cc */,
 				3620404826E8D51F00935711 /* exclusive_file.h */,
 				369005C3267314D900412264 /* pad_utils.cc */,
@@ -2416,6 +2467,13 @@
 		9D32F9A324557EE7002DCDAB /* layer */ = {
 			isa = PBXGroup;
 			children = (
+				366E5849286D576A00DFFEF3 /* and_layer.cc */,
+				366E584A286D576B00DFFEF3 /* greater_layer.cc */,
+				366E5844286D576A00DFFEF3 /* less_layer.cc */,
+				366E5847286D576A00DFFEF3 /* non_max_suppression_layer.cc */,
+				366E5848286D576A00DFFEF3 /* not_layer.cc */,
+				366E5846286D576A00DFFEF3 /* pooling_1d_layer.cc */,
+				366E5845286D576A00DFFEF3 /* scatter_layer.cc */,
 				3620404426E8D51000935711 /* log_softmax_layer.cc */,
 				3620404526E8D51000935711 /* scatter_elements_layer.cc */,
 				4E187D0C267202D800804FDF /* conv1d_layer.cc */,
@@ -2626,6 +2684,12 @@
 		9D32FC0624557EEB002DCDAB /* layer_interpreter */ = {
 			isa = PBXGroup;
 			children = (
+				366E5856286D578D00DFFEF3 /* and_layer_interpreter.cc */,
+				366E5857286D578D00DFFEF3 /* greater_layer_interpreter.cc */,
+				366E5852286D578D00DFFEF3 /* less_layer_interpreter.cc */,
+				366E5855286D578D00DFFEF3 /* non_max_suppression_layer_interpreter.cc */,
+				366E5853286D578D00DFFEF3 /* pooling_1d_layer_interpreter.cc */,
+				366E5854286D578D00DFFEF3 /* scatter_layer_interpreter.cc */,
 				3620404C26E8D53F00935711 /* log_softmax_layer_interpreter.cc */,
 				3620404D26E8D53F00935711 /* scatter_elements_layer_interpreter.cc */,
 				EC4B9722264A77FE0015F32A /* layer_norm_layer_interpreter.cc */,
@@ -3264,6 +3328,8 @@
 		9DF54363258B1365006CEC97 /* convolution */ = {
 			isa = PBXGroup;
 			children = (
+				366E586C286D587900DFFEF3 /* arm_conv1d_layer_acc.cc */,
+				366E586D286D587900DFFEF3 /* arm_conv1d_layer_acc.h */,
 				32BFADDE2684AACE00502FAC /* arm_conv_int8_sdot_layer_depthwise_3x3.h */,
 				320CCF332681CC3D0086E65C /* arm_conv_int8_sdot_layer_common.h */,
 				9DF54364258B1365006CEC97 /* arm_conv_int8_layer_depthwise.cc */,
@@ -3539,6 +3605,13 @@
 		ECCDCE0925DF536000D7D297 /* acc */ = {
 			isa = PBXGroup;
 			children = (
+				366E585E286D583700DFFEF3 /* cpu_and_layer_acc.cc */,
+				366E5863286D583800DFFEF3 /* cpu_greater_layer_acc.cc */,
+				366E5862286D583800DFFEF3 /* cpu_less_layer_acc.cc */,
+				366E5861286D583800DFFEF3 /* cpu_non_max_suppression.cc */,
+				366E585F286D583700DFFEF3 /* cpu_not_layer_acc.cc */,
+				366E5860286D583800DFFEF3 /* cpu_pool_1d_layer_acc.cc */,
+				366E5864286D583800DFFEF3 /* cpu_scatter_layer_acc.cc */,
 				3620403926E8D4C000935711 /* cpu_log_softmax_layer_acc.cc */,
 				3620403826E8D4C000935711 /* cpu_scatter_elements_layer_acc.cc */,
 				3623EF8C269598FF00932B9F /* cpu_const_layer_acc.cc */,
@@ -3701,6 +3774,7 @@
 				E44D947026048C1A003FE4A3 /* dims_function_utils.h in Headers */,
 				9DD1FBB7247CE9BE00800139 /* metal_conv_layer_winograd.h in Headers */,
 				9DF543E3258B1366006CEC97 /* gemm_function.h in Headers */,
+				366E5843286D573A00DFFEF3 /* net_optimizer_dynamic_range_dequant.h in Headers */,
 				9DF54396258B1366006CEC97 /* Half8.h in Headers */,
 				9D32FF0924557EED002DCDAB /* objseri.h in Headers */,
 				ECCDCEC725DF536000D7D297 /* compute_elewise.h in Headers */,
@@ -3740,6 +3814,7 @@
 				EC12EC8525E67549007ADDE4 /* net_optimizer_insert_layout_reformat.h in Headers */,
 				EC0BE15E25144BE4009BD69A /* layer_interpreter_macro.h in Headers */,
 				9D32FF1A24557EED002DCDAB /* abstract_layer_interpreter.h in Headers */,
+				366E586F286D587900DFFEF3 /* arm_conv1d_layer_acc.h in Headers */,
 				9D32FC8A24557EEC002DCDAB /* shared_memory_manager.h in Headers */,
 				EC88054A255FE59D00BC4EDD /* net_optimizer_fuse_conv_post.h in Headers */,
 				ECEC5D6524FCDBA50044DDF1 /* arm_mat_util.h in Headers */,
@@ -3900,6 +3975,7 @@
 				9DF5441E258B1367006CEC97 /* arm_conv_layer_acc.h in Headers */,
 				9DF54417258B1367006CEC97 /* arm_conv_int8_layer_common.h in Headers */,
 				9DF5443D258B1367006CEC97 /* arm_batch_norm_layer_acc.h in Headers */,
+				366E583F286D573000DFFEF3 /* safe_map.h in Headers */,
 				9DF543C7258B1366006CEC97 /* arm_add_layer_acc.h in Headers */,
 				9D32FC8124557EEC002DCDAB /* net_optimizer.h in Headers */,
 				9D32FCAA24557EEC002DCDAB /* string_utils_inner.h in Headers */,
@@ -4018,6 +4094,7 @@
 				ECCDCE9925DF536000D7D297 /* cpu_arg_max_or_min_layer_acc.cc in Sources */,
 				ECCDCE9F25DF536000D7D297 /* cpu_pool_layer_acc.cc in Sources */,
 				9D32FCDC24557EEC002DCDAB /* selu_layer.cc in Sources */,
+				366E584C286D576B00DFFEF3 /* scatter_layer.cc in Sources */,
 				9DF543D4258B1366006CEC97 /* DECONV_FLOAT_O4.S in Sources */,
 				9DF19EA024A1FE8E00E1376D /* metal_pooling_layer_acc.mm in Sources */,
 				EC0BE15225144BB8009BD69A /* squared_difference_layer.cc in Sources */,
@@ -4099,7 +4176,7 @@
 				9DF543ED258B1366006CEC97 /* GEMM_BFP16_N8.S in Sources */,
 				9D32FCD524557EEC002DCDAB /* sub_layer.cc in Sources */,
 				E4D05BC8259DCB2E00921502 /* arm_conv_fp16_layer_common.cc in Sources */,
-				9DAD93EA28689F6300170339 /* net_optimizer_dynamic_range_dequant.cc in Sources */,
+				366E5842286D573A00DFFEF3 /* net_optimizer_dynamic_range_dequant.cc in Sources */,
 				EC0BE17425144C10009BD69A /* normalize_layer_interpreter.cc in Sources */,
 				DE14B591275C87C700379D4F /* coreml_conv_layer.cc in Sources */,
 				DE6D15F02767789C00907180 /* coreml_slice_layer.cc in Sources */,
@@ -4112,6 +4189,7 @@
 				9D32FD0824557EEC002DCDAB /* lrn_layer.cc in Sources */,
 				ECCDCEF225DF536000D7D297 /* cpu_acos_layer_acc.cc in Sources */,
 				9DD1FC65247CEA1400800139 /* arm_util.cc in Sources */,
+				366E584E286D576B00DFFEF3 /* non_max_suppression_layer.cc in Sources */,
 				ECCDCE8A25DF536000D7D297 /* cpu_stride_slice_layer_acc.cc in Sources */,
 				9D32FCB824557EEC002DCDAB /* blob_memory_size_utils.cc in Sources */,
 				ECCDCEA125DF536000D7D297 /* cpu_reduce_mean_layer_acc.cc in Sources */,
@@ -4132,6 +4210,7 @@
 				9DD1FB67247CE9BE00800139 /* metal_elu_layer_acc.metal in Sources */,
 				ECCDCEA925DF536000D7D297 /* cpu_shuffle_layer_acc.cc in Sources */,
 				E43D68B525C8F38000FAAF54 /* CONV_DW_3X3_INT8_SLIDEW.S in Sources */,
+				366E584D286D576B00DFFEF3 /* pooling_1d_layer.cc in Sources */,
 				DE14B587275C87C700379D4F /* DataStructures.pb-c.c in Sources */,
 				9DD1FBC0247CE9BE00800139 /* metal_conv_layer_1x1.metal in Sources */,
 				9D32FCFC24557EEC002DCDAB /* upsample_layer.cc in Sources */,
@@ -4218,6 +4297,7 @@
 				9D32FCF724557EEC002DCDAB /* pooling_layer.cc in Sources */,
 				DE14B590275C87C700379D4F /* coreml_prelu_layer.cc in Sources */,
 				4E187D1F267202D800804FDF /* einsum_layer.cc in Sources */,
+				366E585D286D578D00DFFEF3 /* greater_layer_interpreter.cc in Sources */,
 				E44D946826048BF3003FE4A3 /* gemm_function_fp16.cc in Sources */,
 				DE6B1DCD2771C8A000D92981 /* coreml_mat_mul_layer.cc in Sources */,
 				9DD1FB66247CE9BE00800139 /* metal_atan_layer_acc.mm in Sources */,
@@ -4234,6 +4314,7 @@
 				9DF54428258B1367006CEC97 /* arm_conv_layer_c3.cc in Sources */,
 				DEA37E09276B58B30031F2F1 /* coreml_shuffle_channel_layer.cc in Sources */,
 				9DF543EB258B1366006CEC97 /* GEMM_FLOAT_N8.S in Sources */,
+				366E585C286D578D00DFFEF3 /* and_layer_interpreter.cc in Sources */,
 				9DD1FBC3247CE9BE00800139 /* metal_conv_layer_winograd.mm in Sources */,
 				9DD1FBC5247CE9BE00800139 /* metal_unary_layer_acc.mm in Sources */,
 				ECCDCEC125DF536000D7D297 /* cpu_reduce_max_layer_acc.cc in Sources */,
@@ -4324,6 +4405,8 @@
 				ECCDCED025DF536000D7D297 /* cpu_gathernd_layer_acc.cc in Sources */,
 				ECCDCEB325DF536000D7D297 /* cpu_expand_layer_acc.cc in Sources */,
 				9D32FC9224557EEC002DCDAB /* blob_memory.cc in Sources */,
+				366E586E286D587900DFFEF3 /* arm_conv1d_layer_acc.cc in Sources */,
+				366E584B286D576B00DFFEF3 /* less_layer.cc in Sources */,
 				9DD1FB76247CE9BE00800139 /* metal_deconv_layer_depthwise.mm in Sources */,
 				ECCDCF2825E0F97500D7D297 /* bitshift_layer.cc in Sources */,
 				DE14B57C275C87C700379D4F /* NeuralNetwork.proto in Sources */,
@@ -4366,6 +4449,7 @@
 				9DF543B0258B1366006CEC97 /* arm_arg_max_or_min_layer_acc.cc in Sources */,
 				EC2CF72525078C1200EE3899 /* metal_mat_converter.mm in Sources */,
 				ECCDCECF25DF536000D7D297 /* cpu_tanh_layer_acc.cc in Sources */,
+				366E5865286D583800DFFEF3 /* cpu_and_layer_acc.cc in Sources */,
 				ECCDCEDB25DF536000D7D297 /* cpu_splitv_layer_acc.cc in Sources */,
 				3620404726E8D51000935711 /* scatter_elements_layer.cc in Sources */,
 				ECD945B3254ADD7100BF9214 /* metal_pixel_shuffle_layer_acc.metal in Sources */,
@@ -4375,6 +4459,7 @@
 				E4D05BB4259DCB2E00921502 /* arm_conv_fp16_layer_c3.cc in Sources */,
 				9D32FCD024557EEC002DCDAB /* reshape_layer.cc in Sources */,
 				9D32FF5324557EED002DCDAB /* slice_layer_interpreter.cc in Sources */,
+				366E584F286D576B00DFFEF3 /* not_layer.cc in Sources */,
 				9DD1FB71247CE9BE00800139 /* metal_batch_norm_layer_acc.mm in Sources */,
 				9DD1FBAD247CE9BE00800139 /* metal_hard_sigmoid_layer_acc.mm in Sources */,
 				9DD1FBAB247CE9BE00800139 /* metal_instance_norm_layer_acc.metal in Sources */,
@@ -4455,6 +4540,7 @@
 				9D32FCFF24557EEC002DCDAB /* cos_layer.cc in Sources */,
 				9DF543C8258B1366006CEC97 /* arm_clip_layer_acc.cc in Sources */,
 				9DD1FB98247CE9BE00800139 /* metal_softmax_layer_acc.metal in Sources */,
+				366E586B286D583800DFFEF3 /* cpu_scatter_layer_acc.cc in Sources */,
 				9D32FF6824557EED002DCDAB /* tnn_impl.cc in Sources */,
 				9DD1FB8D247CE9BE00800139 /* metal_reduce_l2_layer_acc.mm in Sources */,
 				EC626D462615B20300750B31 /* arm_binary_fp16_layer_acc.cc in Sources */,
@@ -4463,9 +4549,11 @@
 				DEA37E0E276C326D0031F2F1 /* coreml_reshape_layer.cc in Sources */,
 				9DF54410258B1367006CEC97 /* arm_conv_int8_layer_depthwise.cc in Sources */,
 				9D32FCB624557EEC002DCDAB /* blob_converter_internal.cc in Sources */,
+				366E5851286D576B00DFFEF3 /* greater_layer.cc in Sources */,
 				ECCDCF4A25E10B9D00D7D297 /* expand_layer_interpreter.cc in Sources */,
 				9DF543C4258B1366006CEC97 /* arm_max_layer_acc.cc in Sources */,
 				ECCDCF4425E10B9D00D7D297 /* bias_add_layer_interpreter.cc in Sources */,
+				366E585A286D578D00DFFEF3 /* scatter_layer_interpreter.cc in Sources */,
 				4E187D03267202BF00804FDF /* einsum_layer_interpreter.cc in Sources */,
 				9DE4CBDB27859F0700FCEF95 /* coreml_div_layer.cc in Sources */,
 				9DD1FB4F247CE9BE00800139 /* metal_instance_norm_layer_acc.mm in Sources */,
@@ -4489,11 +4577,13 @@
 				4E187D442672036B00804FDF /* metal_mat_mul_layer_acc.metal in Sources */,
 				4E187D272672030500804FDF /* arm_inverse_layer_acc.cc in Sources */,
 				ECCDCEAB25DF536000D7D297 /* cpu_mul_layer_acc.cc in Sources */,
+				366E5868286D583800DFFEF3 /* cpu_non_max_suppression.cc in Sources */,
 				9DD1FCF1247CEA1500800139 /* arm_device.cc in Sources */,
 				9DF543A2258B1366006CEC97 /* arm_mul_layer_acc.cc in Sources */,
 				9DF543E7258B1366006CEC97 /* CONV_BFP16_O4.S in Sources */,
 				EC0BE16225144BE4009BD69A /* signed_mul_layer_interpreter.cc in Sources */,
 				9D32FCFD24557EEC002DCDAB /* reduce_layer.cc in Sources */,
+				366E5869286D583800DFFEF3 /* cpu_less_layer_acc.cc in Sources */,
 				3623EF9E2695990000932B9F /* cpu_gridsample_layer_acc.cc in Sources */,
 				9DD1FB90247CE9BE00800139 /* metal_concat_layer_acc.mm in Sources */,
 				9D32FF5D24557EED002DCDAB /* deconv_layer_interpreter.cc in Sources */,
@@ -4540,6 +4630,7 @@
 				9DF543D3258B1366006CEC97 /* CONV_DW_5X5_BFP16_SLIDEW.S in Sources */,
 				4E187CFA267202BF00804FDF /* roialign_layer_interpreter.cc in Sources */,
 				9D32FD0C24557EEC002DCDAB /* max_layer.cc in Sources */,
+				366E5859286D578D00DFFEF3 /* pooling_1d_layer_interpreter.cc in Sources */,
 				9D32FD0324557EEC002DCDAB /* batch_norm_layer.cc in Sources */,
 				EC8BDE1325E3B1600085CCC2 /* data_flag_utils.cc in Sources */,
 				3620404126E8D4E100935711 /* arm_layer_norm_layer_acc.cc in Sources */,
@@ -4582,8 +4673,10 @@
 				369005C5267314D900412264 /* pad_utils.cc in Sources */,
 				E4D05BBC259DCB2E00921502 /* GEMM_FP16_N8.S in Sources */,
 				9D32FCBE24557EEC002DCDAB /* cpu_utils.cc in Sources */,
+				366E5850286D576B00DFFEF3 /* and_layer.cc in Sources */,
 				9DD1FB6F247CE9BE00800139 /* metal_acos_layer_acc.mm in Sources */,
 				9D32FF3524557EED002DCDAB /* scale_layer_interpreter.cc in Sources */,
+				366E586A286D583800DFFEF3 /* cpu_greater_layer_acc.cc in Sources */,
 				E44D947226048C1A003FE4A3 /* dims_function_utils.cc in Sources */,
 				4E187D15267202D800804FDF /* equal_layer.cc in Sources */,
 				9DD1FB59247CE9BE00800139 /* metal_hard_swish_layer_acc.mm in Sources */,
@@ -4604,6 +4697,7 @@
 				ECCDCEC625DF536000D7D297 /* compute_int8.cc in Sources */,
 				DE14B5A2275C87C700379D4F /* coreml_model.mm in Sources */,
 				9DE4CBD827859F0700FCEF95 /* coreml_reduce_min_layer.cc in Sources */,
+				366E5867286D583800DFFEF3 /* cpu_pool_1d_layer_acc.cc in Sources */,
 				9DD1FB57247CE9BE00800139 /* metal_reduce_sum_layer_acc.mm in Sources */,
 				9D32FCED24557EEC002DCDAB /* sin_layer.cc in Sources */,
 				9DF543BC258B1366006CEC97 /* arm_deconv_layer_stride.cc in Sources */,
@@ -4643,6 +4737,7 @@
 				9DD1FBB4247CE9BE00800139 /* metal_conv_layer_common.mm in Sources */,
 				9DD1FBB6247CE9BE00800139 /* metal_inner_product_layer_acc.mm in Sources */,
 				9DF5439D258B1366006CEC97 /* arm_instance_norm_layer_acc.cc in Sources */,
+				366E5858286D578D00DFFEF3 /* less_layer_interpreter.cc in Sources */,
 				9DD1FB3D247CE9BE00800139 /* metal_context.mm in Sources */,
 				EC0BE17E25144C10009BD69A /* prelu_layer_interpreter.cc in Sources */,
 				9D32FF4524557EED002DCDAB /* expand_slice_optimizer.cc in Sources */,
@@ -4706,6 +4801,7 @@
 				9D32FF6024557EED002DCDAB /* concat_layer_interpreter.cc in Sources */,
 				9DF543CA258B1366006CEC97 /* arm_pixel_shuffle_layer_acc.cc in Sources */,
 				9DF543FD258B1366006CEC97 /* arm_pow_layer_acc.cc in Sources */,
+				366E585B286D578D00DFFEF3 /* non_max_suppression_layer_interpreter.cc in Sources */,
 				9D32FF2F24557EED002DCDAB /* splitv_layer_interpreter.cc in Sources */,
 				9DD1FB85247CE9BE00800139 /* metal_min_layer_acc.metal in Sources */,
 				DE14B597275C87C700379D4F /* coreml_batchnorm_layer.cc in Sources */,
@@ -4751,6 +4847,7 @@
 				9D32FF6224557EED002DCDAB /* shuffle_channel_layer_interpreter.cc in Sources */,
 				36C14F01278D795E0099C5D0 /* arm_instance_norm_fp16_layer.cc in Sources */,
 				ECCDCEB125DF536000D7D297 /* cpu_unary_layer_acc.cc in Sources */,
+				366E5866286D583800DFFEF3 /* cpu_not_layer_acc.cc in Sources */,
 				ECCDCEA525DF536000D7D297 /* cpu_prior_box_layer_acc.cc in Sources */,
 				32BFADE92684AAEE00502FAC /* CONV_DW_3X3S1_INT8_SDOT_SLIDEW.S in Sources */,
 				9D32FF3124557EED002DCDAB /* inner_product_layer_interpreter.cc in Sources */,
