@@ -218,9 +218,9 @@ static void ChannelPadImpl(float *input_data, float *output_data, int batch, int
 
 Status PadUtils::ConstPadV2(float *input_data, float *output_data, DimsVector input_dims, DimsVector output_dims,
                             PadContext context) {
-    if (input_dims.size() != 4) {
-        LOGE("Arm PadV2(const type) only support 4 dims\n");
-        return Status(TNNERR_UNKNOWN_LAYER, "Arm PadV2 only support 4 dims");
+    if (input_dims.size() < 2 || input_dims.size() > 5) {
+        LOGE("Arm PadV2(const type) only support 2 - 5 dims\n");
+        return Status(TNNERR_UNKNOWN_LAYER, "Arm PadV2 only support 2 - 5 dims");
     }
     const int batch    = context.output_batch;
     const int oc_r4    = context.output_channel_r4;
@@ -237,21 +237,50 @@ Status PadUtils::ConstPadV2(float *input_data, float *output_data, DimsVector in
     const int pad_b    = context.pad_b;
     const int pad_r    = context.pad_r;
     Float4 value_v     = Float4(context.value);
+    
+    //ncdhw, extend dim except the batch n
+    if (context.input_batch == context.output_batch) {
     if (pad_c_b == 0 && pad_c_e == 0) {
         CommonPadImpl(input_data, output_data, batch * oc_r4, ih, iw, oh, ow, pad_t, pad_b, pad_l, iw_bytes, value_v);
     } else {
         ChannelPadImpl(input_data, output_data, batch, oc_r4, oh, ow, ic, ih, iw, pad_t, pad_b, pad_l, pad_r, pad_c_b,
                        pad_c_e, iw_bytes, value_v);
     }
+    } else {
+        //ncdhw, only extend the batch n
+        if (context.input_channel == context.output_channel &&
+            context.input_depth == context.output_depth &&
+            context.input_height == context.output_height &&
+            context.input_width == context.output_width) {
+            const int batch_size = context.input_channel_r4*context.input_depth*context.input_height*context.input_width;
+            //batch begin
+            for (int i=0; i<context.pad_b_b*batch_size/4; i++) {
+                Float4::save(output_data += 4, value_v);
+            }
+            //input data
+            const int input_size = context.input_batch * batch_size;
+            memcpy(output_data , input_data, input_size * sizeof(float));
+            output_data += input_size;
+            
+            //batch end
+            for (int i=0; i<context.pad_b_e*batch_size/4; i++) {
+                Float4::save(output_data += 4, value_v);
+            }
+        } else {
+            LOGE("Arm PadV2(const type) dont support pad with batch and other dim at the same time\n");
+            return Status(TNNERR_UNKNOWN_LAYER, "Arm PadV2(const type) dont support pad with batch and other dim at the same time");
+        }
+    }
     return TNN_OK;
 }
 
 Status PadUtils::ReflectPadV2(float *input_data, float *output_data, DimsVector input_dims, DimsVector output_dims,
                               PadContext context) {
-    if (input_dims.size() != 4) {
-        LOGE("Arm PadV2(reflect type)only support 4 dims\n");
-        return Status(TNNERR_UNKNOWN_LAYER, "Arm PadV2 only support 4 dims");
+    if (input_dims.size() < 2 || input_dims.size() > 5) {
+        LOGE("Arm PadV2(reflect type) only support 2 - 5 dims\n");
+        return Status(TNNERR_UNKNOWN_LAYER, "Arm PadV2 only support 2 - 5 dims");
     }
+    
     const int batch     = context.output_batch;
     const int c_r4      = context.output_channel_r4;
     const int oh        = context.output_height;
@@ -267,6 +296,9 @@ Status PadUtils::ReflectPadV2(float *input_data, float *output_data, DimsVector 
     const int pad_l     = context.pad_l;
     const int pad_b     = context.pad_b;
     const int pad_r     = context.pad_r;
+    
+    //ncdhw, extend dim except the batch n
+    if (context.input_batch == context.output_batch) {
     for (int c = 0; c < batch * c_r4; c += 4) {
         auto input_ptr_c  = input_data + c * ih * iw;
         auto output_ptr_c = output_data + c * oh * ow;
@@ -296,6 +328,10 @@ Status PadUtils::ReflectPadV2(float *input_data, float *output_data, DimsVector 
             auto output_ref_h = output_ptr_c + ow * (ih + pad_t - 1 - (h + 1)) * 4;
             memcpy(output_ptr_h, output_ref_h, ow * byte_size * 4);
         }
+    }
+    } else {
+        LOGE("Arm PadV2(reflect type) dont support pad with batch and other dim at the same time\n");
+        return Status(TNNERR_UNKNOWN_LAYER, "Arm PadV2(reflect type) dont support pad with batch and other dim at the same time");
     }
     return TNN_OK;
 }
