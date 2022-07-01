@@ -544,7 +544,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
 
     FuseSignedMul(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
-    // FuseGEMM(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    FuseGEMM(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseDeconv(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseConv(mutable_graph, index_nodes, weights, node_reference, blob_names);
 
