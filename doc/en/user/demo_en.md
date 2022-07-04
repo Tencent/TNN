@@ -19,7 +19,7 @@
    sh download_opencv.sh iOS
    ```
    
-   PS: If the script cannot download the model or framework due to network problems, please manually create the corresponding folder according to the information in the script and download it by yourself.
+   PS: If the script cannot download the model or framework due to network problems, please manually create the corresponding folder according to the information in the script and download it by yourself. You can also download the models from AliYun Disk https://www.aliyundrive.com/s/MSmarP3zqrb 
 
 2. Open the TNNExamples project
 
@@ -127,7 +127,7 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    sh download_opencv.sh android
    ```
 
-   PS: If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it yourself.
+   PS: If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it yourself. You can also download the models from AliYun Disk https://www.aliyundrive.com/s/MSmarP3zqrb 
   
    PS for Huawei NPU :
    You need to download the DDK before run the demo. Refer to： [FAQ](../faq_en.md): Huawei NPU Compilation Prerequisite.
@@ -221,7 +221,7 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    cd <path_to_tnn>/model
    sh download_model.sh
    ```
-   If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it yourself.
+   If the script cannot download the model due to network problems, please manually create the corresponding folder according to the information in the script and download it yourself. You can also download the models from AliYun Disk https://www.aliyundrive.com/s/MSmarP3zqrb 
 
 #### 2. Compile Steps
 ##### Linux

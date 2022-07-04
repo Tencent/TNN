@@ -532,8 +532,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     // FuseShuffleChannel(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseLogSigmoid(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseSoftmax(mutable_graph, index_nodes, weights, node_reference, blob_names);
-    //right now we dont fuse swish, we should realize it on arm opencl metal cuda x86 later
-    //FuseSwish(mutable_graph, index_nodes, weights, node_reference, blob_names);
+    FuseSwish(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHardSigmoid(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseHardSwish(mutable_graph, index_nodes, weights, node_reference, blob_names);
     FuseGELU(mutable_graph, index_nodes, weights, node_reference, blob_names);
