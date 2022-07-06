@@ -460,6 +460,8 @@ typedef enum {
     NC4HW4INT32_2_NCHWINT32 = 10,
     NCHWINT32_2_NC4HW4INT32 = 11,
     // to be continued
+    NC4HW4INT8_2_NCHWINT8 = 12,
+    NCHWINT8_2_NC4HW4INT8 = 13,
 } ReformatType;
 
 struct ReformatLayerParam : public LayerParam {

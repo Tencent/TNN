@@ -20,6 +20,23 @@ namespace TNN_NS {
 
 DECLARE_ARM_ACC(Unsqueeze, LAYER_UNSQUEEZE);
 
+// 修改处：添加了新的函数TransDataType，用于将T_IN类别数据转化为T_OUT类别存储
+template <typename T_IN, typename T_OUT>
+Status TransDataType(void *data, const DimsVector &shapes) {
+    if (std::is_same<T_IN, T_OUT>::value) {
+        return TNN_OK;
+    }
+    size_t data_size = DimsVectorUtils::Count(shapes);
+    T_OUT *output = (T_OUT *)data;
+    T_IN *origin  = reinterpret_cast<T_IN *>(data);
+    for (int i = 0; i < data_size; i++) {
+        auto temp = origin[i];
+        output[i] = (T_OUT)temp;
+    }
+    data = reinterpret_cast<void *>(output);
+    return TNN_OK;
+}
+
 Status ArmUnsqueezeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     void *input_data  = GetBlobHandlePtr(inputs[0]->GetHandle());
     void *output_data = GetBlobHandlePtr(outputs[0]->GetHandle());
@@ -31,6 +48,18 @@ Status ArmUnsqueezeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
         memcpy(output_data, input_data, count * ele_size);
     }
 
+    if (inputs[0]->GetBlobDesc().data_type != outputs[0]->GetBlobDesc().data_type) {
+        // LOGD("修改处：在 Unsqueeze 算子计算时，可能存在类型转换\n");
+        if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT && outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+            TransDataType<float, int32_t>(output_data, dims);
+        }
+        else if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT32 && outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+            TransDataType<int32_t, float>(output_data, dims);
+        }
+        else {
+            LOGE("Unsupport DataType Transfer in Unsqueeze : %d -> %d\n", (int)inputs[0]->GetBlobDesc().data_type, (int)outputs[0]->GetBlobDesc().data_type);
+        }
+    }
     return TNN_OK;
 }
 

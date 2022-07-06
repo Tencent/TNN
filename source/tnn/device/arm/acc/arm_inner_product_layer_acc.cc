@@ -99,6 +99,10 @@ Status ArmInnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
     if (!buffer_weight_.GetBytesSize()) {
         DimsVector dims_input  = inputs[0]->GetBlobDesc().dims;
         DimsVector dims_output = outputs[0]->GetBlobDesc().dims;
+        if (dims_input.size() == 0) {
+            // LOGD("修改处：当 weights 来源于initial时，无需重复申请空间\n");
+            return TNN_OK;
+        }
 
         RawBuffer w_handle = fc_res->weight_handle;
         CHECK_PARAM_NULL(w_handle.force_to<void *>());
@@ -175,7 +179,10 @@ Status ArmInnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
     InnerProductLayerResource *fc_res = dynamic_cast<InnerProductLayerResource *>(resource_);
     CHECK_PARAM_NULL(fc_res);
     auto dims_output = outputs[0]->GetBlobDesc().dims;
-
+    if (dims_output.size() == 0) {
+        // LOGD("修改处：当bias来源于initial时，无需重复申请空间\n");
+        return TNN_OK;
+    }
     if (!buffer_bias_.GetBytesSize()) {
         if (fc_param->has_bias) {
             auto bias_handle = fc_res->bias_handle;

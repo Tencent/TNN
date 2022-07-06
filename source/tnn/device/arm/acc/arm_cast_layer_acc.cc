@@ -41,6 +41,7 @@ Status ArmCastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
         if (output_dims.size() > 1) {
             channel = output_dims[1];
         }
+
         count = count / channel;
         count = count * ROUND_UP(channel, 4);
     }
@@ -48,11 +49,14 @@ Status ArmCastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     if (input_data_type == output_data_type) {
         if (output_data_type == DATA_TYPE_FLOAT ||
             output_data_type == DATA_TYPE_BFP16 ||
-            output_data_type == DATA_TYPE_INT32) {
+            output_data_type == DATA_TYPE_INT32 ||
+            output_data_type == DATA_TYPE_INT8) {
+            // LOGD_IF(output_data_type == DATA_TYPE_INT8, "修改处：Cast算子支持由bool类型转换为bool类型\n");
             if (output_data != input_data) {
                 memcpy(output_data, input_data, count * ele_size);
             }
         } else {
+            LOGE("Unsupported data type in cast %d\n", (int)output_data_type);
             return Status(TNNERR_LAYER_ERR, "Unsupported data type in cast");
         }
     } else {
@@ -71,6 +75,7 @@ Status ArmCastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
                 output_data_ptr[i] = static_cast<int>(input_data_ptr[i]);
             }
         } else {
+            LOGE("Unsupported data type in cast input=%d output=%d\n", (int)input_data_type, (int)output_data_type);
             return Status(TNNERR_LAYER_ERR, "Unsupported data type in cast");
         }
     }

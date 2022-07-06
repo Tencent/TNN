@@ -57,7 +57,8 @@ Status ArmLayerAcc::Init(Context *context, LayerParam *param, LayerResource *res
 std::vector<DataFormat> ArmLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
     std::vector<DataFormat> support_list;
     if (dims_size == 4) {
-        if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16)
+        // LOGD_IF(data_type == DATA_TYPE_INT32, "修改处：添加int32 进入 support list\n");
+        if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_INT32)
             support_list.push_back(DATA_FORMAT_NC4HW4);
         else if (data_type == DATA_TYPE_INT8)
             support_list.push_back(DATA_FORMAT_NHWC4);
@@ -104,6 +105,8 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
         {
             desc.device_type = DEVICE_ARM;
             desc.dims        = buffer->GetBufferDims();
+            // LOGD_IF(buffer->GetDataType() != 0, "修改处：RawBuffer转ArmBlob时，添加默认数据类型\n");
+            desc.data_type   = buffer->GetDataType();
             ConfigBuffer2ArmBlobDesc(desc);
         }
         if (buffer->GetBytesSize() > 0) {
@@ -117,10 +120,13 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
         auto buff_dtype = buffer->GetDataType();
         auto blob_dtype = blob->GetBlobDesc().data_type;
         auto blob_fmt   = blob->GetBlobDesc().data_format;
-        auto dims       = desc.dims;
+        // auto dims       = desc.dims;
+        // LOGE("修改处：当 blob 已被赋值后，dims 为空，修改为 blob dims 尺寸\n");
+        auto dims       = blob->GetBlobDesc().dims;
 
         if (dims.size() < 2) {
-            if (buff_dtype == blob_dtype) {
+            // LOGD_IF(dims.size() == 0, "修改处：dims为空，保留buff的状态\n");
+            if (buff_dtype == blob_dtype || dims.size() == 0) {
                 memcpy(GetBlobHandlePtr(blob->GetHandle()), buffer->force_to<void *>(), buffer->GetBytesSize());
             } else {
                 if (buff_dtype == DATA_TYPE_FLOAT && blob_dtype == DATA_TYPE_HALF) {
@@ -144,15 +150,35 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
         int hw          = DimsVectorUtils::Count(dims, 2);
         auto buff_count = batch * channel * hw;
 
-        if (buff_dtype == DATA_TYPE_FLOAT) {
+        // LOGD_IF(buff_dtype == DATA_TYPE_INT32, "修改处：添加了DATA_TYPE_INT32的buff_dtype逻辑\n");
+        if (buff_dtype == DATA_TYPE_FLOAT || buff_dtype == DATA_TYPE_INT32) {
             auto src_ptr = buffer->force_to<float *>();
-            if (blob_dtype == DATA_TYPE_FLOAT) {
+            if (blob_dtype == DATA_TYPE_FLOAT || blob_dtype == DATA_TYPE_INT8 || blob_dtype == DATA_TYPE_INT32) {
+                // LOGD_IF(blob_dtype == DATA_TYPE_INT8 || blob_dtype == DATA_TYPE_INT32, "修改处：拓宽了 blob_dtype 范围\n");
                 if (blob_fmt == DATA_FORMAT_NCHW) {
-                    memcpy(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr,
+                    if (blob_dtype == DATA_TYPE_INT8) {
+                        memcpy(reinterpret_cast<int8_t*>(GetBlobHandlePtr(blob->GetHandle())), src_ptr,
+                           buff_count * sizeof(int8_t));
+                    } else if (blob_dtype == DATA_TYPE_INT32) {
+                        memcpy(reinterpret_cast<int32_t*>(GetBlobHandlePtr(blob->GetHandle())), src_ptr,
+                           buff_count * sizeof(int32_t));
+                    } else {
+                        memcpy(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr,
                            buff_count * sizeof(float));
+                    }
                 } else {
-                    PackFloatBlob(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr, batch,
+                    if (blob_dtype == DATA_TYPE_INT8) {
+                        auto src_ptr_int8 = buffer->force_to<int8_t *>();
+                        PackInt8Blob(reinterpret_cast<int8_t *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr_int8, batch,
                                   channel, hw);
+                    } else if (blob_dtype == DATA_TYPE_INT32) {
+                        auto src_ptr_int32 = buffer->force_to<int32_t *>();
+                        PackInt32Blob(reinterpret_cast<int32_t *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr_int32, batch,
+                                  channel, hw);
+                    } else {
+                        PackFloatBlob(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr, batch,
+                                  channel, hw);
+                    }
                 }
             } else if (blob_dtype == DATA_TYPE_HALF) {
                 RawBuffer tmp_fp16_buff = RawBuffer(buff_count * sizeof(fp16_t));
@@ -174,7 +200,6 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
             return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: unsupported buffer data type");
         }
     }
-
     return TNN_OK;
 }
 
@@ -241,6 +266,12 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool 
         RETURN_ON_NEQ(status, TNN_OK);
 
         blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
+
+        if (blob->GetBlobDesc().name == "") {
+            // LOGD(b"修改处：给无名blob添加名字 %s\n", name.c_str());
+            blob->GetBlobDesc().name = name;
+        }
+
         const_blob_map[name] = blob;
         iter->SetHandle(blob->GetHandle());
         iter->GetBlobDesc() = blob->GetBlobDesc();

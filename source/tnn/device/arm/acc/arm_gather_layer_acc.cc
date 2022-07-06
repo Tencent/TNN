@@ -21,6 +21,7 @@ namespace TNN_NS {
 DECLARE_ARM_ACC(Gather, LAYER_GATHER);
 
 Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+//    LOGE("在ARM下执行Gather算子 output= %s\n", outputs[0]->GetBlobDesc().name.c_str());
     auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
     int axis = layer_param->axis;
@@ -50,6 +51,30 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         indices_data_ptr = reinterpret_cast<int *>(GetBlobHandlePtr((*(inputs.rbegin()))->GetHandle()));
     }
 
+
+/*
+    if (outputs[0]->GetBlobDesc().name == "352") {
+        size_t data_size = std::min((int)DimsVectorUtils::Count(indices_dims), 4);
+        int* di = indices_data_ptr;
+        for(int i = 0; i < data_size; i++) {
+            LOGE("gather indices 结果为%d= %d\n", i, di[i]);
+        }
+
+        data_size = std::min((int)DimsVectorUtils::Count(input_data_dims), 4);
+        di = reinterpret_cast<int *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+        float * df = reinterpret_cast<float *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
+        for(int i = 0; i < data_size; i++) {
+            LOGE("gather inputs 结果为%d= %d %f\n", i, di[i], df[i]);
+        }
+    }
+*/
+
+
+
+
+
+
+
     const int slice_size = DimsVectorUtils::Count(input_data_dims, axis + 1);
     const int input_slice_count = DimsVectorUtils::Count(input_data_dims, axis, axis + 1);
     const int batch = DimsVectorUtils::Count(input_data_dims, 0, axis);
@@ -59,7 +84,7 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 
     const int ele_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
     auto output_data_ptr = GetBlobHandlePtr(outputs[0]->GetHandle());
-
+    
     for (int b = 0; b < batch; b++) {
         int input_index_b = b * input_slice_count * slice_size;
         int output_index_b = b * output_slice_count * slice_size;
@@ -69,7 +94,7 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 slice_index += input_slice_count;
             }
             if (slice_index < 0 || slice_index >= input_slice_count) {
-                LOGE("ArmGatherLayerAcc::Forward invalid slice_index\n");
+                LOGE("ArmGatherLayerAcc::Forward invalid slice_index %d %d\n", slice_index, (int)indices_data_ptr[i]);
                 return Status(TNNERR_MODEL_ERR, "ArmGatherLayerAcc::Forward invalid slice_index");
             }
             int input_index = input_index_b + slice_index * slice_size;
@@ -80,11 +105,15 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                    slice_size * ele_size);
         }
     }
+
+    //void* output_data = GetBlobHandlePtr(outputs[0]->GetHandle());
+    //output_data = reinterpret_cast<void *>(output_data_ptr);
+   
     return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Gather, LAYER_GATHER);
-REGISTER_ARM_PRECISION_FP16(LAYER_GATHER)
+//REGISTER_ARM_LAYOUT(LAYER_GATHER, DATA_FORMAT_NC4HW4)
 REGISTER_ARM_LAYOUT(LAYER_GATHER, DATA_FORMAT_NCHW)
 
 }  // namespace TNN_NS
