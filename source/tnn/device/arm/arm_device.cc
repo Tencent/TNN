@@ -143,6 +143,7 @@ AbstractLayerAcc *ArmDevice::CreateLayerAcc(LayerType type) {
     if (layer_creator_map.count(type) > 0) {
         return layer_creator_map[type]->CreateLayerAcc(type);
     }
+    LOGE("临时输出：似乎map中没有这个type呢\n");
     return NULL;
 }
 
