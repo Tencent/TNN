@@ -18,7 +18,7 @@ namespace TNN_NS {
 
 typedef struct arm_swish_operator : arm_unary_operator {
     virtual Float4 operator()(const Float4 &v) {
-        return v * Float4::div(1.0f, Float4::exp(-v) + 1.0f);
+        return v * Float4::sigmoid(v);
     }
 } ARM_SWISH_OP;
 

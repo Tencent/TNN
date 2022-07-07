@@ -19,7 +19,7 @@ namespace TNN_NS {
 #if TNN_ARM82
 typedef struct arm_swish_fp16_operator {
     virtual Half8 operator()(const Half8 &v) {
-        return v * Half8::div(fp16_t(1.0), Half8::exp(-v) + fp16_t(1.0));
+        return v * Half8::sigmoid(v);
     }
 } ARM_SWISH_OP;
 
