@@ -17,9 +17,14 @@ then
     TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
 fi
 
-rm -rf build_aarch64_macos
-mkdir build_aarch64_macos
-cd build_aarch64_macos
+BUILD_DIR=build_aarch64_macos
+if [ $DEBUG == "ON" ]; then
+    BUILD_DIR=${BUILD_DIR}_debug
+fi
+
+rm -rf $BUILD_DIR
+mkdir $BUILD_DIR
+cd $BUILD_DIR
 
 cmake ${TNN_ROOT_PATH} \
     -DCMAKE_C_COMPILER=$CC \
@@ -38,4 +43,4 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_BUILD_SHARED:BOOL=$SHARED_LIB
 
 
-make -j6
+make -j10
