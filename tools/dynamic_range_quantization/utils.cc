@@ -34,6 +34,7 @@ bool NeedPerChannelQuantize(RawBuffer& raw_buffer, const int channel_size) {
             for (int j = 0; j < stride; ++j) {
                 float value   = data[i * stride + j];
                 min_values[i] = std::min(min_values[i], value);
+                max_values[i] = std::max(max_values[i], value);
             }
         }
     } else if (data_type == DATA_TYPE_HALF) {
@@ -43,6 +44,7 @@ bool NeedPerChannelQuantize(RawBuffer& raw_buffer, const int channel_size) {
                 // fp16_t -> float
                 fp16_t value  = data[i * stride + j];
                 min_values[i] = std::min(min_values[i], (float)value);
+                max_values[i] = std::max(max_values[i], (float)value);
             }
         }
     } else {
