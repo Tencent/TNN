@@ -30,6 +30,7 @@
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
+namespace arm {
 
 static inline void *armMalloc(size_t size) {
 #if _POSIX_C_SOURCE >= 200112L || (__ANDROID__ && __ANDROID_API__ >= 17)
@@ -1573,4 +1574,5 @@ void WarpAffineNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src
     }
 }
 
+}  // namespace arm
 }  // namespace TNN_NS

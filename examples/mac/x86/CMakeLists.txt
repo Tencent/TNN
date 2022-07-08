@@ -66,6 +66,7 @@ add_executable(demo_x86_posedetector ../../linux/src/TNNBlazePose/TNNBlazePose.c
 add_executable(demo_x86_facealignment ../../linux/src/TNNFaceAligner/TNNFaceAligner.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 add_executable(demo_x86_hairsegmentation ../../linux/src/TNNHairSegmentation/TNNHairSegmentation.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 add_executable(demo_x86_nanodet ${CMAKE_SOURCE_DIR}/../../linux/src/TNNNanodetDetector/TNNNanodetDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
+add_executable(demo_x86_ssd ${CMAKE_SOURCE_DIR}/../../linux/src/TNNSSDDetector/TNNSSDDetector.cc ${BASE_SRC} ${UTIL_SRC} ${FLAG_SRC})
 
 if (TNN_DEMO_WITH_OPENCV) 
     file(GLOB_RECURSE SRC "${CMAKE_SOURCE_DIR}/../../linux/src/TNNWebCamBasedDemo/*.cc")

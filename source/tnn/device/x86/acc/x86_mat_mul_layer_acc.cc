@@ -15,10 +15,36 @@
 #include "tnn/device/x86/acc/x86_layer_acc.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/device/x86/acc/x86_mat_mul_layer_acc.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 
 namespace TNN_NS {
 
 X86MatMulLayerAcc::~X86MatMulLayerAcc() {}
+
+Status X86MatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                               const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status ret;
+    if (inputs.size() == 2) {
+        ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+        RETURN_ON_NEQ(ret, TNN_OK);
+        return TNN_OK;
+    }
+
+    auto res = dynamic_cast<MatMulLayerResource *>(resource);
+    CHECK_PARAM_NULL(res);
+
+    if (res->weight.GetDataType() == DATA_TYPE_HALF) {
+        LayerResource *fp32_res = nullptr;
+        RETURN_ON_NEQ(ConvertHalfResource(LAYER_MATMUL, res, &fp32_res), TNN_OK);
+        matmul_acc_f32_resource_ = std::shared_ptr<LayerResource>(fp32_res);
+        ret                      = X86LayerAcc::Init(context, param, matmul_acc_f32_resource_.get(), inputs, outputs);
+    } else {
+        ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+    }
+
+    RETURN_ON_NEQ(ret, TNN_OK);
+    return TNN_OK;
+}
 
 Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param               = dynamic_cast<MatMulLayerParam *>(param_);
@@ -38,14 +64,14 @@ Status X86MatMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         float *matrix_b;
 
         if (inputs.size() == 2) {
-            matrix_a = static_cast<float *>(inputs[0]->GetHandle().base);
-            matrix_b = static_cast<float *>(inputs[1]->GetHandle().base);
+            matrix_a = handle_ptr<float *>(inputs[0]->GetHandle());
+            matrix_b = handle_ptr<float *>(inputs[1]->GetHandle());
         } else {
             auto weight = resource->weight.force_to<float *>();
-            matrix_a    = param->weight_position == 0 ? weight : static_cast<float *>(inputs[0]->GetHandle().base);
-            matrix_b    = param->weight_position == 1 ? weight : static_cast<float *>(inputs[0]->GetHandle().base);
+            matrix_a    = param->weight_position == 0 ? weight : handle_ptr<float *>(inputs[0]->GetHandle());
+            matrix_b    = param->weight_position == 1 ? weight : handle_ptr<float *>(inputs[0]->GetHandle());
         }
-        auto matrix_c = static_cast<float *>(outputs[0]->GetHandle().base);
+        auto matrix_c = handle_ptr<float *>(outputs[0]->GetHandle());
 
         int k_c = conv_gemm_conf_.K_c_;
         int m_c = conv_gemm_conf_.M_c_;

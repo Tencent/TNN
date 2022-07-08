@@ -19,7 +19,7 @@
 namespace TNN_NS {
 
 typedef struct not_operator : unary_operator {
-    virtual char operator()(char in) {
+    virtual int8_t operator()(int8_t in) {
         return in != 0 ? 0 : 1;
     }
 } NOT_OP;

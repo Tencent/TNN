@@ -55,6 +55,8 @@ private:
 
 protected:
     int ensure_input_positive_ = 0;
+    int integer_input_min_ = 0;
+    int integer_input_max_ = 1;
 
     static std::shared_ptr<Instance> instance_cpu_;
     static std::shared_ptr<Instance> instance_device_;

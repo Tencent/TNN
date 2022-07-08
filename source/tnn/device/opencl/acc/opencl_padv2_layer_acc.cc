@@ -53,9 +53,9 @@ Status OpenCLPadV2LayerAcc::Init(Context *context, LayerParam *param, LayerResou
     }
 
     if (0 == pad_param->type) {
-        ret = CreateExecuteUnit(execute_units_[0], "pad", "PadConst");
+        ret = CreateExecuteUnit(execute_units_[0], "pad", "PadConst", build_options_);
     } else if (1 == pad_param->type) {
-        ret = CreateExecuteUnit(execute_units_[0], "pad", "PadReflect");
+        ret = CreateExecuteUnit(execute_units_[0], "pad", "PadReflect", build_options_);
     } else {
         return Status(TNNERR_PARAM_ERR, "this pad type is not support yet!");
     }

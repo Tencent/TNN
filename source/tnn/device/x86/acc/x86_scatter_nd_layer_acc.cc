@@ -28,9 +28,9 @@ Status X86ScatterNDLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
         auto indices = resource->indices;
         Blob* input_data_blob = inputs[0];
         Blob* update_data_blob = inputs[1];
-        float* input_data = reinterpret_cast<float*>(input_data_blob->GetHandle().base);
-        float* update_data = reinterpret_cast<float*>(update_data_blob->GetHandle().base);
-        float* output_data = reinterpret_cast<float*>(output_blob->GetHandle().base);
+        float* input_data = handle_ptr<float*>(input_data_blob->GetHandle());
+        float* update_data = handle_ptr<float*>(update_data_blob->GetHandle());
+        float* output_data = handle_ptr<float*>(output_blob->GetHandle());
         auto input_dims = input_data_blob->GetBlobDesc().dims;
         auto update_dims = update_data_blob->GetBlobDesc().dims;
         if(indices_dims.empty()) {

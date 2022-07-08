@@ -177,7 +177,15 @@ std::vector<int64_t> get_node_attr_ai(const onnx::NodeProto& node,
         }
 
         const onnx::TensorProto& tensorProto = weights_map.at(name);
-        array_i = get_tensor_proto_data_vector<int64_t>(tensorProto);
+        if (tensorProto.data_type() == onnx::TensorProto_DataType_INT32) {
+            std::vector<int32_t> array_temp = get_tensor_proto_data_vector<int32_t>(tensorProto);
+            array_i.clear();
+            for (const auto item : array_temp) {
+                array_i.emplace_back(item);
+            }
+        } else {
+            array_i = get_tensor_proto_data_vector<int64_t>(tensorProto);
+        }
     }
     return array_i;
 }
@@ -622,7 +630,11 @@ int read_proto_from_binary(const char* filepath,
     google::protobuf::io::IstreamInputStream input(&fs);
     google::protobuf::io::CodedInputStream codedstr(&input);
 
-    codedstr.SetTotalBytesLimit(INT_MAX, INT_MAX/2);
+#if GOOGLE_PROTOBUF_VERSION >= 3002000
+    codedstr.SetTotalBytesLimit(INT_MAX);
+#else
+    codedstr.SetTotalBytesLimit(INT_MAX, INT_MAX / 2);
+#endif
 
     bool success = message->ParseFromCodedStream(&codedstr);
 

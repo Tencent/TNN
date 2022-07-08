@@ -14,3 +14,4 @@ cuda_linux_release
 build_cuda_msvc
 cuda_msvc_release
 build_linux_native
+build_win

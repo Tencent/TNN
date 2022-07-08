@@ -15,10 +15,12 @@
 #include "tnn/device/x86/acc/compute/x86_compute_int8.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/device/x86/x86_common.h"
+#include "tnn/device/x86/x86_util.h"
 #include "tnn/utils/dims_utils.h"
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
+using namespace x86;
 
 // rounding to zero(val + (val >= 0.f ? 0.5f : -0.5f)) = rounding to nearest ties away from zero
 #define DeclareRounding()                                             \
@@ -933,7 +935,7 @@ void X86ConcatChannelInt8(Blob *output, const std::vector<Blob *> &inputs) {
     auto oc          = DimsFunctionUtils::GetDim(dims_output, 1);
     auto oc_c4       = ROUND_UP(oc, 4);
 
-    int8_t *output_origin = reinterpret_cast<int8_t *>(output->GetHandle().base);
+    int8_t *output_origin = handle_ptr<int8_t *>(output->GetHandle());
 
     if (!is_per_tensor_quant(inputs)) {
         for (int n = 0; n < dims_output[0]; n++) {
@@ -941,7 +943,7 @@ void X86ConcatChannelInt8(Blob *output, const std::vector<Blob *> &inputs) {
             for (int b = 0; b < inputs.size(); b++) {
                 auto input_channel = inputs[b]->GetBlobDesc().dims[1];
                 auto ic_c4 = ROUND_UP(input_channel, 4);
-                auto input_ptr = reinterpret_cast<int8_t *>(inputs[b]->GetHandle().base) + n * ic_c4 * full_hw;
+                auto input_ptr = handle_ptr<int8_t *>(inputs[b]->GetHandle()) + n * ic_c4 * full_hw;
                 auto output_ptr = output_origin + n * full_hw * oc_c4 + c_offset;
                 OMP_PARALLEL_FOR_GUIDED_
                 for (int cur_hw = 0; cur_hw < full_hw; cur_hw++) {
@@ -960,7 +962,7 @@ void X86ConcatChannelInt8(Blob *output, const std::vector<Blob *> &inputs) {
                 __m128 scale_vec   = _mm_set1_ps(scale);
                 auto input_channel = inputs[b]->GetBlobDesc().dims[1];
                 auto ic_c4         = ROUND_UP(input_channel, 4);
-                auto input_ptr     = reinterpret_cast<int8_t *>(inputs[b]->GetHandle().base) + n * ic_c4 * full_hw;
+                auto input_ptr     = handle_ptr<int8_t *>(inputs[b]->GetHandle()) + n * ic_c4 * full_hw;
                 auto output_ptr    = output_origin + n * full_hw * oc_c4 + c_offset;
                 OMP_PARALLEL_FOR_GUIDED_
                 for (int cur_hw = 0; cur_hw < full_hw; cur_hw++) {
@@ -1005,7 +1007,7 @@ void X86ConcatCommonInt8(Blob *output, const std::vector<Blob *> &inputs, int ax
     DimsVector round_output_dims = GetNHWCXRoundDims(output_dims, 4);
     auto slice_count             = DimsVectorUtils::Count(round_output_dims, 0, axis - 1);
     auto output_stride           = DimsVectorUtils::Count(round_output_dims, axis - 1);
-    auto *output_origin          = reinterpret_cast<int8_t *>(output->GetHandle().base);
+    auto *output_origin          = handle_ptr<int8_t *>(output->GetHandle());
 
     if (!is_per_tensor_quant(inputs)) {
         for (int n = 0; n < slice_count; n++) {
@@ -1015,7 +1017,7 @@ void X86ConcatCommonInt8(Blob *output, const std::vector<Blob *> &inputs, int ax
                 auto input_dims             = input->GetBlobDesc().dims;
                 DimsVector round_input_dims = GetNHWCXRoundDims(input_dims, 4);
                 auto input_stride           = DimsVectorUtils::Count(round_input_dims, axis - 1);
-                auto input_ptr = reinterpret_cast<int8_t *>(input->GetHandle().base) + n * input_stride;
+                auto input_ptr = handle_ptr<int8_t *>(input->GetHandle()) + n * input_stride;
                 memcpy(output_ptr, input_ptr, input_stride * sizeof(int8_t));
                 output_ptr += input_stride;
             }
@@ -1032,7 +1034,7 @@ void X86ConcatCommonInt8(Blob *output, const std::vector<Blob *> &inputs, int ax
                 auto input_dims             = input->GetBlobDesc().dims;
                 DimsVector round_input_dims = GetNHWCXRoundDims(input_dims, 4);
                 auto input_stride           = DimsVectorUtils::Count(round_input_dims, axis - 1);
-                auto input_ptr = reinterpret_cast<int8_t *>(input->GetHandle().base) + n * input_stride;
+                auto input_ptr = handle_ptr<int8_t *>(input->GetHandle()) + n * input_stride;
 
                 int ic = 0;
                 for (; ic + 7 < input_stride; ic += 8) {

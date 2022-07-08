@@ -253,7 +253,14 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"Softsign", LAYER_SOFTSIGN},
     {"LogSoftmax", LAYER_LOGSOFTMAX},
     {"QuantizedReshape", LAYER_RESHAPE},
-    {"QuantizedPermute", LAYER_PERMUTE}
+    {"QuantizedPermute", LAYER_PERMUTE},
+    {"Swish", LAYER_SWISH},
+
+    // dynamic range quantization layer
+    {"DynamicRangeQuantizedConvolution", LAYER_CONVOLUTION},
+    {"DynamicRangeQuantizedLSTMONNX", LAYER_LSTMONNX},
+    {"DynamicRangeQuantizedMatMul", LAYER_MATMUL},
+    {"DynamicRangeQuantizedInnerProduct", LAYER_INNER_PRODUCT},
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

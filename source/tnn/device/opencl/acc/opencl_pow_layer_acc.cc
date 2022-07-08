@@ -30,7 +30,7 @@ Status OpenCLPowLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 
     // create kernel
     std::string kernel_name = "Power";
-    ret                     = CreateExecuteUnit(execute_units_[0], "pow", kernel_name);
+    ret                     = CreateExecuteUnit(execute_units_[0], "pow", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

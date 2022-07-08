@@ -60,7 +60,11 @@ int OnnxOpConverterGather::WriteTNNModel(Serializer *net_writer, NodeProto &node
     auto indices_iter = net_info.weights_map.find(node.input(1));
     if (data_iter != net_info.weights_map.end()) {
         net_writer->PutInt(1);
-        WriteTensorData(data_iter->second, net_writer, net_info.data_type);
+        DataType dst_data_type = net_info.data_type;
+        if (data_iter->second.data_type() == onnx::TensorProto_DataType_INT32) {
+            dst_data_type = DATA_TYPE_INT32;
+        }
+        WriteTensorData(data_iter->second, net_writer, dst_data_type);
     } else {
         net_writer->PutInt(0);
     }
