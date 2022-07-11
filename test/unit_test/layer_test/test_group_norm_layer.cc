@@ -44,10 +44,13 @@ TEST_P(GroupNormLayerTest, GroupNormLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_OPENCL == dev || DEVICE_METAL == dev || DEVICE_HUAWEI_NPU == dev) {
+    if (DEVICE_METAL == dev || DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
     if (CheckDataTypeSkip(data_type)) {
+        GTEST_SKIP();
+    }
+    if (DEVICE_OPENCL == dev && ((channel / group % 4 != 0) || channel % 4 != 0) || dim_count > 2) {
         GTEST_SKIP();
     }
 
