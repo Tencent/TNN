@@ -86,7 +86,7 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
         for (int index = 0; index < channels; index++) {
             memcpy(scale_data_expand + index*byte_size, scale_data, byte_size);
         }
-        
+        rawbuffer_shared_expand_scale_->buffer(scale_data_expand, byte_size*channels);
         RETURN_ON_NEQ(RawBuffer2CoreMLWeight(rawbuffer_shared_expand_scale_.get(),
                                              coreml_layer_gamma_, rawbuffer_scale_fp32_), TNN_OK);
     } else {
@@ -95,11 +95,14 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
     }
     coreml_layer_->batchnorm->gamma = coreml_layer_gamma_.get();
     
+    if(bias_count != 0){
+        
+    }
     if (channels > bias_count) {
         rawbuffer_shared_expand_bias_ = std::shared_ptr<RawBuffer>(new RawBuffer(channels*byte_size));
         rawbuffer_shared_expand_bias_->SetBufferDims({channels});
-        char *bias_data_expand = layer_res->scale_handle.force_to<char *>();
-        char *bias_data = layer_res->scale_handle.force_to<char *>();
+        char *bias_data_expand = layer_res->bias_handle.force_to<char *>();
+        char *bias_data = layer_res->bias_handle.force_to<char *>();
         
         if (share_channel && bias_count > 0) {
             for (int index = 0; index < channels; index++) {
@@ -108,7 +111,7 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
         } else {
             memset(bias_data_expand, 0, channels*byte_size);
         }
-        
+        rawbuffer_shared_expand_bias_->buffer(bias_data_expand, byte_size*channels);
         RETURN_ON_NEQ(RawBuffer2CoreMLWeight(rawbuffer_shared_expand_bias_.get(),
                                              coreml_layer_beta_, rawbuffer_bias_fp32_), TNN_OK);
     } else {
