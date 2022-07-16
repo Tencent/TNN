@@ -44,7 +44,7 @@ TEST_P(GroupNormLayerTest, GroupNormLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_METAL == dev || DEVICE_HUAWEI_NPU == dev) {
+    if (DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
     if (CheckDataTypeSkip(data_type)) {
@@ -73,10 +73,12 @@ TEST_P(GroupNormLayerTest, GroupNormLayer) {
         InitRandom(scales_buffer->force_to<float*>(), norm_size, 1.0f);
         std::shared_ptr<RawBuffer> biases_buffer(new RawBuffer(sizeof(float) * norm_size));
         InitRandom(biases_buffer->force_to<float*>(), norm_size, 1.0f);
-        if (group % 2) {
-            // bias may be empty
-            biases_buffer = std::make_shared<RawBuffer>();
-        }
+        scales_buffer->SetBufferDims({channel});
+        biases_buffer->SetBufferDims({channel});
+        // if (group % 2) {
+        //     // bias may be empty
+        //     biases_buffer = std::make_shared<RawBuffer>();
+        // }
         auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter.get());
         auto net_structure       = default_interpreter->GetNetStructure();
         auto net_resource        = default_interpreter->GetNetResource();
