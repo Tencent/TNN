@@ -130,6 +130,19 @@ Status MetalMultidirBroadcastLayerAcc::AllocateBufferParam(const std::vector<Blo
             }
         }
 
+        if(dims_input0.size() == 4){
+            if ((dims_output[2]==dims_input0[2]) && (dims_output[1]==dims_input0[1]) && (dims_input0[0]==1) && (dims_input0[3]==1)) {
+                layer_param->input0_broadcast_type = kBroadcastTypeChannelHeight;
+            }
+        }
+
+        if (dims_input1.size() == 4) {
+            if ((dims_output[2] == dims_input1[2]) && (dims_output[1] == dims_input1[1]) && (dims_input1[0] == 1) &&
+                (dims_input1[3] == 1) ) {
+                layer_param->input1_broadcast_type = kBroadcastTypeChannelHeight;
+            }
+        }
+
         metal_params.broadcast_input0 = layer_param->input0_broadcast_type;
         metal_params.broadcast_input1 = layer_param->input1_broadcast_type;
 
