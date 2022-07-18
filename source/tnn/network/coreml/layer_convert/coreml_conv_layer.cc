@@ -118,7 +118,7 @@ Status CoreMLConvLayer::BuildLayerParam() {
             break;
     }
     
-    if (bias_size) {
+    if (bias_size > 0) {
         coreml_layer_->convolution->hasbias = true;
         bias_param_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
         coreml_layer_->convolution->bias = bias_param_.get();

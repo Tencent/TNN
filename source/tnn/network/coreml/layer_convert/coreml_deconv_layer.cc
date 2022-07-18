@@ -39,6 +39,10 @@ Status CoreMLDeconvLayer::BuildLayerType() {
 Status CoreMLDeconvLayer::BuildLayerParam() {
     //layer param
     auto param = layer_info_->param.get();
+    if (param->name == "740") {
+        LOGE("\n");
+    }
+    
     auto conv_param = dynamic_cast<ConvLayerParam *>(param);
     CHECK_PARAM_NULL(conv_param);
     auto kernel_x = conv_param->kernels[0];
@@ -87,6 +91,7 @@ Status CoreMLDeconvLayer::BuildLayerParam() {
 
     weight_param_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
     coreml_layer_->convolution->weights = weight_param_.get();
+<<<<<<< Updated upstream
         core_ml__specification__weight_params__init(coreml_layer_->convolution->weights);
     switch (weight_type) {
         case DATA_TYPE_FLOAT:
@@ -144,6 +149,14 @@ Status CoreMLDeconvLayer::BuildLayerParam() {
                 return Status(TNNERR_MODEL_ERR, "CoreMLDeconvLayer dont support this bias data type");
                 break;
         }
+=======
+    
+    if (bias_size > 0) {
+        coreml_layer_->convolution->hasbias = true;
+        RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(conv_res->bias_handle),
+                                             bias_param_, rawbuffer_fp32_bias_), TNN_OK);
+        coreml_layer_->convolution->bias = bias_param_.get();
+>>>>>>> Stashed changes
     }
     
     if (pad_type == -1) { // default padding following the proto setting
