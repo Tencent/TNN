@@ -83,7 +83,7 @@ struct MetalCastParams {
 #define kBroadcastTypeHeightWidth 0x0004
 #define kBroadcastTypeWidth 0x0005
 #define kBroadcastTypeGeneral 0x0006
-
+#define kBroadcastTypeChannelHeight 0x0007
 #define kBroadcastTypeChannelWidth 0x0008
 #define kBroadcastType5DimsHeightWidth 0x0009
 
