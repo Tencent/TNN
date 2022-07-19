@@ -66,6 +66,8 @@ public:
     virtual std::string GetLayerName();
     
     // @brief get internal coreml layers, include const weight input layer
+    //NOTE: make sure the order of layer be correct, or compile error may raise.
+    //protobuf spec. validator error: Layer '39' consumes an input named 'input_expanded' which is not present in this network.
     virtual std::vector<CoreML__Specification__NeuralNetworkLayer*> GetCoreMLLayerPtrs();
     
     // @brief convert to coreml layer

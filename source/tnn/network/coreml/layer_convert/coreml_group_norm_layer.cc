@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "coreml_base_layer.h"
+#include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
@@ -25,8 +26,8 @@ DECLARE_COREML_LAYER_WITH_FUNC_DATA(Groupnorm, LAYER_GROUP_NORM,
                                      std::shared_ptr<InstanceNormLayerResource> instancenorm_resource_;
                                      std::shared_ptr<EltwiseLayerResource> mul_resource_;
                                      std::shared_ptr<EltwiseLayerResource> add_resource_;
-                                     std::shared_ptr<float> instancenorm_scale_;
-                                     std::shared_ptr<float> instancenorm_bias_;
+                                     std::shared_ptr<RawBuffer> instancenorm_rawbuffer_scale_;
+                                     std::shared_ptr<RawBuffer> instancenorm_rawbuffer_bias_;
                                      std::shared_ptr<CoreMLBaseLayer> coreml_layer_reshape1_;
                                      std::shared_ptr<LayerInfo> reshape1_layer_info_;
                                      std::shared_ptr<CoreMLBaseLayer> coreml_layer_mul_;
@@ -80,6 +81,10 @@ Status CoreMLGroupnormLayer::BuildLayerParam() {
     if (net_resource_->constant_map.find(blob_name_bias) != net_resource_->constant_map.end()) {
         buffer_bias = net_resource_->constant_map[blob_name_bias];
     }
+    if (!buffer_scale || !buffer_bias) {
+        LOGE("CoreMLGroupnormLayer has invalid layer resource\n");
+        return Status(TNNERR_MODEL_ERR, "CoreMLGroupnormLayer has invalid layer resource");
+    }
     
     //get input and output shape
     DimsVector input_shape, output_shape;
@@ -96,15 +101,18 @@ Status CoreMLGroupnormLayer::BuildLayerParam() {
     }
     
     if (input_shape.size() <= 0 || output_shape.size() <= 0) {
-        LOGE("ShuffleChannelLayer has no fixed input or output shape\n");
-        return Status(TNNERR_MODEL_ERR, "ShuffleChannelLayer has no fixed input or output shape");
+        LOGE("CoreMLGroupnormLayer has invalid input or output shape\n");
+        return Status(TNNERR_MODEL_ERR, "CoreMLGroupnormLayer has invalid input or output shape");
     }
     
+    const int group = param->group;
+    
+    //insure reshape0_output_shape size  >= 4, so intance norm can run right for axis = -3
     DimsVector reshape0_output_shape(4);
-    reshape0_output_shape[0] = 1;
-    reshape0_output_shape[1] = DimsFunctionUtils::GetDim(input_shape, 0);
-    reshape0_output_shape[2] = param->group;
-    reshape0_output_shape[3] = DimsVectorUtils::Count(input_shape, 1) / param->group;
+    reshape0_output_shape[0] = DimsFunctionUtils::GetDim(input_shape, 0);
+    reshape0_output_shape[1] = group;
+    reshape0_output_shape[2] = DimsVectorUtils::Count(input_shape, 1) / param->group;
+    reshape0_output_shape[3] = 1;
 
     DimsVector reshape1_output_shape = input_shape;
     
@@ -132,7 +140,7 @@ Status CoreMLGroupnormLayer::BuildLayerParam() {
         {
             reshape0_layer_info_->type = LAYER_RESHAPE;
             reshape0_layer_info_->name = layer_info_->name + "-groupnrom-reshape0";
-            reshape0_layer_info_->inputs = layer_info_->inputs;
+            reshape0_layer_info_->inputs = {layer_info_->inputs[0]};
             reshape0_layer_info_->outputs = {reshape0_layer_info_->name + "-output"};
             reshape0_layer_info_->param = reshape0_param;
             {
@@ -161,25 +169,28 @@ Status CoreMLGroupnormLayer::BuildLayerParam() {
             {
                 instancenorm_param->type = instancenorm_layer_info_->type;
                 instancenorm_param->name = instancenorm_layer_info_->name;
-                instancenorm_param->channels = param->group;
+                instancenorm_param->channels = group;
                 instancenorm_param->eps = param->eps;
             }
         }
         
-//        instancenorm_resource_ = std::shared_ptr<InstanceNormLayerResource>(new InstanceNormLayerResource);
-//        instancenorm_scale_ = std::shared_ptr<float>(new float);
-//        instancenorm_scale_.get()[0] = 1.0;
-//        RawBuffer scale_handle(sizeof(float),(char*)instancenorm_scale_.get(),{1});
-//        instancenorm_resource_->scale_handle = scale_handle;
-//
-//        instancenorm_bias_ = std::shared_ptr<float>(new float(0.0));
-//        RawBuffer bias_handle(sizeof(float),(char*)instancenorm_bias_.get(),{1});
-//        instancenorm_resource_->bias_handle = bias_handle;
+        instancenorm_resource_ = std::shared_ptr<InstanceNormLayerResource>(new InstanceNormLayerResource);
+        instancenorm_rawbuffer_scale_ = shared_ptr<RawBuffer>(new RawBuffer(group*sizeof(float), DimsVector{group}));
+        instancenorm_resource_->scale_handle = *(instancenorm_rawbuffer_scale_);
+
+        instancenorm_rawbuffer_bias_ = shared_ptr<RawBuffer>(new RawBuffer(group*sizeof(float), DimsVector{group}));
+        instancenorm_resource_->bias_handle = *(instancenorm_rawbuffer_bias_);
+        
+        auto data_scale = instancenorm_rawbuffer_scale_->force_to<float *>();
+        auto data_bias = instancenorm_rawbuffer_bias_->force_to<float *>();
+        for (int index=0; index < group; index++) {
+            data_scale[index] = 1.0f;
+            data_bias[index] = 0.0f;
+        }
 
         //put permute output shape to net resource
         net_resource_->blob_shapes_map[instancenorm_layer_info_->outputs[0]] = reshape0_output_shape;
-        RETURN_ON_NEQ(coreml_layer_instancenorm_->Init(instancenorm_layer_info_.get(), nullptr),  TNN_OK);
-//        RETURN_ON_NEQ(coreml_layer_instancenorm_->Init(instancenorm_layer_info_.get(), instancenorm_resource_.get()),  TNN_OK);
+        RETURN_ON_NEQ(coreml_layer_instancenorm_->Init(instancenorm_layer_info_.get(), instancenorm_resource_.get()),  TNN_OK);
     }
     
     //build reshape1

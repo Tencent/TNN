@@ -53,19 +53,7 @@ Status CoreMLInstancenormLayer::BuildLayerParam() {
     //layer param
     auto param = layer_info_->param.get();
     
-//    auto layer_res = dynamic_cast<InstanceNormLayerResource *>(layer_resource_);
-//    CHECK_PARAM_NULL(layer_res);
-//
-    auto layer_res = std::make_shared<InstanceNormLayerResource>();
-    auto instancenorm_scale = std::make_shared<float>();
-    instancenorm_scale.get()[0] = 1.0;
-    RawBuffer scale_handle(sizeof(float),(char*)instancenorm_scale.get(),{1});
-    layer_res->scale_handle = scale_handle;
-    
-    auto instancenorm_bias = std::make_shared<float>();
-    instancenorm_bias.get()[0] = 0.0;
-    RawBuffer bias_handle(sizeof(float),(char*)instancenorm_bias.get(),{1});
-    layer_res->bias_handle = bias_handle;
+    auto layer_res = dynamic_cast<InstanceNormLayerResource *>(layer_resource_);
     CHECK_PARAM_NULL(layer_res);
     
     auto scale_count = layer_res->scale_handle.GetDataCount();
@@ -129,46 +117,7 @@ Status CoreMLInstancenormLayer::BuildLayerParam() {
                                              coreml_layer_beta_, rawbuffer_bias_fp32_), TNN_OK);
     }
     coreml_layer_->batchnorm->beta =  coreml_layer_beta_.get();
-//
-//    coreml_layer_mean_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
-//    coreml_layer_->batchnorm->mean = (CoreML__Specification__WeightParams*) coreml_layer_mean_.get();
-//    core_ml__specification__weight_params__init(coreml_layer_->batchnorm->mean);
-//#if TNN_COREML_FULL_PRECISION
-//    coreml_layer_->batchnorm->mean->n_floatvalue = channels;
-//    mean_ = std::shared_ptr<float>(new float[channels], [](float* p) { delete[] p; });
-//    coreml_layer_->batchnorm->mean->floatvalue = (float*) mean_.get();
-//    for(int i=0; i<channels; i++){
-//        coreml_layer_->batchnorm->mean->floatvalue[i] = 0;
-//    }
-//#else
-//    coreml_layer_->batchnorm->mean->float16value.len = layer_res->scale_handle.GetBytesSize();
-//    mean_ = std::shared_ptr<uint16_t>(new uint16_t[channels], [](uint16_t* p) { delete[] p; });
-//    auto mean = (uint16_t*) mean_.get();
-//    for(int i=0; i<channels; i++){
-//        mean[i] = 0;
-//    }
-//    coreml_layer_->batchnorm->mean->float16value.data = (uint8_t*)mean;
-//#endif
-//
-//    coreml_layer_variance_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
-//    coreml_layer_->batchnorm->variance = (CoreML__Specification__WeightParams*) coreml_layer_variance_.get();
-//    core_ml__specification__weight_params__init(coreml_layer_->batchnorm->variance);
-//#if TNN_COREML_FULL_PRECISION
-//    coreml_layer_->batchnorm->variance->n_floatvalue = channels;
-//    variance_ = std::shared_ptr<float>(new float[channels], [](float* p) { delete[] p; });
-//    coreml_layer_->batchnorm->variance->floatvalue = (float*) variance_.get();
-//    for(int i=0; i<channels; i++){
-//        coreml_layer_->batchnorm->variance->floatvalue[i] = 1;
-//    }
-//#else
-//    coreml_layer_->batchnorm->variance->float16value.len = layer_res->scale_handle.GetBytesSize();
-//    variance_ = std::shared_ptr<uint16_t>(new uint16_t[channels], [](uint16_t* p) { delete[] p; });
-//    auto variance = (uint16_t*) variance_.get();
-//    for(int i=0; i<channels; i++){
-//        variance[i] = 0x3C00;  // fp16 1.0
-//    }
-//    coreml_layer_->batchnorm->variance->float16value.data = (uint8_t*) variance;
-//#endif
+    
     return TNN_OK;
 }
 
