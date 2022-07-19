@@ -287,8 +287,10 @@ Status CoreMLNetwork::ConvertCoreMLModel(NetStructure *net_structure, NetResourc
             return Status(TNNERR_PARAM_ERR, "CreateCoreMLBaseLayer failed, dont support op");
         }
         cur_layer->SetNetResource(net_resource);
-        
-        auto resource = net_resource->resource_map[layer_info->name];
+        std::shared_ptr<LayerResource> resource = nullptr;
+        if (net_resource->resource_map.find(layer_info->name) != net_resource->resource_map.end()) {
+            resource = net_resource->resource_map[layer_info->name];
+        }
         // cur_layer->convert
         ret = cur_layer->Init(layer_info.get(), resource.get());
         if (ret != TNN_OK) {
