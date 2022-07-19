@@ -32,6 +32,9 @@ Status CheckMatConverterParams(Mat& src, Mat& dst, bool check_same_device) {
 
     if (dst.GetData() == nullptr) {
         dst = Mat(dst.GetDeviceType(), dst.GetMatType(), dst.GetDims());
+        if (dst.GetData() == nullptr) {
+            return Status(dst.GetData() == nullptr, "dst mat malloc failed.");
+        }
     }
 
     return TNN_OK;
