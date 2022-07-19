@@ -89,11 +89,11 @@ Status CoreMLDeconvLayer::BuildLayerParam() {
                                          weight_param_, rawbuffer_fp32_weight_), TNN_OK);
     coreml_layer_->convolution->weights = weight_param_.get();
     
-    if (bias_size) {
+    if (bias_size > 0) {
         coreml_layer_->convolution->hasbias = true;
         RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(conv_res->bias_handle),
                                              bias_param_, rawbuffer_fp32_bias_), TNN_OK);
-        coreml_layer_->convolution->bias = weight_param_.get();
+        coreml_layer_->convolution->bias = bias_param_.get();
     }
     
     if (pad_type == -1) { // default padding following the proto setting
