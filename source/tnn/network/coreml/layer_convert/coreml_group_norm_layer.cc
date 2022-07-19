@@ -21,13 +21,13 @@ DECLARE_COREML_LAYER_WITH_FUNC_DATA(Groupnorm, LAYER_GROUP_NORM,
                                      virtual std::vector<CoreML__Specification__NeuralNetworkLayer*> GetCoreMLLayerPtrs();,
                                      std::shared_ptr<CoreMLBaseLayer> coreml_layer_reshape0_;
                                      std::shared_ptr<LayerInfo> reshape0_layer_info_;
-                                     std::shared_ptr<CoreMLBaseLayer> coreml_layer_instancenorm_;
-                                     std::shared_ptr<LayerInfo> instancenorm_layer_info_;
-                                     std::shared_ptr<InstanceNormLayerResource> instancenorm_resource_;
+                                     std::shared_ptr<CoreMLBaseLayer> coreml_layer_batchnorm_;
+                                     std::shared_ptr<LayerInfo> batchnorm_layer_info_;
+                                     std::shared_ptr<BatchNormLayerResource> batchnorm_resource_;
                                      std::shared_ptr<EltwiseLayerResource> mul_resource_;
                                      std::shared_ptr<EltwiseLayerResource> add_resource_;
-                                     std::shared_ptr<RawBuffer> instancenorm_rawbuffer_scale_;
-                                     std::shared_ptr<RawBuffer> instancenorm_rawbuffer_bias_;
+                                     std::shared_ptr<RawBuffer> batchnorm_rawbuffer_scale_;
+                                     std::shared_ptr<RawBuffer> batchnorm_rawbuffer_bias_;
                                      std::shared_ptr<CoreMLBaseLayer> coreml_layer_reshape1_;
                                      std::shared_ptr<LayerInfo> reshape1_layer_info_;
                                      std::shared_ptr<CoreMLBaseLayer> coreml_layer_mul_;
@@ -41,8 +41,8 @@ std::vector<CoreML__Specification__NeuralNetworkLayer*> CoreMLGroupnormLayer::Ge
         auto ptrs = coreml_layer_reshape0_->GetCoreMLLayerPtrs();
         all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
     }
-    if (coreml_layer_instancenorm_) {
-        auto ptrs = coreml_layer_instancenorm_->GetCoreMLLayerPtrs();
+    if (coreml_layer_batchnorm_) {
+        auto ptrs = coreml_layer_batchnorm_->GetCoreMLLayerPtrs();
         all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
     }
     if (coreml_layer_reshape1_) {
@@ -117,17 +117,17 @@ Status CoreMLGroupnormLayer::BuildLayerParam() {
     DimsVector reshape1_output_shape = input_shape;
     
     coreml_layer_reshape0_ = CreateCoreMLBaseLayer(LAYER_RESHAPE);
-    coreml_layer_instancenorm_ = CreateCoreMLBaseLayer(LAYER_INST_BATCH_NORM);
+    coreml_layer_batchnorm_ = CreateCoreMLBaseLayer(LAYER_BATCH_NORM);
     coreml_layer_reshape1_ = CreateCoreMLBaseLayer(LAYER_RESHAPE);
     coreml_layer_mul_ = CreateCoreMLBaseLayer(LAYER_MUL);
     coreml_layer_add_ = CreateCoreMLBaseLayer(LAYER_ADD);
 
-    if (coreml_layer_reshape0_ == nullptr || coreml_layer_instancenorm_ == nullptr || coreml_layer_reshape1_ == nullptr || coreml_layer_mul_ == nullptr || coreml_layer_add_ == nullptr) {
+    if (coreml_layer_reshape0_ == nullptr || coreml_layer_batchnorm_ == nullptr || coreml_layer_reshape1_ == nullptr || coreml_layer_mul_ == nullptr || coreml_layer_add_ == nullptr) {
         LOGE("Error: CreateCoreMLBaseLayer failed, dont support type:GrouoNorm\n");
         return Status(TNNERR_PARAM_ERR, "CreateCoreMLBaseLayer failed, dont support op");
     }
     coreml_layer_reshape0_->SetNetResource(net_resource_);
-    coreml_layer_instancenorm_->SetNetResource(net_resource_);
+    coreml_layer_batchnorm_->SetNetResource(net_resource_);
     coreml_layer_reshape1_->SetNetResource(net_resource_);
     coreml_layer_mul_->SetNetResource(net_resource_);
     coreml_layer_add_->SetNetResource(net_resource_);
@@ -155,42 +155,42 @@ Status CoreMLGroupnormLayer::BuildLayerParam() {
         
         RETURN_ON_NEQ(coreml_layer_reshape0_->Init(reshape0_layer_info_.get(), nullptr),  TNN_OK);
     }
-    
-    //build instancenorm
+    //build batchnorm
     {
-        instancenorm_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
-        auto instancenorm_param = std::shared_ptr<InstanceNormLayerParam>(new InstanceNormLayerParam);
+        batchnorm_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
+        auto batchnorm_param = std::shared_ptr<BatchNormLayerParam>(new BatchNormLayerParam);
         {
-            instancenorm_layer_info_->type = LAYER_INST_BATCH_NORM;
-            instancenorm_layer_info_->name = layer_info_->name + "-groupnrom-instancenorm";
-            instancenorm_layer_info_->inputs = reshape0_layer_info_->outputs;
-            instancenorm_layer_info_->outputs = {instancenorm_layer_info_->name + "-output"};
-            instancenorm_layer_info_->param = instancenorm_param;
+            batchnorm_layer_info_->type = LAYER_BATCH_NORM;
+            batchnorm_layer_info_->name = layer_info_->name + "-groupnrom-batchnorm";
+            batchnorm_layer_info_->inputs = reshape0_layer_info_->outputs;
+            batchnorm_layer_info_->outputs = {batchnorm_layer_info_->name + "-output"};
+            batchnorm_layer_info_->param = batchnorm_param;
             {
-                instancenorm_param->type = instancenorm_layer_info_->type;
-                instancenorm_param->name = instancenorm_layer_info_->name;
-                instancenorm_param->channels = group;
-                instancenorm_param->eps = param->eps;
+                batchnorm_param->is_instance_norm = 1;
+                batchnorm_param->type = batchnorm_layer_info_->type;
+                batchnorm_param->name = batchnorm_layer_info_->name;
+                batchnorm_param->channels = group;
+                batchnorm_param->eps = param->eps;
             }
         }
         
-        instancenorm_resource_ = std::shared_ptr<InstanceNormLayerResource>(new InstanceNormLayerResource);
-        instancenorm_rawbuffer_scale_ = shared_ptr<RawBuffer>(new RawBuffer(group*sizeof(float), DimsVector{group}));
-        instancenorm_resource_->scale_handle = *(instancenorm_rawbuffer_scale_);
+        batchnorm_resource_ = std::shared_ptr<BatchNormLayerResource>(new BatchNormLayerResource);
+        batchnorm_rawbuffer_scale_ = shared_ptr<RawBuffer>(new RawBuffer(group*sizeof(float), DimsVector{group}));
+        batchnorm_resource_->scale_handle = *(batchnorm_rawbuffer_scale_);
 
-        instancenorm_rawbuffer_bias_ = shared_ptr<RawBuffer>(new RawBuffer(group*sizeof(float), DimsVector{group}));
-        instancenorm_resource_->bias_handle = *(instancenorm_rawbuffer_bias_);
+        batchnorm_rawbuffer_bias_ = shared_ptr<RawBuffer>(new RawBuffer(group*sizeof(float), DimsVector{group}));
+        batchnorm_resource_->bias_handle = *(batchnorm_rawbuffer_bias_);
         
-        auto data_scale = instancenorm_rawbuffer_scale_->force_to<float *>();
-        auto data_bias = instancenorm_rawbuffer_bias_->force_to<float *>();
+        auto data_scale = batchnorm_rawbuffer_scale_->force_to<float *>();
+        auto data_bias = batchnorm_rawbuffer_bias_->force_to<float *>();
         for (int index=0; index < group; index++) {
             data_scale[index] = 1.0f;
             data_bias[index] = 0.0f;
         }
 
         //put permute output shape to net resource
-        net_resource_->blob_shapes_map[instancenorm_layer_info_->outputs[0]] = reshape0_output_shape;
-        RETURN_ON_NEQ(coreml_layer_instancenorm_->Init(instancenorm_layer_info_.get(), instancenorm_resource_.get()),  TNN_OK);
+        net_resource_->blob_shapes_map[batchnorm_layer_info_->outputs[0]] = reshape0_output_shape;
+        RETURN_ON_NEQ(coreml_layer_batchnorm_->Init(batchnorm_layer_info_.get(), batchnorm_resource_.get()),  TNN_OK);
     }
     
     //build reshape1
@@ -200,7 +200,7 @@ Status CoreMLGroupnormLayer::BuildLayerParam() {
         {
             reshape1_layer_info_->type = LAYER_RESHAPE;
             reshape1_layer_info_->name = layer_info_->name + "-groupnrom-reshape1";
-            reshape1_layer_info_->inputs = instancenorm_layer_info_->outputs;
+            reshape1_layer_info_->inputs = batchnorm_layer_info_->outputs;
             reshape1_layer_info_->outputs = {reshape1_layer_info_->name + "output"};
             reshape1_layer_info_->param = reshape1_param;
             {
@@ -237,8 +237,7 @@ Status CoreMLGroupnormLayer::BuildLayerParam() {
         RETURN_ON_NEQ(coreml_layer_mul_->Init(mul_layer_info_.get(), mul_resource_.get()),  TNN_OK);
     }
     
-    
-    //build Mul
+    //build Add
     {
         add_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
         auto add_param = std::shared_ptr<MultidirBroadcastLayerParam>(new MultidirBroadcastLayerParam);
