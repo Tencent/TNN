@@ -12,52 +12,36 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(LogSoftmax, LAYER_LOGSOFTMAX);
+DECLARE_TENSORRT_LAYER_BUILDER(LogSoftmax, LAYER_LOGSOFTMAX);
 
-bool LogSoftmaxTRTPluginLayerBuilder::supportsFormatCombination(
-        int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
-        && inOut[pos].type == inOut[0].type);
-}
+ILayer* LogSoftmaxTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto paramlist = dynamic_cast<LogSoftmaxLayerParam*>(param_);
+    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+    ILayer* layer = nullptr;
 
-Status LogSoftmaxTRTPluginLayerBuilder::Reshape() {
-    return TNN_OK;
-}
-
-const char* LogSoftmaxTRTPluginLayerBuilder::getPluginType() const noexcept {
-    return "LogSoftmax";
-}
-
-
-nvinfer1::DataType LogSoftmaxTRTPluginLayerBuilder::getOutputDataType(int index, const nvinfer1::DataType* inputTypes,
-        int nbInputs) const noexcept {
-    return inputTypes[0];
-}
-
-ILayer* LogSoftmaxTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
-}
-
-
-DimsExprs LogSoftmaxTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
-    DimsExprs output(inputs[0]);
-    for (int i = 1; i < nbInputs; i++) {
-        for (int j = 0; j < output.nbDims; j++) {
-            output.d[j] = exprBuilder.operation(DimensionOperation::kMAX, *output.d[j], *inputs[i].d[j]);
-        }
+    ISoftMaxLayer* softmax_layer = network->addSoftMax(*input_tensor);
+    if (softmax_layer != nullptr) {
+        const std::string softmax_suffix = "_softmax";
+        softmax_layer->setName((layer_name_ + softmax_suffix).c_str());
+        softmax_layer->setAxes(1 << paramlist->axis);
+    } else {
+        return layer;
     }
-    return output;
+
+    IUnaryLayer* log_layer = network->addUnary(*softmax_layer->getOutput(0), UnaryOperation::kLOG);
+    if (log_layer != nullptr) {
+        const std::string log_suffix = "_log";
+        log_layer->setName((layer_name_ + log_suffix).c_str());
+        layer = log_layer;
+    }
+    return layer;
 }
 
-const char* LogSoftmaxPluginCreator::getPluginName() const noexcept {
-    return "LogSoftmax";
-}
-
-REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(LogSoftmax, LAYER_LOGSOFTMAX);
+REGISTER_TENSORRT_LAYER_BUILDER(LogSoftmax, LAYER_LOGSOFTMAX);
 
 }  //  namespace TNN_NS
