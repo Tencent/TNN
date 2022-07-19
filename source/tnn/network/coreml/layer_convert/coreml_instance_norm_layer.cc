@@ -17,107 +17,101 @@
 
 namespace TNN_NS {
 
-DECLARE_COREML_LAYER_WITH_DATA(Instancenorm, LAYER_INST_BATCH_NORM,
-                                std::shared_ptr<void> coreml_layer_type_;
-                                std::shared_ptr<CoreML__Specification__WeightParams> coreml_layer_gamma_;
-                                std::shared_ptr<CoreML__Specification__WeightParams> coreml_layer_beta_;
-                                std::shared_ptr<CoreML__Specification__WeightParams> coreml_layer_mean_;
-                                std::shared_ptr<CoreML__Specification__WeightParams> coreml_layer_variance_;
-                                std::shared_ptr<void> mean_;
-                                std::shared_ptr<void> variance_;
-                                std::shared_ptr<float> scale_fp32_ptr_;
-                                std::shared_ptr<RawBuffer> rawbuffer_shared_expand_scale_;
-                                std::shared_ptr<RawBuffer> rawbuffer_shared_expand_bias_;
-                                std::shared_ptr<RawBuffer> rawbuffer_scale_fp32_;
-                                std::shared_ptr<RawBuffer> rawbuffer_bias_fp32_;
-                                std::shared_ptr<float> bias_fp32_ptr_;);
+DECLARE_COREML_LAYER_WITH_FUNC_DATA(Instancenorm, LAYER_INST_BATCH_NORM,
+                                virtual std::vector<CoreML__Specification__NeuralNetworkLayer*> GetCoreMLLayerPtrs();,
+                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_groupnorm_;
+                                    std::shared_ptr<LayerInfo> groupnorm_layer_info_;
+                                    std::shared_ptr<RawBuffer> groupnorm_rawbuffer_scale_;
+                                    std::shared_ptr<RawBuffer> groupnorm_rawbuffer_bias_;);
 
+std::vector<CoreML__Specification__NeuralNetworkLayer*> CoreMLInstancenormLayer::GetCoreMLLayerPtrs() {
+    auto all_ptrs = CoreMLBaseLayer::GetCoreMLLayerPtrs();
+    if (coreml_layer_groupnorm_) {
+        auto ptrs = coreml_layer_groupnorm_->GetCoreMLLayerPtrs();
+        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
+    }
+    return all_ptrs;
+}
 
 Status CoreMLInstancenormLayer::BuildLayerType() {
-    //layer type
-    coreml_layer_->layer_case = CORE_ML__SPECIFICATION__NEURAL_NETWORK_LAYER__LAYER_BATCHNORM;
+    //nullfy coreml_layer_, ortherwise GetCoreMLLayerPtrs will get wrong result
+    coreml_layer_ = nullptr;
     return TNN_OK;
 }
 
 Status CoreMLInstancenormLayer::BuildLayerParam() {
-    int channels = 0;
+    int input_shape_size = 0;
     if (net_resource_ && layer_info_->inputs.size()>0) {
         if (net_resource_->blob_shapes_map.find(layer_info_->inputs[0]) != net_resource_->blob_shapes_map.end()) {
             auto input_shape = net_resource_->blob_shapes_map[layer_info_->inputs[0]];
-            if (input_shape.size() > 1) {
-                channels = input_shape[1];
-            }
+            input_shape_size = (int)input_shape.size();
         }
     }
-    
+
     //layer param
-    auto param = layer_info_->param.get();
+    auto param = dynamic_cast<InstanceNormLayerParam *>(layer_info_->param.get());
+    CHECK_PARAM_NULL(param);
+    const int channels = param->channels;
     
     auto layer_res = dynamic_cast<InstanceNormLayerResource *>(layer_resource_);
-    CHECK_PARAM_NULL(layer_res);
-    
-    auto scale_count = layer_res->scale_handle.GetDataCount();
-    auto scale_data_type = layer_res->scale_handle.GetDataType();
-    auto bias_count = layer_res->bias_handle.GetDataCount();
-    auto bias_data_type = layer_res->bias_handle.GetDataType();
-    const int byte_size = DataTypeUtils::GetBytesSize(scale_data_type);
-    
-    bool share_channel = scale_count==1;
-    channels = std::max(channels, scale_count);
-    channels = std::max(channels, bias_count);
-    
-    RETURN_VALUE_ON_NEQ(channels >= scale_count, true, Status(TNNERR_MODEL_ERR, "Batchnorm has invalid scale param"));
-    
-    // TNN BatchNorm: scale*x + bias
-    // CoreML BatchNorm: gamma*(x - mean) / sqrt(var^2 +epsilon) + beta  ->
-    //                   gamma* (x/ sqrt(var^2 +epsilon)) - gamma* (mean/ sqrt(var^2 +epsilon)) + beta
-    // --> gamma=scale, beta=bias, mean=0, var=1， epsilon=default
-    coreml_layer_param_ = std::shared_ptr<CoreML__Specification__BatchnormLayerParams>(new CoreML__Specification__BatchnormLayerParams);
-    coreml_layer_->batchnorm = (CoreML__Specification__BatchnormLayerParams *)coreml_layer_param_.get();
-    core_ml__specification__batchnorm_layer_params__init(coreml_layer_->batchnorm);
-    coreml_layer_->batchnorm->channels = channels;
-    coreml_layer_->batchnorm->computemeanvar = true;
-    coreml_layer_->batchnorm->instancenormalization = true;
-    
-    if (share_channel) {
-        rawbuffer_shared_expand_scale_ = std::shared_ptr<RawBuffer>(new RawBuffer(channels*byte_size));
-        rawbuffer_shared_expand_scale_->SetBufferDims({channels});
-        char *scale_data_expand = layer_res->scale_handle.force_to<char *>();
-        char *scale_data = layer_res->scale_handle.force_to<char *>();
-        for (int index = 0; index < channels; index++) {
-            memcpy(scale_data_expand + index*byte_size, scale_data, byte_size);
-        }
-        rawbuffer_shared_expand_scale_->buffer(scale_data_expand, byte_size*channels);
-        RETURN_ON_NEQ(RawBuffer2CoreMLWeight(rawbuffer_shared_expand_scale_.get(),
-                                             coreml_layer_gamma_, rawbuffer_scale_fp32_), TNN_OK);
-    } else {
-        RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(layer_res->scale_handle),
-                                             coreml_layer_gamma_, rawbuffer_scale_fp32_), TNN_OK);
+    if (!layer_res || layer_res->scale_handle.GetDataCount()<=0 || layer_res->bias_handle.GetDataCount()<=0) {
+        LOGE("CoreMLInstancenormLayer has invalid layer resource\n");
+        return Status(TNNERR_MODEL_ERR, "CoreMLInstancenormLayer has invalid layer resource");
     }
-    coreml_layer_->batchnorm->gamma = coreml_layer_gamma_.get();
+    const int count_scale = layer_res->scale_handle.GetDataCount();
+    const int count_bias = layer_res->bias_handle.GetDataCount();
+    if (count_bias != channels || count_bias != channels) {
+        LOGE("CoreMLInstancenormLayer has invalid layer resource\n");
+        return Status(TNNERR_MODEL_ERR, "CoreMLInstancenormLayer has invalid layer resource");
+    }
     
-    if (channels > bias_count) {
-        rawbuffer_shared_expand_bias_ = std::shared_ptr<RawBuffer>(new RawBuffer(channels*byte_size));
-        rawbuffer_shared_expand_bias_->SetBufferDims({channels});
-        char *bias_data_expand = layer_res->bias_handle.force_to<char *>();
-        char *bias_data = layer_res->bias_handle.force_to<char *>();
-        
-        if (share_channel && bias_count > 0) {
-            for (int index = 0; index < channels; index++) {
-                memcpy(bias_data_expand + index*byte_size, bias_data, byte_size);
+    coreml_layer_groupnorm_ = CreateCoreMLBaseLayer(LAYER_GROUP_NORM);
+    if (coreml_layer_groupnorm_ == nullptr) {
+        LOGE("Error: CreateCoreMLBaseLayer failed, dont support type:GrouoNorm\n");
+        return Status(TNNERR_PARAM_ERR, "CreateCoreMLBaseLayer failed, dont support op LAYER_GROUP_NORM");
+    }
+    coreml_layer_groupnorm_->SetNetResource(net_resource_);
+    
+    //build groupnorm
+    {
+        //Note: groupnorm layer use const_resource_map to save weights inedead of layer resource
+        //scale_name
+        auto name_scale = layer_info_->name + "-groupnrom-scale";
+        //Insure scale and bias have correct dims so the mul and add op in coreml_group_norm_layer can have right broadcast type
+        DimsVector dims_scale;
+        for (int i=0; i<input_shape_size-1; i++) {
+            dims_scale.push_back(1);
+        }
+        dims_scale[0] = channels;
+        if (layer_res->scale_handle.GetBufferDims().size() <= 0) {
+            layer_res->scale_handle.SetBufferDims(dims_scale);
+        }
+        groupnorm_rawbuffer_scale_ = std::shared_ptr<RawBuffer>(new RawBuffer(layer_res->scale_handle));
+        net_resource_->constant_map[name_scale] = groupnorm_rawbuffer_scale_;
+        //scale_name
+        auto name_bias = layer_info_->name + "-groupnrom-bias";
+        if (layer_res->bias_handle.GetBufferDims().size() <= 0) {
+            layer_res->bias_handle.SetBufferDims(dims_scale);
+        }
+        groupnorm_rawbuffer_bias_ = std::shared_ptr<RawBuffer>(new RawBuffer(layer_res->bias_handle));
+        net_resource_->constant_map[name_bias] = groupnorm_rawbuffer_bias_;
+        groupnorm_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
+        auto groupnorm_param = std::shared_ptr<GroupNormLayerParam>(new GroupNormLayerParam);
+        {
+            groupnorm_layer_info_->type = LAYER_GROUP_NORM;
+            groupnorm_layer_info_->name = layer_info_->name + "-groupnrom";
+            groupnorm_layer_info_->inputs = {layer_info_->inputs[0], name_scale, name_bias};
+            groupnorm_layer_info_->outputs = layer_info_->outputs;
+            groupnorm_layer_info_->param = groupnorm_param;
+            {
+                groupnorm_param->type = groupnorm_layer_info_->type;
+                groupnorm_param->name = groupnorm_layer_info_->name;
+                groupnorm_param->group = param->channels;
+                groupnorm_param->eps = param->eps;
             }
-        } else {
-            memset(bias_data_expand, 0, channels*byte_size);
         }
-        rawbuffer_shared_expand_bias_->buffer(bias_data_expand, byte_size*channels);
-        RETURN_ON_NEQ(RawBuffer2CoreMLWeight(rawbuffer_shared_expand_bias_.get(),
-                                             coreml_layer_beta_, rawbuffer_bias_fp32_), TNN_OK);
-    } else {
-        RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(layer_res->bias_handle),
-                                             coreml_layer_beta_, rawbuffer_bias_fp32_), TNN_OK);
+        RETURN_ON_NEQ(coreml_layer_groupnorm_->Init(groupnorm_layer_info_.get(), nullptr),  TNN_OK);
     }
-    coreml_layer_->batchnorm->beta =  coreml_layer_beta_.get();
-    
     return TNN_OK;
 }
 
@@ -126,11 +120,11 @@ Status CoreMLInstancenormLayer::BuildConstantWeightsLayer() {
 }
 
 std::vector<std::string> CoreMLInstancenormLayer::BuildLayerInputs() {
-    return CoreMLBaseLayer::BuildLayerInputs();
+    return std::vector<std::string>();
 }
 
 std::vector<std::string> CoreMLInstancenormLayer::BuildLayerOutputs() {
-    return CoreMLBaseLayer::BuildLayerOutputs();
+    return std::vector<std::string>();
 }
 
 REGISTER_COREML_LAYER(Instancenorm, LAYER_INST_BATCH_NORM);
