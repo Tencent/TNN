@@ -93,7 +93,7 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
         // Tensorflow TFLite reshape(nhwc): 1
         auto reshape_type = reshape_param->reshape_type;
         if (output_shape_size_ <= 0) {
-            output_shape_size_ = shape.size();
+            output_shape_size_ = (int)shape.size();
         }
     
         if ((reshape_type == 1 && input_shape_size_ <= 0) || output_shape_size_ <= 0 || shape_size != output_shape_size_) {
@@ -129,11 +129,17 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
                 coreml_layer_->reshapestatic->targetshape[i] = output_shape_permute[i];
             }
         } else {
-            for (int i=0;i<output_shape_size_;i++){
-                coreml_layer_->reshapestatic->targetshape[i] = shape[i];
+            //Note reshape static layer cannot handle 0 or -1
+            if (output_shape.size() == output_shape_size_) {
+                for (int i=0;i<output_shape_size_;i++){
+                    coreml_layer_->reshapestatic->targetshape[i] = output_shape[i];
+                }
+            } else {
+                for (int i=0;i<output_shape_size_;i++){
+                    coreml_layer_->reshapestatic->targetshape[i] = shape[i];
+                }
             }
         }
-
     }
     
     return TNN_OK;
