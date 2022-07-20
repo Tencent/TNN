@@ -209,31 +209,35 @@ struct BenchResult {
         @autoreleasepool {
             NSLog(@"model: %s", model.name.c_str());
             allResult = [allResult stringByAppendingFormat:@"model: %s\n", model.name.c_str()];
-        
-            //benchmark on cpu
-            auto result_cpu = [self benchmarkWithProtoContent:model.tnn_proto_content
-                                                    model:model.tnn_model_content
-                                                   coreml:model.coreml
-                                                  library:pathLibrary.UTF8String
-                                                  netType:NETWORK_TYPE_DEFAULT
-                                                  deviceType:DEVICE_ARM
-                                                   option:option];
-            NSLog(@"cpu: \ntime: %s", result_cpu.description().c_str());
-            allResult = [allResult stringByAppendingFormat:@"cpu: \ntime: %s\n",
-                         result_cpu.description().c_str()];
+            
+            //tnn proto and model
+            if (model.tnn_proto_content.length() > 0 && model.tnn_model_content.length() > 0) {
+                //benchmark on cpu
+                auto result_cpu = [self benchmarkWithProtoContent:model.tnn_proto_content
+                                                        model:model.tnn_model_content
+                                                       coreml:model.coreml
+                                                      library:pathLibrary.UTF8String
+                                                      netType:NETWORK_TYPE_DEFAULT
+                                                      deviceType:DEVICE_ARM
+                                                       option:option];
+                NSLog(@"cpu: \ntime: %s", result_cpu.description().c_str());
+                allResult = [allResult stringByAppendingFormat:@"cpu: \ntime: %s\n",
+                             result_cpu.description().c_str()];
 
-            //benchmark on gpu
-            auto result_gpu = [self benchmarkWithProtoContent:model.tnn_proto_content
-                                                    model:model.tnn_model_content
-                                                   coreml:model.coreml
-                                                  library:pathLibrary.UTF8String
-                                                  netType:NETWORK_TYPE_DEFAULT
-                                                  deviceType:DEVICE_METAL
-                                                   option:option];
-            NSLog(@"gpu: \ntime: %s", result_gpu.description().c_str());
-            allResult = [allResult stringByAppendingFormat:@"gpu: \ntime: %s\n",
-                         result_gpu.description().c_str()];
-
+                //benchmark on gpu
+                auto result_gpu = [self benchmarkWithProtoContent:model.tnn_proto_content
+                                                        model:model.tnn_model_content
+                                                       coreml:model.coreml
+                                                      library:pathLibrary.UTF8String
+                                                      netType:NETWORK_TYPE_DEFAULT
+                                                      deviceType:DEVICE_METAL
+                                                       option:option];
+                NSLog(@"gpu: \ntime: %s", result_gpu.description().c_str());
+                allResult = [allResult stringByAppendingFormat:@"gpu: \ntime: %s\n",
+                             result_gpu.description().c_str()];
+            }
+            
+            //tnn proto and model pr coreml model
             //benchmark on npu
             auto result_npu = [self benchmarkWithProtoContent:model.tnn_proto_content
                                                     model:model.tnn_model_content
