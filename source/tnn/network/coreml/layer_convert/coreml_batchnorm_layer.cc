@@ -82,12 +82,11 @@ Status CoreMLBatchnormLayer::BuildLayerParam() {
     if (share_channel) {
         rawbuffer_shared_expand_scale_ = std::shared_ptr<RawBuffer>(new RawBuffer(channels*byte_size));
         rawbuffer_shared_expand_scale_->SetBufferDims({channels});
-        char *scale_data_expand = layer_res->scale_handle.force_to<char *>();
+        char *scale_data_expand = rawbuffer_shared_expand_scale_->force_to<char *>();
         char *scale_data = layer_res->scale_handle.force_to<char *>();
         for (int index = 0; index < channels; index++) {
             memcpy(scale_data_expand + index*byte_size, scale_data, byte_size);
         }
-        rawbuffer_shared_expand_scale_->buffer(scale_data_expand, byte_size*channels);
         RETURN_ON_NEQ(RawBuffer2CoreMLWeight(rawbuffer_shared_expand_scale_.get(),
                                              coreml_layer_gamma_, rawbuffer_scale_fp32_), TNN_OK);
     } else {
