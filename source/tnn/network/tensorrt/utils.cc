@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include <string.h>
+#include <map>
 #include <string>
 #include <stdio.h>
 
@@ -22,6 +23,13 @@
 #include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
+
+static std::map<std::string, std::string> global_gpu_type_map = {
+    {"GeForce_RTX_3090", "NVIDIA_GeForce_RTX_3090"},
+    {"NVIDIA_GeForce_RTX_3090", "NVIDIA_GeForce_RTX_3090"},
+    {"RTX_A4000", "NVIDIA_RTX_A4000"},
+    {"NVIDIA_RTX_A4000", "NVIDIA_RTX_A4000"},
+};
 
 std::string GetGpuType(int gpu_id) {
     cudaDeviceProp prop;
@@ -36,7 +44,13 @@ std::string GetGpuType(int gpu_id) {
         }
         prop.name[i] = '_';
     }
-    return std::string(prop.name);
+
+    std::string gpu_type = std::string(prop.name);
+    if (global_gpu_type_map.count(gpu_type) > 0) {
+        return global_gpu_type_map[gpu_type];
+    } else {
+        return gpu_type;
+    }
 }
 
 std::string GetGpuArch(int gpu_id) {
