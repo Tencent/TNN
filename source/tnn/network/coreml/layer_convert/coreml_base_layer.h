@@ -113,11 +113,13 @@ protected:
     std::vector<std::shared_ptr<char> > coreml_layer_outputs_;
 
     //for some op such as add, conv, weight value is stored in layer resource, so constant coreml layer is needed for every layer
-    std::vector<std::shared_ptr<CoreMLConstLayer> > coreml_layer_constant_weights_;
-    //for some op to add op before itself
-    std::shared_ptr<CoreMLBaseLayer> coreml_layer_before_;
-    //for some op to add op after itself
-    std::shared_ptr<CoreMLBaseLayer> coreml_layer_after_;
+    std::vector<std::shared_ptr<CoreMLConstLayer> > coreml_layer_constant_weights_ = {};
+    //for some op to add op before itself, see LSTM. Note layers must be added by compute order, otherwise mlmodel compiling error wil raise.
+    //e.g.  protobuf spec. validator error: Layer '39' consumes an input named 'input_expanded' which is not present in this network.
+    std::vector<std::shared_ptr<CoreMLBaseLayer> > coreml_layers_before_ = {};
+    //for some op to add op after itself, see LSTM. Note layers must be added by compute order, otherwise mlmodel compiling error wil raise.
+    //e.g.  protobuf spec. validator error: Layer '39' consumes an input named 'input_expanded' which is not present in this network.
+    std::vector<std::shared_ptr<CoreMLBaseLayer> > coreml_layers_after_ = {};
     
 };
 

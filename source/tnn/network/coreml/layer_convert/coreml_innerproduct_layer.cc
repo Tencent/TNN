@@ -126,7 +126,7 @@ Status CoreMLInnerproductLayer::BuildSqueezeLayer() {
         }
     }
     RETURN_ON_NEQ(squeeze_layer->Init(squeeze_layer_info_.get(), nullptr), TNN_OK);
-    coreml_layer_before_ = squeeze_layer;
+    coreml_layers_before_ = {squeeze_layer};
     
     return TNN_OK;
 }

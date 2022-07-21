@@ -114,15 +114,16 @@ Status CoreMLBaseLayer::Convert() {
 };
 
 std::vector<CoreML__Specification__NeuralNetworkLayer*> CoreMLBaseLayer::GetCoreMLLayerPtrs() {
+    //Note layer_ptrs must be added by compute order, otherwise mlmodel compiling error wil raise.
+    //e.g.  protobuf spec. validator error: Layer '39' consumes an input named 'input_expanded' which is not present in this network.
     std::vector<CoreML__Specification__NeuralNetworkLayer*> layer_ptrs;
     for (auto& iter : coreml_layer_constant_weights_) {
         auto const_ptr = iter->GetCoreMLLayerPtrs();
         layer_ptrs.insert(layer_ptrs.end(), const_ptr.begin(), const_ptr.end());
     }
     
-    if (coreml_layer_before_) {
-        auto before_layer = coreml_layer_before_.get();
-        auto before_layer_ptr = before_layer->GetCoreMLLayerPtrs();
+    for (auto iter : coreml_layers_before_) {
+        auto before_layer_ptr = iter->GetCoreMLLayerPtrs();
         layer_ptrs.insert(layer_ptrs.end(), before_layer_ptr.begin(), before_layer_ptr.end());
     }
     
@@ -130,9 +131,8 @@ std::vector<CoreML__Specification__NeuralNetworkLayer*> CoreMLBaseLayer::GetCore
         layer_ptrs.push_back(coreml_layer_.get());
     }
     
-    if (coreml_layer_after_) {
-        auto after_layer = coreml_layer_after_.get();
-        auto after_layer_ptr = after_layer->GetCoreMLLayerPtrs();
+    for (auto iter : coreml_layers_after_) {
+        auto after_layer_ptr = iter->GetCoreMLLayerPtrs();
         layer_ptrs.insert(layer_ptrs.end(), after_layer_ptr.begin(), after_layer_ptr.end());
     }
     return layer_ptrs;
@@ -147,6 +147,30 @@ Status CoreMLBaseLayer::BuildLayerParam() {
 }
 
 Status CoreMLBaseLayer::BuildConstantWeightsLayer() {
+    //dont create constantlayer in CoreMLBaseLayer, do it in each layer's BuildConstantWeightsLayer
+    //because some layer use constant in constant_map for layer resource, we dont need create a constant layer, see LSTM
+    
+    //weight in constantmap
+//    if (layer_info_ && net_resource_) {
+//        for (auto iter : layer_info_->inputs) {
+//            //only load data blob with flag DATA_FLAG_CHANGE_NEVER, ignore DATA_FLAG_CHANGE_IF_SHAPE_DIFFER
+//            if (net_resource_->constant_blob_flags.find(iter) != net_resource_->constant_blob_flags.end()) {
+//                auto blob_flag = net_resource_->constant_blob_flags[iter];
+//                if (blob_flag != DATA_FLAG_CHANGE_NEVER) {
+//                    continue;
+//                }
+//            }
+//
+//            if (net_resource_->constant_map.find(iter) != net_resource_->constant_map.end()) {
+//                auto weight_buffer = net_resource_->constant_map[iter];
+//                auto weight_layer = std::make_shared<CoreMLConstLayer>(LAYER_CONST);
+//                auto status = weight_layer->Init(iter, *(weight_buffer.get()));
+//                RETURN_ON_NEQ(status, TNN_OK);
+//
+//                coreml_layer_constant_weights_.push_back(weight_layer);
+//            }
+//        }
+//    }
     return TNN_OK;
 }
 

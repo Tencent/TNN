@@ -14,11 +14,11 @@
 
 #include "coreml_base_layer.h"
 #include "tnn/utils/data_type_utils.h"
+#include "coreml_const_layer.h"
 
 namespace TNN_NS {
 
 DECLARE_COREML_LAYER_WITH_FUNC_DATA(LSTM, LAYER_LSTMONNX,
-                                     virtual std::vector<CoreML__Specification__NeuralNetworkLayer*> GetCoreMLLayerPtrs();
                                     Status BuildSplitLayer(std::string input, std::vector<std::string> outputs,
                                                                std::shared_ptr<CoreMLBaseLayer> &coreml_layer, std::shared_ptr<LayerInfo> &layer_info);
                                     Status BuildReshapeLayer(std::string input, std::string output,
@@ -89,92 +89,19 @@ DECLARE_COREML_LAYER_WITH_FUNC_DATA(LSTM, LAYER_LSTMONNX,
                                     std::shared_ptr<CoreML__Specification__WeightParams> lstm_weight_backword_WRBisa_c_;
                                     shared_ptr<RawBuffer> rawbuffer_fp32_backword_WRBisa_c_;
                                     std::shared_ptr<LayerInfo> layer_info_reshape_input_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_reshape_input_;
                                     std::shared_ptr<LayerInfo> layer_info_split_h0_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_split_h0_;
                                     std::shared_ptr<LayerInfo> layer_info_reshape_h0_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_reshape_h0_;
                                     std::shared_ptr<LayerInfo> layer_info_split_c0_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_split_c0_;
                                     std::shared_ptr<LayerInfo> layer_info_reshape_c0_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_reshape_c0_;
                                     std::shared_ptr<LayerInfo> layer_info_reshape_backword_h0_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_reshape_backword_h0_;
                                     std::shared_ptr<LayerInfo> layer_info_reshape_backword_c0_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_reshape_backword_c0_;
                                     std::shared_ptr<LayerInfo> layer_info_squeeze_output_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_squezze_output_;
                                     std::shared_ptr<LayerInfo> layer_info_squeeze_ht_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_concat_ht_;
                                     std::shared_ptr<LayerInfo> layer_info_concat_ht_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_squezze_ht_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_concat_ct_;
                                     std::shared_ptr<LayerInfo> layer_info_concat_ct_;
                                     std::shared_ptr<LayerInfo> layer_info_squeeze_ct_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_squezze_ct_;
                                     std::shared_ptr<LayerInfo> layer_info_squeeze_backword_ht_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_squezze_backword_ht_;
-                                    std::shared_ptr<LayerInfo> layer_info_squeeze_backword_ct_;
-                                    std::shared_ptr<CoreMLBaseLayer> coreml_layer_squezze_backword_ct_;);
-
-std::vector<CoreML__Specification__NeuralNetworkLayer*> CoreMLLSTMLayer::GetCoreMLLayerPtrs() {
-    //NOTE: make sure the order of layer be correct, or compile error may raise.
-    //protobuf spec. validator error: Layer '39' consumes an input named 'input_expanded' which is not present in this network.
-    std::vector<CoreML__Specification__NeuralNetworkLayer*> all_ptrs;
-    if (coreml_layer_reshape_input_) {
-        auto ptrs = coreml_layer_reshape_input_->GetCoreMLLayerPtrs();
-        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
-    }
-    if (coreml_layer_split_h0_) {
-        auto ptrs = coreml_layer_split_h0_->GetCoreMLLayerPtrs();
-        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
-    }
-    if (coreml_layer_split_c0_) {
-        auto ptrs = coreml_layer_split_c0_->GetCoreMLLayerPtrs();
-        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
-    }
-    if (coreml_layer_reshape_h0_) {
-        auto ptrs = coreml_layer_reshape_h0_->GetCoreMLLayerPtrs();
-        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
-    }
-    if (coreml_layer_reshape_c0_) {
-        auto ptrs = coreml_layer_reshape_c0_->GetCoreMLLayerPtrs();
-        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
-    }
-    if (coreml_layer_reshape_backword_h0_) {
-        auto ptrs = coreml_layer_reshape_backword_h0_->GetCoreMLLayerPtrs();
-        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
-    }
-    if (coreml_layer_reshape_backword_c0_) {
-        auto ptrs = coreml_layer_reshape_backword_c0_->GetCoreMLLayerPtrs();
-        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
-    }
-    
-    auto sub_ptrs = CoreMLBaseLayer::GetCoreMLLayerPtrs();
-    all_ptrs.insert(all_ptrs.end(), sub_ptrs.begin(), sub_ptrs.end());
-    
-    if (coreml_layer_squezze_output_) {
-        auto ptrs = coreml_layer_squezze_output_->GetCoreMLLayerPtrs();
-        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
-    }
-    if (coreml_layer_concat_ht_) {
-        auto ptrs = coreml_layer_concat_ht_->GetCoreMLLayerPtrs();
-        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
-    }
-    if (coreml_layer_concat_ct_) {
-        auto ptrs = coreml_layer_concat_ct_->GetCoreMLLayerPtrs();
-        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
-    }
-    if (coreml_layer_squezze_ht_) {
-        auto ptrs = coreml_layer_squezze_ht_->GetCoreMLLayerPtrs();
-        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
-    }
-    if (coreml_layer_squezze_ct_) {
-        auto ptrs = coreml_layer_squezze_ct_->GetCoreMLLayerPtrs();
-        all_ptrs.insert(all_ptrs.end(), ptrs.begin(), ptrs.end());
-    }
-    return all_ptrs;
-}
+                                    std::shared_ptr<LayerInfo> layer_info_squeeze_backword_ct_;);
 
 Status CoreMLLSTMLayer::BuildLayerType() {
     auto param = dynamic_cast<LSTMONNXLayerParam *>(layer_info_->param.get());
@@ -194,6 +121,12 @@ Status CoreMLLSTMLayer::BuildLayerType() {
     return TNN_OK;
 }
 
+/*
+ *NOTE:
+ *CoreML now only support LSTM at CPU device at 2022.07.19.
+ *Both optiones MLComputeUnitsCPUOnly and MLComputeUnitsAll have the same benchmark time for model crnn_lite_lstm
+ * And both are  much more slower than TNN arm.
+*/
 Status CoreMLLSTMLayer::BuildLayerParam() {
     auto param = dynamic_cast<LSTMONNXLayerParam *>(layer_info_->param.get());
     CHECK_PARAM_NULL(param);
@@ -203,44 +136,56 @@ Status CoreMLLSTMLayer::BuildLayerParam() {
     }
     
     if (param->direction == 0 || param->direction == 1) {
+        std::shared_ptr<CoreMLBaseLayer> coreml_layer_reshape_input, coreml_layer_reshape_h0, coreml_layer_reshape_c0;
         RETURN_ON_NEQ(BuildReshapeLayer(layer_info_->inputs[0], layer_info_->name + "-reshape-input",
-                                          coreml_layer_reshape_input_, layer_info_reshape_input_), TNN_OK);
+                                        coreml_layer_reshape_input, layer_info_reshape_input_), TNN_OK);
         RETURN_ON_NEQ(BuildReshapeLayer(layer_info_->inputs[4], layer_info_->name + "-reshape-h0",
-                                          coreml_layer_reshape_h0_, layer_info_reshape_h0_), TNN_OK);
+                                        coreml_layer_reshape_h0, layer_info_reshape_h0_), TNN_OK);
         RETURN_ON_NEQ(BuildReshapeLayer(layer_info_->inputs[5], layer_info_->name + "-reshape-c0",
-                                          coreml_layer_reshape_c0_, layer_info_reshape_c0_), TNN_OK);
-        RETURN_ON_NEQ(BuildSqueezeLayer(layer_info_->name + "-squeeze-output", layer_info_->outputs[0],
-                                        coreml_layer_squezze_output_, layer_info_squeeze_output_), TNN_OK);
-        RETURN_ON_NEQ(BuildSqueezeLayer(layer_info_->name + "-squeeze-ht", layer_info_->outputs[1],
-                                        coreml_layer_squezze_ht_, layer_info_squeeze_ht_), TNN_OK);
-        RETURN_ON_NEQ(BuildSqueezeLayer(layer_info_->name + "-squeeze-ct", layer_info_->outputs[2],
-                                        coreml_layer_squezze_ct_, layer_info_squeeze_ct_), TNN_OK);
-    } else if (param->direction == 2) {
-        RETURN_ON_NEQ(BuildReshapeLayer(layer_info_->inputs[0], layer_info_->name + "-reshape-input",
-                                          coreml_layer_reshape_input_, layer_info_reshape_input_), TNN_OK);
-        RETURN_ON_NEQ(BuildSplitLayer(layer_info_->inputs[4], {layer_info_->name + "-split-h0", layer_info_->name + "-split-backword-h0"}, coreml_layer_split_h0_, layer_info_split_h0_), TNN_OK);
-        RETURN_ON_NEQ(BuildSplitLayer(layer_info_->inputs[5], {layer_info_->name + "-split-c0", layer_info_->name + "-split-backword-c0"}, coreml_layer_split_c0_, layer_info_split_c0_), TNN_OK);
-        RETURN_ON_NEQ(BuildReshapeLayer(layer_info_split_h0_->outputs[0], layer_info_->name + "-reshape-h0",
-                                          coreml_layer_reshape_h0_, layer_info_reshape_h0_), TNN_OK);
-        RETURN_ON_NEQ(BuildReshapeLayer(layer_info_split_h0_->outputs[1], layer_info_->name + "-reshape-backword-h0",
-                                          coreml_layer_reshape_backword_h0_, layer_info_reshape_backword_h0_), TNN_OK);
-        RETURN_ON_NEQ(BuildReshapeLayer(layer_info_split_c0_->outputs[0], layer_info_->name + "-reshape-c0",
-                                          coreml_layer_reshape_c0_, layer_info_reshape_c0_), TNN_OK);
-        RETURN_ON_NEQ(BuildReshapeLayer(layer_info_split_c0_->outputs[1], layer_info_->name + "-reshape-backword-c0",
-                                          coreml_layer_reshape_backword_c0_, layer_info_reshape_backword_c0_), TNN_OK);
+                                        coreml_layer_reshape_c0, layer_info_reshape_c0_), TNN_OK);
+        coreml_layers_before_ = {coreml_layer_reshape_input, coreml_layer_reshape_h0, coreml_layer_reshape_c0};
         
-        RETURN_ON_NEQ(BuildConcatLayer({layer_info_->name + "-concat-input-ht", layer_info_->name + "-concat-input-backword-ht"}, layer_info_->name + "-concat-ht",
-                                          coreml_layer_concat_ht_, layer_info_concat_ht_), TNN_OK);
-        RETURN_ON_NEQ(BuildConcatLayer({layer_info_->name + "-concat-input-ct", layer_info_->name + "-concat-input-backword-ct"}, layer_info_->name + "-concat-ct",
-                                          coreml_layer_concat_ct_, layer_info_concat_ct_), TNN_OK);
+        std::shared_ptr<CoreMLBaseLayer> coreml_layer_squezze_output, coreml_layer_squezze_ht, coreml_layer_squezze_ct;
         RETURN_ON_NEQ(BuildSqueezeLayer(layer_info_->name + "-squeeze-output", layer_info_->outputs[0],
-                                        coreml_layer_squezze_output_, layer_info_squeeze_output_), TNN_OK);
+                                        coreml_layer_squezze_output, layer_info_squeeze_output_), TNN_OK);
+        RETURN_ON_NEQ(BuildSqueezeLayer(layer_info_->name + "-squeeze-ht", layer_info_->outputs[1],
+                                        coreml_layer_squezze_ht, layer_info_squeeze_ht_), TNN_OK);
+        RETURN_ON_NEQ(BuildSqueezeLayer(layer_info_->name + "-squeeze-ct", layer_info_->outputs[2],
+                                        coreml_layer_squezze_ct, layer_info_squeeze_ct_), TNN_OK);
+        coreml_layers_after_ = {coreml_layer_squezze_output, coreml_layer_squezze_ht, coreml_layer_squezze_ct};
+    } else if (param->direction == 2) {
+        std::shared_ptr<CoreMLBaseLayer> coreml_layer_reshape_input, coreml_layer_split_h0, coreml_layer_split_c0, coreml_layer_reshape_h0,coreml_layer_reshape_backword_h0,coreml_layer_reshape_c0,coreml_layer_reshape_backword_c0;
+        
+        RETURN_ON_NEQ(BuildReshapeLayer(layer_info_->inputs[0], layer_info_->name + "-reshape-input",
+                                          coreml_layer_reshape_input, layer_info_reshape_input_), TNN_OK);
+        RETURN_ON_NEQ(BuildSplitLayer(layer_info_->inputs[4], {layer_info_->name + "-split-h0", layer_info_->name + "-split-backword-h0"}, coreml_layer_split_h0, layer_info_split_h0_), TNN_OK);
+        RETURN_ON_NEQ(BuildSplitLayer(layer_info_->inputs[5], {layer_info_->name + "-split-c0", layer_info_->name + "-split-backword-c0"}, coreml_layer_split_c0, layer_info_split_c0_), TNN_OK);
+        RETURN_ON_NEQ(BuildReshapeLayer(layer_info_split_h0_->outputs[0], layer_info_->name + "-reshape-h0",
+                                          coreml_layer_reshape_h0, layer_info_reshape_h0_), TNN_OK);
+        RETURN_ON_NEQ(BuildReshapeLayer(layer_info_split_h0_->outputs[1], layer_info_->name + "-reshape-backword-h0",
+                                          coreml_layer_reshape_backword_h0, layer_info_reshape_backword_h0_), TNN_OK);
+        RETURN_ON_NEQ(BuildReshapeLayer(layer_info_split_c0_->outputs[0], layer_info_->name + "-reshape-c0",
+                                          coreml_layer_reshape_c0, layer_info_reshape_c0_), TNN_OK);
+        RETURN_ON_NEQ(BuildReshapeLayer(layer_info_split_c0_->outputs[1], layer_info_->name + "-reshape-backword-c0",
+                                          coreml_layer_reshape_backword_c0, layer_info_reshape_backword_c0_), TNN_OK);
+        coreml_layers_before_ = {coreml_layer_reshape_input, coreml_layer_split_h0, coreml_layer_split_c0,
+            coreml_layer_reshape_h0,coreml_layer_reshape_backword_h0,coreml_layer_reshape_c0,coreml_layer_reshape_backword_c0};
+        
+        std::shared_ptr<CoreMLBaseLayer> coreml_layer_squezze_output, coreml_layer_concat_ht,
+            coreml_layer_concat_ct, coreml_layer_squezze_ht,coreml_layer_squezze_ct;
+        RETURN_ON_NEQ(BuildConcatLayer({layer_info_->name + "-concat-input-ht", layer_info_->name + "-concat-input-backword-ht"}, layer_info_->name + "-concat-ht",
+                                          coreml_layer_concat_ht, layer_info_concat_ht_), TNN_OK);
+        RETURN_ON_NEQ(BuildConcatLayer({layer_info_->name + "-concat-input-ct", layer_info_->name + "-concat-input-backword-ct"}, layer_info_->name + "-concat-ct",
+                                          coreml_layer_concat_ct, layer_info_concat_ct_), TNN_OK);
+        RETURN_ON_NEQ(BuildSqueezeLayer(layer_info_->name + "-squeeze-output", layer_info_->outputs[0],
+                                        coreml_layer_squezze_output, layer_info_squeeze_output_), TNN_OK);
         RETURN_ON_NEQ(BuildSqueezeLayer(layer_info_concat_ht_->outputs[0], layer_info_->outputs[1],
-                                        coreml_layer_squezze_ht_, layer_info_squeeze_ht_), TNN_OK);
+                                        coreml_layer_squezze_ht, layer_info_squeeze_ht_), TNN_OK);
         RETURN_ON_NEQ(BuildSqueezeLayer(layer_info_concat_ct_->outputs[0], layer_info_->outputs[2],
-                                        coreml_layer_squezze_ct_, layer_info_squeeze_ct_), TNN_OK);
+                                        coreml_layer_squezze_ct, layer_info_squeeze_ct_), TNN_OK);
+        coreml_layers_after_ = {coreml_layer_squezze_output, coreml_layer_concat_ht, coreml_layer_concat_ct,
+            coreml_layer_squezze_ht,coreml_layer_squezze_ct};
     }
-    
     auto blob_name_W = layer_info_->inputs[1];
     auto blob_name_R = layer_info_->inputs[2];
     auto blob_name_B = layer_info_->inputs[3];
@@ -786,8 +731,24 @@ Status CoreMLLSTMLayer::BuildSqueezeLayer(std::string input, std::string output,
 }
 
 Status CoreMLLSTMLayer::BuildConstantWeightsLayer() {
+    //weight in constantmap
+    //blobs of W、R、B are used as layer resource, no need to generate constant layer
+    //blobs of h0 and c0 are used as layer const inputs, sowe must generate constant layer
+    if (layer_info_->inputs.size() >= 6) {
+        std::vector<std::string> init_inputs = {layer_info_->inputs[4], layer_info_->inputs[5]};
+        
+        for (auto iter : init_inputs) {
+            if (net_resource_->constant_map.find(iter) != net_resource_->constant_map.end()) {
+                auto weight_buffer = net_resource_->constant_map[iter];
+                auto weight_layer = std::make_shared<CoreMLConstLayer>(LAYER_CONST);
+                auto status = weight_layer->Init(iter, *(weight_buffer.get()));
+                RETURN_ON_NEQ(status, TNN_OK);
+                
+                coreml_layer_constant_weights_.push_back(weight_layer);
+            }
+        }
+    }
     return TNN_OK;
-//    return CoreMLBaseLayer::BuildConstantWeightsLayer();
 }
 
 std::vector<std::string> CoreMLLSTMLayer::BuildLayerInputs() {

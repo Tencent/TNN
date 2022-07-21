@@ -168,7 +168,7 @@ Status CoreMLReshapeLayer::BuildPermute0Layer() {
         }
     }
     RETURN_ON_NEQ(permute0_layer->Init(permute0_layer_info_.get(), nullptr), TNN_OK);
-    coreml_layer_before_ = permute0_layer;
+    coreml_layers_before_ = {permute0_layer};
     
     return TNN_OK;
 }
@@ -196,7 +196,7 @@ Status CoreMLReshapeLayer::BuildPermute1Layer() {
         }
     }
     RETURN_ON_NEQ(permute1_layer->Init(permute1_layer_info_.get(), nullptr), TNN_OK);
-    coreml_layer_after_ = permute1_layer;
+    coreml_layers_after_ = {permute1_layer};
     
     return TNN_OK;
 }

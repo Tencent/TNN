@@ -162,7 +162,7 @@ Status CoreMLConvLayer::BuildActivationLayer() {
             activation_layer_info_->outputs = layer_info_->outputs;
         }
         RETURN_ON_NEQ(relu_layer->Init(activation_layer_info_.get(), nullptr), TNN_OK);
-        coreml_layer_after_ = relu_layer;
+        coreml_layers_after_ = {relu_layer};
     } else if (activation_type_ == ActivationType_ReLU6) {
         auto relu6_layer = CreateCoreMLBaseLayer(LAYER_RELU6);
         relu6_layer->SetNetResource(net_resource_);
@@ -178,7 +178,7 @@ Status CoreMLConvLayer::BuildActivationLayer() {
         net_resource_->blob_shapes_map[activation_layer_info_->outputs[0]] = net_resource_->blob_shapes_map[layer_info_->outputs[0]];
         
         RETURN_ON_NEQ(relu6_layer->Init(activation_layer_info_.get(), nullptr), TNN_OK);
-        coreml_layer_after_ = relu6_layer;
+        coreml_layers_after_ = {relu6_layer};
     } else if (activation_type_ != ActivationType_None) {
         LOGE("CoreMLConvLayer dont support activation type (%d)\n", activation_type_);
         return Status(TNNERR_MODEL_ERR, "CoreMLConvLayer dont support this activation type");
