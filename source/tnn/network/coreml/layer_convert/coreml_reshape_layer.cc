@@ -149,6 +149,7 @@ Status CoreMLReshapeLayer::BuildPermute0Layer() {
     auto param = layer_info_->param.get();
     auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
     auto permute0_layer = CreateCoreMLBaseLayer(LAYER_PERMUTE);
+    permute0_layer->SetNetResource(net_resource_);
     permute0_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
     {
         permute0_layer_info_->type = LAYER_PERMUTE;
@@ -177,6 +178,7 @@ Status CoreMLReshapeLayer::BuildPermute1Layer() {
     auto param = layer_info_->param.get();
     auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
     auto permute1_layer = CreateCoreMLBaseLayer(LAYER_PERMUTE);
+    permute1_layer->SetNetResource(net_resource_);
     permute1_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
     {
         permute1_layer_info_->type = LAYER_PERMUTE;

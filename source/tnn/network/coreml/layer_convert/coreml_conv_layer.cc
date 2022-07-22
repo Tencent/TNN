@@ -154,6 +154,7 @@ Status CoreMLConvLayer::BuildActivationLayer() {
     auto conv_param = dynamic_cast<ConvLayerParam *>(param);
     if (activation_type_ == ActivationType_ReLU) {
         auto relu_layer = CreateCoreMLBaseLayer(LAYER_RELU);
+        relu_layer->SetNetResource(net_resource_);
         activation_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
         {
             activation_layer_info_->type = LAYER_RELU;

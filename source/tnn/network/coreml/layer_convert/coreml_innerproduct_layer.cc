@@ -108,6 +108,7 @@ Status CoreMLInnerproductLayer::BuildSqueezeLayer() {
     auto param = layer_info_->param.get();
     auto innerproduct_param = dynamic_cast<InnerProductLayerParam *>(param);
     auto squeeze_layer = CreateCoreMLBaseLayer(LAYER_SQUEEZE);
+    squeeze_layer->SetNetResource(net_resource_);
     squeeze_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
     {
         squeeze_layer_info_->type = LAYER_SQUEEZE;
