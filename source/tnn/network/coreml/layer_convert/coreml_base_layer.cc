@@ -208,7 +208,7 @@ void CoreMLBaseLayer::SetNetResource(NetResource *net_resource) {
     net_resource_ = net_resource;
 }
 
-void CoreMLBaseLayer::SetLayerName(std::string& name) {
+void CoreMLBaseLayer::SetLayerName(std::string name) {
     coreml_layer_name_ = NullTerminatedCString(name);
     if (coreml_layer_) {
         coreml_layer_->name = coreml_layer_name_.get();
@@ -216,6 +216,9 @@ void CoreMLBaseLayer::SetLayerName(std::string& name) {
  }
 
 std::string CoreMLBaseLayer::GetLayerName() {
+    if (coreml_layer_name_) {
+        return coreml_layer_name_.get();
+    }
     return layer_info_ ? layer_info_->name : "";
 }
 

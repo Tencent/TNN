@@ -72,6 +72,10 @@ public:
     
     // @brief convert to coreml layer
     Status Convert();
+    
+    
+    //@brief set layer name
+    void SetLayerName(std::string name);
 protected:
     // @brief set coreml layer type
     virtual Status BuildLayerType();
@@ -89,9 +93,6 @@ protected:
      * For TNN op with output from layresource, you must override this func to generate all outputs manually;
      */
     virtual std::vector<std::string> BuildLayerOutputs();
-
-    //@brief set layer name
-    void SetLayerName(std::string& name);
     
     //@brief set outputs for coreml layer
     void SetLayerInputs(std::vector<std::string>& inputs);

@@ -65,6 +65,7 @@ TEST_P(GroupNormLayerTest, GroupNormLayer) {
         input_dims.push_back(input_size);
     }
 
+    //groupnorm has no layer resource, scale and bias weights are saved in constant map
     auto interpreter = GenerateInterpreter("GroupNorm", {input_dims, {channel}, {channel}}, param);
     if (DEVICE_APPLE_NPU == dev) {
         // resource
@@ -75,10 +76,7 @@ TEST_P(GroupNormLayerTest, GroupNormLayer) {
         InitRandom(biases_buffer->force_to<float*>(), norm_size, 1.0f);
         scales_buffer->SetBufferDims({channel});
         biases_buffer->SetBufferDims({channel});
-        // if (group % 2) {
-        //     // bias may be empty
-        //     biases_buffer = std::make_shared<RawBuffer>();
-        // }
+
         auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter.get());
         auto net_structure       = default_interpreter->GetNetStructure();
         auto net_resource        = default_interpreter->GetNetResource();

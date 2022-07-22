@@ -232,14 +232,13 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
 #else
         config.computeUnits = MLComputeUnitsAll;
 #endif
+        LOGD("mlmodelcURL:%s\n", mlmodelcURL.absoluteString.UTF8String);
         _model = [MLModel modelWithContentsOfURL:mlmodelcURL configuration:config error:&error];
-        
         if (error != nil) {
             [self cleanupMLModelC];
             LOGE("Error Creating MLModel %s.\n", [error localizedDescription].UTF8String);
             return TNN_NS::Status(TNN_NS::TNNERR_ANE_COMPILE_MODEL_ERROR, "Error: Failed Creating MLModel.");
         }
-        
 #ifdef DEBUG
     LOGD("TNN buildFromPathMLModelC time: %f ms\n", (CFAbsoluteTimeGetCurrent() - time_start) * 1000.0);
 #endif
