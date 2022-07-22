@@ -754,17 +754,7 @@ Status CoreMLLSTMLayer::BuildConstantWeightsLayer() {
     //blobs of h0 and c0 are used as layer const inputs, sowe must generate constant layer
     if (layer_info_->inputs.size() >= 6) {
         std::vector<std::string> init_inputs = {layer_info_->inputs[4], layer_info_->inputs[5]};
-        
-        for (auto iter : init_inputs) {
-            if (net_resource_->constant_map.find(iter) != net_resource_->constant_map.end()) {
-                auto weight_buffer = net_resource_->constant_map[iter];
-                auto weight_layer = std::make_shared<CoreMLConstLayer>(LAYER_CONST);
-                auto status = weight_layer->Init(iter, *(weight_buffer.get()));
-                RETURN_ON_NEQ(status, TNN_OK);
-                
-                coreml_layer_constant_weights_.push_back(weight_layer);
-            }
-        }
+        return CoreMLBaseLayer::BuildConstantWeightsLayer(init_inputs);
     }
     return TNN_OK;
 }
@@ -1541,18 +1531,14 @@ Status CoreMLLSTMLayer::BuildConstantWeightsLayer() {
     //blobs of W、R、B are used as layer resource, no need to generate constant layer
     //blobs of h0 and c0 are used as layer const inputs, sowe must generate constant layer
     if (layer_info_->inputs.size() >= 6) {
-        std::vector<std::string> init_inputs = {layer_info_->inputs[4], layer_info_->inputs[5]};
-
-        for (auto iter : init_inputs) {
-            if (net_resource_->constant_map.find(iter) != net_resource_->constant_map.end()) {
-                auto weight_buffer = net_resource_->constant_map[iter];
-                auto weight_layer = std::make_shared<CoreMLConstLayer>(LAYER_CONST);
-                auto status = weight_layer->Init(iter, *(weight_buffer.get()));
-                RETURN_ON_NEQ(status, TNN_OK);
-
-                coreml_layer_constant_weights_.push_back(weight_layer);
-            }
+        //weight in constantmap
+        //blobs of W、R、B are used as layer resource, no need to generate constant layer
+        //blobs of h0 and c0 are used as layer const inputs, sowe must generate constant layer
+        if (layer_info_->inputs.size() >= 6) {
+            std::vector<std::string> init_inputs = {layer_info_->inputs[4], layer_info_->inputs[5]};
+            return CoreMLBaseLayer::BuildConstantWeightsLayer(init_inputs);
         }
+        return TNN_OK;
     }
     return TNN_OK;
 }

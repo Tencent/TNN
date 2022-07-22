@@ -151,26 +151,32 @@ Status CoreMLBaseLayer::BuildConstantWeightsLayer() {
     //because some layer use constant in constant_map for layer resource, we dont need create a constant layer, see LSTM
     
     //weight in constantmap
-//    if (layer_info_ && net_resource_) {
-//        for (auto iter : layer_info_->inputs) {
-//            //only load data blob with flag DATA_FLAG_CHANGE_NEVER, ignore DATA_FLAG_CHANGE_IF_SHAPE_DIFFER
-//            if (net_resource_->constant_blob_flags.find(iter) != net_resource_->constant_blob_flags.end()) {
-//                auto blob_flag = net_resource_->constant_blob_flags[iter];
-//                if (blob_flag != DATA_FLAG_CHANGE_NEVER) {
-//                    continue;
-//                }
-//            }
-//
-//            if (net_resource_->constant_map.find(iter) != net_resource_->constant_map.end()) {
-//                auto weight_buffer = net_resource_->constant_map[iter];
-//                auto weight_layer = std::make_shared<CoreMLConstLayer>(LAYER_CONST);
-//                auto status = weight_layer->Init(iter, *(weight_buffer.get()));
-//                RETURN_ON_NEQ(status, TNN_OK);
-//
-//                coreml_layer_constant_weights_.push_back(weight_layer);
-//            }
-//        }
-//    }
+    if (!layer_info_ || !net_resource_) {
+        LOGE("CoreMLBaseLayer has invalid layer info or net resource\n");
+        return Status(TNNERR_MODEL_ERR, "CoreMLBaseLayer has invalid layer info or net resource");
+    }
+    return BuildConstantWeightsLayer(layer_info_->inputs);
+}
+
+Status CoreMLBaseLayer::BuildConstantWeightsLayer(std::vector<std::string> const_names) {
+    for (auto iter : const_names) {
+        //only load data blob with flag DATA_FLAG_CHANGE_NEVER, ignore DATA_FLAG_CHANGE_IF_SHAPE_DIFFER
+        if (net_resource_->constant_blob_flags.find(iter) != net_resource_->constant_blob_flags.end()) {
+            auto blob_flag = net_resource_->constant_blob_flags[iter];
+            if (blob_flag != DATA_FLAG_CHANGE_NEVER) {
+                continue;
+            }
+        }
+
+        if (net_resource_->constant_map.find(iter) != net_resource_->constant_map.end()) {
+            auto weight_buffer = net_resource_->constant_map[iter];
+            auto weight_layer = std::make_shared<CoreMLConstLayer>(LAYER_CONST);
+            auto status = weight_layer->Init(iter, *(weight_buffer.get()));
+            RETURN_ON_NEQ(status, TNN_OK);
+
+            coreml_layer_constant_weights_.push_back(weight_layer);
+        }
+    }
     return TNN_OK;
 }
 

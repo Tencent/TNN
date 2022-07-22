@@ -83,6 +83,7 @@ protected:
     virtual Status BuildLayerParam();
     // @brief convert weights to coreml const layer
     virtual Status BuildConstantWeightsLayer();
+    Status BuildConstantWeightsLayer(std::vector<std::string> const_names);
     /* @brief generate all inputs of coreml layer
      * For TNN op without input from layresource, you dont need override this func, it will generate all inputs form layer info automatically;
      * For TNN op with input from layresource, you must override this func to generate all inputs manually;

@@ -41,24 +41,7 @@ Status CoreMLBinaryLayer::BuildConstantWeightsLayer() {
         coreml_layer_constant_weights_ = {weight_layer};
     } else if(layer_info_ && net_resource_) {
         //weight in constantmap
-        for (auto iter : layer_info_->inputs) {
-            if (net_resource_->constant_map.find(iter) != net_resource_->constant_map.end()) {
-                int blob_flag = DATA_FLAG_CHANGE_NEVER;
-                if (net_resource_->constant_blob_flags.find(iter) != net_resource_->constant_blob_flags.end()) {
-                    blob_flag = net_resource_->constant_blob_flags[iter];
-                }
-                if (blob_flag != DATA_FLAG_CHANGE_NEVER) {
-                    continue;
-                }
-                
-                auto weight_buffer = net_resource_->constant_map[iter];
-                auto weight_layer = std::make_shared<CoreMLConstLayer>(LAYER_CONST);
-                auto status = weight_layer->Init(iter, *(weight_buffer.get()));
-                RETURN_ON_NEQ(status, TNN_OK);
-                
-                coreml_layer_constant_weights_.push_back(weight_layer);
-            }
-        }
+        return CoreMLBaseLayer::BuildConstantWeightsLayer();
     }
     return TNN_OK;
 }
