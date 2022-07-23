@@ -213,7 +213,8 @@
 #define CHECK_PARAM_NULL(param)                                                   \
     do {                                                                                                         \
         if (!param) {                                                                                        \
-            return Status(TNNERR_PARAM_ERR, "Error: param is nil");                                                    \
+            LOGE("Error: param is nil\n");                                                       \
+            return Status(TNNERR_PARAM_ERR, "Error: param is nil");       \
         }                                                                                                          \
     } while (0)
 
