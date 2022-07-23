@@ -226,6 +226,18 @@ Status CpuLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     const auto output_dims = outputs[0]->GetBlobDesc().dims;
     const auto hidden_size = layer_param->hidden_size; // output dimension
     
+    float *h_t = nullptr ,*c_t = nullptr;
+    std::shared_ptr<float> temp_h_t = nullptr, temp_c_t = nullptr;
+    if (outputs.size() >= 3) {
+        h_t = (float *)((char*)(outputs[1]->GetHandle().base) + outputs[1]->GetHandle().bytes_offset);
+        c_t = (float *)((char*)(outputs[2]->GetHandle().base) + outputs[2]->GetHandle().bytes_offset);
+    } else {
+        temp_h_t = std::shared_ptr<float>(new float[num_directions * batch * hidden_size], [](float* p) { delete[] p; });
+        temp_c_t = std::shared_ptr<float>(new float[num_directions * batch * hidden_size], [](float* p) { delete[] p; });
+        h_t = temp_h_t.get();
+        c_t = temp_c_t.get();
+    }
+    
     //X shape [sequence batch_size input_size]
     float *x = (float *)((char*)(inputs[0]->GetHandle().base) + inputs[0]->GetHandle().bytes_offset);
     
@@ -248,7 +260,6 @@ Status CpuLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
                    : b_.get();
 
     //initial_h, initial value of the hidden, If not specified - assumed to be 0. shape [num_directions, batch_size, hidden_size]
-    auto h_t = (float *)((char*)(outputs[1]->GetHandle().base) + outputs[1]->GetHandle().bytes_offset);
     if (blob_h0 != nullptr){
         auto h_0 = (float *)((char*)(blob_h0->GetHandle().base) + blob_h0->GetHandle().bytes_offset);
         if (h_0) {
@@ -259,7 +270,6 @@ Status CpuLSTMONNXLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     }
     
     //initial_c, initial value of the cell, If not specified - assumed to be 0. shape [num_directions, batch_size, hidden_size]
-    auto c_t = (float *)((char*)(outputs[2]->GetHandle().base) + outputs[2]->GetHandle().bytes_offset);
     if (blob_c0 != nullptr){
         auto c_0 = (float *)((char*)(blob_c0->GetHandle().base) + blob_c0->GetHandle().bytes_offset);
         if (c_0) {

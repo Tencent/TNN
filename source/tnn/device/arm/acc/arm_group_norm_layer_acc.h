@@ -13,32 +13,26 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "coreml_base_layer.h"
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_GROUP_NORM_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_GROUP_NORM_LAYER_ACC_H_
+
+#include "tnn/device/arm/acc/arm_layer_acc.h"
 
 namespace TNN_NS {
 
-class CoreMLConstLayer : public CoreMLBaseLayer {
+class ArmGroupNormLayerAcc : public ArmLayerAcc {
 public:
-   CoreMLConstLayer(LayerType layer_type) : CoreMLBaseLayer(layer_type){};
-   virtual ~CoreMLConstLayer() {};
-   Status Init(std::string output_name ,RawBuffer raw_buffer);
-   
-   virtual std::string GetLayerName();
-   
-   virtual Status BuildLayerType();
-   virtual Status BuildLayerParam();
-   virtual Status BuildConstantWeightsLayer();
-   virtual std::vector<std::string> BuildLayerInputs();
-   virtual std::vector<std::string> BuildLayerOutputs();
-   
-protected:
-   std::string output_name_;
-   RawBuffer raw_buffer_;
-   shared_ptr<uint64_t> shape_;
-   shared_ptr<CoreML__Specification__WeightParams> weight_param_;
-    
+    virtual ~ArmGroupNormLayerAcc(){};
+    virtual Status DoForward(const std::vector<Blob*>& inputs, const std::vector<Blob*>& outputs) override;
+
 private:
-    shared_ptr<RawBuffer>  raw_buffer_fp32_;
+    Status Exec(const std::vector<Blob*>& inputs, const std::vector<Blob*>& outputs);
+
+#if TNN_ARM82
+    Status ExecFp16(const std::vector<Blob*>& inputs, const std::vector<Blob*>& outputs);
+#endif
 };
 
 }  // namespace TNN_NS
+
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_GROUP_NORM_LAYER_ACC_H_
