@@ -74,10 +74,6 @@ TEST_P(GroupNormLayerTest, GroupNormLayer) {
         InitRandom(scales_buffer->force_to<float*>(), norm_size, 1.0f);
         std::shared_ptr<RawBuffer> biases_buffer(new RawBuffer(sizeof(float) * norm_size));
         InitRandom(biases_buffer->force_to<float*>(), norm_size, 1.0f);
-        if (group % 2) {
-            // bias may be empty
-            biases_buffer = std::make_shared<RawBuffer>();
-        }
         scales_buffer->SetBufferDims({channel});
         biases_buffer->SetBufferDims({channel});
 
