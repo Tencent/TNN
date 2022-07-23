@@ -33,9 +33,18 @@ DECLARE_COREML_LAYER_WITH_FUNC_DATA(Reshape, LAYER_RESHAPE,
                                      std::shared_ptr<LayerInfo> permute1_layer_info_;);
 
 bool CoreMLReshapeLayer::IsDynamic() {
-    if (layer_info_ && layer_info_->inputs.size() >= 2 && net_resource_ &&
-        net_resource_->constant_map.find(layer_info_->inputs[1]) == net_resource_->constant_map.end()) {
-        return true;
+    if (layer_info_ && layer_info_->inputs.size() >= 2 && net_resource_) {
+        auto shape_name = layer_info_->inputs[1];
+        if (net_resource_->constant_blob_flags.find(shape_name) != net_resource_->constant_blob_flags.end()) {
+            auto blob_flag = net_resource_->constant_blob_flags[shape_name];
+            if (blob_flag == DATA_FLAG_CHANGE_NEVER) {
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            return true;
+        }
     }
     return false;
 }
@@ -83,8 +92,11 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
         // onnx caffe reshape(nchw): 0
         // Tensorflow TFLite reshape(nhwc): 1
         auto reshape_type = reshape_param->reshape_type;
+        if (output_shape_size_ <= 0) {
+            output_shape_size_ = (int)shape.size();
+        }
     
-        if (input_shape_size_ <= 0 || output_shape_size_ <= 0 || shape_size != output_shape_size_) {
+        if ((reshape_type == 1 && input_shape_size_ <= 0) || output_shape_size_ <= 0 || shape_size != output_shape_size_) {
             return Status(TNNERR_MODEL_ERR, "CoreMLReshapeLayer has invalid input shape, output shape, or ReshapeLayerParam");
         }
         
@@ -117,11 +129,17 @@ Status CoreMLReshapeLayer::BuildLayerParam() {
                 coreml_layer_->reshapestatic->targetshape[i] = output_shape_permute[i];
             }
         } else {
-            for (int i=0;i<output_shape_size_;i++){
-                coreml_layer_->reshapestatic->targetshape[i] = output_shape[i];
+            //Note reshape static layer cannot handle 0 or -1
+            if (output_shape.size() == output_shape_size_) {
+                for (int i=0;i<output_shape_size_;i++){
+                    coreml_layer_->reshapestatic->targetshape[i] = output_shape[i];
+                }
+            } else {
+                for (int i=0;i<output_shape_size_;i++){
+                    coreml_layer_->reshapestatic->targetshape[i] = shape[i];
+                }
             }
         }
-
     }
     
     return TNN_OK;
@@ -131,6 +149,7 @@ Status CoreMLReshapeLayer::BuildPermute0Layer() {
     auto param = layer_info_->param.get();
     auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
     auto permute0_layer = CreateCoreMLBaseLayer(LAYER_PERMUTE);
+    permute0_layer->SetNetResource(net_resource_);
     permute0_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
     {
         permute0_layer_info_->type = LAYER_PERMUTE;
@@ -150,7 +169,7 @@ Status CoreMLReshapeLayer::BuildPermute0Layer() {
         }
     }
     RETURN_ON_NEQ(permute0_layer->Init(permute0_layer_info_.get(), nullptr), TNN_OK);
-    coreml_layer_before_ = permute0_layer;
+    coreml_layers_before_ = {permute0_layer};
     
     return TNN_OK;
 }
@@ -159,6 +178,7 @@ Status CoreMLReshapeLayer::BuildPermute1Layer() {
     auto param = layer_info_->param.get();
     auto reshape_param = dynamic_cast<ReshapeLayerParam *>(param);
     auto permute1_layer = CreateCoreMLBaseLayer(LAYER_PERMUTE);
+    permute1_layer->SetNetResource(net_resource_);
     permute1_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
     {
         permute1_layer_info_->type = LAYER_PERMUTE;
@@ -178,7 +198,7 @@ Status CoreMLReshapeLayer::BuildPermute1Layer() {
         }
     }
     RETURN_ON_NEQ(permute1_layer->Init(permute1_layer_info_.get(), nullptr), TNN_OK);
-    coreml_layer_after_ = permute1_layer;
+    coreml_layers_after_ = {permute1_layer};
     
     return TNN_OK;
 }

@@ -60,22 +60,22 @@ void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision 
 
     ret = Init(interp, precision, cpu_input_data_format, device_input_data_format);
     if (ret != TNN_OK) {
-        EXPECT_EQ((int)ret, TNN_OK);
         DeInit();
+        EXPECT_EQ((int)ret, TNN_OK);
         return;
     }
 
     ret = InitInputBlobsDataRandom();
     if (ret != TNN_OK) {
-        EXPECT_EQ((int)ret, TNN_OK);
         DeInit();
+        EXPECT_EQ((int)ret, TNN_OK);
         return;
     }
 
     ret = Forward();
     if (ret != TNN_OK) {
-        EXPECT_EQ((int)ret, TNN_OK);
         DeInit();
+        EXPECT_EQ((int)ret, TNN_OK);
         return;
     }
 

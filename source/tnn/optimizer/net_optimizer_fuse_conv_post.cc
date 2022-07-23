@@ -40,6 +40,7 @@ namespace optimizer {
             kLayerActivationMap[LAYER_RELU]    = ActivationType_ReLU;
             kLayerActivationMap[LAYER_RELU6]   = ActivationType_ReLU6;
             kLayerActivationMap[LAYER_SIGMOID] = ActivationType_SIGMOID_MUL;
+            kLayerActivationMap[LAYER_SWISH]   = ActivationType_SIGMOID_MUL;
             return true;
         }
         if (device == DEVICE_RK_NPU) {
@@ -80,7 +81,7 @@ namespace optimizer {
                 auto conv_output_name       = layer_info_prev->outputs[0];
                 auto activation_type        = activation->second;
                 bool conv_output_name_check = false;
-                if (activation_type == ActivationType_SIGMOID_MUL) {
+                if (activation_type == ActivationType_SIGMOID_MUL && layer_current_type == LAYER_SIGMOID) {
                     auto sigmoid_output_name = layer_info_current->outputs[0];
                     if (index + 1 < count) {
                         auto layer_info_next = layers_orig[index + 1];

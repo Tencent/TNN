@@ -1,4 +1,3 @@
-
 // Tencent is pleased to support the open source community by making TNN available.
 //
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
@@ -13,32 +12,21 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "coreml_base_layer.h"
+#include "test/unit_test/layer_test/test_unary_layer.h"
 
 namespace TNN_NS {
 
-class CoreMLConstLayer : public CoreMLBaseLayer {
+class SwishLayerTest : public UnaryLayerTest {
 public:
-   CoreMLConstLayer(LayerType layer_type) : CoreMLBaseLayer(layer_type){};
-   virtual ~CoreMLConstLayer() {};
-   Status Init(std::string output_name ,RawBuffer raw_buffer);
-   
-   virtual std::string GetLayerName();
-   
-   virtual Status BuildLayerType();
-   virtual Status BuildLayerParam();
-   virtual Status BuildConstantWeightsLayer();
-   virtual std::vector<std::string> BuildLayerInputs();
-   virtual std::vector<std::string> BuildLayerOutputs();
-   
-protected:
-   std::string output_name_;
-   RawBuffer raw_buffer_;
-   shared_ptr<uint64_t> shape_;
-   shared_ptr<CoreML__Specification__WeightParams> weight_param_;
-    
-private:
-    shared_ptr<RawBuffer>  raw_buffer_fp32_;
+    SwishLayerTest() : UnaryLayerTest(LAYER_SWISH) {}
 };
+
+INSTANTIATE_TEST_SUITE_P(LayerTest, SwishLayerTest,
+                         ::testing::Combine(UNARY_BATCH_CHANNEL_SIZE, testing::Values(2, 3, 4, 5),
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
+
+TEST_P(SwishLayerTest, UnaryLayerTest) {
+    RunUnaryTest("Swish");
+}
 
 }  // namespace TNN_NS
