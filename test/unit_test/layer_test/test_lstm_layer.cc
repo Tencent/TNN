@@ -74,11 +74,15 @@ TEST_P(LSTMLayerTest, LSTMONNXLayer) {
     std::vector<int> wi_dims    = {num_directions, 4*output_size, input_size};
     std::vector<int> wh_dims    = {num_directions, 4*output_size, output_size};
     std::vector<int> bias_dims  = {num_directions, 8*output_size};
-    std::vector<int> h0_dims    = {num_directions, batch, output_size};
-    std::vector<int> c0_dims    = {num_directions, batch, output_size};
-
-    //Note, set output count 1, dont export ht and ct, because now applenpu acc dont produce right result for ht and ct (50% wrong) when direction = 2
-    auto interpreter            = GenerateInterpreter("LSTMONNX", {input_dims, wi_dims, wh_dims, bias_dims, h0_dims, c0_dims}, param, nullptr, 1);
+    std::shared_ptr<AbstractModelInterpreter> interpreter = nullptr;
+    if (dev == DEVICE_APPLE_NPU) {
+        std::vector<int> h0_dims    = {num_directions, batch, output_size};
+        std::vector<int> c0_dims    = {num_directions, batch, output_size};
+        //Note, set output count 1, dont export ht and ct, because now applenpu acc dont produce right result for ht and ct (50% wrong) when direction = 2
+        interpreter = GenerateInterpreter("LSTMONNX", {input_dims, wi_dims, wh_dims, bias_dims, h0_dims, c0_dims}, param, nullptr, 1);
+    } else {
+        interpreter = GenerateInterpreter("LSTMONNX", {input_dims, wi_dims, wh_dims, bias_dims}, param, nullptr, 3);
+    }
 
     Precision precision = SetPrecision(dev, dtype);
 
