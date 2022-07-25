@@ -38,7 +38,7 @@ protected:
    shared_ptr<CoreML__Specification__WeightParams> weight_param_;
     
 private:
-    RawBuffer cvt_raw_buffer_;
+    shared_ptr<RawBuffer>  raw_buffer_fp32_;
 };
 
 }  // namespace TNN_NS
