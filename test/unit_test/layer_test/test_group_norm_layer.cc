@@ -44,7 +44,7 @@ TEST_P(GroupNormLayerTest, GroupNormLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_METAL == dev || DEVICE_HUAWEI_NPU == dev) {
+    if (DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
     }
     if (CheckDataTypeSkip(data_type)) {
@@ -65,6 +65,7 @@ TEST_P(GroupNormLayerTest, GroupNormLayer) {
         input_dims.push_back(input_size);
     }
 
+    //groupnorm has no layer resource, scale and bias weights are saved in constant map
     auto interpreter = GenerateInterpreter("GroupNorm", {input_dims, {channel}, {channel}}, param);
     if (DEVICE_APPLE_NPU == dev) {
         // resource
@@ -77,6 +78,9 @@ TEST_P(GroupNormLayerTest, GroupNormLayer) {
             // bias may be empty
             biases_buffer = std::make_shared<RawBuffer>();
         }
+        scales_buffer->SetBufferDims({channel});
+        biases_buffer->SetBufferDims({channel});
+
         auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter.get());
         auto net_structure       = default_interpreter->GetNetStructure();
         auto net_resource        = default_interpreter->GetNetResource();
