@@ -509,7 +509,6 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 
     for (int inid = 0; inid < inputs.size(); inid++) {
         if (inputs[inid]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
-            // LOGD("修改处：Concat算子中，输入 %d 为INT32类型, 修改为FLOAT类型\n", inid);
             bool IS_NC4HW4 = inputs[inid]->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4;
             TransDataType<int32_t, float>(GetBlobHandlePtr(inputs[inid]->GetHandle()), inputs[inid]->GetBlobDesc().dims, IS_NC4HW4);
             inputs[inid]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;

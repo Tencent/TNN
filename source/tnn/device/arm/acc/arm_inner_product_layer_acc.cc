@@ -100,7 +100,6 @@ Status ArmInnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
         DimsVector dims_input  = inputs[0]->GetBlobDesc().dims;
         DimsVector dims_output = outputs[0]->GetBlobDesc().dims;
         if (dims_input.size() == 0) {
-            // LOGD("修改处：当 weights 来源于initial时，无需重复申请空间\n");
             return TNN_OK;
         }
 

@@ -108,7 +108,6 @@ Float4 binary_op<ArmBinaryOpType::kHARDSWISH, Float4>(const Float4 &a, const Flo
     return a * Float4::max(Float4::min(b * alpha + beta, 1.0f), 0.f);
 }
 
-// 修改处：添加对 EQUAL 与 GREATER 算子的 binary_op 函数支持
 template <>
 float binary_op<ArmBinaryOpType::kEQUAL, float>(const float &a, const float &b, float alpha, float beta) {
     return a == b ? 1.0f : 0.f;
@@ -258,7 +257,6 @@ Status ArmBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
 
 // SUPPORTED DATATYPES
 bool ArmBinaryLayerAcc::DataTypeSupported(DataType data_type) {
-    // 修改处：添加了输入算子是 DATA_TYPE_INT32 的支持
     if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_BFP16
      || data_type == DATA_TYPE_INT32)
         return true;
@@ -352,7 +350,6 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
                 }
             }
         } else {
-            LOGD("进入了TODO阶段\n");
             // Todo
         }
     }
