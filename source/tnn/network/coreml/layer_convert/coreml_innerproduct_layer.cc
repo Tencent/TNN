@@ -23,8 +23,8 @@ DECLARE_COREML_LAYER_WITH_FUNC_DATA(Innerproduct, LAYER_INNER_PRODUCT,
                                     std::shared_ptr<LayerInfo> squeeze_layer_info_;
                                     int input_shape_size = 0;
                                     int output_shape_size = 0;
-                                    std::shared_ptr<float> weight_fp32_ptr_;
-                                    std::shared_ptr<float> bias_fp32_ptr_;);
+                                    std::shared_ptr<RawBuffer> rawbuffer_fp32_weight_;
+                                    std::shared_ptr<RawBuffer> rawbuffer_fp32_bias_;);
 
 Status CoreMLInnerproductLayer::BuildLayerType() {
     //layer type
@@ -69,85 +69,36 @@ Status CoreMLInnerproductLayer::BuildLayerParam() {
         RETURN_ON_NEQ(BuildSqueezeLayer(), TNN_OK);
     }
     
-    int input_dims;
+    int inputchannels;
     if(weight_dims.size() == 0){
         if (input_shape.size() <= 0) {
             return Status(TNNERR_MODEL_ERR, "CoreMLInnerproductLayer has invalid input shape");
         }
         if(input_shape_size > output_shape_size) {
             auto reduce_dims = input_shape_size - output_shape_size;
-            input_dims = input_shape[input_shape_size - 1 - reduce_dims];
+            inputchannels = input_shape[input_shape_size - 1 - reduce_dims];
         } else {
-            input_dims = input_shape.back();
+            inputchannels = input_shape.back();
         }
     } else {
-        input_dims = weight_dims.back();
+        inputchannels = DimsVectorUtils::Count(weight_dims)/num_output;
     }
    
     coreml_layer_param_ = std::shared_ptr<CoreML__Specification__InnerProductLayerParams>(new CoreML__Specification__InnerProductLayerParams);
     coreml_layer_->innerproduct = (CoreML__Specification__InnerProductLayerParams *)coreml_layer_param_.get();
     core_ml__specification__inner_product_layer_params__init(coreml_layer_->innerproduct);
-    coreml_layer_->innerproduct->inputchannels = input_dims;
+    coreml_layer_->innerproduct->inputchannels = inputchannels;
     coreml_layer_->innerproduct->outputchannels = num_output;
     
-    weight_param_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
+    RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(layer_res->weight_handle),
+                                         weight_param_, rawbuffer_fp32_weight_), TNN_OK);
     coreml_layer_->innerproduct->weights = weight_param_.get();
-        core_ml__specification__weight_params__init(coreml_layer_->innerproduct->weights);
-    switch (weight_type) {
-        case DATA_TYPE_FLOAT:
-            coreml_layer_->innerproduct->weights->n_floatvalue = weight_size;
-            coreml_layer_->innerproduct->weights->floatvalue = layer_res->weight_handle.force_to<float *>();
-            break;
-        case DATA_TYPE_HALF:
-            {
-#if TNN_COREML_FULL_PRECISION
-                coreml_layer_->innerproduct->weights->n_floatvalue = weight_size;
-                void *weight_data_ptr = layer_res->weight_handle.force_to<void *>();
-                weight_fp32_ptr_ = std::shared_ptr<float>(new float [weight_size], [](float* p) { delete[] p; });
-                auto weight_fp32_ptr = weight_fp32_ptr_.get();
-                RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)weight_data_ptr, (float *)weight_fp32_ptr, weight_size),TNN_OK);
-                coreml_layer_->innerproduct->weights->floatvalue = weight_fp32_ptr;
-#else
-                coreml_layer_->innerproduct->weights->float16value.len = layer_res->weight_handle.GetBytesSize();
-                coreml_layer_->innerproduct->weights->float16value.data = layer_res->weight_handle.force_to<uint8_t *>();
-#endif
-            }
-            break;
-        default:
-            LOGE("CoreMLInnerproductLayer dont support data type (%d)\n", weight_type);
-            return Status(TNNERR_MODEL_ERR, "CoreMLConvLayer dont support this weight data type");
-            break;
-    }
+
     if(bias_size) {
         coreml_layer_->innerproduct->hasbias = true;
-        bias_param_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
+        RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(layer_res->bias_handle),
+                                             bias_param_, rawbuffer_fp32_bias_), TNN_OK);
         coreml_layer_->innerproduct->bias = bias_param_.get();
-        core_ml__specification__weight_params__init(coreml_layer_->innerproduct->bias);
-        switch (bias_type) {
-            case DATA_TYPE_FLOAT:
-                coreml_layer_->innerproduct->bias->n_floatvalue = bias_size;
-                coreml_layer_->innerproduct->bias->floatvalue = layer_res->bias_handle.force_to<float *>();
-                break;
-            case DATA_TYPE_HALF:
-                {
-#if TNN_COREML_FULL_PRECISION
-                    coreml_layer_->innerproduct->bias->n_floatvalue = bias_size;
-                    void *bias_data_ptr = layer_res->bias_handle.force_to<void *>();
-                    bias_fp32_ptr_ = std::shared_ptr<float>(new float [bias_size], [](float* p) { delete[] p; });
-                    auto bias_fp32_ptr = bias_fp32_ptr_.get();
-                    RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)bias_data_ptr, (float *)bias_fp32_ptr, bias_size),TNN_OK);
-                    coreml_layer_->innerproduct->bias->floatvalue = bias_fp32_ptr;
-#else
-                    coreml_layer_->innerproduct->bias->float16value.len = layer_res->bias_handle.GetBytesSize();
-                    coreml_layer_->innerproduct->bias->float16value.data = layer_res->bias_handle.force_to<uint8_t *>();
-#endif
-                }
-                break;
-            default:
-                LOGE("CoreMLInnerproductLayer dont support data type (%d)\n", bias_type);
-                return Status(TNNERR_MODEL_ERR, "CoreMLConvLayer dont support this bias data type");
-                break;
-        }
     }
     
     return TNN_OK;
@@ -157,6 +108,7 @@ Status CoreMLInnerproductLayer::BuildSqueezeLayer() {
     auto param = layer_info_->param.get();
     auto innerproduct_param = dynamic_cast<InnerProductLayerParam *>(param);
     auto squeeze_layer = CreateCoreMLBaseLayer(LAYER_SQUEEZE);
+    squeeze_layer->SetNetResource(net_resource_);
     squeeze_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
     {
         squeeze_layer_info_->type = LAYER_SQUEEZE;
@@ -175,7 +127,7 @@ Status CoreMLInnerproductLayer::BuildSqueezeLayer() {
         }
     }
     RETURN_ON_NEQ(squeeze_layer->Init(squeeze_layer_info_.get(), nullptr), TNN_OK);
-    coreml_layer_before_ = squeeze_layer;
+    coreml_layers_before_ = {squeeze_layer};
     
     return TNN_OK;
 }
