@@ -29,4 +29,4 @@ jobs:
     - name: configure
       run: sudo apt-get install attr
     - name: build
-      run: export ANDROID_NDK=$ANDROID_HOME/ndk && ./scripts/build_android.sh
+      run: export ANDROID_NDK=$ANDROID_HOME/ndk/21.4.7075529 && ./scripts/build_android.sh
