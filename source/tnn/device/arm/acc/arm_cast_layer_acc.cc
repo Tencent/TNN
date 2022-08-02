@@ -51,7 +51,6 @@ Status ArmCastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
             output_data_type == DATA_TYPE_BFP16 ||
             output_data_type == DATA_TYPE_INT32 ||
             output_data_type == DATA_TYPE_INT8) {
-            // LOGD_IF(output_data_type == DATA_TYPE_INT8, "修改处：Cast算子支持由bool类型转换为bool类型\n");
             if (output_data != input_data) {
                 memcpy(output_data, input_data, count * ele_size);
             }

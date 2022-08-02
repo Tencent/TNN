@@ -180,7 +180,6 @@ Status ArmInnerProductLayerAcc::allocateBufferBias(const std::vector<Blob *> &in
     CHECK_PARAM_NULL(fc_res);
     auto dims_output = outputs[0]->GetBlobDesc().dims;
     if (dims_output.size() == 0) {
-        // LOGD("修改处：当bias来源于initial时，无需重复申请空间\n");
         return TNN_OK;
     }
     if (!buffer_bias_.GetBytesSize()) {

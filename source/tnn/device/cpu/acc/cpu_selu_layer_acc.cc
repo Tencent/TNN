@@ -27,15 +27,8 @@ public:
             LOGE("Error: selu layer param is nil\n");
             return Status(TNNERR_MODEL_ERR, "Error: selu layer param is nil");
         }
-        // 当 alpha = gamma = 0时，认为触发 default需求
-        if ((double)fabs(layer_param->alpha) < 1e-15 && (double)fabs(layer_param->gamma) < 1e-15) {
-            alpha_ = 1.6732632423543772848170429916717;
-            gamma_ = 1.0507009873554804934193349852946;
-        }
-        else {
-            alpha_ = layer_param->alpha;
-            gamma_ = layer_param->gamma;
-        }
+        alpha_ = layer_param->alpha;
+        gamma_ = layer_param->gamma;
         return TNN_OK;
     }
     virtual float operator()(float in) {

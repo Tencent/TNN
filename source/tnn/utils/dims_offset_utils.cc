@@ -16,8 +16,6 @@
 
 namespace TNN_NS {
 
-
-// 修改处：使用地址，避免临时拷贝
 DimsVector DimsOffsetUtils::ConvertOffsetToIndex(const DimsVector &dims, int offset) {
     DimsVector index(dims.size(), 1);
     for(int i = dims.size() - 1; i >=0; --i) {

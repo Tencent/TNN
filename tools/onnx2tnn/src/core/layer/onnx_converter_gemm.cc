@@ -153,8 +153,6 @@ int OnnxOpConverterGemm::WriteTNNModel(Serializer* net_writer,
             if (node.input_size() == 3) {
                 bias = get_node_attr_tensor(node, "C", net_info, 2);
             } 
-            // 保留原有 else 执行逻辑
-            // 添加逻辑：当 initializer 与 input 均无法获取时，从中间节点获取 C
             if (node.input_size() != 3 || bias.name() == "") {
                 std::vector<int> bias_shape = {num_bias};
                 std::vector<float> bias_data(num_bias, 0.0f);

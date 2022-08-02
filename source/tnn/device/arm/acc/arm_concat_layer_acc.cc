@@ -219,7 +219,6 @@ static int concat_common_i8(Blob *output, const std::vector<Blob *> &inputs, int
 static DimsVector GetCXRoundDims(const DimsVector &dims, const int round) {
     DimsVector round_dims = {dims[0]};
     if (dims.size() < 2) {
-        // LOGE("修改处：当 dims 仅有1维时，CXRoundDims结果可能存在未知问题\n");
         round_dims.push_back(0);
     } else {
         round_dims.push_back(UP_DIV(dims[1], round));
@@ -249,7 +248,7 @@ static int concat_common(Blob *output, const std::vector<Blob *> &inputs, int ax
             auto input_dims             = input->GetBlobDesc().dims;
             DimsVector round_input_dims = GetCXRoundDims(input_dims, 4);
             auto input_stride           = DimsVectorUtils::Count(round_input_dims, axis);
-            // LOGE_IF(input_stride == 0, "修改处：concat 拼接时，若原始数据不足 4，则每次至少取 1\n");
+            // concat 拼接时，若原始数据不足 4，则每次至少取 1
             input_stride = std::max(1, input_stride);
             auto input_ptr = reinterpret_cast<T *>(GetBlobHandlePtr(input->GetHandle())) + n * input_stride;
             memcpy(output_ptr, input_ptr, input_stride * sizeof(T));

@@ -53,7 +53,6 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
         } else if (reformat_param->src_type == DATA_TYPE_INT32 && reformat_param->dst_type == DATA_TYPE_INT32) {
             reformat_param->type = NC4HW4INT32_2_NCHWINT32;
         } else if (reformat_param->src_type == DATA_TYPE_INT8 && reformat_param->dst_type == DATA_TYPE_INT8) {
-            // LOGD("修改处：添加 INT8 类型的 NC4HW4 转 NCHW\n");
             reformat_param->type = NC4HW4INT8_2_NCHWINT8;
         } else {
             LOGE("ArmReformatLayerAcc::Init Error: src_fmt: %d, dst_fmt: %d, src_type: %d, dst_type: %d\n",
@@ -69,7 +68,6 @@ Status ArmReformatLayerAcc::Init(Context *context, LayerParam *param, LayerResou
         } else if (reformat_param->src_type == DATA_TYPE_INT32 && reformat_param->dst_type == DATA_TYPE_INT32) {
             reformat_param->type = NCHWINT32_2_NC4HW4INT32;
         } else if (reformat_param->src_type == DATA_TYPE_INT8 && reformat_param->dst_type == DATA_TYPE_INT8) {
-            // LOGD("修改处：添加 INT8 类型的 NCHW 转 NC4HW4\n");
             reformat_param->type = NCHWINT8_2_NC4HW4INT8;
         } else {
             LOGE("ArmReformatLayerAcc::Init Error: src_fmt: %d, dst_fmt: %d, src_type: %d, dst_type: %d\n",
