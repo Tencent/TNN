@@ -65,7 +65,7 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
     
     if (_cachePath && _cachePath.length>0 && _ID && _ID.length > 0) {
         auto tempURL = [NSURL fileURLWithPath:_cachePath isDirectory:YES];
-        _mlmodelPath =  [tempURL URLByAppendingPathComponent:_ID];
+        _mlmodelPath =  [tempURL URLByAppendingPathComponent:[_ID stringByAppendingString:@".mlmodel"]];
         return _mlmodelPath;
     } else {
         return nil;
@@ -196,9 +196,11 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
     if (@available(iOS 12.0, macOS 10.14, *)) {
         //mlmodel path
         auto mlmodelURL = [self mlmodelPath];
+        LOGD("mlmodelURL:%s\n", [mlmodelURL path].UTF8String);
         
         NSError* error = nil;
         NSURL* mlmodelcURL = [MLModel compileModelAtURL:mlmodelURL error:&error];
+        LOGD("mlmodelcURL:%s\n", [mlmodelcURL path].UTF8String);
         if (error != nil) {
             [self cleanupMLModelC];
             LOGE("Error compiling model %s.\n", [error localizedDescription].UTF8String);
@@ -230,14 +232,13 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
 #else
         config.computeUnits = MLComputeUnitsAll;
 #endif
+        LOGD("mlmodelcURL:%s\n", mlmodelcURL.absoluteString.UTF8String);
         _model = [MLModel modelWithContentsOfURL:mlmodelcURL configuration:config error:&error];
-        
         if (error != nil) {
             [self cleanupMLModelC];
             LOGE("Error Creating MLModel %s.\n", [error localizedDescription].UTF8String);
             return TNN_NS::Status(TNN_NS::TNNERR_ANE_COMPILE_MODEL_ERROR, "Error: Failed Creating MLModel.");
         }
-        
 #ifdef DEBUG
     LOGD("TNN buildFromPathMLModelC time: %f ms\n", (CFAbsoluteTimeGetCurrent() - time_start) * 1000.0);
 #endif
@@ -299,7 +300,7 @@ fromFeature:(NSDictionary<NSString *, MLFeatureDescription *> *) featureDict API
         } else if (feature.multiArrayConstraint.dataType == MLMultiArrayDataTypeInt32) {
             data_type = DATA_TYPE_INT32;
         } else {
-            LOGE("CoreMLNetwork dont support MLFeatureTypeMultiArray withdata type %d", (int)feature.multiArrayConstraint.dataType);
+            LOGE("CoreMLNetwork dont support MLFeatureTypeMultiArray withdata type %d\n", (int)feature.multiArrayConstraint.dataType);
             return Status(TNNERR_MODEL_ERR, "TNNCoreMLNetwork only supports input and out with data type Float32 or Int32");
         }
 

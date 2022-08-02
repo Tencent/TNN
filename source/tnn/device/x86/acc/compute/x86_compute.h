@@ -79,6 +79,13 @@ void X86StrideSliceImpl(DimsVector begins, DimsVector strides, DimsVector dims_o
                         DimsVector input_strides, DimsVector output_strides,
                         const float* input_data, float* output_data);
 
+template<class T, int pack>
+Status X86_GroupNorm_FMA(
+    float *input_data, float *output_data,
+    float *scale_data, float *bias_data,
+    int group, float epsilon,
+    int batch_time_group, int channels_per_group, int channel_area, int group_area);
+    
 }   // namespace TNN_NS
 
 #endif

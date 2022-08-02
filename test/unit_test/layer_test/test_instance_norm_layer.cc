@@ -26,7 +26,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, InstanceNormLayerTest,
                          ::testing::Combine(testing::Values(1, 2), testing::Values(1, 4, 6),
                                             testing::Values(10, 20, 65, 128),
                                             // dim count
-                                            testing::Values(2, 3, 4, 5),
+                                            testing::Values(3, 4, 5),
                                             testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(InstanceNormLayerTest, InstanceNormLayer) {
@@ -53,13 +53,25 @@ TEST_P(InstanceNormLayerTest, InstanceNormLayer) {
     // param
     std::shared_ptr<InstanceNormLayerParam> param(new InstanceNormLayerParam());
     param->name = "InstanceNorm";
+    param->channels = channel;
+
+    // resource
+    std::shared_ptr<InstanceNormLayerResource> resource(new InstanceNormLayerResource());
+    RawBuffer filter_k(channel * sizeof(float));
+    float* k_data = filter_k.force_to<float*>();
+    InitRandom(k_data, channel, 1.0f);
+    resource->scale_handle = filter_k;
+    RawBuffer bias(channel * sizeof(float));
+    float* bias_data = bias.force_to<float*>();
+    InitRandom(bias_data, channel, 1.0f);
+    resource->bias_handle = bias;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel};
     while (input_dims.size() < dim_count) {
         input_dims.push_back(input_size);
     }
-    auto interpreter    = GenerateInterpreter("InstBatchNormCxx", {input_dims}, param);
+    auto interpreter    = GenerateInterpreter("InstBatchNormCxx", {input_dims}, param, resource);
     Precision precision = SetPrecision(dev, dtype);
     Run(interpreter, precision);
 }

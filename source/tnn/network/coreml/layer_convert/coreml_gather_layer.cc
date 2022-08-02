@@ -38,6 +38,8 @@ Status CoreMLGatherLayer::BuildLayerParam() {
 }
 
 Status CoreMLGatherLayer::BuildConstantWeightsLayer() {
+    RETURN_ON_NEQ(CoreMLBaseLayer::BuildConstantWeightsLayer(), TNN_OK);
+    
     GatherLayerParam *layer_param = layer_info_ ? dynamic_cast<GatherLayerParam *>(layer_info_->param.get()) : nullptr;
     CHECK_PARAM_NULL(layer_param);
     if (!layer_param->data_in_resource && !layer_param->indices_in_resource) {

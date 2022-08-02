@@ -19,8 +19,9 @@
 namespace TNN_NS {
 
 DECLARE_COREML_LAYER_WITH_DATA(MatMul, LAYER_MATMUL,
+                                    RawBuffer matrix_b_column_;
                                     std::shared_ptr<CoreML__Specification__WeightParams> weight_param_;
-                                    RawBuffer matrix_b_column_;);
+                                    std::shared_ptr<RawBuffer> rawbuffer_fp32_weight_;);
 
 Status CoreMLMatMulLayer::BuildLayerType() {
     //layer type
@@ -55,68 +56,33 @@ Status CoreMLMatMulLayer::BuildLayerParam() {
         if (param->weight_position == 0) {
             return Status(TNNERR_MODEL_ERR, "CoreMLMatMulLayer dont support constant matrix a");
         } else {
-            weight_param_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
-            coreml_layer_->batchedmatmul->weights = weight_param_.get();
-            core_ml__specification__weight_params__init(coreml_layer_->batchedmatmul->weights);
-            
             int weight_count = resource->weight.GetDataCount();
             auto matrix_b_data_type = resource->weight.GetDataType();
-            switch (matrix_b_data_type) {
-                case DATA_TYPE_FLOAT:
-                    {
-                        matrix_b_column_ = RawBuffer(weight_count*4, {matrix_b_dims[1], matrix_b_dims[0]});
-                        matrix_b_column_.SetDataType(DATA_TYPE_FLOAT);
-                        auto matrix_b_ptr = resource->weight.force_to<float *>();
-                        auto matrix_b_column_ptr = matrix_b_column_.force_to<float *>();
-                        for (int i=0; i<matrix_b_dims[1]; i++) {
-                            for (int j=0; j<matrix_b_dims[0]; j++) {
-                                *(matrix_b_column_ptr++) = matrix_b_ptr[j*matrix_b_dims[1] + i];
-                            }
-                        }
-                        coreml_layer_->batchedmatmul->weights->n_floatvalue = matrix_b_column_.GetDataCount();
-                        coreml_layer_->batchedmatmul->weights->floatvalue = matrix_b_column_.force_to<float *>();
+            
+            if (matrix_b_data_type == DATA_TYPE_FLOAT) {
+                matrix_b_column_ = RawBuffer(weight_count*4, {matrix_b_dims[1], matrix_b_dims[0]});
+                matrix_b_column_.SetDataType(DATA_TYPE_FLOAT);
+                auto matrix_b_ptr = resource->weight.force_to<float *>();
+                auto matrix_b_column_ptr = matrix_b_column_.force_to<float *>();
+                for (int i=0; i<matrix_b_dims[1]; i++) {
+                    for (int j=0; j<matrix_b_dims[0]; j++) {
+                        *(matrix_b_column_ptr++) = matrix_b_ptr[j*matrix_b_dims[1] + i];
                     }
-                    break;
-                case DATA_TYPE_HALF:
-                    {
-#if TNN_COREML_FULL_PRECISION
-                        matrix_b_column_ = RawBuffer(weight_count*4, {matrix_b_dims[1], matrix_b_dims[0]});
-                        matrix_b_column_.SetDataType(DATA_TYPE_FLOAT);
-                        auto matrix_b_fp16_ptr = resource->weight.force_to<void *>();
-                        int element_size = resource->weight.GetDataCount();
-                        auto matrix_b_fp32_ptr_ = std::shared_ptr<float>(new float [element_size], [](float* p) { delete[] p; });
-                        auto matrix_b_fp32_ptr = matrix_b_fp32_ptr_.get();
-                        RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)matrix_b_fp16_ptr, (float *)matrix_b_fp32_ptr, element_size),TNN_OK);
-                        auto matrix_b_column_ptr = matrix_b_column_.force_to<float *>();
-                        for (int i=0; i<matrix_b_dims[1]; i++) {
-                            for (int j=0; j<matrix_b_dims[0]; j++) {
-                                *(matrix_b_column_ptr++) = matrix_b_fp32_ptr[j*matrix_b_dims[1] + i];
-                            }
-                        }
-                        coreml_layer_->batchedmatmul->weights->n_floatvalue = matrix_b_column_.GetDataCount();
-                        coreml_layer_->batchedmatmul->weights->floatvalue = matrix_b_column_.force_to<float *>();
-#else
-                        matrix_b_column_ = RawBuffer(weight_count*2, {matrix_b_dims[1], matrix_b_dims[0]});
-                        matrix_b_column_.SetDataType(DATA_TYPE_HALF);
-                        auto matrix_b_ptr = resource->weight.force_to<uint16_t *>();
-                        auto matrix_b_column_ptr = matrix_b_column_.force_to<uint16_t *>();
-                        for (int i=0; i<matrix_b_dims[1]; i++) {
-                            for (int j=0; j<matrix_b_dims[0]; j++) {
-                                *(matrix_b_column_ptr++) = matrix_b_ptr[j*matrix_b_dims[1] + i];
-                            }
-                        }
-                        coreml_layer_->batchedmatmul->weights->float16value.len = resource->weight.GetBytesSize();
-                        coreml_layer_->batchedmatmul->weights->float16value.data = matrix_b_column_.force_to<uint8_t *>();
-#endif
+                }
+            } else if (matrix_b_data_type == DATA_TYPE_HALF) {
+                matrix_b_column_ = RawBuffer(weight_count*2, {matrix_b_dims[1], matrix_b_dims[0]});
+                matrix_b_column_.SetDataType(DATA_TYPE_HALF);
+                auto matrix_b_ptr = resource->weight.force_to<uint16_t *>();
+                auto matrix_b_column_ptr = matrix_b_column_.force_to<uint16_t *>();
+                for (int i=0; i<matrix_b_dims[1]; i++) {
+                    for (int j=0; j<matrix_b_dims[0]; j++) {
+                        *(matrix_b_column_ptr++) = matrix_b_ptr[j*matrix_b_dims[1] + i];
                     }
-                    break;
-                default:
-                    {
-                        LOGE("CoreMLMatMulLayer dont support data type (%d)\n", matrix_b_data_type);
-                        return Status(TNNERR_PARAM_ERR, "CoreMLMatMulLayer dont support data type");
-                    }
-                    break;
+                }
             }
+            
+            RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(matrix_b_column_),weight_param_, rawbuffer_fp32_weight_), TNN_OK);
+            coreml_layer_->batchedmatmul->weights = weight_param_.get();
         }
     }
     
@@ -126,16 +92,7 @@ Status CoreMLMatMulLayer::BuildLayerParam() {
 Status CoreMLMatMulLayer::BuildConstantWeightsLayer() {
     if (layer_info_ && layer_info_->inputs.size() > 1) {
         //weight in constantmap
-        for (auto iter : layer_info_->inputs) {
-            if (net_resource_->constant_map.find(iter) != net_resource_->constant_map.end()) {
-                auto weight_buffer = net_resource_->constant_map[iter];
-                auto weight_layer = std::make_shared<CoreMLConstLayer>(LAYER_CONST);
-                auto status = weight_layer->Init(iter, *(weight_buffer.get()));
-                RETURN_ON_NEQ(status, TNN_OK);
-                
-                coreml_layer_constant_weights_.push_back(weight_layer);
-            }
-        }
+        return CoreMLBaseLayer::BuildConstantWeightsLayer();
     }
     return TNN_OK;
 }
