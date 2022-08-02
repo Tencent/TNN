@@ -21,7 +21,7 @@ SHARING_MEM_WITH_OPENGL=0
 ANDROID_API_LEVEL="android-14"
 # check ANDROID_NDK whether set.
 if [ ! -f "$ANDROID_NDK/build/cmake/android.toolchain.cmake" ]; then
-   tree -L 100 /usr/local/lib/android/sdk/
+   # tree -L 100 /usr/local/lib/android/sdk/
    echo "============"
    ls -hl /usr/local/lib/android/sdk/ndk/
    echo "============"
