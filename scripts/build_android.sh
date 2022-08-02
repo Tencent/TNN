@@ -21,6 +21,7 @@ SHARING_MEM_WITH_OPENGL=0
 ANDROID_API_LEVEL="android-14"
 # check ANDROID_NDK whether set.
 if [ ! -f "$ANDROID_NDK/build/cmake/android.toolchain.cmake" ]; then
+   ls -hl "$ANDROID_NDK"
    echo -e "Not found: build/cmake/android.toolchain.cmake in ANDROID_NDK:$ANDROID_NDK"
    echo -e "Please download android ndk and set ANDROID_NDK environment variable."
    exit -1
