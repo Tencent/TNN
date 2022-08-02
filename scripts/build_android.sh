@@ -23,7 +23,7 @@ ANDROID_API_LEVEL="android-14"
 if [ ! -f "$ANDROID_NDK/build/cmake/android.toolchain.cmake" ]; then
    # tree -L 100 /usr/local/lib/android/sdk/
    echo "============"
-   ls -hl /usr/local/lib/android/sdk/ndk/
+   ls -hl /usr/local/lib/android/sdk/ndk/21.4.7075529/
    echo "============"
    ls -hl "$ANDROID_NDK"
    echo -e "Not found: build/cmake/android.toolchain.cmake in ANDROID_NDK:$ANDROID_NDK"
