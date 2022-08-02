@@ -350,7 +350,6 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
                 }
             }
         } else {
-            LOGD("进入了TODO阶段\n");
             // Todo
         }
     }
