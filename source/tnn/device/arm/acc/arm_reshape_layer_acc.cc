@@ -23,8 +23,6 @@
 namespace TNN_NS {
 
 bool ArmReshapeLayerAcc::UseNaiveConstantBlobs() {
-    // LOGE("存疑修改处：为什么reshape算子要设置为true?\n");
-    // return false;
     return true;
 }
 

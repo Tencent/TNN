@@ -30,7 +30,7 @@ string OnnxOpConverterSelu::TNNLayerParam(NodeProto &node,
     double alpha = get_node_attr_f(node, "alpha");
     double gamma = get_node_attr_f(node, "gamma");
     // Set default value accouding to https://github.com/onnx/onnx/blob/main/docs/Operators.md#Selu
-    if (fabs(alpha) < 1e-15 && fabs(gamma) < 1e-15) {
+    if ((double)fabs(alpha)) < 1e-15 && (double)fabs(gamma) < 1e-15) {
         alpha = 1.6732632423543772848170429916717;
         gamma = 1.0507009873554804934193349852946;
     }

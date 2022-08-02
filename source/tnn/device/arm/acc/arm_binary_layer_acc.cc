@@ -149,7 +149,6 @@ Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     
     if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT
      || outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
-
         RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), TNN_OK);
     }
 #if TNN_ARM82
@@ -472,7 +471,6 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     auto data_type = outputs[0]->GetBlobDesc().data_type;
     if (data_type == DATA_TYPE_FLOAT) {
         // return Exec<float>(inputs, outputs);
-        // LOGD("修改处：FLOAT 下添加新算子 EQUAL 与 GREATER");
         switch (op_type_) {
             case ArmBinaryOpType::kADD:
                 return Exec<float, ArmBinaryOpType::kADD>(inputs, outputs);
