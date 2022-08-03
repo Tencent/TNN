@@ -76,8 +76,8 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
     metal_param.height       = DimsFunctionUtils::GetDim(dims, 2);
     metal_param.size         = metal_param.height * metal_param.width;
     metal_param.channel      = DimsFunctionUtils::GetDim(dims, 1);
-    metal_param.slice        = UP_DIV(metal_param.channel, 4);
-    metal_param.batch        = dims[0];
+    metal_param.slice        = UP_DIV(metal_param.channel, 4)>0 ? UP_DIV(metal_param.channel, 4) : 1;
+    metal_param.batch        = DimsFunctionUtils::GetDim(dims, 0);
     metal_param.bgra_to_rgba = param.reverse_channel;
 
     LOGD("metal_param size: %d %d %d %d %d\n", metal_param.batch, metal_param.channel, metal_param.height,
@@ -442,7 +442,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         }
 
         NSUInteger image_size  = DimsFunctionUtils::GetDimProduct(dims, 2);
-        NSUInteger image_slice = UP_DIV(dims[1], 4);
+        NSUInteger image_slice = UP_DIV(dims[1], 4)>0 ? UP_DIV(dims[1], 4) : 1;
         bool is_blob_nchw = input_buffer_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
 
         auto encoder = [context_impl encoder];
@@ -516,8 +516,8 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         }
 
         NSUInteger image_size  = DimsFunctionUtils::GetDimProduct(dims, 2);
-        NSUInteger image_slice = UP_DIV(dims[1], 4);
-        
+        NSUInteger image_slice = UP_DIV(dims[1], 4)>0 ? UP_DIV(dims[1], 4) : 1;
+
         auto encoder = [context_impl encoder];
         if (!encoder) {
             LOGE("ERROR: ConvertToMatCommon cannot allocate new encoder\n");
@@ -741,7 +741,8 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             }
             
             NSUInteger image_size  = DimsFunctionUtils::GetDimProduct(dims, 2);
-            NSUInteger image_slice = UP_DIV(dims[1], 4);
+            NSUInteger image_slice = UP_DIV(dims[1], 4)>0 ? UP_DIV(dims[1], 4) : 1;
+
             bool is_blob_nchw = output_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
             Blob *output_buffer_blob = (Blob *)(output_blob);
 
@@ -805,7 +806,7 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             }
             
             NSUInteger image_size  = DimsFunctionUtils::GetDimProduct(dims, 2);
-            NSUInteger image_slice = UP_DIV(dims[1], 4);
+            NSUInteger image_slice = UP_DIV(dims[1], 4)>0 ? UP_DIV(dims[1], 4) : 1;
             bool is_blob_nchw = output_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
             Blob *output_buffer_blob = (Blob *)(output_blob);
             

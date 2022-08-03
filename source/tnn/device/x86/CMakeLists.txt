@@ -8,6 +8,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../../third_party/xbyak)
 
 add_library(TNNX86 OBJECT ${X86_SRC})
 add_library(TNNX86ACC OBJECT ${X86_ACC_SRC})
+add_definitions(-msse4.2)
 
 if (MSVC)
     add_compile_options(/arch:AVX)
