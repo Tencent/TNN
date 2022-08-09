@@ -20,7 +20,7 @@ INCREMENTAL_COMPILE="OFF"
 SHARING_MEM_WITH_OPENGL=0
 ANDROID_API_LEVEL="android-14"
 
-ls -hl /usr/local/lib/android/sdk/
+ls -hl /usr/local/lib/android/sdk/ndk/
 
 # check ANDROID_NDK whether set.
 if [ ! -f "$ANDROID_NDK/build/cmake/android.toolchain.cmake" ]; then
