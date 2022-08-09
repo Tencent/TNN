@@ -68,4 +68,5 @@ void* ArmContext::GetSharedWorkSpace(size_t size, int index) {
     return work_space_[index].force_to<void*>();
 }
 
+
 }  // namespace TNN_NS
