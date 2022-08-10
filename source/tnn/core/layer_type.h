@@ -16,6 +16,8 @@
 #define TNN_SOURCE_TNN_CORE_LAYER_TYPE_H_
 
 #include <string>
+#include <map>
+
 #include "tnn/core/macro.h"
 
 namespace TNN_NS {
@@ -237,6 +239,8 @@ enum LayerType {
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str);
+
+const std::map<std::string, LayerType> &GetGlobalLayerTypeMap();
 
 }  // namespace TNN_NS
 
