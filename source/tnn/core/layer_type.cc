@@ -271,4 +271,8 @@ LayerType GlobalConvertLayerType(std::string layer_type_str) {
     }
 }
 
+const std::map<std::string, LayerType> &GetGlobalLayerTypeMap() {
+    return global_layer_type_map;
+}
+
 }  // namespace TNN_NS
