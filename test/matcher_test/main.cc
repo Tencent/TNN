@@ -78,7 +78,7 @@ int main(int argc, char ** argv) {
                 return nullptr;
             }
 
-            auto n_of_interest = in->peekNodeByBlobName(std::string("@xxx"));
+            auto n_of_interest = in->peekNodeByTensorName(std::string("@xxx"));
             if (!n_of_interest) {
                 printf("roi node not found\n");
                 return nullptr;
@@ -87,7 +87,7 @@ int main(int argc, char ** argv) {
             auto g = std::make_shared<tnn::HeirGraph>();
             int num_inputs = 1;
             for(int i=0;i<num_inputs;i++) {
-                auto ph = g->getNodeByBlobName(std::string("PlaceHolder_") + std::to_string(i));
+                auto ph = g->getNodeByTensorName(std::string("PlaceHolder_") + std::to_string(i));
                 ph->info->type = tnn::LAYER_DUMMY_TYPE;
             }
             auto new_node = std::make_shared<tnn::Node>("new_heir_node");
@@ -118,7 +118,7 @@ int main(int argc, char ** argv) {
             auto g = std::make_shared<tnn::HeirGraph>();
             int num_inputs = 1;
             for(int i=0;i<num_inputs;i++) {
-                auto ph = g->getNodeByBlobName(std::string("PlaceHolder_") + std::to_string(i));
+                auto ph = g->getNodeByTensorName(std::string("PlaceHolder_") + std::to_string(i));
                 ph->info->type = tnn::LAYER_DUMMY_TYPE;
             }
             auto new_node = std::make_shared<tnn::Node>("_norm");
@@ -155,7 +155,7 @@ int main(int argc, char ** argv) {
             auto g = std::make_shared<tnn::HeirGraph>();
             int num_inputs = 2;
             for(int i=0;i<num_inputs;i++) {
-                auto ph = g->getNodeByBlobName(std::string("PlaceHolder_") + std::to_string(i));
+                auto ph = g->getNodeByTensorName(std::string("PlaceHolder_") + std::to_string(i));
                 ph->info->type = tnn::LAYER_DUMMY_TYPE;
             }
             auto new_node = std::make_shared<tnn::Node>("_mulmul");
@@ -203,7 +203,7 @@ int main(int argc, char ** argv) {
             auto g = std::make_shared<tnn::HeirGraph>();
             int num_inputs = 1;
             for(int i=0;i<num_inputs;i++) {
-                auto ph = g->getNodeByBlobName(std::string("PlaceHolder_") + std::to_string(i));
+                auto ph = g->getNodeByTensorName(std::string("PlaceHolder_") + std::to_string(i));
                 ph->info->type = tnn::LAYER_DUMMY_TYPE;
             }
             auto new_node = std::make_shared<tnn::Node>("_ffn");

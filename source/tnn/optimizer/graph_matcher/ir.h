@@ -40,7 +40,7 @@ namespace TNN_NS {
     };
 
     struct Edge {
-        Edge(Node * _src, Node * _dst, const std::string &blob);
+        Edge(Node * _src, Node * _dst, const std::string &tensor);
     public:
         Node * src;
         Node * dst;
@@ -50,18 +50,13 @@ namespace TNN_NS {
     struct Node {
         Node(std::shared_ptr<LayerInfo> &layer_info);
         // create placeholder node 
-        Node(const std::string &blob_name);
+        Node(const std::string &tensor_name);
 
         std::string name() const {return info->name;}
 
         void addOutputEdge(Edge * e);
         void addInputEdge(Edge * e);
         void addInput(Edge * e);
-
-        Node * prev(int id);
-        Node * next(int id);
-
-        bool matchSequence(std::pair<int, LayerType> * seq, int seq_len, bool reverse);
 
     public:
 
@@ -84,9 +79,10 @@ namespace TNN_NS {
 
         Graph(std::string proto_str);
 
-        std::shared_ptr<Node> getNodeByBlobName(const std::string &blob_name);
+        // will create a placeholder node if tensor not found.
+        std::shared_ptr<Node> getNodeByTensorName(const std::string &tensor_name);
         
-        std::shared_ptr<Node> peekNodeByBlobName(const std::string &blob_name) const;
+        std::shared_ptr<Node> peekNodeByTensorName(const std::string &tensor_name) const;
 
         void ConnectTwoNodes(Node * from, Node * to);
 
@@ -116,7 +112,9 @@ namespace TNN_NS {
         std::vector<std::shared_ptr<Node>> nodes;
         std::vector<std::shared_ptr<Edge>> edges;
         std::vector<std::shared_ptr<Node>> placeholders;
-        std::map<std::string, std::shared_ptr<Node>> blob_2_node;
+
+        std::map<std::string, std::shared_ptr<Node>> tensor_2_node;
+        // std::map<std::string, std::shared_ptr<Node>> tensor_2_node;
     
     private:
         int rewrite_count = 0;
