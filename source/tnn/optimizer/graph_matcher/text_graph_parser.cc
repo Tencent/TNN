@@ -215,7 +215,7 @@ struct SlotManager {
                 continue;
             } else if (equal) {
                 DEBUG("Update Slot[%d][%s]", slot.offset, slot.node->name().c_str());
-                for(auto &blob : slot.node->info->outputs) named_slots[blob] = slot;
+                for(auto &name : slot.node->info->outputs) named_slots[name] = slot;
                 it->node = slot.node;
                 return; 
             } else {
@@ -227,7 +227,7 @@ struct SlotManager {
         else 
             DEBUG("insert Slot[%d]<%s> at end", slot.offset, slot.node->name().c_str());
 
-        for(auto &blob : slot.node->info->outputs) named_slots[blob] = slot;
+        for(auto &name: slot.node->info->outputs) named_slots[name] = slot;
         slots.insert(it, slot);
     };
 
@@ -294,13 +294,13 @@ Status constructGraph(const TextGraph &tg, Graph * graph)
     SlotManager manager;
 
     std::map<std::string, int> node_cnt;
-    int blob_cnt = 0;
+    int tensor_cnt = 0;
     auto getNodeName = [&](const Token &tk) -> std::string {
         if (node_cnt.count(tk.text()) == 0) node_cnt[tk.text()] = 0;
         return tk.text() + std::string("_") + std::to_string(node_cnt[tk.text()]++);
     };
-    auto getBlobName = [&]() -> std::string {
-        return std::to_string(blob_cnt++);
+    auto getTensorName = [&]() -> std::string {
+        return std::to_string(tensor_cnt++);
     };
 
     std::vector<std::shared_ptr<Edge>> edges;
@@ -311,7 +311,7 @@ Status constructGraph(const TextGraph &tg, Graph * graph)
         n->info->type = GlobalConvertLayerType(text_node.source.text());
 
         if (n->info->type != LAYER_PLACEHOLDER) {
-            n->info->outputs = {getBlobName()};
+            n->info->outputs = {getTensorName()};
             if (text_node.name.length() > 0 ) {
                 n->info->outputs = {text_node.name};
             }
@@ -380,13 +380,13 @@ Status constructGraph(const TextGraph &tg, Graph * graph)
                                       graph->nodes.end());
 
     for(auto &n : graph->placeholders) {
-        for(auto &blob_name : n->info->outputs) 
-            graph->blob_2_node[blob_name] = n;
+        for(auto &name: n->info->outputs) 
+            graph->tensor_2_node[name] = n;
     }
 
     for(auto &n : graph->nodes) {
-        for(auto &blob_name : n->info->outputs) 
-            graph->blob_2_node[blob_name] = n;
+        for(auto &name : n->info->outputs) 
+            graph->tensor_2_node[name] = n;
     }
 
     return TNN_OK;

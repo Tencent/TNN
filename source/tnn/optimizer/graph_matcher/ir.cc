@@ -29,12 +29,12 @@ namespace TNN_NS {
         info = layer_info;
     }
 
-    Node::Node(const std::string &blob_name) {
+    Node::Node(const std::string &tensor_name) {
         // create placeholder node 
         info = std::make_shared<LayerInfo>();
         info->type = LAYER_PLACEHOLDER;
-        info->name = blob_name;
-        info->outputs = {blob_name};
+        info->name = tensor_name;
+        info->outputs = {tensor_name};
     }
 
     void Node::addOutputEdge(Edge * e) {
@@ -56,71 +56,18 @@ namespace TNN_NS {
         info->inputs.push_back(e->tensor_name);
     }
 
-    Node * Node::prev(int id) {
-        if (id < input_edges.size()) {
-            return input_edges[id]->src;
-        } else {
-            throw std::runtime_error("invalid Node input index.");
-        }
-    }
-
-    Node * Node::next(int id) {
-        if (id < output_edges.size()) {
-            return output_edges[id]->dst;
-        } else {
-            throw std::runtime_error("invalid Node output index.");
-        }
-    }
-
-    bool Node::matchSequence(std::pair<int, LayerType> * seq, int seq_len, bool reverse) {
-        if (seq_len == 0) {
-            return true;
-        }
-        
-        int port = seq[0].first;
-        LayerType type = seq[0].second;
-
-        std::vector<Edge*> edges = output_edges;
-        if (reverse) {
-            edges = input_edges;
-        }
-
-        if (port == -1) {
-            for(auto e: edges) {
-                Node * n = e->dst;
-                if (reverse) n = e->src;
-                if (n->info->type != type) { 
-                    continue;
-                }
-                if (n->matchSequence(seq + 1, seq_len -1, reverse)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        if (port >= edges.size()) { return false; }
-        Node * n = edges[port]->dst;
-        if (reverse) {n = edges[port]->src; }
-
-        if (n->info->type != type) {
-            return false;
-        }
-        return edges[port]->src->matchSequence(seq+1, seq_len -1, reverse);
-    }
-
     Graph::Graph(std::vector<std::shared_ptr<LayerInfo> > layers) {
         for (auto layer : layers) {
             auto node = std::make_shared<Node>(layer);
             nodes.push_back(node);
             for (auto out : layer->outputs) {
-                if (blob_2_node.find(out) != blob_2_node.end()) {
+                if (tensor_2_node.find(out) != tensor_2_node.end()) {
                     throw std::runtime_error("duplicated tensor_name found.");
                 }
-                blob_2_node[out] = node;
+                tensor_2_node[out] = node;
             }
             for (auto in : layer->inputs) {
-                auto n = getNodeByBlobName(in);
+                auto n = getNodeByTensorName(in);
                 auto e = std::make_shared<Edge>(n.get(), node.get(), in);
                 n->addOutputEdge(e.get());
                 node->addInputEdge(e.get());
@@ -134,18 +81,18 @@ namespace TNN_NS {
         // Could be used as pattern for GraphRewriter 
     }
 
-    std::shared_ptr<Node> Graph::getNodeByBlobName(const std::string &blob_name) {
-        if (blob_2_node.find(blob_name) != blob_2_node.end()) {
-            return blob_2_node[blob_name];
+    std::shared_ptr<Node> Graph::getNodeByTensorName(const std::string &tensor_name) {
+        if (tensor_2_node.find(tensor_name) != tensor_2_node.end()) {
+            return tensor_2_node[tensor_name];
         }
-        auto input = std::make_shared<Node>(blob_name);
+        auto input = std::make_shared<Node>(tensor_name);
         placeholders.push_back(input);
-        blob_2_node[blob_name] = input;
+        tensor_2_node[tensor_name] = input;
         return input;
     }
-    std::shared_ptr<Node> Graph::peekNodeByBlobName(const std::string &blob_name) const {
-        if (blob_2_node.find(blob_name) != blob_2_node.end()) {
-            return blob_2_node.at(blob_name);
+    std::shared_ptr<Node> Graph::peekNodeByTensorName(const std::string &tensor_name) const {
+        if (tensor_2_node.find(tensor_name) != tensor_2_node.end()) {
+            return tensor_2_node.at(tensor_name);
         }
         return nullptr;
     }
@@ -200,7 +147,7 @@ namespace TNN_NS {
     void Graph::dump(std::ostream &os) const {
         // line 1 header line: 1 num_blobs 1 magic_number
         // !!!assume each node has only one output here.
-        os << "\"1 " << blob_2_node.size() << " 1 4206624772 ,\"\n";
+        os << "\"1 " << tensor_2_node.size() << " 1 4206624772 ,\"\n";
         // line 2 inputs: ':'.join(name rank dims dtype)
         auto it = placeholders.begin();
         os << "\"" << (*it)->info->outputs[0] << " 0 0 ";
@@ -299,7 +246,7 @@ namespace TNN_NS {
         }
 
         auto updateVector = [&](std::vector<std::string> &v, std::string origin = "", std::string new_name="") {
-            DEBUG("updateVector origin:%s", origin.c_str());
+            DEBUG("\tupdateVector origin:%s new_name:%s", origin.c_str(), new_name.c_str());
             for(auto it = v.begin();it!=v.end();it++)  {
                 if (*it == origin || origin.length() == 0) {
                     if (new_name.length() == 0) {
@@ -318,7 +265,9 @@ namespace TNN_NS {
         auto addNamePrefix = [&](Node *n) {
             n->info->name = name_prefix + n->info->name;
             for(auto &e : n->output_edges) {
-                updateVector(e->dst->info->inputs, e->tensor_name);
+                DEBUG("Updating node edges, here is inputs of Node[%s]", e->dst->name().c_str());
+                updateVector(e->dst->info->inputs, e->tensor_name, name_prefix + e->tensor_name);
+                e->tensor_name = name_prefix + e->tensor_name;
             }
             updateVector(n->info->outputs);
         };
@@ -335,6 +284,7 @@ namespace TNN_NS {
                 return cur->src == e->src;
             });
             e->dst = new_node;
+            DEBUG("Adding input[%s] to Node[%s]", e->tensor_name.c_str(), new_node->name().c_str());
             new_node->addInput(e);
         }
 
@@ -345,6 +295,7 @@ namespace TNN_NS {
                 return cur->dst == e->dst;
             });
             e->src = new_node;
+            DEBUG("Updating inputs of Node[%s]", e->dst->name().c_str());
             updateVector(e->dst->info->inputs, e->tensor_name, new_node->info->outputs[0]);
             e->tensor_name = new_node->info->outputs[0];
             new_node->addOutputEdge(e);
@@ -357,12 +308,13 @@ namespace TNN_NS {
         auto it = g->nodes.begin();
         for(; it != g->nodes.end();) {
             if (std::find(anchor->nodes.begin(), anchor->nodes.end(), *it) != anchor->nodes.end()) {
-                for(auto &blob_name : (*it)->info->outputs) g->blob_2_node.erase(blob_name);
+                for(auto &tensor_name : (*it)->info->outputs) g->tensor_2_node.erase(tensor_name);
                 it = g->nodes.erase(it);
             } else {
                 it ++;
             }
         }
+        // TODO Remove useless Edges.
 
         g->nodes.insert(g->nodes.end(), nodes.begin(), nodes.end());
     }

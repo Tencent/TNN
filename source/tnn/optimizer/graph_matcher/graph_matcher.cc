@@ -157,8 +157,8 @@ std::vector<Node *> AnchorGraph::allStructualMatchedNodes(Node * pattern_sibling
 
 void AnchorGraph::formalize(Graph *g) {
     // copy subgraph related nodes, edges, placeholders.
-    // Initialize the blob_2_node map,
-    // add entry point to the blob_2_node map for the named nodes in the pattern graph.
+    // Initialize the tensor_2_node map,
+    // add entry point to the tensor_2_node map for the named nodes in the pattern graph.
 
     // removed pairs that anchor is a placeholder
     for(auto it = paired_nodes.begin(); it!= paired_nodes.end(); ) {
@@ -172,7 +172,7 @@ void AnchorGraph::formalize(Graph *g) {
     for(auto &n : g->nodes) {
         if (paired_nodes.find(n.get()) != paired_nodes.end()) {
             nodes.push_back(n);
-            for(auto &blob : n->info->outputs) blob_2_node[blob] = n;
+            for(auto &name : n->info->outputs) tensor_2_node[name] = n;
         }
     }
     for(auto &e : g->edges) {
@@ -195,10 +195,10 @@ void AnchorGraph::formalize(Graph *g) {
 
     for(auto it = paired_nodes.begin(); it!= paired_nodes.end(); it++) {
         // the prefix should keep as same as that in parser.cpp
-        auto blob_name = it->second.anchor->info->outputs[0];
-        if (!isdigit(blob_name[0])) {
-            std::string ref_name = std::string(pattern_node_prefix) + blob_name;
-            blob_2_node[ref_name] = getShared(it->first);
+        auto name = it->second.anchor->info->outputs[0];
+        if (!isdigit(name[0])) {
+            std::string ref_name = std::string(pattern_node_prefix) + name;
+            tensor_2_node[ref_name] = getShared(it->first);
         }
     }
 }
@@ -261,13 +261,7 @@ void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> patt
 
 std::vector<std::vector<std::shared_ptr<AnchorGraph>>> clustering(const std::vector<std::shared_ptr<AnchorGraph>> &matches) {
 
-    struct Cluster {
-        int id;
-        std::set<Node *> nodes;
-        Cluster(int _id): id(_id) {}
-    };
-
-    std::map<Node *, std::shared_ptr<Cluster> > groups;
+    std::map<Node *, int > groups;
 
     auto allNodeNotSeen = [&](const std::shared_ptr<AnchorGraph> & g) {
         for(auto &n : g->nodes) {
@@ -278,38 +272,37 @@ std::vector<std::vector<std::shared_ptr<AnchorGraph>>> clustering(const std::vec
         return true;
     };
 
-    auto relatedClusters = [&](const std::shared_ptr<AnchorGraph> & g) -> std::vector<std::shared_ptr<Cluster>> {
-        // use std::map to prevent duplicated clusters showing up 
-        std::map<int, std::shared_ptr<Cluster>> _c;
+    auto relatedClusters = [&](const std::shared_ptr<AnchorGraph> & g) -> std::set<int> {
+        std::set<int> _c;
         for(auto &n : g->nodes) {
             if (groups.find(n.get()) == groups.end()) {
                 continue;
             }
-            auto cluster = groups.at(n.get());
-            _c[cluster->id] = cluster;
+            _c.insert(groups.at(n.get()));
         }
-        std::vector<std::shared_ptr<Cluster>> result;
-        for(auto it : _c) {
-            result.push_back(it.second);
-        }
-        return result;
+        return _c;
     };
 
     int cnt = 0;
     for(auto &g : matches) {
         if (allNodeNotSeen(g)) {
             // create a cluster 
-            auto c = std::make_shared<Cluster>(cnt++);
+            int id = cnt ++;
             for(auto &n : g->nodes) {
-                c->nodes.insert(n.get());
-                groups[n.get()] = c;
+                groups[n.get()] = id;
             }
         } else {
+            // merge the related cluster
             auto clusters_to_merge = relatedClusters(g);
-            for(size_t i = 1;i<clusters_to_merge.size();i++) {
-                for(auto &n : clusters_to_merge[i]->nodes) {
-                    clusters_to_merge[0]->nodes.insert(n);
-                    groups[n] = clusters_to_merge[0];
+            if (clusters_to_merge.size() > 1) {
+                int merged_id = *(clusters_to_merge.begin());
+                auto it = clusters_to_merge.begin()++;
+                for(;it != clusters_to_merge.end(); it++) {
+                    for(auto &pair : groups) {
+                        if (pair.second == *it) {
+                            pair.second = merged_id;
+                        }
+                    }
                 }
             }
         }
@@ -317,7 +310,7 @@ std::vector<std::vector<std::shared_ptr<AnchorGraph>>> clustering(const std::vec
 
     std::map<int, std::vector<std::shared_ptr<AnchorGraph>>> id_to_cluster;
     for(auto &g : matches) {
-        int cluster_id = groups[g->nodes[0].get()]->id;
+        int cluster_id = groups[g->nodes[0].get()];
         id_to_cluster[cluster_id].push_back(g);
     }
 
