@@ -15,27 +15,26 @@
 #include "tnn/optimizer/graph_matcher/ir.h"
 
 #include "tnn/core/macro.h"
+#include "tnn/core/status.h"
 #include "tnn/optimizer/graph_matcher/lexer.h"
 #include "tnn/optimizer/graph_matcher/graph_matcher.h"
 #include "tnn/optimizer/graph_matcher/logger.h"
 
 namespace TNN_NS {
 
-    Edge::Edge(Node * _src, Node * _dst) : src(_src), dst(_dst) {}
+    Edge::Edge(Node * _src, Node * _dst, const std::string &_blob) : src(_src), dst(_dst), tensor_name(_blob) {}
 
 
     Node::Node(std::shared_ptr<LayerInfo> &layer_info) {
         info = layer_info;
-        name = info->name;
     }
 
     Node::Node(const std::string &blob_name) {
         // create placeholder node 
         info = std::make_shared<LayerInfo>();
-        info->type = LAYER_NOT_SUPPORT;
+        info->type = LAYER_PLACEHOLDER;
         info->name = blob_name;
         info->outputs = {blob_name};
-        name = blob_name;
     }
 
     void Node::addOutputEdge(Edge * e) {
@@ -53,11 +52,8 @@ namespace TNN_NS {
     }
 
     void Node::addInput(Edge * e) {
-        if (e->dst != this) {
-            throw std::runtime_error("invalid input.");
-        }
-        input_edges.push_back(e);
-        info->inputs.push_back(e->src->name);
+        addInputEdge(e);
+        info->inputs.push_back(e->tensor_name);
     }
 
     Node * Node::prev(int id) {
@@ -125,7 +121,7 @@ namespace TNN_NS {
             }
             for (auto in : layer->inputs) {
                 auto n = getNodeByBlobName(in);
-                auto e = std::make_shared<Edge>(n.get(), node.get());
+                auto e = std::make_shared<Edge>(n.get(), node.get(), in);
                 n->addOutputEdge(e.get());
                 node->addInputEdge(e.get());
                 edges.push_back(e);
@@ -154,67 +150,51 @@ namespace TNN_NS {
         return nullptr;
     }
 
-    bool Graph::rewrite(std::shared_ptr<Graph> &pattern, graph_generator generator) {
-        // TODO Impl 
+    Status Graph::rewrite(std::shared_ptr<Graph> &pattern, graph_generator generator) {
+        try { 
+            std::vector<std::shared_ptr<AnchorGraph>> matches;
+            match(shared_from_this(), pattern, matches);
 
-        std::vector<std::shared_ptr<AnchorGraph>> matches;
-        match(shared_from_this(), pattern, matches);
+            auto groups = clustering(matches);
 
-        auto groups = clustering(matches);
-        int cnt = 0;
+            INFO("matched subgraphs:%lu groups:%lu", matches.size(), groups.size());
 
-        INFO("matched subgraphs:%lu groups:%lu", matches.size(), groups.size());
-
-        for(auto &group : groups) {
-            if (group.size() != 1) {
-                // currently, only restricted mode is supported. 
-                // which means the pattern should not has multiple isomorphic matches.
-                WARN("a group of %lu matched SubGraphs are ignored because those subgraphs share some common nodes.", group.size());
-                continue;
-            }
-            auto &origin_graph = group[0];
-            auto heir_graph = generator(group[0]);
-            if (heir_graph) {
-                if (heir_graph->inputs().size() != origin_graph->inputs().size()) {
-                    WARN("Warning: Skiped one replacement. heir_graph and origin graph num inputs not match, %lu != %lu", 
-                                heir_graph->inputs().size(),  origin_graph->inputs().size());
+            for(auto &group : groups) {
+                if (group.size() != 1) {
+                    // currently, only restricted mode is supported. 
+                    // which means the pattern should not has multiple isomorphic matches.
+                    WARN("a group of %lu matched SubGraphs are ignored because those subgraphs share some common nodes.", group.size());
                     continue;
                 }
-                if (heir_graph->outputs().size() != origin_graph->outputs().size()) {
-                    WARN("Warning: Skiped one replacement. heir_graph and origin graph num outputs not match, %lu != %lu", 
-                                heir_graph->outputs().size(),  origin_graph->outputs().size());
-                    continue;
+                auto &origin_graph = group[0];
+                auto heir_graph = generator(group[0]);
+                if (heir_graph) {
+                    if (heir_graph->inputs().size() != origin_graph->inputs().size()) {
+                        WARN("Warning: Skiped one replacement. heir_graph and origin graph num inputs not match, %lu != %lu", 
+                                    heir_graph->inputs().size(),  origin_graph->inputs().size());
+                        continue;
+                    }
+                    if (heir_graph->outputs().size() != origin_graph->outputs().size()) {
+                        WARN("Warning: Skiped one replacement. heir_graph and origin graph num outputs not match, %lu != %lu", 
+                                    heir_graph->outputs().size(),  origin_graph->outputs().size());
+                        continue;
+                    }
+                    heir_graph->embed(shared_from_this(), origin_graph, std::string("_rewrited_") + std::to_string(rewrite_count++) + std::string("_"));
+                    INFO("replaced an AnchorGraph with HeirGraph");
+                } else {
+                    WARN("generate heir graph failed");
                 }
-                heir_graph->embed(shared_from_this(), origin_graph, std::string("_rewrited_") + std::to_string(cnt++));
-                INFO("replaced an AnchorGraph with HeirGraph");
-            } else {
-                WARN("generate heir graph failed");
             }
+
+        } catch (const std::runtime_error& error) {
+            ERROR("%s", error.what());
+            return Status(TNNERR_COMMON_ERROR, error.what());
+        } catch (...) {
+            ERROR("Parser got unknow error.");
+            return Status(TNNERR_COMMON_ERROR, "Parser got unknow error.");
         }
 
-        return true;
-    }
-
-    void Graph::ConnectTwoNodes(Node * from, Node * to) {
-        auto valid_node = [&](Node * n) {
-            for(auto &_n : nodes) {
-                if (_n.get() == n) return true;
-            }
-            return false;
-        };
-        auto valid_input = [&](Node * n) {
-            for(auto &_n : placeholders) {
-                if (_n.get() == n) return true;
-            }
-            return valid_node(n);
-        };
-        if (!valid_input(from) || !valid_node(to)) {
-            throw std::runtime_error("Got unknown node in Graph::ConnectTwoNodes.");
-        }
-        auto e = std::make_shared<Edge>(from, to);
-        from->addOutputEdge(e.get());
-        to->addInputEdge(e.get());
-        edges.push_back(e);
+        return TNN_OK;
     }
 
     void Graph::dump(std::ostream &os) const {
@@ -223,9 +203,9 @@ namespace TNN_NS {
         os << "\"1 " << blob_2_node.size() << " 1 4206624772 ,\"\n";
         // line 2 inputs: ':'.join(name rank dims dtype)
         auto it = placeholders.begin();
-        os << "\"" << (*it)->name << " 0 0 ";
+        os << "\"" << (*it)->info->outputs[0] << " 0 0 ";
         for(it++;it!=placeholders.end();it++) {
-            os << ": " << (*it)->name << " 0 0 ";
+            os << ": " << (*it)->info->outputs[0] << " 0 0 ";
         }
         os << " ,\"\n\"";
         // line 3 blobs
@@ -250,7 +230,7 @@ namespace TNN_NS {
         os << nodes.size() << " ,\"\n";
         // layers
         for(auto &n : nodes) {
-            os << "\"" << layerTypeName(n->info->type) << " " << n->name;
+            os << "\"" << layerTypeName(n->info->type) << " " << n->name();
             os << " " << n->info->inputs.size() << " " << n->info->outputs.size() << " ";
             for(auto &in : n->info->inputs) { os << in << " "; }
             for(auto &out : n->info->outputs) { os << out << " "; }
@@ -319,6 +299,7 @@ namespace TNN_NS {
         }
 
         auto updateVector = [&](std::vector<std::string> &v, std::string origin = "", std::string new_name="") {
+            DEBUG("updateVector origin:%s", origin.c_str());
             for(auto it = v.begin();it!=v.end();it++)  {
                 if (*it == origin || origin.length() == 0) {
                     if (new_name.length() == 0) {
@@ -328,17 +309,17 @@ namespace TNN_NS {
                             new_name = name_prefix + origin;
                         }
                     }
+                    DEBUG("\t\tupdateted origin:%s to:%s", origin.c_str(), new_name.c_str());
                     *it = new_name;
                 }
             }
         };
 
         auto addNamePrefix = [&](Node *n) {
-            for(auto &e : n->output_edges) {
-                updateVector(e->dst->info->inputs, n->name);
-            }
-            n->name = name_prefix + n->name;
             n->info->name = name_prefix + n->info->name;
+            for(auto &e : n->output_edges) {
+                updateVector(e->dst->info->inputs, e->tensor_name);
+            }
             updateVector(n->info->outputs);
         };
 
@@ -364,8 +345,9 @@ namespace TNN_NS {
                 return cur->dst == e->dst;
             });
             e->src = new_node;
+            updateVector(e->dst->info->inputs, e->tensor_name, new_node->info->outputs[0]);
+            e->tensor_name = new_node->info->outputs[0];
             new_node->addOutputEdge(e);
-            updateVector(e->dst->info->inputs, old_node->info->outputs[0], new_node->info->outputs[0]);
         }
 
         for(auto &n : nodes) {
@@ -375,7 +357,6 @@ namespace TNN_NS {
         auto it = g->nodes.begin();
         for(; it != g->nodes.end();) {
             if (std::find(anchor->nodes.begin(), anchor->nodes.end(), *it) != anchor->nodes.end()) {
-                g->blob_2_node.erase((*it)->name);
                 for(auto &blob_name : (*it)->info->outputs) g->blob_2_node.erase(blob_name);
                 it = g->nodes.erase(it);
             } else {

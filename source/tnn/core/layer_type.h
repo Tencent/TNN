@@ -235,7 +235,11 @@ enum LayerType {
     LAYER_TRT_ENGINE                                        = 701,
 
     LAYER_CBAM_FUSED_REDUCE                                 = 800,
-    LAYER_CBAM_FUSED_POOLING                                = 801
+    LAYER_CBAM_FUSED_POOLING                                = 801,
+
+    // TNN Graph Matcher related LAYER_TYPES
+    LAYER_DUMMY_TYPE                                        = 1000,
+    LAYER_ANY_TYPE                                          = 1001,
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str);

@@ -31,17 +31,28 @@ namespace TNN_NS {
 
     struct Node;
 
+    struct Tensor {
+        Tensor(const std::string &_name): name(_name) {}
+        std::string name;
+        DataType data_type;
+        DataFormat format;
+        DimsVector dims;
+    };
+
     struct Edge {
-        Edge(Node * _src, Node * _dst);
+        Edge(Node * _src, Node * _dst, const std::string &blob);
     public:
         Node * src;
         Node * dst;
+        std::string tensor_name;
     };
 
     struct Node {
         Node(std::shared_ptr<LayerInfo> &layer_info);
         // create placeholder node 
         Node(const std::string &blob_name);
+
+        std::string name() const {return info->name;}
 
         void addOutputEdge(Edge * e);
         void addInputEdge(Edge * e);
@@ -53,7 +64,7 @@ namespace TNN_NS {
         bool matchSequence(std::pair<int, LayerType> * seq, int seq_len, bool reverse);
 
     public:
-        std::string name;
+
         std::shared_ptr<LayerInfo> info;
         std::vector<Edge*> output_edges;
         std::vector<Edge*> input_edges;
@@ -79,7 +90,7 @@ namespace TNN_NS {
 
         void ConnectTwoNodes(Node * from, Node * to);
 
-        bool rewrite(std::shared_ptr<Graph> &pattern, graph_generator generator);
+        Status rewrite(std::shared_ptr<Graph> &pattern, graph_generator generator);
 
         void dump(std::ostream &os) const;
 
@@ -106,6 +117,9 @@ namespace TNN_NS {
         std::vector<std::shared_ptr<Edge>> edges;
         std::vector<std::shared_ptr<Node>> placeholders;
         std::map<std::string, std::shared_ptr<Node>> blob_2_node;
+    
+    private:
+        int rewrite_count = 0;
     };
 
 
@@ -115,9 +129,8 @@ namespace TNN_NS {
     // input nodes are not included in the nodes. e.g. the place holders
     // output nodes are included in the nodes. 
     struct HeirGraph : public Graph {
+        std::vector<std::string> output_names;
         std::vector<Node *> output_nodes;
-        // std::vector<Edge *> input_edges;
-        // std::vector<Edge *> output_edges;
         std::map<Node *, Node*> replace_map;
 
         HeirGraph(): Graph("") {};

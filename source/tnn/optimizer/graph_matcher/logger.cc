@@ -26,6 +26,7 @@
 #include <string>
 #include <mutex>
 #include <sstream>
+#include <string.h>
 
 #include "tnn/core/macro.h"
 
@@ -127,7 +128,7 @@ const std::string Logger::get_time_str() {
     auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(fraction);
 
     char buffer[200];
-    sprintf(buffer, " %03llu", milliseconds.count());
+    sprintf(buffer, " %03lld", milliseconds.count());
     return s.substr(0, strlen(s.c_str()))+std::string(buffer);
 }
 
