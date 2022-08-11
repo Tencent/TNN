@@ -19,10 +19,18 @@
 
 namespace TNN_NS {
 
+bool startsWith(const std::string &input, const std::string &pattern) {
+    return input.substr(0, pattern.length()) == pattern;
+}
+
 std::string layerTypeName(LayerType type) {
     for(auto it : GetGlobalLayerTypeMap()) {
-        if (it.second == type) 
+        if (it.second == type && 
+            !startsWith(it.first, "Quantized") && 
+            !startsWith(it.first, "DynamicRangeQuantized") ) 
+        {
             return it.first;
+        }
     }
     return "Unknown";
 }
@@ -43,5 +51,23 @@ std::string tokenName(int kind) {
         throw std::runtime_error(_ss);
     } 
 }
+
+void expect(const Token &tk, const int kind) {
+    if (tk.kind != kind) {
+        std::stringstream ss;
+        ss << "Expected token type " << tokenName(kind);
+        ss << " but got " << tk.name() << ":\n";
+        tk.str.highlight(ss);
+        throw std::runtime_error(ss.str());
+    }
+}
+
+void unexpect(const Token &tk) {
+    std::stringstream ss;
+    ss << "Unexpected " << tk.name() << ":\n";
+    tk.str.highlight(ss);
+    throw std::runtime_error(ss.str());
+}
+
 
 } // namespace tnn

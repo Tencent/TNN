@@ -12,8 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_NET_OPTIMIZER_GRAPH_MATCHER_PARSER_H_
-#define TNN_SOURCE_TNN_NET_OPTIMIZER_GRAPH_MATCHER_PARSER_H_
+#ifndef TNN_SOURCE_TNN_NET_OPTIMIZER_GRAPH_MATCHER_TEXT_PARSER_H_
+#define TNN_SOURCE_TNN_NET_OPTIMIZER_GRAPH_MATCHER_TEXT_PARSER_H_
 
 #include <vector>
 #include <memory>
@@ -62,6 +62,7 @@ struct TextInput {
     Input input;
     InputType tag;
     Token source;
+    int index = 0;
 };
 
 struct TextNode {
@@ -81,14 +82,14 @@ struct TextGraph {
     std::vector<TextNode> nodes;
 };
 
-bool constructGraph(const TextGraph &tg, Graph * graph);
+Status constructGraph(const TextGraph &tg, Graph * graph);
 
 struct TextGraphParser {
 
     TextGraphParser() : l_(SubStr("")) {}
 
-    bool parseFromString(std::string text_graph);
-    bool parseFromString(std::vector<std::string> text_graph) {
+    Status parseFromString(std::string text_graph);
+    Status parseFromString(std::vector<std::string> text_graph) {
         std::stringstream builder;
         for(auto &s : text_graph) {
             builder<<s<<"\n";
@@ -102,12 +103,10 @@ struct TextGraphParser {
 
 protected:
 
-    void expect(const Token &tk, const int kind) const ;
-    void unexpect(const Token &tk) const;
     void parseComments();
     void parseNode(const Token &layer_tok);
 
-    bool parseLine();
+    void parseLine();
 
 
 private:
@@ -120,4 +119,4 @@ private:
 
 }
 
-#endif // TNN_SOURCE_TNN_NET_OPTIMIZER_GRAPH_MATCHER_PARSER_H_
+#endif // TNN_SOURCE_TNN_NET_OPTIMIZER_GRAPH_MATCHER_TEXT_PARSER_H_

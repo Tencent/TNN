@@ -37,8 +37,10 @@ namespace TNN_NS {
   _(TK_NEWLINE, "newline", "")                   \
   _(TK_IDENT, "identifier", "")                  \
   _(TK_LAYER_TYPE, "layer_type", "")             \
+  _(TK_GRAPH, "graph", "graph")                       \
+  _(TK_RETURN, "return", "return")                     \
 
-static const char* valid_single_char_tokens = "+<>#@{}";
+static const char* valid_single_char_tokens = "+<>#@{}()[]=%:,";
 
 std::string layerTypeName(LayerType type);
 
@@ -130,6 +132,13 @@ public:
         return offset_;
     }
 
+    bool operator<(const SubStr &o) const {
+        if (sptr_ == o.sptr_) {
+            return offset_ < o.offset_ || (offset_ == o.offset_ && len_ < o.len_);
+        }
+        return size_t(sptr_.get()) < size_t(o.sptr_.get());
+    }
+
 private:
     std::shared_ptr<std::string> sptr_;
     int offset_ = 0;
@@ -179,6 +188,10 @@ struct Token {
 
     std::string name() const {
         return tokenName(kind);
+    }
+
+    bool operator<(const Token &o) const {
+        return kind < o.kind ||(kind == o.kind && str < o.str);
     }
 };
 
@@ -290,6 +303,11 @@ private:
 };
 
 
+void expect(const Token &tk, const int kind);
+
+void unexpect(const Token &tk);
+
+
 struct Lexer {
     Lexer(SubStr str): source_(str) { step();};
 
@@ -318,33 +336,6 @@ struct Lexer {
             step();
         }
         return t;
-    }
-
-    std::vector<Token> next_line() {
-        std::set<int> stop_toks = {
-            TK_EOF, 
-            TK_WHITESPACE_EOF,
-            TK_NEWLINE,
-        };
-        std::vector<Token> toks;
-
-        Token t = next();
-        int comment_pos = -1;
-        while(stop_toks.find(t.kind) == stop_toks.end()) {
-            if (t.kind == '#' && comment_pos == -1) {
-                comment_pos = toks.size();
-            }
-            if (toks.size() == 0 || t.kind != TK_WHITESPACE)   {
-                toks.push_back(t);
-            }
-            t = next();
-        }
-
-        if (comment_pos >= 0) {
-            toks.resize(comment_pos);
-        }
-        toks.push_back(t);
-        return toks;
     }
 
     void errorHere() {

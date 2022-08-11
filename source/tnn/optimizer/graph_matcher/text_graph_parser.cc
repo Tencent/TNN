@@ -12,6 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn/optimizer/graph_matcher/text_graph_parser.h"
+
 #include <string>
 #include <sstream>
 #include <list>
@@ -19,31 +21,10 @@
 #include <fstream>
 
 #include "tnn/core/macro.h"
-#include "tnn/optimizer/graph_matcher/parser.h"
+#include "tnn/core/status.h"
 #include "tnn/optimizer/graph_matcher/logger.h"
 
 namespace TNN_NS {
-
-void TextGraphParser::expect(const Token &tk, const int kind) const {
-    if (tk.kind != kind) {
-        std::stringstream ss;
-        ss << "Expected token type " << tokenName(kind);
-        ss << " but got " << tk.name() << ":\n";
-        tk.str.highlight(ss);
-        throw std::runtime_error(ss.str());
-    }
-}
-
-void TextGraphParser::unexpect(const Token &tk) const {
-    std::stringstream ss;
-    ss << "Unexpected " << tk.name() << ":\n";
-    tk.str.highlight(ss);
-    throw std::runtime_error(ss.str());
-}
-
-#define RETURN_ON_TK(tk, type) \
-            if (tk->kind == type) return true
-
 void TextGraphParser::parseComments() {
     while(true) {
         Token cur = l_.next();
@@ -146,7 +127,7 @@ void TextGraphParser::parseNode(const Token &layer_tok) {
     throw std::runtime_error("Error, code is not expected to be here.");
 }
 
-bool TextGraphParser::parseLine() {
+void TextGraphParser::parseLine() {
     DEBUG("new line ----------------------------------------------");
     while(true) {
         Token cur = l_.next();
@@ -154,10 +135,10 @@ bool TextGraphParser::parseLine() {
             case TK_EOF:
             case TK_WHITESPACE_EOF:
             case TK_NEWLINE:
-                return true;
+                return;
             case '#':
                 parseComments();
-                return true;
+                return;
             case TK_WHITESPACE:
                 break;
             default:
@@ -170,7 +151,7 @@ bool TextGraphParser::parseLine() {
 }
 
 
-bool TextGraphParser::parseFromString(std::string text_graph) {
+Status TextGraphParser::parseFromString(std::string text_graph) {
     l_ = Lexer(text_graph);
     g_ = TextGraph();
 
@@ -199,17 +180,17 @@ bool TextGraphParser::parseFromString(std::string text_graph) {
 
         graph_ = std::make_shared<Graph>("");
 
-        constructGraph(g_, graph_.get());
+        RETURN_ON_NEQ(constructGraph(g_, graph_.get()), TNN_OK);
 
     } catch (const std::runtime_error& error) {
         ERROR("%s", error.what());
-        return false;
+        return Status(TNNERR_COMMON_ERROR, error.what());
     } catch (...) {
         ERROR("Parser got unknow error.");
-        return false;
+        return Status(TNNERR_COMMON_ERROR, "Parser got unknow error.");
     }
 
-    return true;
+    return TNN_OK;
 }
 
 struct Slot{
@@ -233,8 +214,8 @@ struct SlotManager {
             if (next) {
                 continue;
             } else if (equal) {
-                DEBUG("Update Slot[%d][%s]", slot.offset, slot.node->name.c_str());
-                named_slots[slot.node->name] = slot;
+                DEBUG("Update Slot[%d][%s]", slot.offset, slot.node->name().c_str());
+                for(auto &blob : slot.node->info->outputs) named_slots[blob] = slot;
                 it->node = slot.node;
                 return; 
             } else {
@@ -242,12 +223,12 @@ struct SlotManager {
             }
         }
         if (it != slots.end())
-            DEBUG("insert Slot[%d]<%s> before [%d]", slot.offset, slot.node->name.c_str(), it->offset);
+            DEBUG("insert Slot[%d]<%s> before [%d]", slot.offset, slot.node->name().c_str(), it->offset);
         else 
-            DEBUG("insert Slot[%d]<%s> at end", slot.offset, slot.node->name.c_str());
+            DEBUG("insert Slot[%d]<%s> at end", slot.offset, slot.node->name().c_str());
 
+        for(auto &blob : slot.node->info->outputs) named_slots[blob] = slot;
         slots.insert(it, slot);
-        named_slots[slot.node->name] = slot;
     };
 
     void touchPlaceHolder(const int &offset) {
@@ -304,31 +285,37 @@ void reportError(const std::string &msg, const Token &tok) {
     std::stringstream ss;
     ss << "Error: " << msg << ", correspoding source is:\n";
     tok.str.highlight(ss);
-    ERROR("%s", ss.str().c_str());
     throw std::runtime_error(ss.str());
 }
 
 
-bool constructGraph(const TextGraph &tg, Graph * graph)
+Status constructGraph(const TextGraph &tg, Graph * graph)
 {
     SlotManager manager;
-    // auto getSlot
-    int node_cnt = 0;
-    auto getNodeName = [&]() -> std::string {
-        return std::string("Node_") + std::to_string(node_cnt++);
+
+    std::map<std::string, int> node_cnt;
+    int blob_cnt = 0;
+    auto getNodeName = [&](const Token &tk) -> std::string {
+        if (node_cnt.count(tk.text()) == 0) node_cnt[tk.text()] = 0;
+        return tk.text() + std::string("_") + std::to_string(node_cnt[tk.text()]++);
+    };
+    auto getBlobName = [&]() -> std::string {
+        return std::to_string(blob_cnt++);
     };
 
     std::vector<std::shared_ptr<Edge>> edges;
     std::vector<std::shared_ptr<Node>> nodes;
 
     auto createNode = [&](const TextNode & text_node) -> std::shared_ptr<Node> {
-        auto n = std::make_shared<Node>(getNodeName());
-        if (text_node.name.length() > 0 ) {
-            n = std::make_shared<Node>(text_node.name);
-        }
+        auto n = std::make_shared<Node>(getNodeName(text_node.source));
         n->info->type = GlobalConvertLayerType(text_node.source.text());
 
-        if (n->info->type != LAYER_NOT_SUPPORT) {
+        if (n->info->type != LAYER_PLACEHOLDER) {
+            n->info->outputs = {getBlobName()};
+            if (text_node.name.length() > 0 ) {
+                n->info->outputs = {text_node.name};
+            }
+
             for(auto &input : text_node.inputs) {
                 Slot s;
                 bool ok=false;
@@ -343,7 +330,7 @@ bool constructGraph(const TextGraph &tg, Graph * graph)
                 if (!ok) {
                     reportError("specified input not found when constructiing graph.", input.source);
                 }
-                auto e = std::make_shared<Edge>(s.node, n.get());
+                auto e = std::make_shared<Edge>(s.node, n.get(), s.node->info->outputs[input.index]);
                 edges.push_back(e);
                 s.node->addOutputEdge(e.get());
                 n->addInput(e.get());
@@ -384,13 +371,12 @@ bool constructGraph(const TextGraph &tg, Graph * graph)
     graph->placeholders.erase(std::remove_if(graph->placeholders.begin(), 
                                              graph->placeholders.end(),
                                             [](std::shared_ptr<Node> &n){
-                                                    return n->output_edges.size() == 0 || n->info->type != LAYER_NOT_SUPPORT;
+                                                    return n->output_edges.size() == 0 || n->info->type != LAYER_PLACEHOLDER;
                                                 }),
                               graph->placeholders.end());
 
-    graph->nodes.erase(std::remove_if(graph->nodes.begin(), 
-                                      graph->nodes.end(),
-                                      [](std::shared_ptr<Node> &n){ return  n->info->type == LAYER_NOT_SUPPORT; }),
+    graph->nodes.erase(std::remove_if(graph->nodes.begin(), graph->nodes.end(),
+                                      [](std::shared_ptr<Node> &n){ return  n->info->type == LAYER_PLACEHOLDER; }),
                                       graph->nodes.end());
 
     for(auto &n : graph->placeholders) {
@@ -403,7 +389,7 @@ bool constructGraph(const TextGraph &tg, Graph * graph)
             graph->blob_2_node[blob_name] = n;
     }
 
-    return true;
+    return TNN_OK;
 }
 
 } // namespace tnn
