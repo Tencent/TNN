@@ -82,7 +82,7 @@ struct TextGraph {
     std::vector<TextNode> nodes;
 };
 
-Status constructGraph(const TextGraph &tg, Graph * graph);
+Status constructGraph(const TextGraph &tg, Graph * graph) throw(...);
 
 struct TextGraphParser {
 
