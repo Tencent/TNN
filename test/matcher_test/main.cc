@@ -78,7 +78,7 @@ int main(int argc, char ** argv) {
                 return nullptr;
             }
 
-            auto n_of_interest = in->peekNodeByTensorName(std::string("@xxx"));
+            auto n_of_interest = in->getNodeByTensorName(std::string("@xxx"));
             if (!n_of_interest) {
                 printf("roi node not found\n");
                 return nullptr;
@@ -87,13 +87,13 @@ int main(int argc, char ** argv) {
             auto g = std::make_shared<tnn::HeirGraph>();
             int num_inputs = 1;
             for(int i=0;i<num_inputs;i++) {
-                auto ph = g->getNodeByTensorName(std::string("PlaceHolder_") + std::to_string(i));
+                auto ph = g->getNodeOrCreatePlaceHolder(std::string("PlaceHolder_") + std::to_string(i));
                 ph->info->type = tnn::LAYER_DUMMY_TYPE;
             }
             auto new_node = std::make_shared<tnn::Node>("new_heir_node");
             new_node->info->type = tnn::LAYER_TANH;
             new_node->info->outputs = {"add_mul_blob"};
-            g->nodes.push_back(new_node);
+            g->addNode(new_node);
             g->markAllInOneNode(*in);
 
             return g;
@@ -118,12 +118,12 @@ int main(int argc, char ** argv) {
             auto g = std::make_shared<tnn::HeirGraph>();
             int num_inputs = 1;
             for(int i=0;i<num_inputs;i++) {
-                auto ph = g->getNodeByTensorName(std::string("PlaceHolder_") + std::to_string(i));
+                auto ph = g->getNodeOrCreatePlaceHolder(std::string("PlaceHolder_") + std::to_string(i));
                 ph->info->type = tnn::LAYER_DUMMY_TYPE;
             }
             auto new_node = std::make_shared<tnn::Node>("_norm");
             new_node->info->type = tnn::LAYER_LAYER_NORM;
-            g->nodes.push_back(new_node);
+            g->addNode(new_node);
             g->markAllInOneNode(*in);
 
             return g;
@@ -155,12 +155,12 @@ int main(int argc, char ** argv) {
             auto g = std::make_shared<tnn::HeirGraph>();
             int num_inputs = 2;
             for(int i=0;i<num_inputs;i++) {
-                auto ph = g->getNodeByTensorName(std::string("PlaceHolder_") + std::to_string(i));
+                auto ph = g->getNodeOrCreatePlaceHolder(std::string("PlaceHolder_") + std::to_string(i));
                 ph->info->type = tnn::LAYER_DUMMY_TYPE;
             }
             auto new_node = std::make_shared<tnn::Node>("_mulmul");
             new_node->info->type = tnn::LAYER_CONVOLUTION;
-            g->nodes.push_back(new_node);
+            g->addNode(new_node);
             g->markAllInOneNode(*in);
 
             return g;
@@ -203,12 +203,12 @@ int main(int argc, char ** argv) {
             auto g = std::make_shared<tnn::HeirGraph>();
             int num_inputs = 1;
             for(int i=0;i<num_inputs;i++) {
-                auto ph = g->getNodeByTensorName(std::string("PlaceHolder_") + std::to_string(i));
+                auto ph = g->getNodeOrCreatePlaceHolder(std::string("PlaceHolder_") + std::to_string(i));
                 ph->info->type = tnn::LAYER_DUMMY_TYPE;
             }
             auto new_node = std::make_shared<tnn::Node>("_ffn");
             new_node->info->type = tnn::LAYER_CONVOLUTION;
-            g->nodes.push_back(new_node);
+            g->addNode(new_node);
             g->markAllInOneNode(*in);
 
             return g;

@@ -24,12 +24,27 @@
 #include <vector>
 
 #include "tnn/core/macro.h"
+#include "tnn/core/status.h"
 #include "tnn/interpreter/net_structure.h"
 #include "tnn/core/layer_type.h"
+
+#define RAISE_ON_ERROR(status)                                  \
+    do {                                                        \
+        auto _status = status;                                  \
+        if ((_status) != TNN_OK) {                              \
+            throw std::runtime_error(_status.description());    \
+        }                                                       \
+    } while (0)
 
 namespace TNN_NS {
 
     struct Node;
+
+    struct Graph;
+
+    struct HeirGraph;
+
+    struct AnchorGraph;
 
     struct Tensor {
         Tensor(const std::string &_name): name(_name) {}
@@ -41,56 +56,74 @@ namespace TNN_NS {
 
     struct Edge {
         Edge(Node * _src, Node * _dst, const std::string &tensor);
-    public:
         Node * src;
         Node * dst;
         std::string tensor_name;
     };
 
     struct Node {
+
         Node(std::shared_ptr<LayerInfo> &layer_info);
         // create placeholder node 
         Node(const std::string &tensor_name);
 
         std::string name() const {return info->name;}
 
-        void addOutputEdge(Edge * e);
-        void addInputEdge(Edge * e);
-        void addInput(Edge * e);
+        Status addOutputEdge(Edge * e);
+        Status addInputEdge(Edge * e);
+        Status addInput(Edge * e);
 
-    public:
+        Status sanityCheck();
 
         std::shared_ptr<LayerInfo> info;
         std::vector<Edge*> output_edges;
         std::vector<Edge*> input_edges;
+
     };
-
-    struct Graph;
-
-    struct HeirGraph;
-
-    struct AnchorGraph;
 
     typedef std::function<std::shared_ptr<HeirGraph>(std::shared_ptr<AnchorGraph>)> graph_generator;
 
     struct Graph : public std::enable_shared_from_this<Graph> {
 
-        Graph(std::vector<std::shared_ptr<LayerInfo> > layers);
+        Graph() {};
+
+        Graph(const std::vector<std::shared_ptr<Node>> _nodes, 
+              const std::vector<std::shared_ptr<Node>> _placeholders, 
+              const std::vector<std::shared_ptr<Edge>> _edges) 
+              : nodes(_nodes), placeholders(_placeholders), edges(_edges) {}
+
+        Status fromNetStructure(std::vector<std::shared_ptr<LayerInfo> > layers);
 
         Graph(std::string proto_str);
 
-        // will create a placeholder node if tensor not found.
-        std::shared_ptr<Node> getNodeByTensorName(const std::string &tensor_name);
-        
-        std::shared_ptr<Node> peekNodeByTensorName(const std::string &tensor_name) const;
+        Status reBuildTensorIndex();
 
-        void ConnectTwoNodes(Node * from, Node * to);
+        Status RemoveDeadComponents();
+
+        Status sanityCheck();
+
+        Status renameTensor(const std::string &old_name, const std::string &new_name);
+
+        Status markOutput(const std::string &tensor_name);
+
+        Status addNode(const std::shared_ptr<Node> &pattern);
+
+        const std::vector<std::weak_ptr<const Node>> allNodes() const;
 
         Status rewrite(std::shared_ptr<Graph> &pattern, graph_generator generator);
 
         void dump(std::ostream &os) const;
 
-        virtual std::vector<Node *> outputs() const {
+        // will create a placeholder node if tensor not found.
+        std::shared_ptr<Node> getNodeOrCreatePlaceHolder(const std::string &tensor_name);
+
+        std::shared_ptr<Node> getNodeByTensorName(const std::string &tensor_name) const;
+
+        std::shared_ptr<Tensor> getTensorByName(const std::string &tensor_name) const;
+
+        std::vector<const Tensor*> getTensorsByNames(const std::vector<std::string> &tensor_names) const throw(...);
+
+        virtual std::vector<Node*> outputs() const {
             std::vector<Node *> res;
             for(auto &n : nodes) {
                 if (n->output_edges.size() == 0) {
@@ -100,34 +133,46 @@ namespace TNN_NS {
             return res;
         }
 
-        virtual std::vector<Node *> inputs() const {
-            std::vector<Node *> res;
+        virtual std::vector<Node*> inputs() const {
+            std::vector<Node*> res;
             for(auto &n : placeholders) {
                 res.push_back(n.get());
             }
             return res;
         }
 
-    public:
+        virtual std::vector<const Tensor*> outputs_() const;
+        virtual std::vector<const Tensor*> inputs_() const;
+
+    protected:
+
+        Status buildNodeTensorIndex(const std::shared_ptr<Node> );
+
+    protected:
         std::vector<std::shared_ptr<Node>> nodes;
         std::vector<std::shared_ptr<Edge>> edges;
         std::vector<std::shared_ptr<Node>> placeholders;
 
+        std::unordered_map<std::string, std::shared_ptr<Tensor>> tensors;
+        std::set<std::string> marked_outputs;
+
         std::map<std::string, std::shared_ptr<Node>> tensor_2_node;
-        // std::map<std::string, std::shared_ptr<Node>> tensor_2_node;
+        std::map<std::string, std::vector<Edge*>> tensor_2_edge;
     
     private:
         int rewrite_count = 0;
+
+        friend class AnchorGraph;
+        friend class HeirGraph;
     };
 
 
     // HeirGraph is generated from an AnchorGraph.
     // all edges should satisify: src and dst are in the HeirGraph
     // input and output edges for the HeirGraph are stored explicitly.
-    // input nodes are not included in the nodes. e.g. the place holders
+    // input nodes are not included in the nodes. e.g. the placeholders
     // output nodes are included in the nodes. 
     struct HeirGraph : public Graph {
-        std::vector<std::string> output_names;
         std::vector<Node *> output_nodes;
         std::map<Node *, Node*> replace_map;
 
@@ -135,11 +180,10 @@ namespace TNN_NS {
         // Deep Copy of the nodes.
         HeirGraph(const AnchorGraph &g);
 
-        void markOutput(Node *n);
         void markReplacement(Node *origin, Node * n);
         void markAllInOneNode(const AnchorGraph &g);
 
-        void embed(std::shared_ptr<Graph> g, const std::shared_ptr<AnchorGraph> anchor, std::string name_prefx);
+        void embed(std::shared_ptr<Graph> g, const std::shared_ptr<AnchorGraph> anchor, std::string name_prefx) throw(...);
 
         virtual std::vector<Node *> outputs() const override {
             auto degree_zero_nodes = Graph::outputs();

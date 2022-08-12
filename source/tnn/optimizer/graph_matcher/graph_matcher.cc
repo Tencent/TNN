@@ -46,7 +46,7 @@ void AnchorGraph::backTrace(int recursion) {
 }
 
 
-bool AnchorGraph::matchUp(Node *node, Node* probe, int recursion, bool silence) {
+bool AnchorGraph::matchUp(const Node *node, Node* probe, int recursion, bool silence) {
     if (paired_nodes.find(node) != paired_nodes.end()) {
         if (paired_nodes.at(node).anchor != probe) {
             if (!silence) DEBUG("node[%s] is already paired with another probe[%s].", node->name().c_str(), 
@@ -84,12 +84,12 @@ bool AnchorGraph::matchUp(Node *node, Node* probe, int recursion, bool silence) 
     return true;   
 }
 
-std::vector<Node *> AnchorGraph::allStructualMatchedNodes(Node * pattern_sibling_node) {
+std::vector<const Node *> AnchorGraph::allStructualMatchedNodes(const Node * pattern_sibling_node) {
     struct Path {
-        Node * n;
+        const Node * n;
         std::stack<LayerType> types;
 
-        Path(Node *ptr, std::stack<LayerType> _types=std::stack<LayerType>()) : n(ptr), types(_types) {};
+        Path(const Node *ptr, std::stack<LayerType> _types=std::stack<LayerType>()) : n(ptr), types(_types) {};
     };
     std::queue<Path> start_points;
 
@@ -104,7 +104,7 @@ std::vector<Node *> AnchorGraph::allStructualMatchedNodes(Node * pattern_sibling
         for(auto it = paired_nodes.begin(); it != paired_nodes.end();it++) {
             if (it->second.anchor == candidate.n) {
                 DEBUG("add Start point:%s", it->first->name().c_str());
-                Node * sibling_node = it->first;
+                const Node * sibling_node = it->first;
                 start_points.push(Path(sibling_node, candidate.types));
                 found = true;
                 break;
@@ -120,7 +120,7 @@ std::vector<Node *> AnchorGraph::allStructualMatchedNodes(Node * pattern_sibling
         }
     }
 
-    std::vector<Node *> res;
+    std::vector<const Node *> res;
     // BFS to find all matched Nodes
     while(!start_points.empty()) {
         Path path = start_points.front(); start_points.pop();
@@ -156,9 +156,11 @@ std::vector<Node *> AnchorGraph::allStructualMatchedNodes(Node * pattern_sibling
 }
 
 void AnchorGraph::formalize(Graph *g) {
-    // copy subgraph related nodes, edges, placeholders.
-    // Initialize the tensor_2_node map,
-    // add entry point to the tensor_2_node map for the named nodes in the pattern graph.
+    // copy subgraph related nodes, edges.
+    // Note that :
+    //     1.the AnchorGraph do not store matched placeholders, but create fake ones for the inEdges.
+    //     2.here we do not modify the original Graph, Nodes and Edges.
+    //     3.the AnchorGraph do not use marked_outputs.
 
     // removed pairs that anchor is a placeholder
     for(auto it = paired_nodes.begin(); it!= paired_nodes.end(); ) {
@@ -184,38 +186,53 @@ void AnchorGraph::formalize(Graph *g) {
     for(auto &n : g->placeholders) {
         if (paired_nodes.find(n.get()) != paired_nodes.end()) {
             throw std::runtime_error("PlaceHolder node should not be included in the AnchorGraph.");
-            nodes.push_back(n);
         }
     }
 
-    auto getShared = [&](Node *p) {
+    // Create input Tensors from the edges. multiple edges may point to the same node.
+    for(auto &e : inEdges()) {
+        if (tensors.find(e->tensor_name) == tensors.end()) {
+            // this function will build the tensor
+            getNodeOrCreatePlaceHolder(e->tensor_name);
+        }
+    }
+
+    RAISE_ON_ERROR(reBuildTensorIndex());
+
+    auto getShared = [&](const Node *p) {
         for(auto &n:nodes) {if (n.get() == p) return n;}
         throw std::runtime_error("Not found the paired nodes in the subgraph.");
     };
 
     for(auto it = paired_nodes.begin(); it!= paired_nodes.end(); it++) {
-        // the prefix should keep as same as that in parser.cpp
-        auto name = it->second.anchor->info->outputs[0];
-        if (!isdigit(name[0])) {
-            std::string ref_name = std::string(pattern_node_prefix) + name;
-            tensor_2_node[ref_name] = getShared(it->first);
+        for(auto &name : it->second.anchor->info->outputs) {
+            if (!isdigit(name[0])) {
+                // TODO :
+                //      Change to mark the node_name, rather than tensor_name.
+                std::string ref_name = std::string(pattern_node_prefix) + name;
+                tensor_2_node[ref_name] = getShared(it->first);
+            }
         }
     }
 }
 
 
-void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> pattern,  std::vector<std::shared_ptr<AnchorGraph>>  &results) {
+void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> pattern,  std::vector<std::shared_ptr<AnchorGraph>>  &results) throw(...) {
     results.resize(0);
 
     std::vector<Node *> pattern_outs = pattern->outputs();
-    for(auto &n : graph->nodes) {
-        std::shared_ptr<AnchorGraph> res = std::make_shared<AnchorGraph>();
+    for(auto &node_ref : graph->allNodes()) {
+        auto n = node_ref.lock();
+        if (!n) throw std::runtime_error("invalid node from graph");
         DEBUG("---------------------- test output[0] of pattern on node [%s]", n->name().c_str());
+
+        std::shared_ptr<AnchorGraph> res = std::make_shared<AnchorGraph>();
         if (res->matchUp(n.get(), pattern_outs[0], 0)) {
+
             struct DFSState {
                 int output_id;
-                Node * node;
-                DFSState(int id, Node *n) : node(n), output_id(id) {}
+                const Node * node;
+                DFSState(int id, const Node *n) : node(n), output_id(id) {}
             };
 
             auto getRecursion = [](int out_id) -> int {return out_id * 100;};
@@ -257,15 +274,16 @@ void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> patt
             }
         }
     }
+    DEBUG("Match finished\n");
 }
 
 std::vector<std::vector<std::shared_ptr<AnchorGraph>>> clustering(const std::vector<std::shared_ptr<AnchorGraph>> &matches) {
 
-    std::map<Node *, int > groups;
+    std::map<const Node *, int > groups;
 
     auto allNodeNotSeen = [&](const std::shared_ptr<AnchorGraph> & g) {
-        for(auto &n : g->nodes) {
-            if (groups.find(n.get()) != groups.end()) {
+        for(auto &n : g->allNodes()) {
+            if (groups.find(n.lock().get()) != groups.end()) {
                 return false;
             }
         }
@@ -274,11 +292,11 @@ std::vector<std::vector<std::shared_ptr<AnchorGraph>>> clustering(const std::vec
 
     auto relatedClusters = [&](const std::shared_ptr<AnchorGraph> & g) -> std::set<int> {
         std::set<int> _c;
-        for(auto &n : g->nodes) {
-            if (groups.find(n.get()) == groups.end()) {
+        for(auto &n : g->allNodes()) {
+            if (groups.find(n.lock().get()) == groups.end()) {
                 continue;
             }
-            _c.insert(groups.at(n.get()));
+            _c.insert(groups.at(n.lock().get()));
         }
         return _c;
     };
@@ -288,8 +306,8 @@ std::vector<std::vector<std::shared_ptr<AnchorGraph>>> clustering(const std::vec
         if (allNodeNotSeen(g)) {
             // create a cluster 
             int id = cnt ++;
-            for(auto &n : g->nodes) {
-                groups[n.get()] = id;
+            for(auto &n : g->allNodes()) {
+                groups[n.lock().get()] = id;
             }
         } else {
             // merge the related cluster
@@ -310,7 +328,7 @@ std::vector<std::vector<std::shared_ptr<AnchorGraph>>> clustering(const std::vec
 
     std::map<int, std::vector<std::shared_ptr<AnchorGraph>>> id_to_cluster;
     for(auto &g : matches) {
-        int cluster_id = groups[g->nodes[0].get()];
+        int cluster_id = groups[g->allNodes()[0].lock().get()];
         id_to_cluster[cluster_id].push_back(g);
     }
 

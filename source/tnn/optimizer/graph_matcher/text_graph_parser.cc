@@ -289,7 +289,7 @@ void reportError(const std::string &msg, const Token &tok) {
 }
 
 
-Status constructGraph(const TextGraph &tg, Graph * graph)
+Status constructGraph(const TextGraph &tg, Graph * graph) throw(...)
 {
     SlotManager manager;
 
@@ -332,8 +332,8 @@ Status constructGraph(const TextGraph &tg, Graph * graph)
                 }
                 auto e = std::make_shared<Edge>(s.node, n.get(), s.node->info->outputs[input.index]);
                 edges.push_back(e);
-                s.node->addOutputEdge(e.get());
-                n->addInput(e.get());
+                RAISE_ON_ERROR(s.node->addOutputEdge(e.get()));
+                RAISE_ON_ERROR(n->addInput(e.get()));
             }
         }
 
@@ -363,32 +363,23 @@ Status constructGraph(const TextGraph &tg, Graph * graph)
         line_s = line_e + 1;
     }
 
-    graph->nodes = nodes;
-    graph->edges = edges;
-    graph->placeholders = manager.place_holders; 
+    std::vector<std::shared_ptr<Node>> placeholders = manager.place_holders;
     // User inputed placeholder is stored in the nodes.
-    graph->placeholders.insert(graph->placeholders.end(), nodes.begin(), nodes.end());
-    graph->placeholders.erase(std::remove_if(graph->placeholders.begin(), 
-                                             graph->placeholders.end(),
-                                            [](std::shared_ptr<Node> &n){
-                                                    return n->output_edges.size() == 0 || n->info->type != LAYER_PLACEHOLDER;
-                                                }),
-                              graph->placeholders.end());
+    placeholders.insert(placeholders.end(), nodes.begin(), nodes.end());
+    placeholders.erase(std::remove_if(placeholders.begin(), 
+                                      placeholders.end(),
+                                        [](std::shared_ptr<Node> &n){
+                                            return n->output_edges.size() == 0 || n->info->type != LAYER_PLACEHOLDER;
+                                        }),
+                                    placeholders.end());
 
-    graph->nodes.erase(std::remove_if(graph->nodes.begin(), graph->nodes.end(),
-                                      [](std::shared_ptr<Node> &n){ return  n->info->type == LAYER_PLACEHOLDER; }),
-                                      graph->nodes.end());
-
-    for(auto &n : graph->placeholders) {
-        for(auto &name: n->info->outputs) 
-            graph->tensor_2_node[name] = n;
-    }
-
-    for(auto &n : graph->nodes) {
-        for(auto &name : n->info->outputs) 
-            graph->tensor_2_node[name] = n;
-    }
-
+    nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
+                                    [](std::shared_ptr<Node> &n){ return  n->info->type == LAYER_PLACEHOLDER; }),
+                                    nodes.end());
+                                
+    *graph = Graph(nodes, placeholders, edges);
+    graph->reBuildTensorIndex();
+    
     return TNN_OK;
 }
 

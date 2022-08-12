@@ -31,28 +31,26 @@ namespace TNN_NS {
 extern const char * pattern_node_prefix;
 
 struct NodePair {
-    Node * node = nullptr;
+    const Node * node = nullptr;
     Node * anchor = nullptr;
     int recursion = 0;
 
-    NodePair(Node *n, Node *a, int recur) : node(n), anchor(a), recursion(recur) {};
+    NodePair(const Node *n, Node *a, int recur) : node(n), anchor(a), recursion(recur) {};
     NodePair(const NodePair &) = default;
     NodePair() = default;
 };
 
-std::vector< std::vector<NodePair> > allPermutations(std::vector<Edge*> node_e, std::vector<Edge*> probe_e);
-
 struct AnchorGraph : public Graph {
-    std::map<Node *, NodePair> paired_nodes;
+    std::map<const Node *, NodePair> paired_nodes;
 
-    AnchorGraph(): Graph("") {};
+    AnchorGraph(): Graph() {};
     AnchorGraph(const AnchorGraph &g): Graph(g), paired_nodes(g.paired_nodes) {};
 
-    bool matchUp(Node *node, Node* probe, int recursion, bool silence=false);
+    bool matchUp(const Node *node, Node* probe, int recursion, bool silence=false);
 
     void backTrace(int recursion);
 
-    std::vector<Node *> allStructualMatchedNodes(Node * pattern_sibling_node);
+    std::vector<const Node *> allStructualMatchedNodes(const Node * pattern_sibling_node);
 
     void formalize(Graph *g);
 
@@ -104,9 +102,32 @@ struct AnchorGraph : public Graph {
         return res;
     }
 
+    virtual std::vector<const Tensor*> outputs_() const override {
+        // all tensors that is not used + outEdges
+        std::set<std::string> names;
+
+        for(auto &e : outEdges()) names.insert(e->tensor_name);
+        for(auto pair : tensors) {
+            if (tensor_2_edge.count(pair.first) == 0) {
+                names.insert(pair.first);
+            }
+        }
+
+        return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
+    }
+
+    virtual std::vector<const Tensor*> inputs_() const override {
+        // all inEdges
+        std::set<std::string> names;
+
+        for(auto &e : inEdges()) names.insert(e->tensor_name);
+
+        return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
+    }
+
 };
 
-void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> pattern, std::vector<std::shared_ptr<AnchorGraph>> &results);
+void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> pattern, std::vector<std::shared_ptr<AnchorGraph>> &results) throw(...);
 
 std::vector<std::vector<std::shared_ptr<AnchorGraph>>> clustering(const std::vector<std::shared_ptr<AnchorGraph>> &matches);
 
