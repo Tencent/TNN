@@ -162,8 +162,9 @@ public:
   } while(0)
 
 #define ERRORV(f_, vname_, ...) \
-  char vname_[2000]; \
-    ::tnn::Logger::instance().log(std::string(__ss), ::tnn::Logger::kLogLevelError());\
+  __LOG_FORMAT(vname_, 2000, f_, ##__VA_ARGS__); \
+  do { \
+    ::tnn::Logger::instance().log(std::string(vname_), ::tnn::Logger::kLogLevelError());\
   } while(0)
 
 #define FATAL(f_, ...) \

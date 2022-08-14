@@ -26,6 +26,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
 #include "tnn/interpreter/net_structure.h"
+#include "tnn/interpreter/net_resource.h"
 #include "tnn/core/layer_type.h"
 
 #define RAISE_ON_ERROR(status)                                  \
@@ -41,8 +42,6 @@ namespace TNN_NS {
     struct Node;
 
     struct Graph;
-
-    struct HeirGraph;
 
     struct AnchorGraph;
 
@@ -72,6 +71,7 @@ namespace TNN_NS {
         Status addOutputEdge(Edge * e);
         Status addInputEdge(Edge * e);
         Status addInput(Edge * e);
+        Status updateInput(const std::string &name, const std::string &new_name, Edge * e);
 
         Status sanityCheck();
 
@@ -81,7 +81,7 @@ namespace TNN_NS {
 
     };
 
-    typedef std::function<std::shared_ptr<HeirGraph>(std::shared_ptr<AnchorGraph>)> graph_generator;
+    typedef std::function<std::shared_ptr<Graph>(std::shared_ptr<AnchorGraph>)> graph_generator;
 
     struct Graph : public std::enable_shared_from_this<Graph> {
 
@@ -92,7 +92,7 @@ namespace TNN_NS {
               const std::vector<std::shared_ptr<Edge>> _edges) 
               : nodes(_nodes), placeholders(_placeholders), edges(_edges) {}
 
-        Status fromNetStructure(std::vector<std::shared_ptr<LayerInfo> > layers);
+        Status fromInterpreted(NetStructure * , NetResource *);
 
         Graph(std::string proto_str);
 
@@ -100,13 +100,16 @@ namespace TNN_NS {
 
         Status RemoveDeadComponents();
 
-        Status sanityCheck();
+        virtual Status sanityCheck();
 
         Status renameTensor(const std::string &old_name, const std::string &new_name);
 
         Status markOutput(const std::string &tensor_name);
 
         Status addNode(const std::shared_ptr<Node> &pattern);
+
+        // create node of specified type, Node name is set to the first output tensor_name
+        Status createNode(const LayerType &type, const std::vector<std::string> &in_names, const std::vector<std::string> &out_names);
 
         const std::vector<std::weak_ptr<const Node>> allNodes() const;
 
@@ -148,6 +151,10 @@ namespace TNN_NS {
 
         Status buildNodeTensorIndex(const std::shared_ptr<Node> );
 
+        void embed(std::shared_ptr<Graph> g, const std::shared_ptr<AnchorGraph> anchor, std::string name_prefx) throw(...);
+
+        Status topologicalSort();
+
     protected:
         std::vector<std::shared_ptr<Node>> nodes;
         std::vector<std::shared_ptr<Edge>> edges;
@@ -158,42 +165,15 @@ namespace TNN_NS {
 
         std::map<std::string, std::shared_ptr<Node>> tensor_2_node;
         std::map<std::string, std::vector<Edge*>> tensor_2_edge;
+
+        NetStructure * tnn_structure = nullptr;
+        NetResource * tnn_resource = nullptr;
     
     private:
         int rewrite_count = 0;
 
         friend class AnchorGraph;
-        friend class HeirGraph;
     };
-
-
-    // HeirGraph is generated from an AnchorGraph.
-    // all edges should satisify: src and dst are in the HeirGraph
-    // input and output edges for the HeirGraph are stored explicitly.
-    // input nodes are not included in the nodes. e.g. the placeholders
-    // output nodes are included in the nodes. 
-    struct HeirGraph : public Graph {
-        std::vector<Node *> output_nodes;
-        std::map<Node *, Node*> replace_map;
-
-        HeirGraph(): Graph("") {};
-        // Deep Copy of the nodes.
-        HeirGraph(const AnchorGraph &g);
-
-        void markReplacement(Node *origin, Node * n);
-        void markAllInOneNode(const AnchorGraph &g);
-
-        void embed(std::shared_ptr<Graph> g, const std::shared_ptr<AnchorGraph> anchor, std::string name_prefx) throw(...);
-
-        virtual std::vector<Node *> outputs() const override {
-            auto degree_zero_nodes = Graph::outputs();
-            degree_zero_nodes.insert(degree_zero_nodes.end(), output_nodes.begin(), output_nodes.end());
-            std::set<Node *> node_set(degree_zero_nodes.begin(), degree_zero_nodes.end());
-            return std::vector<Node*>(node_set.begin(), node_set.end());
-        }
-
-    };
-
 
 }
 

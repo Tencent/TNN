@@ -10,7 +10,7 @@
 #include "tnn/optimizer/graph_matcher/logger.h"
 
 int main(int argc, char ** argv) {
-    tnn::Logger::instance().set_verbose_level("D");
+    tnn::Logger::instance().set_verbose_level("I");
 
     tnn::GraphParser graph_parser;
 
@@ -20,7 +20,7 @@ int main(int argc, char ** argv) {
             %b,%c = Mul(%a)
             return (%b)
     )";
-    // graph_parser.parseFromString(graph_str);
+    graph_parser.parseFromString(graph_str);
     // return 0;
 
     std::vector<std::string> text_graph = {
@@ -73,7 +73,7 @@ int main(int argc, char ** argv) {
             pattern->dump(f);
         }
 
-        auto gen = [](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::HeirGraph> {
+        auto gen = [](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::Graph> {
             if (in->inputs().size() != 1 || in->outputs().size() != 1 ){
                 return nullptr;
             }
@@ -84,17 +84,13 @@ int main(int argc, char ** argv) {
                 return nullptr;
             }
 
-            auto g = std::make_shared<tnn::HeirGraph>();
-            int num_inputs = 1;
-            for(int i=0;i<num_inputs;i++) {
-                auto ph = g->getNodeOrCreatePlaceHolder(std::string("PlaceHolder_") + std::to_string(i));
-                ph->info->type = tnn::LAYER_DUMMY_TYPE;
+            auto g = std::make_shared<tnn::Graph>();
+            auto in_name = "input_1";
+            auto in1 = g->getNodeOrCreatePlaceHolder(in_name);
+            auto status = g->createNode(tnn::LAYER_TANH, {in_name}, {"new_heir_node"});
+            if (status != tnn::TNN_OK) {
+                return nullptr;
             }
-            auto new_node = std::make_shared<tnn::Node>("new_heir_node");
-            new_node->info->type = tnn::LAYER_TANH;
-            new_node->info->outputs = {"add_mul_blob"};
-            g->addNode(new_node);
-            g->markAllInOneNode(*in);
 
             return g;
         };
@@ -103,28 +99,24 @@ int main(int argc, char ** argv) {
     }
 
 
-#if 1
     {
         std::vector<std::string> text_graph_pattern = {
             "Add",
             "Mul    Mul<",
         };
 
-        auto gen = [](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::HeirGraph> {
+        auto gen = [](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::Graph> {
             if (in->inputs().size() != 1 || in->outputs().size() != 1 ){
                 return nullptr;
             }
 
-            auto g = std::make_shared<tnn::HeirGraph>();
-            int num_inputs = 1;
-            for(int i=0;i<num_inputs;i++) {
-                auto ph = g->getNodeOrCreatePlaceHolder(std::string("PlaceHolder_") + std::to_string(i));
-                ph->info->type = tnn::LAYER_DUMMY_TYPE;
+            auto g = std::make_shared<tnn::Graph>();
+            auto in_name = "input_1";
+            auto in1 = g->getNodeOrCreatePlaceHolder(in_name);
+            auto status = g->createNode(tnn::LAYER_LAYER_NORM, {in_name}, {"new_heir_norm"});
+            if (status != tnn::TNN_OK) {
+                return nullptr;
             }
-            auto new_node = std::make_shared<tnn::Node>("_norm");
-            new_node->info->type = tnn::LAYER_LAYER_NORM;
-            g->addNode(new_node);
-            g->markAllInOneNode(*in);
 
             return g;
         };
@@ -145,23 +137,25 @@ int main(int argc, char ** argv) {
             "AnyType+>",
         };
 
-        auto gen = [](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::HeirGraph> {
+        auto gen = [](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::Graph> {
             if (in->inputs().size() != 2 || in->outputs().size() != 1 ){
                 printf("Expect HeirGraph to Have 2 inputs and 1 outputs, but got %lu inputs and %lu outptus.\n",
                         in->inputs().size(), in->outputs().size());
                 return nullptr;
             }
 
-            auto g = std::make_shared<tnn::HeirGraph>();
-            int num_inputs = 2;
-            for(int i=0;i<num_inputs;i++) {
-                auto ph = g->getNodeOrCreatePlaceHolder(std::string("PlaceHolder_") + std::to_string(i));
-                ph->info->type = tnn::LAYER_DUMMY_TYPE;
+            auto g = std::make_shared<tnn::Graph>();
+            auto in_name = "input_1";
+            auto in_name2 = "input_2";
+            auto in1 = g->getNodeOrCreatePlaceHolder(in_name);
+            auto in2 = g->getNodeOrCreatePlaceHolder(in_name2);
+            auto status = g->createNode(tnn::LAYER_CONVOLUTION, {in_name, in_name2}, {"_any_conv"});
+            if (status != tnn::TNN_OK) {
+                return nullptr;
             }
-            auto new_node = std::make_shared<tnn::Node>("_mulmul");
-            new_node->info->type = tnn::LAYER_CONVOLUTION;
-            g->addNode(new_node);
-            g->markAllInOneNode(*in);
+
+            std::ofstream f("heir2.tnnproto");
+            g->dump(f);
 
             return g;
         };
@@ -193,23 +187,20 @@ int main(int argc, char ** argv) {
             "Mul     ",
             "Mul",
         };
-        auto gen = [](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::HeirGraph> {
+        auto gen = [](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::Graph> {
             if (in->inputs().size() != 1 || in->outputs().size() != 1 ){
                 printf("Expect HeirGraph to Have 1 inputs and 1 outputs, but got %lu inputs and %lu outptus.\n",
                         in->inputs().size(), in->outputs().size());
                 return nullptr;
             }
 
-            auto g = std::make_shared<tnn::HeirGraph>();
-            int num_inputs = 1;
-            for(int i=0;i<num_inputs;i++) {
-                auto ph = g->getNodeOrCreatePlaceHolder(std::string("PlaceHolder_") + std::to_string(i));
-                ph->info->type = tnn::LAYER_DUMMY_TYPE;
+            auto g = std::make_shared<tnn::Graph>();
+            auto in_name = "input_1";
+            auto in1 = g->getNodeOrCreatePlaceHolder(in_name);
+            auto status = g->createNode(tnn::LAYER_CONVOLUTION, {in_name}, {"_ffn"});
+            if (status != tnn::TNN_OK) {
+                return nullptr;
             }
-            auto new_node = std::make_shared<tnn::Node>("_ffn");
-            new_node->info->type = tnn::LAYER_CONVOLUTION;
-            g->addNode(new_node);
-            g->markAllInOneNode(*in);
 
             return g;
         };
@@ -219,7 +210,6 @@ int main(int argc, char ** argv) {
             if (graph) graph->rewrite(pattern, gen);
         }
     }
-#endif
 
     if (graph) {
         std::ofstream f("rewrited.tnnproto");
