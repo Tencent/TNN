@@ -46,6 +46,8 @@ struct AnchorGraph : public Graph {
     AnchorGraph(): Graph() {};
     AnchorGraph(const AnchorGraph &g): Graph(g), paired_nodes(g.paired_nodes) {};
 
+    virtual Status sanityCheck() override;
+
     bool matchUp(const Node *node, Node* probe, int recursion, bool silence=false);
 
     void backTrace(int recursion);

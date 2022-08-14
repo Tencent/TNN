@@ -14,6 +14,9 @@
 
 #include "tnn/optimizer/graph_matcher/ir.h"
 
+#include <stack>
+#include <list>
+
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
 #include "tnn/optimizer/graph_matcher/lexer.h"
@@ -49,7 +52,8 @@ namespace TNN_NS {
 
     Status Node::addOutputEdge(Edge * e) {
         if (e->src != this) {
-            return Status(TNNERR_COMMON_ERROR, "invalid output Edge.");
+            ERRORV("invalid output Edge.", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
         }
         output_edges.push_back(e);
         return TNN_OK;
@@ -57,7 +61,8 @@ namespace TNN_NS {
 
     Status Node::addInputEdge(Edge * e) {
         if (e->dst != this) {
-            return Status(TNNERR_COMMON_ERROR, "invalid input Edge.");
+            ERRORV("invalid input Edge[%s].", msg, e->tensor_name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
         }
         input_edges.push_back(e);
         return TNN_OK;
@@ -66,6 +71,29 @@ namespace TNN_NS {
     Status Node::addInput(Edge * e) {
         RETURN_IF_FAIL(addInputEdge(e));
         info->inputs.push_back(e->tensor_name);
+        return TNN_OK;
+    }
+
+    Status Node::updateInput(const std::string &name, const std::string &new_name, Edge * e) {
+        if (std::find(info->inputs.begin(), info->inputs.end(), name) == info->inputs.end()) {
+            ERRORV("input tensor[%s] not found in Node[%s]'s inputs.", msg, name.c_str(), info->name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        if (std::find_if(input_edges.begin(), input_edges.end(), [&](Edge * ptr){return ptr->tensor_name == name;}) == input_edges.end()) {
+            ERRORV("input edge not found in Node input_edges.", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
+        };
+        for(auto it = info->inputs.begin(); it != info->inputs.end(); it++) {
+            if (*it == name) {
+                *it = new_name;
+            }
+        }
+        for(auto it = input_edges.begin(); it != input_edges.end(); it++) {
+            if ((*it)->tensor_name == name) {
+                *it = e;
+            }
+        }
+        e->tensor_name = new_name;
         return TNN_OK;
     }
 
@@ -95,14 +123,18 @@ namespace TNN_NS {
         return TNN_OK;
     }
 
-    Status Graph::fromNetStructure(std::vector<std::shared_ptr<LayerInfo> > layers) {
+    // Status Graph::fromNetStructure(std::vector<std::shared_ptr<LayerInfo> > layers) {
+    Status Graph::fromInterpreted(NetStructure * structure, NetResource * resource) {
+        tnn_structure = structure;
+        tnn_resource = resource;
         *this = Graph();
-        for (auto layer : layers) {
+        for (auto layer : tnn_structure->layers) {
             auto node = std::make_shared<Node>(layer);
             nodes.push_back(node);
             for (auto out : layer->outputs) {
                 if (tensor_2_node.find(out) != tensor_2_node.end()) {
-                    return Status(TNNERR_COMMON_ERROR ,"duplicated tensor_name found.");
+                    ERRORV("duplicated tensor_name found.", msg);
+                    return Status(TNNERR_COMMON_ERROR ,msg);
                 }
                 tensor_2_node[out] = node;
             }
@@ -152,13 +184,62 @@ namespace TNN_NS {
         return TNN_OK;
     }
 
-    Status Graph::renameTensor(const std::string &old_name, const std::string &new_name) {
+    Status Graph::createNode(const LayerType &type, const std::vector<std::string> &in_names, 
+                            const std::vector<std::string> &out_names) {
+        if (out_names.size() == 0) {
+            ERRORV("you must specify at least one output.", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+
+        std::vector<std::shared_ptr<Edge>> new_edges;
+
+        for(auto & in : in_names) {
+            auto src = getNodeByTensorName(in);
+            if (!src) {
+                ERRORV("specified input not found.", msg);
+                return Status(TNNERR_COMMON_ERROR, msg);
+            }
+        }
+
+        for(auto & in : out_names) {
+            auto src = getNodeByTensorName(in);
+            if (src) {
+                ERRORV("specified output alread exists.", msg);
+                return Status(TNNERR_COMMON_ERROR, msg);
+            }
+        }
+
+        // all check passed, now make changes.
+        if (type == LAYER_PLACEHOLDER) {
+            if (in_names.size() > 0 || out_names.size() != 1) {
+                return Status(TNNERR_COMMON_ERROR, "invalid placeholder configuration.");
+            }
+            auto new_node = getNodeOrCreatePlaceHolder(*out_names.begin());
+            if (!new_node) {
+                return Status(TNNERR_COMMON_ERROR, "create placeholder failed.");
+            }
+            return TNN_OK;
+        }
+
+        auto new_node = std::make_shared<tnn::Node>(out_names[0]);
+        new_node->info->type = type;
+        new_node->info->outputs = out_names;
+
+        for(auto & in : in_names) {
+            auto src = getNodeByTensorName(in);
+            auto e = std::make_shared<tnn::Edge>(src.get(), new_node.get(), in);
+            src->addOutputEdge(e.get());
+            new_node->addInput(e.get());
+            edges.push_back(e);
+        }
+        RETURN_IF_FAIL(addNode(new_node));
         return TNN_OK;
     }
 
     Status Graph::markOutput(const std::string &tensor_name) {
         if (tensors.find(tensor_name) == tensors.end()) {
-            return Status(TNNERR_COMMON_ERROR, "specified tensor not found.");
+            ERRORV("specified tensor not found.", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
         }
         marked_outputs.insert(tensor_name);
         return TNN_OK;
@@ -173,21 +254,25 @@ namespace TNN_NS {
 
         for (auto out : n->info->outputs) {
             if (tensor_2_node.find(out) != tensor_2_node.end()) {
-                return Status(TNNERR_COMMON_ERROR, "duplicated tensor_name found.");
+                ERRORV("duplicated tensor_name [%s] found at Node [%s].", msg, out.c_str(), n->name().c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
             }
             tensor_2_node[out] = n;
 
             if (tensors.find(out) != tensors.end()) {
-                return Status(TNNERR_COMMON_ERROR, "duplicated tensors found.");
+                ERRORV("duplicated tensors found.", msg);
+                return Status(TNNERR_COMMON_ERROR, msg);
             }
             tensors[out] =  std::make_shared<Tensor>(out);
         } 
         for (size_t i=0;i<n->input_edges.size();i++) {
             if (tensor_2_node.find(n->info->inputs[i]) == tensor_2_node.end()) {
-                return Status(TNNERR_COMMON_ERROR, "input node not found.");
+                ERRORV("input node [%s] not found.", msg, n->info->inputs[i].c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
             }
             if (tensors.find(n->info->inputs[i]) == tensors.end()) {
-                return Status(TNNERR_COMMON_ERROR, "input tensor not found.");
+                ERRORV("input tensor [%s] not found.", msg, n->info->inputs[i].c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
             }
             tensor_2_edge[n->info->inputs[i]].push_back(n->input_edges[i]);
         }
@@ -199,12 +284,41 @@ namespace TNN_NS {
         tensor_2_edge.clear();
         tensors.clear();
 
+        // skip AnchorGraph 
+        if (dynamic_cast<AnchorGraph*>(this) == nullptr) {
+            RETURN_IF_FAIL(topologicalSort());
+        }
+
         for(auto &n : placeholders) {
             RETURN_IF_FAIL(buildNodeTensorIndex(n));
         }
 
         for(auto &n : nodes) {
             RETURN_IF_FAIL(buildNodeTensorIndex(n));
+        }
+        return sanityCheck();
+        // return TNN_OK;
+    }
+    
+    Status Graph::sanityCheck() {
+        for(auto &n : placeholders) {
+            RETURN_IF_FAIL(n->sanityCheck());
+        }
+
+        for(auto &n : nodes) {
+            RETURN_IF_FAIL(n->sanityCheck());
+
+            size_t total = 0;
+            for(auto &name : n->info->outputs) {
+                if (tensor_2_edge.count(name) > 0) {
+                    total += tensor_2_edge.at(name).size();
+                }
+            }
+            if (n->output_edges.size() != total) {
+                ERRORV("number of output edges [%lu] not match tensor_usage:[%lu] for node[%s].", \
+                        msg, n->output_edges.size(), total, n->name().c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
+            }
         }
         return TNN_OK;
     }
@@ -214,7 +328,8 @@ namespace TNN_NS {
         for(auto &name : names) {
             auto tensor = getTensorByName(name);
             if (!tensor) {
-                throw std::runtime_error("got unkonwn tensor.");
+                ERRORV("got unkonwn tensor [%s].", msg, name.c_str());
+                throw std::runtime_error(msg);
             }
             res.push_back(tensor.get());
         }
@@ -225,6 +340,7 @@ namespace TNN_NS {
         std::set<std::string> names = marked_outputs;
 
         for(auto &n : nodes) {
+            RAISE_ON_ERROR(n->sanityCheck());
             if (n->output_edges.size() == 0) {
                 for(auto &name : n->info->outputs)
                     names.insert(name);
@@ -247,6 +363,8 @@ namespace TNN_NS {
 
     Status Graph::rewrite(std::shared_ptr<Graph> &pattern, graph_generator generator) {
         try { 
+            RAISE_ON_ERROR(sanityCheck());
+
             std::vector<std::shared_ptr<AnchorGraph>> matches;
             match(shared_from_this(), pattern, matches);
 
@@ -264,14 +382,22 @@ namespace TNN_NS {
                 auto &origin_graph = group[0];
                 auto heir_graph = generator(group[0]);
                 if (heir_graph) {
-                    if (heir_graph->inputs().size() != origin_graph->inputs().size()) {
+
+                    // previus changes may cause tensor_name changes, so rebuild index here.
+                    origin_graph->formalize(this);
+
+                    if (heir_graph->inputs_().size() != origin_graph->inputs_().size()) {
                         WARN("Warning: Skiped one replacement. heir_graph and origin graph num inputs not match, %lu != %lu", 
-                                    heir_graph->inputs().size(),  origin_graph->inputs().size());
+                                    heir_graph->inputs_().size(),  origin_graph->inputs_().size());
                         continue;
                     }
-                    if (heir_graph->outputs().size() != origin_graph->outputs().size()) {
+                    if (heir_graph->outputs_().size() != origin_graph->outputs_().size()) {
                         WARN("Warning: Skiped one replacement. heir_graph and origin graph num outputs not match, %lu != %lu", 
-                                    heir_graph->outputs().size(),  origin_graph->outputs().size());
+                                    heir_graph->outputs_().size(),  origin_graph->outputs_().size());
+                        continue;
+                    }
+                    if (heir_graph->reBuildTensorIndex() != TNN_OK) {
+                        WARN("Warning: the generated graph is not valid. skip now");
                         continue;
                     }
                     // TODO topological sort the inputs and outputs of the two graphs.
@@ -286,8 +412,8 @@ namespace TNN_NS {
             ERROR("%s", error.what());
             return Status(TNNERR_COMMON_ERROR, error.what());
         } catch (...) {
-            ERROR("Parser got unknow error.");
-            return Status(TNNERR_COMMON_ERROR, "Parser got unknow error.");
+            ERRORV("Parser got unknow error.", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
         }
 
         return TNN_OK;
@@ -298,10 +424,11 @@ namespace TNN_NS {
         // !!!assume each node has only one output here.
         os << "\"1 " << tensor_2_node.size() << " 1 4206624772 ,\"\n";
         // line 2 inputs: ':'.join(name rank dims dtype)
-        auto it = placeholders.begin();
-        os << "\"" << (*it)->info->outputs[0] << " 0 0 ";
-        for(it++;it!=placeholders.end();it++) {
-            os << ": " << (*it)->info->outputs[0] << " 0 0 ";
+        auto inputs = inputs_();
+        auto it = inputs.begin();
+        os << "\"" << (*it)->name << " 0 0 ";
+        for(it++;it!=inputs.end();it++) {
+            os << ": " << (*it)->name << " 0 0 ";
         }
         os << " ,\"\n\"";
         // line 3 blobs
@@ -315,11 +442,8 @@ namespace TNN_NS {
         }
         os << " ,\"\n\"";
         // line 4 outptus
-        for(auto &n : nodes) {
-            if (n->output_edges.size() == 0) {
-                for (auto &blob : n->info->outputs) 
-                    os << blob << " ";
-            }
+        for(auto &v : outputs_()) {
+            os << v->name << " ";
         }
         os << " ,\"\n\"";
         // line 5 num layers
@@ -335,79 +459,132 @@ namespace TNN_NS {
 
     }
 
-    HeirGraph::HeirGraph(const AnchorGraph &g): Graph("") {
-        throw std::runtime_error("Deep copy constructor is not implemented yet.");
-    };
+    Status Graph::topologicalSort() {
+        std::set<std::string> known_names;
+        std::list<std::shared_ptr<Node>> pool;
+        std::vector<std::shared_ptr<Node>> sorted;
+        sorted.reserve(nodes.size());
 
-    void HeirGraph::markReplacement(Node *origin, Node * new_node) {
-        if (origin == nullptr || new_node == nullptr) {
-            throw std::runtime_error("nullptr is not allowed in HeirGraph::markReplacement");
+        for(auto &n : placeholders) {
+            for(auto &name : n->info->outputs) 
+                known_names.insert(name);
         }
-        if (origin == new_node) {
-            throw std::runtime_error("origin node == new_node is not allowed in HeirGraph::markReplacement");
-        }
+
+        auto all_names_known = [&](const std::vector<std::string> &names) -> bool {
+            return std::find_if(names.begin(), names.end(), 
+                                [&](const std::string &name){ return known_names.count(name) == 0; }) == names.end();
+        };
+
+        auto testAndPush = [&](const std::shared_ptr<Node> &n) -> bool {
+            if (all_names_known(n->info->inputs)) {
+                for(auto &name : n->info->outputs) {
+                    known_names.insert(name);
+                }
+                sorted.push_back(n);
+                return true;
+            }
+            return false;
+        };
+
         for(auto &n : nodes) {
-            if (n.get() == new_node) {
-                replace_map[origin] = new_node;
-                return;
+            if (!testAndPush(n)) {
+                pool.push_back(n);
             }
         }
-        throw std::runtime_error("got invalid Node ptr in HeirGraph::markReplacement");
+
+        size_t last_size = 0;
+        while( pool.size() > 0 && last_size != pool.size() ) {
+            last_size = pool.size();
+            pool.erase(std::remove_if(pool.begin(), pool.end(), [&](const std::shared_ptr<Node> &n) {
+                                        return testAndPush(n);
+                                    }), pool.end());
+        }
+
+        if (pool.size() != 0) {
+            return Status(TNNERR_COMMON_ERROR, "Got invalid graph, eg. cycled graph.");
+        }
+
+        nodes = sorted;
+
+        return TNN_OK;
     }
 
-    void HeirGraph::markAllInOneNode(const AnchorGraph &g) {
-        if (nodes.size() != 1) {
-            throw std::runtime_error("HeirGraph expected to have exactly one node.");
-        }
-        Node * n = nodes[0].get();
-        for(auto &e : g.inEdges()) {
-            markReplacement(e->dst, n);
-        }
-        for(auto &e : g.outEdges()) {
-            markReplacement(e->src, n);
-        }
-    }
-
-
-    void HeirGraph::embed(std::shared_ptr<Graph> g, const std::shared_ptr<AnchorGraph> anchor, std::string name_prefix) {
-        // check first
-        for(auto & e : anchor->inEdges()) {
-            if (replace_map.find(e->dst) == replace_map.end()) {
-                throw std::runtime_error("Input edge of the subgraph not found replacement.");
-            }
-        }
-        for(auto & e : anchor->outEdges()) {
-            if (replace_map.find(e->src) == replace_map.end()) {
-                throw std::runtime_error("Output edge of the subgraph not found replacement.");
-            }
-        }
-
-        auto updateVector = [&](std::vector<std::string> &v, std::string origin = "", std::string new_name="") {
-            DEBUG("\tupdateVector origin:%s new_name:%s", origin.c_str(), new_name.c_str());
+    Status Graph::renameTensor(const std::string &old_name, const std::string &new_name) {
+        auto updateVector = [&](std::vector<std::string> &v) {
             for(auto it = v.begin();it!=v.end();it++)  {
-                if (*it == origin || origin.length() == 0) {
-                    if (new_name.length() == 0) {
-                        if (origin.length() == 0) {
-                            new_name = name_prefix + *it;
-                        } else {
-                            new_name = name_prefix + origin;
-                        }
-                    }
-                    DEBUG("\t\tupdateted origin:%s to:%s", origin.c_str(), new_name.c_str());
+                if (*it == old_name) {
+                    DEBUG("\t\tupdateted origin:%s to:%s", old_name.c_str(), new_name.c_str());
                     *it = new_name;
                 }
             }
         };
 
-        auto addNamePrefix = [&](Node *n) {
-            n->info->name = name_prefix + n->info->name;
-            for(auto &e : n->output_edges) {
-                DEBUG("Updating node edges, here is inputs of Node[%s]", e->dst->name().c_str());
-                updateVector(e->dst->info->inputs, e->tensor_name, name_prefix + e->tensor_name);
-                e->tensor_name = name_prefix + e->tensor_name;
-            }
+        for(auto &n : placeholders) {
+            updateVector(n->info->inputs);
             updateVector(n->info->outputs);
-        };
+        }
+
+        for(auto &n : nodes) {
+            updateVector(n->info->inputs);
+            updateVector(n->info->outputs);
+        }
+
+        for(auto &e : edges) {
+            if (e->tensor_name == old_name) {
+                e->tensor_name = new_name;
+            }
+        }
+
+        return reBuildTensorIndex();;
+    }
+
+    void Graph::embed(std::shared_ptr<Graph> g, const std::shared_ptr<AnchorGraph> anchor, std::string name_prefix) {
+        // 1. check every edge has a replacement tensor
+        // 2. remove all inEges.
+        // 3. connect new_inEdges to g
+        // 3. replace all outEdges->src to new_graph.
+        // 5. remove unused Nodes
+
+        std::set<std::string> tensor_names;
+        for(auto & p : tensors) tensor_names.insert(p.first);
+        for(auto &name : tensor_names) renameTensor(name, name_prefix + name);
+
+        std::map<std::string, std::string> in_mapping;
+        for(size_t i=0;i<anchor->inputs_().size();i++) {
+            in_mapping[anchor->inputs_()[i]->name] = inputs_()[i]->name;
+            in_mapping[inputs_()[i]->name] =anchor->inputs_()[i]->name;
+        }
+
+        std::map<std::string, std::string> out_mapping;
+        for(size_t i=0;i<anchor->outputs_().size();i++) {
+            out_mapping[anchor->outputs_()[i]->name] = outputs_()[i]->name;
+        }
+
+        // check first
+        for(auto & e : anchor->inEdges()) {
+            if (in_mapping.count(e->tensor_name) == 0) {
+                ERRORV("Input edge [%s] of the subgraph not found replacement.", msg, e->tensor_name.c_str());
+                throw std::runtime_error(msg);
+            }
+            auto src_node = g->getNodeByTensorName(e->tensor_name);
+            if (!src_node) {
+                ERRORV("src node of inEdge [%s] not found.", msg, e->tensor_name.c_str());
+                throw std::runtime_error(msg);
+            }
+        }
+
+        for(auto & e : anchor->outEdges()) {
+            if (out_mapping.find(e->tensor_name) == out_mapping.end()) {
+                ERRORV("Output edge of the subgraph not found replacement.", msg);
+                throw std::runtime_error(msg);
+            }
+            auto new_node = getNodeByTensorName(out_mapping.at(e->tensor_name));
+            if (!new_node) {
+                ERRORV("New node of output edge not found.", msg);
+                throw std::runtime_error(msg);
+            }
+        }
+
 
         // the inEdges and outEdge is calculated according to the edges. 
         // so make a copy here before changing the graph.
@@ -415,47 +592,54 @@ namespace TNN_NS {
         auto out_edges = anchor->outEdges();
 
         // number of input_edegs of new_graph might less than that of the old graph.
-        // so we need to remove the duplicated outputs edges if there is.
 
         for(auto & e : in_edges) {
-            Node * old_node = e->dst;
-            Node * new_node = replace_map.at(old_node);
-            std::remove_if(old_node->input_edges.begin(), old_node->input_edges.end(), [&](Edge * cur){
-                return cur->src == e->src;
-            });
-            e->dst = new_node;
-            DEBUG("Adding input[%s] to Node[%s]", e->tensor_name.c_str(), new_node->name().c_str());
-            RAISE_ON_ERROR(new_node->addInput(e));
+            e->dst->input_edges.erase(std::remove_if(e->dst->input_edges.begin(), e->dst->input_edges.end(), [&](Edge * cur){
+                                            return cur->src == e->src;
+                                        }), e->dst->input_edges.end());
+            e->src->output_edges.erase(std::remove_if(e->src->output_edges.begin(), e->src->output_edges.end(), [&](Edge * cur){
+                                            return cur->dst == e->dst;
+                                        }), e->src->output_edges.end());
+            g->edges.erase(std::remove_if(g->edges.begin(), g->edges.end(), [&](const std::shared_ptr<Edge> &edge) {
+                                return edge.get() == e;
+                            }), g->edges.end());
+        }
+
+        for(auto & n: nodes) {
+            for(auto &e: n->input_edges) {
+                if (in_mapping.count(e->tensor_name) > 0) {
+                    DEBUG("Updating input from %s -> %s for Node[%s]", e->tensor_name.c_str(), in_mapping[e->tensor_name].c_str(), n->name().c_str());
+                    auto src_node = g->getNodeByTensorName(in_mapping[e->tensor_name]);
+                    e->src = src_node.get();
+
+                    RAISE_ON_ERROR(n->updateInput(e->tensor_name, in_mapping.at(e->tensor_name), e));
+                    RAISE_ON_ERROR(src_node->addOutputEdge(e));
+                }
+            }
         }
 
         for(auto & e : out_edges) {
             Node * old_node = e->src;
-            Node * new_node = replace_map.at(old_node);
-            std::remove_if(old_node->output_edges.begin(), old_node->output_edges.end(), [&](Edge * cur){
-                return cur->dst == e->dst;
-            });
+            Node * new_node = getNodeByTensorName(out_mapping[e->tensor_name]).get();
+            old_node->output_edges.erase(std::remove_if(old_node->output_edges.begin(), old_node->output_edges.end(), [&](Edge * cur){
+                                            return cur->dst == e->dst;
+                                        }), old_node->output_edges.end());
+            auto old_name = e->tensor_name;
+            auto new_name = out_mapping[e->tensor_name];
             e->src = new_node;
-            DEBUG("Updating inputs of Node[%s]", e->dst->name().c_str());
-            updateVector(e->dst->info->inputs, e->tensor_name, new_node->info->outputs[0]);
-            e->tensor_name = new_node->info->outputs[0];
+            DEBUG("Updating input from %s -> %s for Node[%s]", old_name.c_str(), new_name.c_str(), e->dst->name().c_str());
+            RAISE_ON_ERROR(e->dst->updateInput(old_name, new_name, e));
             RAISE_ON_ERROR(new_node->addOutputEdge(e));
         }
 
-        for(auto &n : nodes) {
-            addNamePrefix(n.get());
-        }
-
-        auto it = g->nodes.begin();
-        for(; it != g->nodes.end();) {
-            if (std::find(anchor->nodes.begin(), anchor->nodes.end(), *it) != anchor->nodes.end()) {
-                for(auto &tensor_name : (*it)->info->outputs) g->tensor_2_node.erase(tensor_name);
-                it = g->nodes.erase(it);
-            } else {
-                it ++;
-            }
-        }
-        // TODO Remove useless Edges.
+        g->nodes.erase(std::remove_if(g->nodes.begin(), g->nodes.end(), [&](const std::shared_ptr<Node> &node) {
+            return std::find(anchor->nodes.begin(), anchor->nodes.end(), node) != anchor->nodes.end();
+        }), g->nodes.end());
 
         g->nodes.insert(g->nodes.end(), nodes.begin(), nodes.end());
+        g->edges.insert(g->edges.end(), edges.begin(), edges.end());
+
+        RAISE_ON_ERROR(g->reBuildTensorIndex());
+
     }
 }

@@ -162,6 +162,8 @@ void AnchorGraph::formalize(Graph *g) {
     //     2.here we do not modify the original Graph, Nodes and Edges.
     //     3.the AnchorGraph do not use marked_outputs.
 
+    *dynamic_cast<Graph*>(this) = Graph();
+
     // removed pairs that anchor is a placeholder
     for(auto it = paired_nodes.begin(); it!= paired_nodes.end(); ) {
         if (it->second.anchor->info->type == LAYER_PLACEHOLDER) {
@@ -215,6 +217,19 @@ void AnchorGraph::formalize(Graph *g) {
         }
     }
 }
+
+Status AnchorGraph::sanityCheck() {
+    for(auto &n : placeholders) {
+        RETURN_IF_FAIL(n->sanityCheck());
+    }
+
+    for(auto &n : nodes) {
+        RETURN_IF_FAIL(n->sanityCheck());
+    }
+    return TNN_OK;
+};
+
+
 
 
 void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> pattern,  std::vector<std::shared_ptr<AnchorGraph>>  &results) throw(...) {
