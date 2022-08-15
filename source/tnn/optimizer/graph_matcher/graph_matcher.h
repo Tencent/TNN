@@ -109,7 +109,7 @@ struct AnchorGraph : public Graph {
         std::set<std::string> names;
 
         for(auto &e : outEdges()) names.insert(e->tensor_name);
-        for(auto pair : tensors) {
+        for(auto pair : tensor_map) {
             if (tensor_2_edge.count(pair.first) == 0) {
                 names.insert(pair.first);
             }
