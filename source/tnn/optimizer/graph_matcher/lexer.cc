@@ -69,5 +69,12 @@ void unexpect(const Token &tk) {
     throw std::runtime_error(ss.str());
 }
 
+void reportError(const std::string &msg, const Token &tok) {
+    std::stringstream ss;
+    ss << "Error: " << msg << ", correspoding source is:\n";
+    tok.str.highlight(ss);
+    throw std::runtime_error(ss.str());
+}
+
 
 } // namespace tnn

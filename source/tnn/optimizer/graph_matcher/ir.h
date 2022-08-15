@@ -89,8 +89,9 @@ namespace TNN_NS {
 
         Graph(const std::vector<std::shared_ptr<Node>> _nodes, 
               const std::vector<std::shared_ptr<Node>> _placeholders, 
-              const std::vector<std::shared_ptr<Edge>> _edges) 
-              : nodes(_nodes), placeholders(_placeholders), edges(_edges) {}
+              const std::vector<std::shared_ptr<Edge>> _edges,
+              const std::vector<std::shared_ptr<Tensor>> _tensors) 
+              : nodes(_nodes), placeholders(_placeholders), edges(_edges), tensors(_tensors) {}
 
         Status fromInterpreted(NetStructure * , NetResource *);
 

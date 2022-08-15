@@ -307,6 +307,7 @@ void expect(const Token &tk, const int kind);
 
 void unexpect(const Token &tk);
 
+void reportError(const std::string &msg, const Token &tok);
 
 struct Lexer {
     Lexer(SubStr str): source_(str) { step();};

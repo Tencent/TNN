@@ -146,3 +146,16 @@ an larger TextGraph :
         "Mul",
 ```
 
+
+## How to debug
+
+1. Set logger level to DEBUG.
+```
+    tnn::Logger::instance().set_verbose_level("D");
+```
+
+2. Dump the Graph to proto:
+```
+    std::ofstream f("text_graph.tnnproto");
+    graph.dump(f);
+```
