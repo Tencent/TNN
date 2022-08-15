@@ -126,7 +126,7 @@ namespace TNN_NS {
 
         std::vector<const Tensor*> getTensorsByNames(const std::vector<std::string> &tensor_names) const throw(...);
 
-        virtual std::vector<Node*> outputs() const {
+        virtual std::vector<Node*> outputNodes() const {
             std::vector<Node *> res;
             for(auto &n : nodes) {
                 if (n->output_edges.size() == 0) {
@@ -136,7 +136,7 @@ namespace TNN_NS {
             return res;
         }
 
-        virtual std::vector<Node*> inputs() const {
+        virtual std::vector<Node*> inputNodes() const {
             std::vector<Node*> res;
             for(auto &n : placeholders) {
                 res.push_back(n.get());
@@ -144,8 +144,8 @@ namespace TNN_NS {
             return res;
         }
 
-        virtual std::vector<const Tensor*> outputs_() const;
-        virtual std::vector<const Tensor*> inputs_() const;
+        virtual std::vector<const Tensor*> outputs() const;
+        virtual std::vector<const Tensor*> inputs() const;
 
     protected:
 
