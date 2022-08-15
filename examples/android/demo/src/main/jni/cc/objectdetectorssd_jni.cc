@@ -38,8 +38,8 @@ TNN_OBJECT_DETECTORSSD(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint 
     gDetector = std::make_shared<TNN_NS::ObjectDetectorSSD>();
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd.tnnmodel");
+    protoContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd_tf_fix_box.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd_tf_fix_box.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(),
          modelContent.length());
     gComputeUnitType = computUnitType;
@@ -93,8 +93,8 @@ TNN_OBJECT_DETECTORSSD(checkNpu)(JNIEnv *env, jobject thiz, jstring modelPath) {
     TNN_NS::ObjectDetectorSSD tmpDetector;
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd.tnnmodel");
+    protoContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd_tf_fix_box.tnnproto");
+    modelContent = fdLoadFile(modelPathStr + "/mobilenetv2_ssd_tf_fix_box.tnnmodel");
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
     option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
     option->library_path = "";

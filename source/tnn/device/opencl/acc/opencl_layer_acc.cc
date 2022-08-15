@@ -63,6 +63,10 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
     status = ReloadConstantBlobs(inputs, false);
     RETURN_ON_NEQ(status, TNN_OK);
 
+    if (param->extra_config.count("opencl_force_fp32")) {
+        build_options_.insert("-DFORCE_FP32");
+    }
+
     return TNN_OK;
 }
 

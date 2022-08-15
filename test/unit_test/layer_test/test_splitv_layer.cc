@@ -48,6 +48,10 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
         GTEST_SKIP();
     }
 
+    if (dim_count > 5 && DEVICE_APPLE_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     if (DEVICE_OPENCL == dev && (dim_count > 4 || axis != 1)) {
         GTEST_SKIP();
     }
@@ -55,13 +59,14 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
     std::vector<int> input_dims = {batch, channel};
     while (input_dims.size() < dim_count) input_dims.push_back(input_size);
 
+    if (axis >= dim_count) {
+        GTEST_SKIP();
+    }
+
     if (input_dims[axis] < output_count) {
         GTEST_SKIP();
     }
 
-    if (axis >= dim_count) {
-        GTEST_SKIP();
-    }
 
     // param
     std::shared_ptr<SplitVLayerParam> param(new SplitVLayerParam());

@@ -24,7 +24,8 @@ kernel void softplus(const device ftype4 *in                     [[buffer(0)]],
     
     auto z_in  = in  + (int)gid.z * params.input_slice * params.input_size  + (int)gid.y * params.input_size + (int)gid.x;
     auto z_out = out + (int)gid.z *  params.output_slice*  params.output_size + (int)gid.y * params.output_size + (int)gid.x;
-    *z_out = log(exp(*z_in) + One4);
+//    *z_out = log(exp(*z_in) + One4);
+    *z_out = softplus_high_precision(*z_in);
 }
 
 

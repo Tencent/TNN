@@ -66,6 +66,8 @@ namespace TNN_NS {
 
 #define TNN_CUDA_NUM_THREADS 128
 
+#define TNN_CUDA_MAX_GRID_DIM 65535
+
 inline int TNN_CUDA_GET_BLOCKS(const int N) {
     return (N + TNN_CUDA_NUM_THREADS - 1) / TNN_CUDA_NUM_THREADS;
 }

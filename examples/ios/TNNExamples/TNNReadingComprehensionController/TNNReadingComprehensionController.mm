@@ -28,9 +28,7 @@ using namespace TNN_NS;
 
 @property (weak, nonatomic) IBOutlet UIButton *btnExample;
 @property (weak, nonatomic) IBOutlet UILabel *labelResult;
-@property (weak, nonatomic) IBOutlet UILabel *labelGPU;
 @property (weak, nonatomic) IBOutlet UILabel *labelContext;
-@property (weak, nonatomic) IBOutlet UISwitch *switchGPU;
 
 @property (strong, nonatomic) NSString *context;
 @property (strong, nonatomic) NSString *question;
@@ -48,7 +46,7 @@ using namespace TNN_NS;
     [super viewWillAppear:animated];
     /*
      Testcast1:
-     std::string context = "TNN: A high-performance, lightweight neural network inference framework open sourced by Tencent Youtu Lab. It also has many outstanding advantages such as cross-platform, high performance, model compression, and code tailoring. The TNN framework further strengthens the support and performance optimization of mobile devices on the basis of the original Rapidnet and ncnn frameworks. At the same time, it refers to the high performance and good scalability characteristics of the industry's mainstream open source frameworks, and expands the support for X86 and NV GPUs. On the mobile phone, TNN has been used by many applications such as mobile QQ, weishi, and Pitu. As a basic acceleration framework for Tencent Cloud AI, TNN has provided acceleration support for the implementation of many businesses. Everyone is welcome to participate in the collaborative construction to promote the further improvement of the TNN reasoning framework.";
+     std::string context = "TNN: A high-performance, lightweight neural network inference framework open sourced by Tencent Youtu Lab. It also has many outstanding advantages such as cross-platform, high performance, model compression, and code tailoring. The TNN framework further strengthens the support and performance optimization of mobile devices on the basis of the original Rapidnet and ncnn frameworks. At the same time, it refers to the high performance and good scalability characteristics of the industry's mainstream open source frameworks, and expands the support for X86 and NV GPUs. On the mobile phone, TNN has been used by many applications such as mobile QQ, weishi, and Pitu. As a basic acceleration framework for Tencent Cloud AI, TNN has provided acceleration support for the implementation of many businesses. Everyone is welcome to participate in the collaborative construction to promote the further improvement of the TNN inference framework.";
      std::string question = "what advantages does TNN have?"; // cross-platform, high performance, model compression, and code tailoring
      std::string question = "who developed TNN?"; // Tencent Youtu Lab
      std::string question = "which applications use TNN?"; // mobile QQ, weishi, and Pitu
@@ -65,14 +63,14 @@ using namespace TNN_NS;
      std::string question = "what is tiramisu?";  // a polyhedral compiler with a scheduling language
      std::string question = "what are tiramisu designed for?"; // deep learning
      */
-    self.context = [NSString stringWithUTF8String:"TNN: A high-performance, lightweight neural network inference framework open sourced by Tencent Youtu Lab. It also has many outstanding advantages such as cross-platform, high performance, model compression, and code tailoring. The TNN framework further strengthens the support and performance optimization of mobile devices on the basis of the original Rapidnet and ncnn frameworks. At the same time, it refers to the high performance and good scalability characteristics of the industry's mainstream open source frameworks, and expands the support for X86 and NV GPUs. On the mobile phone, TNN has been used by many applications such as mobile QQ, weishi, and Pitu. As a basic acceleration framework for Tencent Cloud AI, TNN has provided acceleration support for the implementation of many businesses. Everyone is welcome to participate in the collaborative construction to promote the further improvement of the TNN reasoning framework."];
+    self.context = [NSString stringWithUTF8String:"TNN: A high-performance, lightweight neural network inference framework open sourced by Tencent Youtu Lab. It also has many outstanding advantages such as cross-platform, high performance, model compression, and code tailoring. The TNN framework further strengthens the support and performance optimization of mobile devices on the basis of the original Rapidnet and ncnn frameworks. At the same time, it refers to the high performance and good scalability characteristics of the industry's mainstream open source frameworks, and expands the support for X86 and NV GPUs. On the mobile phone, TNN has been used by many applications such as mobile QQ, weishi, and Pitu. As a basic acceleration framework for Tencent Cloud AI, TNN has provided acceleration support for the implementation of many businesses. Everyone is welcome to participate in the collaborative construction to promote the further improvement of the TNN inference framework."];
     self.question = [NSString stringWithUTF8String:"what is TNN?"];
 
     self.labelContext.text = [NSString stringWithFormat:@"Context:\n%s", [self.context UTF8String]];
     self.labelResult.text = [NSString stringWithFormat:@"Q:%s", [self.question UTF8String]];
 }
-- (IBAction)onSwitchChanged:(id)sender {
-    self.labelResult.text = nil;
+- (void)onSwitchChanged:(id)sender {
+    self.labelResult.text = [NSString stringWithFormat:@"Q:%s", [self.question UTF8String]];
 }
 
 - (IBAction)onBtnTNNExamples:(id)sender {
@@ -84,9 +82,9 @@ using namespace TNN_NS;
     // file from tnn framework project to TNNExamples app
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/tiny-bert/tiny-bert-squad.tnnmodel"
+    auto model_path = [[NSBundle mainBundle] pathForResource:@"model/tiny-bert/tiny-bert-squad-fixed-256.tnnmodel"
                                                           ofType:nil];
-    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/tiny-bert/tiny-bert-squad.tnnproto"
+    auto proto_path = [[NSBundle mainBundle] pathForResource:@"model/tiny-bert/tiny-bert-squad-fixed-256.tnnproto"
                                                           ofType:nil];
     auto vocab_path = [[NSBundle mainBundle] pathForResource:@"model/tiny-bert/vocab.txt"
                                                           ofType:nil];
@@ -106,13 +104,14 @@ using namespace TNN_NS;
         return;
     }
 
-    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     auto option = std::make_shared<TNNSDKOption>();
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
     }
 
     auto predictor = std::make_shared<TNNSDKSample>();
@@ -133,7 +132,8 @@ using namespace TNN_NS;
     BenchOption bench_option;
     bench_option.forward_count = 10;
     predictor->SetBenchOption(bench_option);
-
+    
+    auto actual_units = predictor->GetComputeUnits();
     auto bertInput = std::make_shared<BertTokenizerInput>(DEVICE_ARM, "input_ids", "attention_mask", "token_type_ids");
     auto bertOutput = predictor->CreateSDKOutput();
     tokenizer->buildInput([self.context UTF8String], [self.question UTF8String], bertInput);
@@ -151,7 +151,7 @@ using namespace TNN_NS;
     self.labelResult.text = [NSString stringWithFormat:@"Q:%s\nA: %s\ndevice: %@     time:\n%s",
                              [self.question UTF8String],
                              ans.c_str(),
-                             units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
+                             [self getNSSTringForComputeUnits:actual_units],
                              bench_result.Description().c_str()];
 }
 

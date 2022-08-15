@@ -52,8 +52,8 @@ Status X86ReduceOpLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     std::vector<std::tuple<int, int, int>> reduce_dims;
     X86CalculateReduceDims(input_blob, layer_param, reduce_dims);
 
-    X86_REDUCE_CALCULATE(static_cast<float *>(input_blob->GetHandle().base),
-                         static_cast<float *>(output_blob->GetHandle().base),
+    X86_REDUCE_CALCULATE(handle_ptr<float *>(input_blob->GetHandle()),
+                         handle_ptr<float *>(output_blob->GetHandle()),
                          workspace, reduce_dims, input_dim, output_dim, op_type_);
 
     return TNN_OK;

@@ -28,7 +28,6 @@ using namespace TNN_NS;
 @property(nonatomic, weak) IBOutlet UIButton *btnTNNExamples;
 @property(nonatomic, weak) IBOutlet UIImageView *imageView;
 @property(nonatomic, weak) IBOutlet UILabel *labelResult;
-@property(nonatomic, weak) IBOutlet UISwitch *switchGPU;
 
 @property(nonatomic, strong) UIImage *image_orig;
 
@@ -66,7 +65,7 @@ using namespace TNN_NS;
     [view addSubview:self.labelResult];
 }
 
-- (IBAction)onSwichChanged:(id)sender {
+- (void)onSwitchChanged:(id)sender {
     self.imageView.image  = self.image_orig;
     self.labelResult.text = nil;
 }
@@ -80,9 +79,9 @@ using namespace TNN_NS;
     // file from tnn framework project to TNNExamples app
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel"
+    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd_tf_fix_box.tnnmodel"
                                                       ofType:nil];
-    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto"
+    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd_tf_fix_box.tnnproto"
                                                       ofType:nil];
 
     if (proto_path.length <= 0 || model_path.length <= 0) {
@@ -107,13 +106,14 @@ using namespace TNN_NS;
 
     auto image_data = utility::UIImageGetData(self.image_orig, target_height, target_width);
 
-    TNNComputeUnits units = self.switchGPU.isOn ? TNNComputeUnitsGPU : TNNComputeUnitsCPU;
+    auto units = [self getComputeUnitsForIndex:self.switchDevice.selectedSegmentIndex];
     auto option = std::make_shared<TNNSDKOption>();
     {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
     }
     
     auto predictor = std::make_shared<ObjectDetectorSSD>();
@@ -163,7 +163,7 @@ using namespace TNN_NS;
     
     auto bench_result     = predictor->GetBenchResult();
     self.labelResult.text = [NSString stringWithFormat:@"device: %@      \nfind %d objects\ntime:\n%s",
-                                                       compute_units == TNNComputeUnitsGPU ? @"gpu" : @"arm",
+                                                       [self getNSSTringForComputeUnits:compute_units],
                                                        (int)object_list.size(), bench_result.Description().c_str()];
 
     const int image_orig_height = (int)CGImageGetHeight(self.image_orig.CGImage);

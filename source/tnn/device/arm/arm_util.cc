@@ -28,6 +28,7 @@
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
+namespace arm {
 
 #ifdef TNN_USE_NEON
 int PackNeonC3(float *dst, const float *src, size_t hw, size_t channel) {
@@ -2084,4 +2085,5 @@ void RGBAToGray(const unsigned char* rgba, unsigned char* gray, int h, int w) {
 
 #endif  // TNN_USE_NEON
 
+}  // namespace arm
 }  // namespace TNN_NS

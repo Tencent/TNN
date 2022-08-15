@@ -27,7 +27,19 @@ static bool TestFilter(DeviceType device_type, int input_dim_size, int axis_size
         return true;
     if (device_type == DEVICE_OPENCL && input_dim_size > 4 && axis_size == 1)
         return true;
-
+    if (device_type == DEVICE_APPLE_NPU && input_dim_size < 5)
+        return true;
+    // in order to skip when axis = {3, -2} 
+    // [ n  d  k  h  w]
+    // ->         *
+    // [ 0  1  2  3  4]
+    // [-5 -4 -3 -2 -1]
+    //            *  <-
+    // axis=3 and axis=-2 are point to the same axis, when dims=5
+    // this cause coreml model error
+    if (device_type == DEVICE_APPLE_NPU && input_dim_size > 4 && axis_size == 1)  
+        return true;
+        
     return false;
 }
 
@@ -75,7 +87,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, ReduceOpLayerTest,
                                             // keep_dim
                                             testing::Values(0, 1),
                                             // dim count
-                                            testing::Values(1, 2, 3, 4, 5),
+                                            testing::Values(2, 3, 4, 5),
                                             // axis
                                             testing::Values(std::vector<int>({0}), std::vector<int>({1}), std::vector<int>({2}),
                                                             std::vector<int>({3}), std::vector<int>({1, 2}),
@@ -119,7 +131,10 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     if (!TestFilter(dev, dim_count, axis.size())) {
         GTEST_SKIP();
     }
-
+    // skip output dims size is 1;
+    if (keep_dims== 0 && axis.size() == dim_count - 1) {
+        GTEST_SKIP();
+    }
     // blobconverter cannot handle 1-dimensional blob, skip it for now
     if (dim_count <= axis.size()+1 && keep_dims == 0) {
         if (dev == DEVICE_ARM && (dim_count == axis.size()+1 && keep_dims == 0)) {
@@ -163,6 +178,11 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
     if (dim_count == 1) {
         input_dims = {channel};
     }
+    
+    // APPLE_NPU can not support DATA_TYPE_INT32
+    if (dev == DEVICE_APPLE_NPU && data_type == DATA_TYPE_INT32) {
+        GTEST_SKIP();
+    }
 
     if (DEVICE_HUAWEI_NPU != dev) {
         auto interpreter1 = GenerateInterpreter("ReduceMax", {input_dims}, param);
@@ -171,22 +191,24 @@ TEST_P(ReduceOpLayerTest, ReduceOpLayer) {
         Run(interpreter2);
         auto interpreter3 = GenerateInterpreter("ReduceMean", {input_dims}, param);
         Run(interpreter3);
-        auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
-        Run(interpreter8);
-        if (DEVICE_CUDA != dev) {
-            auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
-            Run(interpreter5);
-            auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
-            Run(interpreter6);
-            auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
-            Run(interpreter7);
-            auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
-            Run(interpreter10);
+        if(DEVICE_APPLE_NPU != dev){
+            auto interpreter8 = GenerateInterpreter("ReduceLogSumExp", {input_dims}, param);
+            Run(interpreter8);
+            if (DEVICE_CUDA != dev) {
+                auto interpreter5 = GenerateInterpreter("ReduceL1", {input_dims}, param);
+                Run(interpreter5);
+                auto interpreter6 = GenerateInterpreter("ReduceL2", {input_dims}, param);
+                Run(interpreter6);
+                auto interpreter7 = GenerateInterpreter("ReduceLogSum", {input_dims}, param);
+                Run(interpreter7);
+                auto interpreter10 = GenerateInterpreter("ReduceSumSquare", {input_dims}, param);
+                Run(interpreter10);
+            }
         }
     }
     auto interpreter4 = GenerateInterpreter("ReduceSum", {input_dims}, param);
     Run(interpreter4);
-    if (DEVICE_CUDA != dev) {
+    if (DEVICE_CUDA != dev && DEVICE_APPLE_NPU != dev) {
         auto interpreter9 = GenerateInterpreter("ReduceProd", {input_dims}, param);
         Run(interpreter9);
     }

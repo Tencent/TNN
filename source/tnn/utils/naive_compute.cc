@@ -314,28 +314,30 @@ void NaiveFC(void *input_ptr, void *output_ptr, void *weight_data, float *scale,
     }
 }
 void NaiveFCBias(void *input_ptr, void *output_ptr, void *weight_data, float *scale, int scale_len, void *bias,
-                 void *scale_bias_w_ptr, void *scale_bias_i_ptr, void *scale_bias_o_ptr, int scale_bias_len_i,
-                 int scale_bias_len_o, DimsVector dims_input, DimsVector dims_output) {
-    int8_t *scale_bias_handle_i = static_cast<int8_t *>(scale_bias_i_ptr);
-    int8_t *scale_bias_handle_w = static_cast<int8_t *>(scale_bias_w_ptr);
-    int8_t *scale_bias_handle_o = static_cast<int8_t *>(scale_bias_o_ptr);
+                 void *zero_point_w_ptr, void *zero_point_i_ptr, void *zero_point_o_ptr, int zero_point_len_w,
+                 int zero_point_len_i, int zero_point_len_o, DimsVector dims_input, DimsVector dims_output) {
+    int8_t *zero_point_handle_i = static_cast<int8_t *>(zero_point_i_ptr);
+    int8_t *zero_point_handle_w = static_cast<int8_t *>(zero_point_w_ptr);
+    int8_t *zero_point_handle_o = static_cast<int8_t *>(zero_point_o_ptr);
     int ip_dim_in               = DimsVectorUtils::Count(dims_input, 1);
+    int ip_dim_hw               = DimsVectorUtils::Count(dims_input, 2);
     for (int n = 0; n < dims_output[0]; ++n) {
         int8_t *in_current_batch = static_cast<int8_t *>(input_ptr) + n * ip_dim_in;
         int8_t *ou_current_batch = static_cast<int8_t *>(output_ptr) + n * dims_output[1];
         OMP_PARALLEL_FOR_
         for (int oc = 0; oc < dims_output[1]; ++oc) {
             float cur_scale         = scale_len == 1 ? scale[0] : scale[oc];
-            float cur_bias_output   = scale_bias_len_o == 1 ? scale_bias_handle_o[0] : scale_bias_handle_o[oc];
-            int8_t cur_scale_bias_w = scale_len == 1 ? scale_bias_handle_w[0] : scale_bias_handle_w[oc];
+            float cur_bias_output   = zero_point_len_o == 1 ? zero_point_handle_o[0] : zero_point_handle_o[oc];
+            int8_t cur_zero_point_w = zero_point_len_w == 1 ? zero_point_handle_w[0] : zero_point_handle_w[oc];
             int32_t acc             = 0;
             for (int ic = 0; ic < ip_dim_in; ++ic) {
-                int8_t cur_scale_bias_i = scale_bias_len_i == 1 ? scale_bias_handle_i[0] : scale_bias_handle_i[ic];
+                int ichannel = ic / ip_dim_hw;
+                int8_t cur_zero_point_i = zero_point_len_i == 1 ? zero_point_handle_i[0] : zero_point_handle_i[ichannel];
                 acc +=
                     static_cast<int8_t *>(weight_data)[oc * ip_dim_in + ic] * in_current_batch[ic] -
-                    static_cast<int32_t>(in_current_batch[ic] * cur_scale_bias_w) -
-                    static_cast<int32_t>(cur_scale_bias_i * static_cast<int8_t *>(weight_data)[oc * ip_dim_in + ic]) +
-                    static_cast<int32_t>(cur_scale_bias_i * cur_scale_bias_w);
+                    static_cast<int32_t>(in_current_batch[ic] * cur_zero_point_w) -
+                    static_cast<int32_t>(cur_zero_point_i * static_cast<int8_t *>(weight_data)[oc * ip_dim_in + ic]) +
+                    static_cast<int32_t>(cur_zero_point_i * cur_zero_point_w);
             }
             if (bias)
                 acc += static_cast<int32_t *>(bias)[oc];
@@ -540,8 +542,8 @@ template <typename Tin, typename Tw, typename Tacc, typename Tout>
 void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
                    DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
                    int pad_x, int group, int dilation, int activation_type, float *weight_scale, int weight_scale_len,
-                   void *scale_bias_w_ptr, int scale_bias_len_w, void *scale_bias_i_ptr, int scale_bias_len_i,
-                   void *scale_bias_o_ptr, int scale_bias_len_o, void *weight_x_bias_ptr, int8_t *relu6_max,
+                   void *zero_point_w_ptr, int zero_point_len_w, void *zero_point_i_ptr, int zero_point_len_i,
+                   void *zero_point_o_ptr, int zero_point_len_o, void *weight_x_bias_ptr, int8_t *relu6_max,
                    int relu6_max_len, int fusion_type, void *add_input, float *add_scale, void *add_bias_input) {
     Tin *input_data               = static_cast<Tin *>(input_ptr);
     Tw *weight_data               = static_cast<Tw *>(weight_ptr);
@@ -556,9 +558,9 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
     int input_width               = dims_input[3];
     int output_channels_per_group = output_channel / group;
     int input_channels_per_group  = input_channel / group;
-    Tin *scale_bias_handle_i      = static_cast<Tin *>(scale_bias_i_ptr);
-    Tw *scale_bias_handle_w       = static_cast<Tw *>(scale_bias_w_ptr);
-    Tout *scale_bias_handle_o     = static_cast<Tout *>(scale_bias_o_ptr);
+    Tin *zero_point_handle_i      = static_cast<Tin *>(zero_point_i_ptr);
+    Tw *zero_point_handle_w       = static_cast<Tw *>(zero_point_w_ptr);
+    Tout *zero_point_handle_o     = static_cast<Tout *>(zero_point_o_ptr);
     Tacc *buffer_weight_x_bias    = static_cast<Tacc *>(weight_x_bias_ptr);
     Tin *add_bias_i               = static_cast<Tin *>(add_bias_input);
 
@@ -573,8 +575,8 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
                 g * output_channels_per_group * input_channels_per_group * kernel_size_x * kernel_size_y;
             for (int output_c = output_c_start; output_c < output_c_end; ++output_c) {
                 int scale_idx = weight_scale_len == 1 ? 0 : output_c;
-                int weight_bias_idx = scale_bias_len_w == 1 ? 0 : output_c;
-                int output_bias_idx = scale_bias_len_o == 1 ? 0 : output_c;
+                int weight_bias_idx = zero_point_len_w == 1 ? 0 : output_c;
+                int output_bias_idx = zero_point_len_o == 1 ? 0 : output_c;
                 for (int h = 0; h < output_height; ++h) {
                     int input_h_start = h * stride_y - pad_y;
                     for (int w = 0; w < output_width; ++w) {
@@ -602,18 +604,18 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
                                                               kernel_size_x +
                                                           kernel_w;
                                     if (pad_flag_h || pad_flag_w) {
-                                        int input_bias_idx = scale_bias_len_i == 1 ? 0 : input_c;
-                                        result += static_cast<Tacc>(scale_bias_handle_i[input_bias_idx] *
+                                        int input_bias_idx = zero_point_len_i == 1 ? 0 : input_c;
+                                        result += static_cast<Tacc>(zero_point_handle_i[input_bias_idx] *
                                                                     weight_data[weight_position]) -
-                                                  static_cast<Tacc>(scale_bias_handle_i[input_bias_idx] *
-                                                                    scale_bias_handle_w[weight_bias_idx]);
+                                                  static_cast<Tacc>(zero_point_handle_i[input_bias_idx] *
+                                                                    zero_point_handle_w[weight_bias_idx]);
                                     } else {
                                         int input_position =
                                             ((n * input_channel + input_c) * input_height + input_h) * input_width +
                                             input_w;
                                         result += input_data[input_position] * weight_data[weight_position] -
                                                   static_cast<Tacc>(input_data[input_position] *
-                                                                    scale_bias_handle_w[weight_bias_idx]);
+                                                                    zero_point_handle_w[weight_bias_idx]);
                                     }
                                 }
                             }
@@ -644,7 +646,7 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
                                 val += static_cast<Tin *>(add_input)[output_position] * add_scale[output_c] -
                                        add_bias_i[output_bias_idx] * add_scale[output_c];
                             }
-                            val += static_cast<Tacc>(scale_bias_handle_o[output_bias_idx]);
+                            val += static_cast<Tacc>(zero_point_handle_o[output_bias_idx]);
                             output_data[output_position] = float2int8(val);
                         }
                     }
@@ -657,8 +659,8 @@ template <typename Tin, typename Tw, typename Tacc, typename Tout>
 void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input,
                    DimsVector dims_output, int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y,
                    int pad_x, int group, int dilation, int activation_type, float *weight_scale, int weight_scale_len,
-                   void *scale_bias_w_ptr, int scale_bias_len_w, void *scale_bias_i_ptr, int scale_bias_len_i,
-                   void *scale_bias_o_ptr, int scale_bias_len_o, int8_t *relu6_max, int relu6_max_len, int fusion_type,
+                   void *zero_point_w_ptr, int zero_point_len_w, void *zero_point_i_ptr, int zero_point_len_i,
+                   void *zero_point_o_ptr, int zero_point_len_o, int8_t *relu6_max, int relu6_max_len, int fusion_type,
                    void *add_input, float *add_scale, void *add_bias_input) {
     Tin *input_data               = static_cast<Tin *>(input_ptr);
     Tw *weight_data               = static_cast<Tw *>(weight_ptr);
@@ -673,9 +675,9 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
     int input_width               = dims_input[3];
     int output_channels_per_group = output_channel / group;
     int input_channels_per_group  = input_channel / group;
-    Tin *scale_bias_handle_i      = static_cast<Tin *>(scale_bias_i_ptr);
-    Tw *scale_bias_handle_w       = static_cast<Tw *>(scale_bias_w_ptr);
-    Tout *scale_bias_handle_o     = static_cast<Tout *>(scale_bias_o_ptr);
+    Tin *zero_point_handle_i      = static_cast<Tin *>(zero_point_i_ptr);
+    Tw *zero_point_handle_w       = static_cast<Tw *>(zero_point_w_ptr);
+    Tout *zero_point_handle_o     = static_cast<Tout *>(zero_point_o_ptr);
     Tin *add_bias_i               = static_cast<Tin *>(add_bias_input);
 
     OMP_PARALLEL_FOR_
@@ -689,8 +691,8 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
                 g * output_channels_per_group * input_channels_per_group * kernel_size_x * kernel_size_y;
             for (int output_c = output_c_start; output_c < output_c_end; ++output_c) {
                 int scale_idx = weight_scale_len == 1 ? 0 : output_c;
-                int weight_bias_idx = scale_bias_len_w == 1 ? 0 : output_c;
-                int output_bias_idx = scale_bias_len_o == 1 ? 0 : output_c;
+                int weight_bias_idx = zero_point_len_w == 1 ? 0 : output_c;
+                int output_bias_idx = zero_point_len_o == 1 ? 0 : output_c;
                 for (int h = 0; h < output_height; ++h) {
                     int input_h_start = h * stride_y - pad_y;
                     for (int w = 0; w < output_width; ++w) {
@@ -718,13 +720,13 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
                                                            kernel_h) *
                                                               kernel_size_x +
                                                           kernel_w;
-                                    int input_bias_idx = scale_bias_len_i == 1 ? 0 : input_c;
+                                    int input_bias_idx = zero_point_len_i == 1 ? 0 : input_c;
                                     result +=
                                         input_data[input_position] * weight_data[weight_position] -
-                                        static_cast<Tacc>(input_data[input_position] * scale_bias_handle_w[weight_bias_idx]) -
-                                        static_cast<Tacc>(scale_bias_handle_i[input_bias_idx] * weight_data[weight_position]) +
-                                        static_cast<Tacc>(scale_bias_handle_i[input_bias_idx] *
-                                                          scale_bias_handle_w[weight_bias_idx]);
+                                        static_cast<Tacc>(input_data[input_position] * zero_point_handle_w[weight_bias_idx]) -
+                                        static_cast<Tacc>(zero_point_handle_i[input_bias_idx] * weight_data[weight_position]) +
+                                        static_cast<Tacc>(zero_point_handle_i[input_bias_idx] *
+                                                          zero_point_handle_w[weight_bias_idx]);
                                 }
                             }
                         }
@@ -754,7 +756,7 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
                                 val += static_cast<Tin *>(add_input)[output_position] * add_scale[output_c] -
                                        add_bias_i[output_bias_idx] * add_scale[output_c];
                             }
-                            val += static_cast<Tin>(scale_bias_handle_o[output_bias_idx]);
+                            val += static_cast<Tin>(zero_point_handle_o[output_bias_idx]);
                             output_data[output_position] = float2int8(val);
                         }
                     }
@@ -767,14 +769,14 @@ void NaiveConvBias(void *input_ptr, void *output_ptr, void *weight_ptr, void *bi
 template void NaiveConvBias<int8_t, int8_t, int32_t, int8_t>(
     void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input, DimsVector dims_output,
     int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y, int pad_x, int group, int dilation,
-    int activation_type, float *weight_scale, int weight_scale_len, void *scale_bias_w_ptr, int scale_bias_len_w,
-    void *scale_bias_i_ptr, int scale_bias_len_i, void *scale_bias_o_ptr, int scale_bias_len_o, int8_t *relu6_max,
+    int activation_type, float *weight_scale, int weight_scale_len, void *zero_point_w_ptr, int zero_point_len_w,
+    void *zero_point_i_ptr, int zero_point_len_i, void *zero_point_o_ptr, int zero_point_len_o, int8_t *relu6_max,
     int relu6_max_len, int fusion_type, void *add_input, float *add_scale, void *add_bias_input);
 template void NaiveConvBias<int8_t, int8_t, int32_t, int8_t>(
     void *input_ptr, void *output_ptr, void *weight_ptr, void *bias, DimsVector dims_input, DimsVector dims_output,
     int stride_y, int stride_x, int kernel_size_y, int kernel_size_x, int pad_y, int pad_x, int group, int dilation,
-    int activation_type, float *weight_scale, int weight_scale_len, void *scale_bias_w_ptr, int scale_bias_len_w,
-    void *scale_bias_i_ptr, int scale_bias_len_i, void *scale_bias_o_ptr, int scale_bias_len_o, void *weight_x_bias_ptr,
+    int activation_type, float *weight_scale, int weight_scale_len, void *zero_point_w_ptr, int zero_point_len_w,
+    void *zero_point_i_ptr, int zero_point_len_i, void *zero_point_o_ptr, int zero_point_len_o, void *weight_x_bias_ptr,
     int8_t *relu6_max, int relu6_max_len, int fusion_type, void *add_input, float *add_scale, void *add_bias_input);
 
 template void NaiveConv<float, float, float, float>(void *input_ptr, void *output_ptr, void *weight_ptr, void *bias,
@@ -1648,7 +1650,7 @@ void NaiveQuant(const float *input_ptr, const float *scale_ptr, int scale_len, i
         }
     }
 }
-void NaiveDequantBias(const int8_t *input_ptr, const float *scale_ptr, const int8_t *scale_bias_ptr, int scale_len,
+void NaiveDequantBias(const int8_t *input_ptr, const float *scale_ptr, const int8_t *zero_point_ptr, int scale_len,
                       float *output, DimsVector dims) {
     int batch   = DimsFunctionUtils::GetDim(dims, 0);
     int channel = DimsFunctionUtils::GetDim(dims, 1);
@@ -1660,13 +1662,13 @@ void NaiveDequantBias(const int8_t *input_ptr, const float *scale_ptr, const int
             int scale_idx = scale_len == 1 ? 0 : c;
             for (int hw = 0; hw < hw_size; hw++) {
                 output[offset + hw] = scale_ptr[scale_idx] * (static_cast<float>(input_ptr[offset + hw]) -
-                                                              static_cast<float>(scale_bias_ptr[scale_idx]));
+                                                              static_cast<float>(zero_point_ptr[scale_idx]));
             }
         }
     }    
 }
 
-void NaiveQuantBias(const float *input_ptr, const float *scale_ptr, const int8_t *scale_bias_ptr, int scale_len,
+void NaiveQuantBias(const float *input_ptr, const float *scale_ptr, const int8_t *zero_point_ptr, int scale_len,
                     int8_t *output, DimsVector dims) {
     int batch   = DimsFunctionUtils::GetDim(dims, 0);
     int channel = DimsFunctionUtils::GetDim(dims, 1);
@@ -1679,7 +1681,7 @@ void NaiveQuantBias(const float *input_ptr, const float *scale_ptr, const int8_t
             for (int hw = 0; hw < hw_size; hw++) {
                 if (scale_ptr[scale_idx] != 0) {
                     output[offset + hw] = float2int8(input_ptr[offset + hw] / scale_ptr[scale_idx] +
-                                                     static_cast<float>(scale_bias_ptr[scale_idx]));
+                                                     static_cast<float>(zero_point_ptr[scale_idx]));
               } else
                     output[offset + hw] = 0;
             }

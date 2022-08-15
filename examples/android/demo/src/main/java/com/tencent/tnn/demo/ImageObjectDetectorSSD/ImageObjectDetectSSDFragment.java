@@ -57,13 +57,12 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
     }
 
     private String initModel() {
-
         String targetDir = getActivity().getFilesDir().getAbsolutePath();
 
         //copy detect model to sdcard
         String[] modelPathsDetector = {
-                "mobilenetv2_ssd.tnnmodel",
-                "mobilenetv2_ssd.tnnproto",
+                "mobilenetv2_ssd_tf_fix_box.tnnmodel",
+                "mobilenetv2_ssd_tf_fix_box.tnnproto",
         };
         for (int i = 0; i < modelPathsDetector.length; i++) {
             String modelFilePath = modelPathsDetector[i];
@@ -81,7 +80,7 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
         }
     }
 
-    private void onSwichGPU(boolean b) {
+    private void onSwitchGPU(boolean b) {
         if (b && mHuaweiNPUswitch.isChecked()) {
             mHuaweiNPUswitch.setChecked(false);
             mUseHuaweiNpu = false;
@@ -91,7 +90,7 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
         result_view.setText("");
     }
 
-    private void onSwichNPU(boolean b) {
+    private void onSwitchNPU(boolean b) {
         if (b && mGPUSwitch.isChecked()) {
             mGPUSwitch.setChecked(false);
             mUseGPU = false;
@@ -118,7 +117,7 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
         mGPUSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichGPU(b);
+                onSwitchGPU(b);
             }
         });
 
@@ -127,7 +126,7 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
         mHuaweiNPUswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichNPU(b);
+                onSwitchNPU(b);
             }
         });
 
@@ -166,7 +165,6 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
 
     }
 
-
     private void startDetect() {
         Bitmap originBitmap = FileUtils.readBitmapFromFile(getActivity().getAssets(), IMAGE);
         ImageView source = (ImageView)$(R.id.origin);
@@ -174,13 +172,13 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
         String modelPath = initModel();
         Log.d(TAG, "Init classify " + modelPath);
         int device = 0;
-        if(mUseHuaweiNpu) {
+        if (mUseHuaweiNpu) {
             device = 2;
-        }else if(mUseGPU) {
+        } else if(mUseGPU) {
             device = 1;
         }
         int result = imageObjectDetectorSSD.init(modelPath, NET_W_INPUT, NET_H_INPUT, 0.7f, 0.3f, -1, device);
-        if(result == 0) {
+        if (result == 0) {
             Log.d(TAG, "detect from image");
             ObjectInfo[] objectInfoList = imageObjectDetectorSSD.detectFromImage(originBitmap, originBitmap.getWidth(), originBitmap.getHeight());
             Log.d(TAG, "detect from image result " + objectInfoList);
@@ -188,7 +186,7 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
             if (objectInfoList != null) {
                 objectCount = objectInfoList.length;
             }
-            if(objectInfoList != null && objectInfoList.length > 0) {
+            if (objectInfoList != null && objectInfoList.length > 0) {
                 Log.d(TAG, "detect object size " + objectInfoList.length);
 
                 mPaint.setARGB(255, 0, 255, 0);
@@ -213,8 +211,6 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
                 }
                 source.setImageBitmap(scaleBitmap2);
                 source.draw(canvas);
-
-
             }
             String benchResult = "object count: " + objectCount + " " + Helper.getBenchResult();
             TextView result_view = (TextView) $(R.id.result);
@@ -250,7 +246,6 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
         super.onStop();
     }
 
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -259,7 +254,6 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
 
     private void preview() {
         Log.i(TAG, "preview");
-
     }
 
     private void getFocus() {
@@ -276,5 +270,4 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
             }
         });
     }
-
 }

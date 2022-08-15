@@ -39,22 +39,56 @@ Status OpenCLSqueezeLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     run_3d_ndrange_ = false;
     op_name_        = "Squeeze";
 
+    auto input_dims  = inputs[0]->GetBlobDesc().dims;
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+    if (input_dims.size() > 6 || output_dims.size() > 6) {
+        LOGE("Squeeze or USqueeze not support > 6 dims!\n");
+        return TNNERR_PARAM_ERR;
+    }
     execute_units_.resize(2);
     // image->buffer
     {
-        ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", "ImageToNCHWBuffer");
-        if (ret != TNN_OK) {
-            LOGE("create execute unit failed!\n");
-            return ret;
+        if (input_dims.size() == 5) {  // 5d image to buffer
+            ret = CreateExecuteUnit(execute_units_[0], "image_5d_to_buffer", "Image5DToNCHWBuffer", build_options_);
+            if (ret != TNN_OK) {
+                LOGE("create execute unit failed!\n");
+                return ret;
+            }
+        } else if (input_dims.size() == 6) {
+            ret = CreateExecuteUnit(execute_units_[0], "image_6d_to_buffer", "Image6DToNCHWBuffer", build_options_);
+            if (ret != TNN_OK) {
+                LOGE("create execute unit failed!\n");
+                return ret;
+            }
+        } else {
+            ret = CreateExecuteUnit(execute_units_[0], "image_to_buffer", "ImageToNCHWBuffer", build_options_);
+            if (ret != TNN_OK) {
+                LOGE("create execute unit failed!\n");
+                return ret;
+            }
         }
     }
 
     // buffer->image
     {
-        ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", "NCHWBufferToImage");
-        if (ret != TNN_OK) {
-            LOGE("create execute unit failed!\n");
-            return ret;
+        if (output_dims.size() == 5) {  // buffer to imgae5d
+            ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image_5d", "NCHWBufferToImage5D", build_options_);
+            if (ret != TNN_OK) {
+                LOGE("create execute unit failed!\n");
+                return ret;
+            }
+        } else if (output_dims.size() == 6) {
+            ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image_6d", "NCHWBufferToImage6D", build_options_);
+            if (ret != TNN_OK) {
+                LOGE("create execute unit failed!\n");
+                return ret;
+            }
+        } else {
+            ret = CreateExecuteUnit(execute_units_[1], "buffer_to_image", "NCHWBufferToImage", build_options_);
+            if (ret != TNN_OK) {
+                LOGE("create execute unit failed!\n");
+                return ret;
+            }
         }
     }
 
@@ -71,37 +105,105 @@ Status OpenCLSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     auto input  = inputs[0];
     auto output = outputs[0];
 
-    auto input_dims  = input->GetBlobDesc().dims;
-    auto output_dims = output->GetBlobDesc().dims;
-
+    auto input_dims               = input->GetBlobDesc().dims;
+    auto output_dims              = output->GetBlobDesc().dims;
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
 
-    int size0          = UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(output_dims, 0) *
-                                DimsFunctionUtils::GetDim(output_dims, 2) * DimsFunctionUtils::GetDim(output_dims, 3);
-    int size1          = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(input_dims, 0) *
-                                DimsFunctionUtils::GetDim(input_dims, 2) * DimsFunctionUtils::GetDim(input_dims, 3);
-    int blob_size      = std::max(size0, size1) * sizeof(float);
+    int size0 = 0;
+    if (output_dims.size() == 5) {
+        size0 = UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(output_dims, 0) *
+                DimsFunctionUtils::GetDim(output_dims, 2) * DimsFunctionUtils::GetDim(output_dims, 3) *
+                DimsFunctionUtils::GetDim(output_dims, 4);
+    } else if (output_dims.size() == 6) {
+        size0 = UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(output_dims, 0) *
+                DimsFunctionUtils::GetDim(output_dims, 2) * DimsFunctionUtils::GetDim(output_dims, 3) *
+                DimsFunctionUtils::GetDim(output_dims, 4) * DimsFunctionUtils::GetDim(output_dims, 5);
+    } else {
+        size0 = UP_DIV(DimsFunctionUtils::GetDim(output_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(output_dims, 0) *
+                DimsFunctionUtils::GetDim(output_dims, 2) * DimsFunctionUtils::GetDim(output_dims, 3);
+    }
 
-    inter_buffer_      = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, blob_size);
+    int size1 = 0;
+    if (input_dims.size() == 5) {
+        size1 = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(input_dims, 0) *
+                DimsFunctionUtils::GetDim(input_dims, 2) * DimsFunctionUtils::GetDim(input_dims, 3) *
+                DimsFunctionUtils::GetDim(input_dims, 4);
+    } else if (input_dims.size() == 6) {
+        size1 = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(input_dims, 0) *
+                DimsFunctionUtils::GetDim(input_dims, 2) * DimsFunctionUtils::GetDim(input_dims, 3) *
+                DimsFunctionUtils::GetDim(input_dims, 4) * DimsFunctionUtils::GetDim(input_dims, 5);
+    } else {
+        size1 = UP_DIV(DimsFunctionUtils::GetDim(input_dims, 1), 4) * 4 * DimsFunctionUtils::GetDim(input_dims, 0) *
+                DimsFunctionUtils::GetDim(input_dims, 2) * DimsFunctionUtils::GetDim(input_dims, 3);
+    }
+
+    int blob_size = std::max(size0, size1) * sizeof(float);
+
+    inter_buffer_ = std::make_shared<cl::Buffer>(*opencl_runtime->Context(), CL_MEM_READ_WRITE, blob_size);
 
     // image->buffer
     {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[0], input_dims);
-        execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
-        execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
-        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
+        if (input_dims.size() == 5) {
+            execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 4)));
+            execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
+        } else if (input_dims.size() == 6) {
+            execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 4)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 5)));
+            execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
+        } else {
+            execute_units_[0].ocl_kernel.setArg(idx++, *inter_buffer_.get());
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 2)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 3)));
+            execute_units_[0].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(input_dims, 1)));
+            execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)input->GetHandle().base));
+        }
     }
-
     // buffer->image
     {
         uint32_t idx = SetExecuteUnit2DSizeInfoDefault(execute_units_[1], output_dims);
-        execute_units_[1].ocl_kernel.setArg(idx++, *inter_buffer_.get());
-        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
-        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
-        execute_units_[1].ocl_kernel.setArg(idx++, static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
-        execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
+        if (output_dims.size() == 5) {
+            execute_units_[1].ocl_kernel.setArg(idx++, *inter_buffer_.get());
+            execute_units_[1].ocl_kernel.setArg(idx++,
+                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
+            execute_units_[1].ocl_kernel.setArg(idx++,
+                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
+            execute_units_[1].ocl_kernel.setArg(idx++,
+                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
+            execute_units_[1].ocl_kernel.setArg(idx++,
+                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 4)));
+            execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
+        } else if (output_dims.size() == 6) {
+            execute_units_[1].ocl_kernel.setArg(idx++, *inter_buffer_.get());
+            execute_units_[1].ocl_kernel.setArg(idx++,
+                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
+            execute_units_[1].ocl_kernel.setArg(idx++,
+                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
+            execute_units_[1].ocl_kernel.setArg(idx++,
+                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
+            execute_units_[1].ocl_kernel.setArg(idx++,
+                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 4)));
+            execute_units_[1].ocl_kernel.setArg(idx++,
+                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 5)));
+            execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
+        } else {
+            execute_units_[1].ocl_kernel.setArg(idx++, *inter_buffer_.get());
+            execute_units_[1].ocl_kernel.setArg(idx++,
+                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 2)));
+            execute_units_[1].ocl_kernel.setArg(idx++,
+                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 3)));
+            execute_units_[1].ocl_kernel.setArg(idx++,
+                                                static_cast<uint32_t>(DimsFunctionUtils::GetDim(output_dims, 1)));
+            execute_units_[1].ocl_kernel.setArg(idx++, *((cl::Image *)output->GetHandle().base));
+        }
     }
 
     return TNN_OK;

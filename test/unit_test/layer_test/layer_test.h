@@ -29,6 +29,7 @@
 #include "tnn/core/status.h"
 #include "tnn/core/tnn.h"
 #include "tnn/layer/base_layer.h"
+#include "tnn/interpreter/default_model_interpreter.h"
 
 #define EXPECT_EQ_OR_RETURN(status, target)                                                                            \
     if ((status) != (target))                                                                                          \
@@ -54,6 +55,8 @@ private:
 
 protected:
     int ensure_input_positive_ = 0;
+    int integer_input_min_ = 0;
+    int integer_input_max_ = 1;
 
     static std::shared_ptr<Instance> instance_cpu_;
     static std::shared_ptr<Instance> instance_device_;

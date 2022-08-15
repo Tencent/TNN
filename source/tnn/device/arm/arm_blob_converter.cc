@@ -26,6 +26,7 @@
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
+using namespace arm;
 
 ArmBlobConverterAcc::ArmBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {}
 ArmBlobConverterAcc::~ArmBlobConverterAcc() {}
@@ -90,7 +91,7 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param,
             fused_int8_scale[i] = param.scale[i] * scale_data[scale_idx];
             fused_int8_bias[i]  = param.bias[i];
         }
-    } else if (desc.data_type == DATA_TYPE_INT32) {
+    } else if (desc.data_type == DATA_TYPE_INT32 && desc.data_format == DATA_FORMAT_NCHW) {
         int count    = DimsVectorUtils::Count(blob_->GetBlobDesc().dims);
         int ele_size = DataTypeUtils::GetBytesSize(desc.data_type);
         if (image.GetMatType() == NC_INT32) {
@@ -191,6 +192,13 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam para
                 fused_int8_bias[i]  = 0;
             }
         }
+    } else if (desc.data_type == DATA_TYPE_INT32 && desc.data_format == DATA_FORMAT_NCHW) {
+        int count = DimsVectorUtils::Count(blob_->GetBlobDesc().dims);
+        int ele_size = DataTypeUtils::GetBytesSize(desc.data_type);
+        if (image.GetMatType() == NC_INT32) {
+            memcpy(GetBlobHandlePtr(blob_->GetHandle()), image.GetData(), count * ele_size);
+        }
+        return ret;
     }
 
     auto cvt_data_type  = desc.data_type;
@@ -270,7 +278,7 @@ REGISTER_BLOB_CONVERTER(Arm, DEVICE_ARM);
 convert data type from  Tin to Tout, data format from nc4hw4 2 nchw
 */
 template <typename Tin, typename Tout>
-void FloatBlobToNCHW(const Tin *src, Tout *dst, int channel, int hw) {
+void BlobToNCHW(const Tin *src, Tout *dst, int channel, int hw) {
     if (channel % 4 == 0 && hw == 1 && sizeof(Tin) == sizeof(Tout)) {
         memcpy(dst, src, channel * sizeof(Tin));
         return;
@@ -279,10 +287,11 @@ void FloatBlobToNCHW(const Tin *src, Tout *dst, int channel, int hw) {
     return;
 }
 
-template void FloatBlobToNCHW(const float *src, bfp16_t *dst, int channel, int hw);
-template void FloatBlobToNCHW(const float *src, float *dst, int channel, int hw);
-template void FloatBlobToNCHW(const bfp16_t *src, float *dst, int channel, int hw);
-template void FloatBlobToNCHW(const bfp16_t *src, bfp16_t *dst, int channel, int hw);
+template void BlobToNCHW(const float *src, bfp16_t *dst, int channel, int hw);
+template void BlobToNCHW(const float *src, float *dst, int channel, int hw);
+template void BlobToNCHW(const bfp16_t *src, float *dst, int channel, int hw);
+template void BlobToNCHW(const bfp16_t *src, bfp16_t *dst, int channel, int hw);
+template void BlobToNCHW(const int32_t *src, int32_t *dst, int channel, int hw);
 
 template <typename Tin, typename Tout>
 void HalfBlobToNCHW(const Tin *src, Tout *dst, int channel, int hw) {
@@ -1341,12 +1350,12 @@ static Status ConvertFloatBlobToFloatMat(Mat& image, char* handle_ptr, const Mat
             RawBuffer scale_biased(c_r4 * hw * sizeof(float));
             ScaleBias(reinterpret_cast<T_blob*>(handle_ptr) + n * c_r4 * hw, channel, hw, param.scale.data(),
                       param.bias.data(), scale_biased.force_to<T_blob*>());
-            FloatBlobToNCHW(scale_biased.force_to<T_blob*>(),
+            BlobToNCHW(scale_biased.force_to<T_blob*>(),
                             reinterpret_cast<T_mat*>(image.GetData()) + n * channel * hw, channel, hw);
         }
     } else {
         for (int n = 0; n < batch; n++) {
-            FloatBlobToNCHW(reinterpret_cast<T_blob*>(handle_ptr) + n * c_r4 * hw,
+            BlobToNCHW(reinterpret_cast<T_blob*>(handle_ptr) + n * c_r4 * hw,
                             reinterpret_cast<T_mat*>(image.GetData()) + n * channel * hw, channel, hw);
         }
     }
@@ -1362,6 +1371,18 @@ static Status ConvertInt8BlobToInt8Mat(Mat& image, char* handle_ptr, const MatCo
         reinterpret_cast<int8_t*>(handle_ptr), reinterpret_cast<int8_t*>(image.GetData()), batch, channel, hw);
 }
 
+static Status ConvertInt32BlobToInt32Mat(Mat& image, char* handle_ptr, const MatConvertParam& param,
+                                         const DimsVector& dims, const int hw, const int c_r4,
+                                         std::vector<float>& fused_int8_scale, std::vector<float>& fused_int8_bias) {
+    auto batch   = DimsFunctionUtils::GetDim(dims, 0);
+    auto channel = DimsFunctionUtils::GetDim(dims, 1);
+    for (int n = 0; n < batch; n++) {
+        BlobToNCHW(reinterpret_cast<int32_t*>(handle_ptr) + n * c_r4 * hw,
+                   reinterpret_cast<int32_t*>(image.GetData()) + n * channel * hw, channel, hw);
+    }
+    return TNN_OK;
+}
+
 // convert from blob to mat
 REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_INT8,  CVT_DIR_BLOB2MAT, ConvertInt8BlobToN8UC4)
 REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_FLOAT, CVT_DIR_BLOB2MAT, ConvertFloatBlobToN8UC4)
@@ -1370,6 +1391,7 @@ REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3,               DATA_TYPE_FLOAT, CVT_DIR_BLO
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_INT8,  CVT_DIR_BLOB2MAT, ConvertInt8BlobToNCHWFloat)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_FLOAT, CVT_DIR_BLOB2MAT, (ConvertFloatBlobToFloatMat<float,float>))
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_BFP16, CVT_DIR_BLOB2MAT, (ConvertFloatBlobToFloatMat<float, bfp16_t>))
+REGISTER_ARM_BLOB_CONVERT_FUNC(NC_INT32,            DATA_TYPE_INT32, CVT_DIR_BLOB2MAT, ConvertInt32BlobToInt32Mat)
 REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_BFP16_TEST, DATA_TYPE_BFP16, CVT_DIR_BLOB2MAT, (ConvertFloatBlobToFloatMat<bfp16_t, bfp16_t>))
 REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_INT8_TEST,  DATA_TYPE_INT8,  CVT_DIR_BLOB2MAT, ConvertInt8BlobToInt8Mat)
 

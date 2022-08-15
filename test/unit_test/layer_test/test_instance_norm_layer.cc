@@ -19,13 +19,15 @@
 
 namespace TNN_NS {
 
-class InstanceNormLayerTest : public LayerTest, public ::testing::WithParamInterface<std::tuple<int, int, int, int>> {};
+class InstanceNormLayerTest : public LayerTest,
+                              public ::testing::WithParamInterface<std::tuple<int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, InstanceNormLayerTest,
                          ::testing::Combine(testing::Values(1, 2), testing::Values(1, 4, 6),
                                             testing::Values(10, 20, 65, 128),
                                             // dim count
-                                            testing::Values(2, 3, 4, 5)));
+                                            testing::Values(3, 4, 5),
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(InstanceNormLayerTest, InstanceNormLayer) {
     // get param
@@ -33,6 +35,7 @@ TEST_P(InstanceNormLayerTest, InstanceNormLayer) {
     int channel    = std::get<1>(GetParam());
     int input_size = std::get<2>(GetParam());
     int dim_count  = std::get<3>(GetParam());
+    DataType dtype = std::get<4>(GetParam());
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
     if (input_size > 64 && dim_count > 5) {
         GTEST_SKIP();
@@ -44,17 +47,33 @@ TEST_P(InstanceNormLayerTest, InstanceNormLayer) {
     if (DEVICE_HUAWEI_NPU == dev & dim_count != 4) {
         GTEST_SKIP();
     }
-
+    if (CheckDataTypeSkip(dtype)) {
+        GTEST_SKIP();
+    }
     // param
     std::shared_ptr<InstanceNormLayerParam> param(new InstanceNormLayerParam());
     param->name = "InstanceNorm";
+    param->channels = channel;
+
+    // resource
+    std::shared_ptr<InstanceNormLayerResource> resource(new InstanceNormLayerResource());
+    RawBuffer filter_k(channel * sizeof(float));
+    float* k_data = filter_k.force_to<float*>();
+    InitRandom(k_data, channel, 1.0f);
+    resource->scale_handle = filter_k;
+    RawBuffer bias(channel * sizeof(float));
+    float* bias_data = bias.force_to<float*>();
+    InitRandom(bias_data, channel, 1.0f);
+    resource->bias_handle = bias;
 
     // generate interpreter
     std::vector<int> input_dims = {batch, channel};
-    while(input_dims.size() < dim_count) input_dims.push_back(input_size);
-
-    auto interpreter            = GenerateInterpreter("InstBatchNormCxx", {input_dims}, param);
-    Run(interpreter);
+    while (input_dims.size() < dim_count) {
+        input_dims.push_back(input_size);
+    }
+    auto interpreter    = GenerateInterpreter("InstBatchNormCxx", {input_dims}, param, resource);
+    Precision precision = SetPrecision(dev, dtype);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS

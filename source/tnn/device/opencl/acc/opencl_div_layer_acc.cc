@@ -29,13 +29,30 @@ Status OpenCLDivLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 
     // create kernel
     std::set<std::string> build_options;
-    std::string compute;
-    if (broadcast_param_.input0_broadcast_type == BroadcastTypeNormal) {
-        compute = "in0/in1";
-    } else {
-        compute = "in1/in0";
+    std::string compute = "in0/in1";
+    if (inputs.size() == 2) {
+        if (broadcast_param_.input0_broadcast_type == BroadcastTypeNormal) {
+            compute = "in0/in1";
+        } else {
+            compute = "in1/in0";
+        }
+    } else if (inputs.size() == 1) {
+        if (kernel_name_ != "BinaryElementWise" && kernel_name_ != "BinaryBroadcast5D" &&
+            kernel_name_ != "BinaryBroadcast") {
+            if (broadcast_param_.input0_broadcast_type == BroadcastTypeNormal) {
+                if (broadcast_param_.weight_input_index == 0) {
+                    compute = "in1/in0";
+                }
+            } else if (broadcast_param_.input1_broadcast_type == BroadcastTypeNormal) {
+                if (broadcast_param_.weight_input_index == 0) {
+                    compute = "in1/in0";
+                }
+            }
+        }
     }
+
     build_options.emplace(" -DOPERATOR=" + compute);
+    build_options.insert(build_options_.begin(), build_options_.end());
     ret = CreateExecuteUnit(execute_units_[0], "binary", kernel_name_, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");

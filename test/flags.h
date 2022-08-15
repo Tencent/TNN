@@ -28,9 +28,7 @@ static const char model_path_message[] =
     "specify model path: tnn proto path, openvino xml path, coreml "
     "mlmodel path, snpe dlc path.";
 
-static const char device_type_message[] =
-    "specify tnn device type: NAIVE, X86, ARM, CUDA, METAL, OPENCL, default "
-    "is ARM.";
+static const char device_type_message[] = "(required) specify tnn device type: NAIVE, X86, ARM, CUDA, METAL, OPENCL, HUAWEI_NPU, APPLE_NPU, default is ARM.";
 
 static const char library_path_message[] =
     "specify tnn NetworkConfig library_path. For metal, it is the tnn.metallib full path";

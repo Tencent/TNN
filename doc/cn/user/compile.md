@@ -14,7 +14,7 @@ cd <path_to_tnn>/scripts
 ```
 2）执行编译脚本
 ```
-./build_ios.sh
+./build_framework_ios.sh
 ```
 编译过程中如果出现xcrun、metal或metallib命令找不到，可尝试如下命令。
 ```
@@ -176,7 +176,7 @@ cd <path_to_tnn>/scripts
 2) 执行编译脚本
   - 编译不带openvino的版本
 ```
-.\build_msvc_naive.bat
+.\build_msvc_native.bat
 ```
   - 编译带openvino的版本
 ```

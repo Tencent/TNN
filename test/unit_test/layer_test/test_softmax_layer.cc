@@ -24,7 +24,7 @@ class SoftmaxLayerTest : public LayerTest,
                          public ::testing::WithParamInterface<std::tuple<int, int, int, int, int, int, DataType>> {};
 
 INSTANTIATE_TEST_SUITE_P(LayerTest, SoftmaxLayerTest,
-                         ::testing::Combine(testing::Values(1, 2), testing::Values(10, 12, 10, 12, 512),
+                         ::testing::Combine(testing::Values(1, 2), testing::Values(10, 12, 512),
                                             testing::Values(10, 512), testing::Values(1, 10, 512),
                                             // axis
                                             testing::Values(-1, 0, 1, 2, 3, 4),
@@ -53,8 +53,8 @@ TEST_P(SoftmaxLayerTest, SoftmaxLayer) {
         GTEST_SKIP();
     }
 
-    if (DEVICE_OPENCL == dev && (dim_count > 4 || (axis != 1 && axis != 2))) {
-        // opencl only support axis = 1 or 2 for now
+    if (DEVICE_OPENCL == dev && (dim_count > 4 || (axis != 1 && axis != 2 && axis != 3))) {
+        // opencl only support axis = 1, 2 or 3 for now
         GTEST_SKIP();
     }
 

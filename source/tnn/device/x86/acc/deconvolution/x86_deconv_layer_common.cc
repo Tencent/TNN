@@ -18,6 +18,8 @@
 #include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
+using namespace x86;
+
 /*
 X86DeconvLayerCommonas as the last solution, always return true
 handle the case group != 1, dilate != 1, any pads and strides
@@ -138,10 +140,9 @@ Status X86DeconvLayerCommon::DoForward(const std::vector<Blob *> &inputs, const 
     Blob *output_blob = outputs[0];
     auto input_dims   = inputs[0]->GetBlobDesc().dims;
     auto output_dims  = outputs[0]->GetBlobDesc().dims;
-    void *input_ptr   = input_blob->GetHandle().base;
-    void *output_ptr  = output_blob->GetHandle().base;
+    void *input_ptr   = handle_ptr<void*>(input_blob->GetHandle());
+    void *output_ptr  = handle_ptr<void*>(output_blob->GetHandle());
     auto param        = dynamic_cast<ConvLayerParam *>(param_);
-    auto resource     = dynamic_cast<ConvLayerResource *>(resource_);
 
     int conv_out_offset_      = output_dims[2] * output_dims[3] * output_dims[1];
     int conv_in_spatial_dim_  = input_dims[2] * input_dims[3];

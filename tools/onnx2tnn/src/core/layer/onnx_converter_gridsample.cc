@@ -30,7 +30,7 @@ string OnnxOpConverterGridSample::TNNLayerParam(NodeProto &node,
         //bilinear
         layer_param << "2 ";
     } else {
-        LOGE("GridSample dont support mode");
+        LOGE("GridSample dont support mode\n");
         return "";
     }
     
@@ -39,7 +39,7 @@ string OnnxOpConverterGridSample::TNNLayerParam(NodeProto &node,
         //padding zeros
         layer_param << "0 ";
     } else {
-        LOGE("GridSample dont support pade_type");
+        LOGE("GridSample dont support pade_type\n");
         return "";
     }
     
@@ -48,7 +48,7 @@ string OnnxOpConverterGridSample::TNNLayerParam(NodeProto &node,
         //false
         layer_param << "0 ";
     } else {
-        LOGE("GridSample dont support align_corners");
+        LOGE("GridSample dont support align_corners\n");
         return "";
     }
     

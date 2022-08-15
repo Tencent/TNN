@@ -83,8 +83,8 @@ download_model \
 
 # download mobilenet_v2-ssd tnn model
   download_model \
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto" \
-    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel" \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd_tf_fix_box.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd_tf_fix_box.tnnmodel" \
     "mobilenet_v2-ssd"
 
 # download yolov5 tnn model
@@ -207,8 +207,19 @@ download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/tiny-bert-squad.tnnproto" \
     "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/tiny-bert/tiny-bert-squad.tnnmodel" \
     "tiny-bert"
-  
+
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/tiny-bert-squad-fixed-256.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/tiny-bert/tiny-bert-squad-fixed-256.tnnmodel" \
+    "tiny-bert"
+
   download_model \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/vocab.txt" \
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/tiny-bert/vocab.txt" \
     "tiny-bert"
+
+# download monodepth pydnet model
+  download_model \
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/monodepth_pydnet/monodepth_pydnet.tnnproto" \
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/monodepth_pydnet/monodepth_pydnet.tnnmodel" \
+    "monodepth_pydnet"

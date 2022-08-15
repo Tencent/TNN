@@ -158,9 +158,9 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         if (NeedRepack(dims_in, output->GetBlobDesc().dims)) {
             tmp_out[0]    = RawBuffer(ROUND_UP(DimsVectorUtils::Count(dims_in), 4) * data_byte_size);
             auto tmp_data = tmp_out[0].force_to<float *>();
-            auto c_src    = dims_in[1];
+            auto c_src    = DimsFunctionUtils::GetDim(dims_in, 1);
             auto hw_src   = DimsVectorUtils::Count(dims_in, 2);
-            auto c_dst    = output->GetBlobDesc().dims[1];
+            auto c_dst    = DimsFunctionUtils::GetDim(output->GetBlobDesc().dims, 1);
             auto hw_dst   = DimsVectorUtils::Count(output->GetBlobDesc().dims, 2);
             for (int b = 0; b < dims_in[0]; ++b) {
                 UnpackC4(tmp_data, output_data_a + b * ROUND_UP(c_src, 4) * hw_src, hw_src, c_src);

@@ -40,7 +40,7 @@ elif [[ ${ci_type} == 'arm' ]]; then
              )
 elif [[ ${ci_type} == 'ios' ]]; then
   PATTERNS+=("platforms/ios/"
-             "scripts/build_ios.sh"
+             "scripts/build_framework_ios.sh"
              "source/tnn/device/arm/"
              "source/tnn/device/metal/"
              )

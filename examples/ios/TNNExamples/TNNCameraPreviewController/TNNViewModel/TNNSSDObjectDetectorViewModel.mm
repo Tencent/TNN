@@ -21,6 +21,11 @@ using namespace std;
 
 -(Status)loadNeuralNetworkModel:(TNNComputeUnits)units {
     Status status = TNN_OK;
+    /*
+     *mobilenetv2_ssd is supported by TNN before 2021.12.23, which is converted from caffe model with priorbox layer.
+     *mobilenetv2_ssd_tf is converted from tensorflow version by scripts/model/ssdlite_tf2onnx.py, TNN supportes it since 2021.12.23.
+     *mobilenetv2_ssd_tf has no priorbox layer, the priorbox has been precomputed in the source code as ssd_anchors (detector_utils.h).
+     */
     
     // check release mode at Product->Scheme when running
     //运行时请在Product->Scheme中确认已经调整到release模式
@@ -30,9 +35,9 @@ using namespace std;
     // file from tnn framework project to TNNExamples app
     //注意：此工程添加了脚本将tnn工程生成的tnn.metallib自动复制到app内
     auto library_path = [[NSBundle mainBundle] pathForResource:@"tnn.metallib" ofType:nil];
-    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel"
+    auto model_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd_tf_fix_box.tnnmodel"
                                                       ofType:nil];
-    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto"
+    auto proto_path   = [[NSBundle mainBundle] pathForResource:@"model/mobilenet_v2-ssd/mobilenetv2_ssd_tf_fix_box.tnnproto"
                                                       ofType:nil];
     
     if (model_path.length <= 0 || proto_path.length <= 0) {
@@ -60,6 +65,7 @@ using namespace std;
         option->model_content = model_content;
         option->library_path = library_path.UTF8String;
         option->compute_units = units;
+        option->cache_path = NSTemporaryDirectory().UTF8String;
     }
     
     auto predictor = std::make_shared<ObjectDetectorSSD>();
@@ -91,7 +97,7 @@ using namespace std;
 
 -(NSString*)labelForObject:(std::shared_ptr<ObjectInfo>)object {
     if (object) {
-        return [NSString stringWithFormat:@"%s %.1f", voc_classes[object->class_id], object->score];
+        return [NSString stringWithFormat:@"%s %.1f", coco_classes_ssd[object->class_id], object->score];
     }
     return nil;
 }

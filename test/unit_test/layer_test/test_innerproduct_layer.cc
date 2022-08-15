@@ -61,6 +61,10 @@ TEST_P(InnerProductLayerTest, InnerProductLayer) {
 
     // generate interpreter
     std::vector<int> input_dims = {batch, input_channel, input_size, input_size};
+    //coreml innerproduct layer output rank is same as the input rank
+    if (DEVICE_APPLE_NPU == dev) { 
+        input_dims = {batch, input_size};
+    }
     auto interpreter            = GenerateInterpreter("InnerProduct", {input_dims}, param);
 
     Precision precision = SetPrecision(dev, dtype);

@@ -15,6 +15,7 @@
 #ifdef TNN_USE_OPENCL_WRAPPER
 
 #ifdef WIN32
+#define NOMINMAX
 #include <windows.h>
 #include <libloaderapi.h>
 #else

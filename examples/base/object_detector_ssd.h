@@ -15,16 +15,18 @@
 #ifndef TNN_EXAMPLES_BASE_OBJECT_DETECTOR_SSD_H_
 #define TNN_EXAMPLES_BASE_OBJECT_DETECTOR_SSD_H_
 
-#include "tnn_sdk_sample.h"
-#include "detector_utils.h"
 #include <memory>
 #include <string>
 
+#include "detector_utils.h"
+#include "tnn_sdk_sample.h"
+
 namespace TNN_NS {
 
+//
 class ObjectDetectorSSDOutput : public TNNSDKOutput {
 public:
-    ObjectDetectorSSDOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
+    ObjectDetectorSSDOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat){};
     virtual ~ObjectDetectorSSDOutput();
     std::vector<ObjectInfo> object_list;
 };
@@ -35,15 +37,13 @@ public:
     virtual MatConvertParam GetConvertParamForInput(std::string name = "");
     virtual std::shared_ptr<TNNSDKOutput> CreateSDKOutput();
     virtual Status ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output);
-    virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat,
-                                                            std::string name = kTNNSDKDefaultName);
-    
+    virtual std::shared_ptr<Mat> ProcessSDKInputMat(std::shared_ptr<Mat> mat, std::string name = kTNNSDKDefaultName);
+
 private:
-    void GenerateDetectResult(std::shared_ptr<Mat> output, std::vector<ObjectInfo>& detects,
-                              int num_detections, int image_width, int image_height);
-    
+    void GenerateObjects(std::vector<ObjectInfo>& objects, std::shared_ptr<Mat> scores, std::shared_ptr<Mat> boxes,
+                         float score_threshold, int image_width, int image_height);
 };
 
-}
+}  // namespace TNN_NS
 
 #endif // TNN_EXAMPLES_BASE_OBJECT_DETECTOR_SSD_H_

@@ -23,6 +23,7 @@
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
 #include "tnn/utils/dims_utils.h"
+#include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -178,7 +179,9 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
     if (blob_ == nullptr) {
         return Status(TNNERR_NULL_PARAM, "input/output blob is null");
     }
-    auto blob_data = reinterpret_cast<float *>(blob_->GetHandle().base);
+
+    void * blob_ptr = reinterpret_cast<void*>(((char*)blob_->GetHandle().base) + blob_->GetHandle().bytes_offset);
+    auto blob_data = reinterpret_cast<float*>(blob_ptr);
     auto desc      = blob_->GetBlobDesc();
     auto dims      = desc.dims;
     auto hw        = DimsVectorUtils::Count(dims, 2);
@@ -192,9 +195,9 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
             auto count = DimsVectorUtils::Count(dims);
             auto real_blob_data = new float[count];
             auto blob_scale = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
-            auto blob_scale_bias = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
+            auto blob_zero_point = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->zero_point_handle.force_to<int8_t *>();
             auto scale_len  = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.GetDataCount();
-            NaiveDequantBias(reinterpret_cast<int8_t *>(blob_->GetHandle().base), blob_scale, blob_scale_bias, scale_len, real_blob_data, dims);
+            NaiveDequantBias(reinterpret_cast<int8_t *>(blob_ptr), blob_scale, blob_zero_point, scale_len, real_blob_data, dims);
 
             blob_data = real_blob_data;
         }
@@ -265,7 +268,7 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
         } else {
             FREE_INT8_TEMP_DATA();
             return Status(TNNERR_PARAM_ERR, "reverse type not support yet, mat type: " +
-                          std::to_string(image.GetMatType()));
+                          ToString(image.GetMatType()));
         }
     }
 
@@ -354,7 +357,8 @@ Status DefaultBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertPa
     auto desc      = blob_->GetBlobDesc();
     auto dims      = desc.dims;
     auto hw        = DimsVectorUtils::Count(dims, 2);
-    auto blob_data = reinterpret_cast<float *>(blob_->GetHandle().base);
+    void * blob_ptr = reinterpret_cast<void*>(((char*)blob_->GetHandle().base) + blob_->GetHandle().bytes_offset);
+    auto blob_data = reinterpret_cast<float*>(blob_ptr);
     if (desc.data_type == DATA_TYPE_INT8) {
         if (image_src.GetMatType() == RESERVED_INT8_TEST) {
             memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims));
@@ -393,7 +397,7 @@ Status DefaultBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertPa
         } else {
             FREE_INT8_TEMP_DATA();
             return Status(TNNERR_PARAM_ERR, "reverse type not support yet, mat type: " +
-                          std::to_string(image.GetMatType()));
+                          ToString(image.GetMatType()));
         }
         image = reversed;
     }
@@ -406,10 +410,10 @@ Status DefaultBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertPa
 
     if (desc.data_type == DATA_TYPE_INT8) {
         auto blob_scale     = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.force_to<float *>();
-        auto blob_scale_bias = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_bias_handle.force_to<int8_t *>();
+        auto blob_zero_point = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->zero_point_handle.force_to<int8_t *>();
         auto scale_len      = reinterpret_cast<BlobInt8 *>(blob_)->GetIntResource()->scale_handle.GetDataCount();
-        auto real_blob_data = reinterpret_cast<int8_t *>(blob_->GetHandle().base);
-        NaiveQuantBias(blob_data, blob_scale, blob_scale_bias, scale_len, real_blob_data, dims);
+        auto real_blob_data = reinterpret_cast<int8_t *>(blob_ptr);
+        NaiveQuantBias(blob_data, blob_scale, blob_zero_point, scale_len, real_blob_data, dims);
         delete[] blob_data;
     }
     return TNN_OK;

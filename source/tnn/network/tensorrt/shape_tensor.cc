@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <limits>
 #include <climits>
 #include <functional>
 #include <numeric>
@@ -280,7 +281,7 @@ ShapeTensor convertTo1D(INetworkDefinition* network, const ShapeTensor& tensor) 
     assert(tensor.rank() == 0);
     assert(tensor.size() == 1);
     if (tensor.valueKnown(0)) {
-        return shapeScalar(tensor[0]);
+        return shapeVector(tensor[0]);
     }
     return ShapeTensor(*addShuffle(network, tensor.tensor(network), shapeVector(1))->getOutput(0));
 }
@@ -356,6 +357,7 @@ nvinfer1::IShuffleLayer* addUnsqueeze(INetworkDefinition* network,
         return nullptr;
     }
 
+    if (dims.size() < 0) return nullptr;
     std::vector<int> subscripts(dims.size());
     std::iota(subscripts.begin(), subscripts.end(), 0);
     for (const auto& axis : axesSet) {

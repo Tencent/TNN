@@ -63,6 +63,100 @@ int Onnx2TNN::FuseBatchNorm(onnx::GraphProto* mutable_graph,
                 i += 2;
             }
         } while (0);
+        
+        // BatchNormalization <= Mul - Add
+        do {
+            if (node->op_type() == "Mul" &&  i + 1 < node_count)
+            {
+                auto node_mul      = node;
+                auto node_add = index_nodes[i + 1].node;
+
+                // check op
+                if (!(node_add->op_type() == "Add"))
+                    break;
+                std::vector<int> next_indexes = GetNextIndexNode(index_nodes, i);
+                if (next_indexes.size() != 1) {
+                    break;
+                }
+
+                //check weights
+                string scale_name, bias_name, input_name;
+                std::vector<int> scale_dims;
+                int data_count = 1;
+                {
+                    if (weights.find(node_mul->input(0)) != weights.end() && weights.find(node_mul->input(1)) == weights.end()) {
+                        scale_name = node_mul->input(0);
+                        input_name = node_mul->input(1);
+                    } else if (weights.find(node_mul->input(1)) != weights.end() && weights.find(node_mul->input(0)) == weights.end()) {
+                        scale_name = node_mul->input(1);
+                        input_name = node_mul->input(0);
+                    } else {
+                        break;
+                    }
+                    
+                    if (weights.find(node_add->input(0)) != weights.end() && weights.find(node_add->input(1)) == weights.end()) {
+                        bias_name = node_add->input(0);
+                    } else if (weights.find(node_add->input(1)) != weights.end() && weights.find(node_add->input(0)) == weights.end()) {
+                        bias_name = node_add->input(1);
+                    } else {
+                        break;
+                    }
+                    
+                    auto weight_scale = weights[scale_name];
+                    auto dims_scale =  weight_scale.dims();
+                    
+                    auto weight_bias = weights[scale_name];
+                    auto dims_bias =  weight_scale.dims();
+                    if (weight_bias.dims_size() != dims_bias.size() || dims_bias.size() < 2 || dims_bias.Get(0) != 1) {
+                        break;
+                    }
+                    for (int ind = 0; ind < dims_scale.size(); ind++) {
+                        if (dims_scale.Get(ind) != dims_bias.Get(ind)) {
+                            break;
+                        }
+                        scale_dims.push_back((int)dims_scale.Get(ind));
+                        data_count *= dims_scale.Get(ind);
+                    }
+                }
+
+                string mean_name = node_add->output(0) + "-mean";
+                string var_name = node_add->output(0) + "-var";
+                //set weights mean var
+                onnx::TensorProto tensor_mean, tensor_var;
+                tensor_mean.set_name(mean_name);
+                tensor_var.set_name(var_name);
+                for (int ind=0; ind<scale_dims.size(); ind++) {
+                    tensor_mean.add_dims(scale_dims[ind]);
+                    tensor_var.add_dims(scale_dims[ind]);
+                }
+                tensor_mean.set_data_type(onnx::TensorProto_DataType_FLOAT);
+                tensor_var.set_data_type(onnx::TensorProto_DataType_FLOAT);
+                for (int ind=0; ind<data_count; ind++) {
+                    tensor_mean.add_float_data(0);
+                    tensor_var.add_float_data(1);
+                }
+                weights[mean_name] = tensor_mean;
+                weights[var_name] = tensor_var;
+
+                // reduce
+                node_mul->set_op_type("BatchNormalization");
+                node_add->set_op_type(k_tnn_noop_type);
+
+                node_reference.erase(node_reference.find(node_add->output(0)));
+                blob_names.erase(node_mul->output(0));
+                
+                node_mul->clear_input();
+                node_mul->add_input(input_name);
+                node_mul->add_input(scale_name);
+                node_mul->add_input(bias_name);
+                node_mul->add_input(mean_name);
+                node_mul->add_input(var_name);
+
+                node_mul->set_output(0, node_add->output(0));
+
+                i += 1;
+            }
+        } while (0);
     }
 
     ClearEmptyNode(index_nodes);

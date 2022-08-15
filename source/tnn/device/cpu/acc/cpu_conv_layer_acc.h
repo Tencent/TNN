@@ -38,7 +38,7 @@ class CpuConvLayerAcc : public CpuLayerAcc {
 private:
     RawBuffer buffer_scale_;
 
-    // @brief buffer_weight_x_bias_ = - scale_bias_i * weight + scale_bias_i * scale_bias_w
+    // @brief buffer_weight_x_bias_ = - zero_point_i * weight + zero_point_i * zero_point_w
     bool do_bias_preprocess_ = false;
     RawBuffer buffer_weight_x_bias_;
 

@@ -65,6 +65,7 @@ Status OpenCLNormalizeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const
         kernel_name = "NormalizeCommon";
     }
 
+    build_options.insert(build_options_.begin(), build_options_.end());
     ret = CreateExecuteUnit(execute_units_[0], "normalize", kernel_name, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");

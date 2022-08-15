@@ -40,7 +40,7 @@ public class ReadingComprehensionFragment extends BaseFragment {
 
     private boolean mUseGPU = false;
 
-    String material1 = "TNN: A high-performance, lightweight neural network inference framework open sourced by Tencent Youtu Lab. It also has many outstanding advantages such as cross-platform, high performance, model compression, and code tailoring. The TNN framework further strengthens the support and performance optimization of mobile devices on the basis of the original Rapidnet and ncnn frameworks. At the same time, it refers to the high performance and good scalability characteristics of the industry's mainstream open source frameworks, and expands the support for X86 and NV GPUs. On the mobile phone, TNN has been used by many applications such as mobile QQ, weishi, and Pitu. As a basic acceleration framework for Tencent Cloud AI, TNN has provided acceleration support for the implementation of many businesses. Everyone is welcome to participate in the collaborative construction to promote the further improvement of the TNN reasoning framework.";
+    String material1 = "TNN: A high-performance, lightweight neural network inference framework open sourced by Tencent Youtu Lab. It also has many outstanding advantages such as cross-platform, high performance, model compression, and code tailoring. The TNN framework further strengthens the support and performance optimization of mobile devices on the basis of the original Rapidnet and ncnn frameworks. At the same time, it refers to the high performance and good scalability characteristics of the industry's mainstream open source frameworks, and expands the support for X86 and NV GPUs. On the mobile phone, TNN has been used by many applications such as mobile QQ, weishi, and Pitu. As a basic acceleration framework for Tencent Cloud AI, TNN has provided acceleration support for the implementation of many businesses. Everyone is welcome to participate in the collaborative construction to promote the further improvement of the TNN inference framework.";
     String question1 = "what advantages does TNN have?";
 
     String material2 = "Pumas are large, cat-like animals which are found in America. When reports came into London Zoo that a wild puma had been spotted forty-five miles south of London, they were not taken seriously. However, as the evidence began to accumulate, experts from the Zoo felt obliged to investigate, for the descriptions given by people who claimed to have seen the puma were extraordinarily similar.";
@@ -77,7 +77,7 @@ public class ReadingComprehensionFragment extends BaseFragment {
         }
     }
 
-    private void onSwichGPU(boolean b) {
+    private void onSwitchGPU(boolean b) {
         mUseGPU = b;
         String modelPath = getActivity().getFilesDir().getAbsolutePath();
         int result;
@@ -111,7 +111,7 @@ public class ReadingComprehensionFragment extends BaseFragment {
         mGPUSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwichGPU(b);
+                onSwitchGPU(b);
             }
         });
 
@@ -171,7 +171,6 @@ public class ReadingComprehensionFragment extends BaseFragment {
         }
     }
 
-
     @Override
     public void openCamera() {
 
@@ -212,7 +211,6 @@ public class ReadingComprehensionFragment extends BaseFragment {
         Log.i(TAG, "onStop");
         super.onStop();
     }
-
 
     @Override
     public void onDestroy() {

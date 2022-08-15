@@ -39,8 +39,8 @@ call:download_model ^
 
 @REM download mobilenet_v2-ssd tnn model
 call:download_model ^
-    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnproto" ^
-    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd.tnnmodel" ^
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd_tf_fix_box.tnnproto" ^
+    "https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/mobilenet_v2-ssd/mobilenetv2_ssd_tf_fix_box.tnnmodel" ^
     "mobilenet_v2-ssd"
 
 @REM download yolov5 tnn model
@@ -119,6 +119,12 @@ call:download_model ^
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/bertsquad10/vocab.txt" ^
     "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/bertsquad10/vocab.txt" ^
     "bertsquad10"
+
+@REM download monodepth pydnet model
+call:download_model ^
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/monodepth_pydnet/monodepth_pydnet.tnnproto" ^
+    "https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/monodepth_pydnet/monodepth_pydnet.tnnproto" ^
+    "monodepth_pydnet"
 
 @REM download ocr model
 call:download_model ^

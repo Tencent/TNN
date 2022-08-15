@@ -22,6 +22,7 @@
 #import "TNNFaceDetectAlignerViewModel.h"
 #import "TNNFaceDetectMeshViewModel.h"
 #import "TNNHairSegmentationViewModel.h"
+#import "TNNMonoDepthViewModel.h"
 #import "TNNPoseDetectLandmarkViewModel.h"
 #import "TNNSkeletonDetectorViewModel.h"
 #import "TNNOCRViewModel.h"
@@ -52,8 +53,18 @@ using namespace std;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    [self clearNavigationBarLeft];
+    [self forceToOrientation:UIDeviceOrientationPortrait];
     
     [self setupTNNExampleDataSource];
+}
+
+- (BOOL)shouldAutorotate {
+    return YES;
+}
+
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    return UIInterfaceOrientationMaskPortrait;
 }
 
 - (void)setupTNNExampleDataSource {
@@ -80,7 +91,7 @@ using namespace std;
     //灰度图上色
     {
         auto data = [TNNExampleData new];
-        data.title = @"灰度图上色";
+        data.title = @"灰度图上色 Recolor";
         data.desc = @"图像类 - 单输入（图）多输出（图）";
         data.viewControllerID = @"TNNImageColourController";
         [examples addObject:data];
@@ -140,7 +151,6 @@ using namespace std;
         {
             data.viewModel = [TNNYoloObjectDetectorViewModel new];
             data.viewModel.title = data.title;
-            data.viewModel.preferGPU = true;
         }
         [examples addObject:data];
     }
@@ -154,7 +164,6 @@ using namespace std;
         {
             data.viewModel = [TNNNanodetObjectDetectorViewModel new];
             data.viewModel.title = data.title;
-            data.viewModel.preferGPU = false;
         }
         [examples addObject:data];
     }
@@ -201,6 +210,20 @@ using namespace std;
         [examples addObject:data];
     }
     
+    //深度图 - mono depth pydnet
+    {
+        auto data = [TNNExampleData new];
+        data.title = @"深度图 - mono depth - pydnet";
+        data.desc = @"摄像头 - 单输入单输出";
+        data.viewControllerID = @"TNNCameraPreviewController";
+        {
+            data.viewModel = [TNNMonoDepthViewModel new];
+            data.viewModel.title = @"深度图 - monodepth - pydnet";
+            data.viewModel.preferDeviceOrientation = UIDeviceOrientationLandscapeRight;
+        }
+        [examples addObject:data];
+    }
+    
     //人体姿势关键点 - BlazePose
     {
         auto data = [TNNExampleData new];
@@ -225,7 +248,6 @@ using namespace std;
             data.viewModel = [TNNSkeletonDetectorViewModel new];
             data.viewModel.title = @"人体关键点 - 腾讯微视";
             data.viewModel.preferFrontCamera = false;
-            data.viewModel.preferGPU = false;
         }
         [examples addObject:data];
     }
@@ -280,7 +302,7 @@ using namespace std;
     auto exampleController = (TNNExamplesController *)vc;
     exampleController.viewModel = data.viewModel;
 
-    [self.navigationController setViewControllers:@[ vc ] animated:YES];
+    [self.navigationController pushViewController:vc animated:YES];
 }
 
 @end

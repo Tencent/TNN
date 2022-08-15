@@ -127,7 +127,7 @@ Status SplitUtils::SplitStr(const char *str, str_arr &subs_array, const char spl
         return TNN_OK;
     }
     
-    const int subs_length = 2048;
+    const int subs_length = 4096;
     char *subs = (char *)calloc(subs_length, sizeof(char));
 
     for (int i = 0, cursor = 0;; i += step) {
@@ -160,7 +160,7 @@ Status SplitUtils::SplitStr(const char *str, str_arr &subs_array, const char spl
         if (c == 0 || (!quote_start && strchr(spliter, c))) {
             subs[0] = 0;
 #if defined(WIN32) && _MSC_VER < 1300  // VC++ 6.0
-            int len = min((i - cursor), subs_length - 1);
+            int len =  (i - cursor)>=(subs_length - 1)?(subs_length - 1):(i - cursor);
 #else
             int len = std::min<int>(i - cursor, subs_length - 1);
 #endif

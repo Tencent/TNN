@@ -66,12 +66,21 @@ ILayer* StrideSliceV2TRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     ShapeTensor axes;
     ShapeTensor strides;
 
-    axes = ShapeTensor(1, std::move(param->axes));
-    strides = ShapeTensor(1, std::move(param->strides));
+    InferOutputShape();
+    DimsVector end_dim(param->ends), begin_dim(param->begins), axes_dim(param->axes), stride_dim(param->strides);
+    auto dim = output_blobs_[0]->GetBlobDesc().dims;
+    if (!dim.empty()) {
+        for (int i = 0; i < param->axes.size(); i++) {
+            if (end_dim[param->axes[i]] == INT_MAX) 
+                end_dim[param->axes[i]] = param->begins[param->axes[i]] + dim[param->axes[i]];
+        }
+    }
+    axes = ShapeTensor(1, std::move(axes_dim));
+    strides = ShapeTensor(1, std::move(stride_dim));
 
     if (input_tensors.size() == 1) {
-        begins = ShapeTensor(1, std::move(param->begins));
-        ends = ShapeTensor(1, std::move(param->ends));
+        begins = ShapeTensor(1, std::move(begin_dim));
+        ends = ShapeTensor(1, std::move(end_dim));
     }
 
     if (input_tensors.size() >= 2) {

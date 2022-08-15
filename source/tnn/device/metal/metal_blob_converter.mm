@@ -63,7 +63,7 @@ bool MetalBlobConverterAcc::CheckDeviceAndMat(DeviceType device_type, MatType ma
     bool device_supported = (device_type == DEVICE_METAL || device_type == DEVICE_ARM || 
             device_type == DEVICE_X86 || device_type == DEVICE_NAIVE);
 
-    bool mat_supported = (mat_type == N8UC4 || mat_type == N8UC3 ||
+    bool mat_supported = (mat_type == N8UC4 || mat_type == N8UC3 || mat_type == NGRAY||
             mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32);
 
     return device_supported && mat_supported;
@@ -76,8 +76,8 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
     metal_param.height       = DimsFunctionUtils::GetDim(dims, 2);
     metal_param.size         = metal_param.height * metal_param.width;
     metal_param.channel      = DimsFunctionUtils::GetDim(dims, 1);
-    metal_param.slice        = UP_DIV(metal_param.channel, 4);
-    metal_param.batch        = dims[0];
+    metal_param.slice        = UP_DIV(metal_param.channel, 4)>0 ? UP_DIV(metal_param.channel, 4) : 1;
+    metal_param.batch        = DimsFunctionUtils::GetDim(dims, 0);
     metal_param.bgra_to_rgba = param.reverse_channel;
 
     LOGD("metal_param size: %d %d %d %d %d\n", metal_param.batch, metal_param.channel, metal_param.height,
@@ -93,7 +93,7 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
         bias_texture_buffer  = is_mat_to_blob ? 1.0    : 1.0 / 255.0f;
     }
 
-    if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32) {
+    if (mat_type == NCHW_FLOAT || mat_type == NGRAY || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32) {
         // scale and bias should at least have channel elements, so we use another buffer instead of metal_param
         if (param.scale.size() < metal_param.channel || param.bias.size() < metal_param.channel) {
             // invalid scale and bias
@@ -213,11 +213,23 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
                 LOGD("image_converter_buffer_nc4hw4_2_buffer_bgr\n");
             }
         }
+    } else if (mat_type == NGRAY) {
+            if (is_mat_to_blob) {
+                if (blob_data_format == DATA_FORMAT_NC4HW4) {
+                    func_name = @"data_converter_ngray_2_nc4hw4_float_v2";
+                    LOGD("data_converter_ngray_2_nc4hw4_float_v2\n");
+                }
+            } else {
+                if (blob_data_format == DATA_FORMAT_NC4HW4) {
+                    func_name = @"data_converter_nc4hw4_2_ngray_v2";
+                    LOGD("data_converter_nc4hw4_2_ngray_v2\n");
+                }
+            }
     } else if (mat_type == NCHW_FLOAT) {
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NCHW) {
                 func_name = @"data_converter_nchw_float2ftype";
-                LOGD("data_converter_nchw_2_nchw\n");
+                LOGD("data_converter_nchw_float2ftype\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_name = @"data_converter_nchw_2_nc4hw4_float_v2";
                 LOGD("data_converter_nchw_2_nc4hw4_float_v2\n");
@@ -229,7 +241,7 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
                 LOGD("data_converter_nc4hw4_2_nchw_int32_v2\n");
             } else if (blob_data_format == DATA_FORMAT_NCHW) {
                 func_name = @"data_converter_nchw_ftype2float";
-                LOGD("data_converter_nchw_2_nchw\n");
+                LOGD("data_converter_nchw_ftype2float\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_name = @"data_converter_nc4hw4_2_nchw_float_v2";
                 LOGD("data_converter_nc4hw4_2_nchw_float_v2\n");
@@ -239,7 +251,7 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NCHW) {
                 func_name = @"data_converter_nchw_half2ftype";
-                LOGD("data_converter_nchw_2_nchw\n");
+                LOGD("data_converter_nchw_half2ftype\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_name = @"data_converter_nchw_2_nc4hw4_half_v2";
                 LOGD("data_converter_nchw_2_nc4hw4_float_v2\n");
@@ -247,7 +259,7 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
         } else {
             if (blob_data_format == DATA_FORMAT_NCHW) {
                 func_name = @"data_converter_nchw_ftype2half";
-                LOGD("data_converter_nchw_2_nchw\n");
+                LOGD("data_converter_nchw_ftype2half\n");
             } else if (blob_data_format == DATA_FORMAT_NC4HW4) {
                 func_name = @"data_converter_nc4hw4_2_nchw_half_v2";
                 LOGD("data_converter_nc4hw4_2_nchw_float_v2\n");
@@ -367,7 +379,9 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
 
-        [command_buffer commit];
+        command_buffer = context_impl.commandBuffer;
+
+        [context_impl commit:YES];
         if (waitState == 1) {
             [command_buffer waitUntilCompleted];
         } else if (waitState == 2) {
@@ -407,16 +421,19 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
 
-        [command_buffer commit];
+        command_buffer = context_impl.commandBuffer;
+
+        [context_impl commit:YES];
 
         [command_buffer waitUntilCompleted];
         memcpy(output_mat.GetData(), output_mtl_buffer.contents, count * bytes_size);
-    } else if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
+    } else if (mat_type == NGRAY ||mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
         auto input_buffer_blob          = dynamic_cast<Blob *>(input_blob);
         id<MTLBuffer> output_mtl_buffer = nil;
 
         int count = DimsVectorUtils::Count(dims);
-        const auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : sizeof(fp16_t);
+        const auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : ((mat_type == NGRAY) ? sizeof(unsigned char) : sizeof(fp16_t));
+        
         if (output_mat_device == DEVICE_METAL) {
             output_mtl_buffer = (__bridge id<MTLBuffer>)(output_mat.GetData());
         } else if (output_mat_device == DEVICE_ARM || output_mat_device == DEVICE_NAIVE || mat_device_type == DEVICE_X86) {
@@ -425,7 +442,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         }
 
         NSUInteger image_size  = DimsFunctionUtils::GetDimProduct(dims, 2);
-        NSUInteger image_slice = UP_DIV(dims[1], 4);
+        NSUInteger image_slice = UP_DIV(dims[1], 4)>0 ? UP_DIV(dims[1], 4) : 1;
         bool is_blob_nchw = input_buffer_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
 
         auto encoder = [context_impl encoder];
@@ -472,7 +489,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
 
-        auto command_buffer = context_impl.commandBuffer;
+        command_buffer = context_impl.commandBuffer;
         [context_impl commit:YES];
 
         if (output_mat_device == DEVICE_METAL) {
@@ -499,8 +516,8 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         }
 
         NSUInteger image_size  = DimsFunctionUtils::GetDimProduct(dims, 2);
-        NSUInteger image_slice = UP_DIV(dims[1], 4);
-        
+        NSUInteger image_slice = UP_DIV(dims[1], 4)>0 ? UP_DIV(dims[1], 4) : 1;
+
         auto encoder = [context_impl encoder];
         if (!encoder) {
             LOGE("ERROR: ConvertToMatCommon cannot allocate new encoder\n");
@@ -536,7 +553,8 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
         [encoder dispatchThreadgroups:groups threadsPerThreadgroup:group_threads];
         [encoder endEncoding];
 
-        [command_buffer commit];
+        command_buffer = context_impl.commandBuffer;
+        [context_impl commit:YES];
 
         if (output_mat_device == DEVICE_METAL) {
             if (waitState == 1) {
@@ -705,11 +723,12 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                 [command_buffer waitUntilScheduled];
             }
             return TNN_OK;
-        } else if (mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
+        } else if (mat_type == NGRAY || mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
             // For Buffer input
 
             id<MTLBuffer> input_buffer = nil;
-            const auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : sizeof(fp16_t);
+            const auto bytes_size = (mat_type == NCHW_FLOAT) ? sizeof(float) : ((mat_type == NGRAY) ? sizeof(unsigned char) : sizeof(fp16_t));
+
             if (mat_device_type == DEVICE_METAL) {
                 input_buffer = (__bridge id<MTLBuffer>)(input_mat.GetData());
             } else if (mat_device_type == DEVICE_NAIVE || mat_device_type == DEVICE_ARM || mat_device_type == DEVICE_X86) {
@@ -722,7 +741,8 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             }
             
             NSUInteger image_size  = DimsFunctionUtils::GetDimProduct(dims, 2);
-            NSUInteger image_slice = UP_DIV(dims[1], 4);
+            NSUInteger image_slice = UP_DIV(dims[1], 4)>0 ? UP_DIV(dims[1], 4) : 1;
+
             bool is_blob_nchw = output_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
             Blob *output_buffer_blob = (Blob *)(output_blob);
 
@@ -786,7 +806,7 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
             }
             
             NSUInteger image_size  = DimsFunctionUtils::GetDimProduct(dims, 2);
-            NSUInteger image_slice = UP_DIV(dims[1], 4);
+            NSUInteger image_slice = UP_DIV(dims[1], 4)>0 ? UP_DIV(dims[1], 4) : 1;
             bool is_blob_nchw = output_blob->GetBlobDesc().data_format == DATA_FORMAT_NCHW;
             Blob *output_buffer_blob = (Blob *)(output_blob);
             
