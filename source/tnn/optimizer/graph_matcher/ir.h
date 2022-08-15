@@ -125,7 +125,7 @@ namespace TNN_NS {
 
         std::shared_ptr<Tensor> getTensorByName(const std::string &tensor_name) const;
 
-        std::vector<const Tensor*> getTensorsByNames(const std::vector<std::string> &tensor_names) const throw(...);
+        std::vector<const Tensor*> getTensorsByNames(const std::vector<std::string> &tensor_names) const ;
 
         virtual std::vector<Node*> outputNodes() const {
             std::vector<Node *> res;
@@ -152,7 +152,7 @@ namespace TNN_NS {
 
         Status buildNodeTensorIndex(const std::shared_ptr<Node> );
 
-        void embed(std::shared_ptr<Graph> g, const std::shared_ptr<AnchorGraph> anchor, std::string name_prefx) throw(...);
+        void embed(std::shared_ptr<Graph> g, const std::shared_ptr<AnchorGraph> anchor, std::string name_prefx) ;
 
         Status topologicalSort();
 

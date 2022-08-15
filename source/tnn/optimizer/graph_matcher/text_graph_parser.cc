@@ -283,7 +283,7 @@ struct SlotManager {
 
 
 
-Status constructGraph(const TextGraph &tg, Graph * graph) throw(...)
+Status constructGraph(const TextGraph &tg, Graph * graph) 
 {
     SlotManager manager;
 
