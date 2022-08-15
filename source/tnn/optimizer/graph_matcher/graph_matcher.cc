@@ -237,7 +237,7 @@ Status AnchorGraph::sanityCheck() {
 void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> pattern,  std::vector<std::shared_ptr<AnchorGraph>>  &results) throw(...) {
     results.resize(0);
 
-    std::vector<Node *> pattern_outs = pattern->outputs();
+    std::vector<Node *> pattern_outs = pattern->outputNodes();
     for(auto &node_ref : graph->allNodes()) {
         auto n = node_ref.lock();
         if (!n) throw std::runtime_error("invalid node from graph");

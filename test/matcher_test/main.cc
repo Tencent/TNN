@@ -217,8 +217,5 @@ int main(int argc, char ** argv) {
         graph->dump(f);
     }
 
-    std::string s = tnn::Logger::instance().str();
-    // printf("---------final ------------------len%lu:\n%s\n", s.length(), s.c_str());
-
     return 0;
 }

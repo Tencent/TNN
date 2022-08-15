@@ -398,7 +398,7 @@ namespace TNN_NS {
         return res;
     }
 
-    std::vector<const Tensor*> Graph::outputs_() const {
+    std::vector<const Tensor*> Graph::outputs() const {
         std::set<std::string> names = marked_outputs;
 
         for(auto &n : nodes) {
@@ -411,7 +411,7 @@ namespace TNN_NS {
         return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
     }
 
-    std::vector<const Tensor*> Graph::inputs_() const {
+    std::vector<const Tensor*> Graph::inputs() const {
         std::set<std::string> names;
 
         for(auto &n : placeholders) {
@@ -424,8 +424,7 @@ namespace TNN_NS {
     }
 
     Status Graph::rewrite(std::shared_ptr<Graph> &pattern, graph_generator generator) {
-        // try 
-        { 
+        try { 
             RAISE_ON_ERROR(sanityCheck());
 
             std::vector<std::shared_ptr<AnchorGraph>> matches;
@@ -443,20 +442,20 @@ namespace TNN_NS {
                     continue;
                 }
                 auto &origin_graph = group[0];
-                auto heir_graph = generator(group[0]);
+                // previus changes may cause tensor_name changes, so rebuild index here.
+                origin_graph->formalize(this);
+
+                auto heir_graph = generator(origin_graph);
                 if (heir_graph) {
 
-                    // previus changes may cause tensor_name changes, so rebuild index here.
-                    origin_graph->formalize(this);
-
-                    if (heir_graph->inputs_().size() != origin_graph->inputs_().size()) {
+                    if (heir_graph->inputs().size() != origin_graph->inputs().size()) {
                         WARN("Warning: Skiped one replacement. heir_graph and origin graph num inputs not match, %lu != %lu", 
-                                    heir_graph->inputs_().size(),  origin_graph->inputs_().size());
+                                    heir_graph->inputs().size(),  origin_graph->inputs().size());
                         continue;
                     }
-                    if (heir_graph->outputs_().size() != origin_graph->outputs_().size()) {
+                    if (heir_graph->outputs().size() != origin_graph->outputs().size()) {
                         WARN("Warning: Skiped one replacement. heir_graph and origin graph num outputs not match, %lu != %lu", 
-                                    heir_graph->outputs_().size(),  origin_graph->outputs_().size());
+                                    heir_graph->outputs().size(),  origin_graph->outputs().size());
                         continue;
                     }
                     if (heir_graph->reBuildTensorIndex() != TNN_OK) {
@@ -471,17 +470,16 @@ namespace TNN_NS {
                 }
             }
 
-        // } catch (const std::exception& error) {
-        //     ERROR("%s", error.what());
-        //     return Status(TNNERR_COMMON_ERROR, error.what());
-        // } catch (const std::string & e) {
-        //     ERROR("%s", e.c_str());
-        //     return Status(TNNERR_COMMON_ERROR, e.c_str());
-        // } catch (...) {
-        //     std::exception_ptr eptr = std::current_exception();
-        //     ERRORV("Rewriter got unknow error.", msg);
-        //     return Status(TNNERR_COMMON_ERROR, msg);
-        // }
+        } catch (const std::exception& error) {
+            ERROR("%s", error.what());
+            return Status(TNNERR_COMMON_ERROR, error.what());
+        } catch (const std::string & e) {
+            ERROR("%s", e.c_str());
+            return Status(TNNERR_COMMON_ERROR, e.c_str());
+        } catch (...) {
+            std::exception_ptr eptr = std::current_exception();
+            ERRORV("Rewriter got unknow error.", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
         }
 
         return TNN_OK;
@@ -492,10 +490,10 @@ namespace TNN_NS {
         // !!!assume each node has only one output here.
         os << "\"1 " << tensor_2_node.size() << " 1 4206624772 ,\"\n";
         // line 2 inputs: ':'.join(name rank dims dtype)
-        auto inputs = inputs_();
-        auto it = inputs.begin();
+        auto input_tensors = inputs();
+        auto it = input_tensors.begin();
         os << "\"" << (*it)->name << " 0 0 ";
-        for(it++;it!=inputs.end();it++) {
+        for(it++;it!=input_tensors.end();it++) {
             os << ": " << (*it)->name << " 0 0 ";
         }
         os << " ,\"\n\"";
@@ -510,7 +508,7 @@ namespace TNN_NS {
         }
         os << " ,\"\n\"";
         // line 4 outptus
-        for(auto &v : outputs_()) {
+        for(auto &v : outputs()) {
             os << v->name << " ";
         }
         os << " ,\"\n\"";
@@ -622,14 +620,14 @@ namespace TNN_NS {
         for(auto &name : tensor_names) renameTensor(name, name_prefix + name);
 
         std::map<std::string, std::string> in_mapping;
-        for(size_t i=0;i<anchor->inputs_().size();i++) {
-            in_mapping[anchor->inputs_()[i]->name] = inputs_()[i]->name;
-            in_mapping[inputs_()[i]->name] =anchor->inputs_()[i]->name;
+        for(size_t i=0;i<anchor->inputs().size();i++) {
+            in_mapping[anchor->inputs()[i]->name] = inputs()[i]->name;
+            in_mapping[inputs()[i]->name] =anchor->inputs()[i]->name;
         }
 
         std::map<std::string, std::string> out_mapping;
-        for(size_t i=0;i<anchor->outputs_().size();i++) {
-            out_mapping[anchor->outputs_()[i]->name] = outputs_()[i]->name;
+        for(size_t i=0;i<anchor->outputs().size();i++) {
+            out_mapping[anchor->outputs()[i]->name] = outputs()[i]->name;
         }
 
         // check first

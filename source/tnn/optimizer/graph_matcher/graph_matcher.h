@@ -82,9 +82,9 @@ struct AnchorGraph : public Graph {
         return res;
     }
 
-    virtual std::vector<Node *> outputs() const override {
+    virtual std::vector<Node *> outputNodes() const override {
         // all nodes that have no out edges.
-        std::vector<Node *> res = Graph::outputs();
+        std::vector<Node *> res = Graph::outputNodes();
         // add those nodes that has an outer edge
         for(auto &e : outEdges()) {
             if (std::find(res.begin(), res.end(), e->src) == res.end()) {
@@ -94,7 +94,7 @@ struct AnchorGraph : public Graph {
         return res;
     }
 
-    virtual std::vector<Node *> inputs() const override {
+    virtual std::vector<Node *> inputNodes() const override {
         std::vector<Node *> res;
         for(auto &e : inEdges()) {
             if (std::find(res.begin(), res.end(), e->src) == res.end()) {
@@ -104,7 +104,7 @@ struct AnchorGraph : public Graph {
         return res;
     }
 
-    virtual std::vector<const Tensor*> outputs_() const override {
+    virtual std::vector<const Tensor*> outputs() const override {
         // all tensors that is not used + outEdges
         std::set<std::string> names;
 
@@ -118,7 +118,7 @@ struct AnchorGraph : public Graph {
         return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
     }
 
-    virtual std::vector<const Tensor*> inputs_() const override {
+    virtual std::vector<const Tensor*> inputs() const override {
         // all inEdges
         std::set<std::string> names;
 
