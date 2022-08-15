@@ -35,13 +35,13 @@ void SplitvCommon(Blob *input, const std::vector<Blob *> &outputs, const int axi
     const int batch       = DimsVectorUtils::Count(round_input_dims, 0, axis);
     const int slice_size  = DimsVectorUtils::Count(round_input_dims, axis + 1);
     const int slice_input = input_dims[axis];
-    auto input_data       = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
+    auto input_data       = reinterpret_cast<float *>(arm::GetBlobHandlePtr(input->GetHandle()));
 
     for (int b = 0; b < batch; b++) {
         int slice_input_offset = 0;
         for (int i = 0; i < outputs.size(); i++) {
             auto output_blob = outputs[i];
-            auto output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
+            auto output_data = reinterpret_cast<float *>(arm::GetBlobHandlePtr(output_blob->GetHandle()));
             const int slice  = output_blob->GetBlobDesc().dims[axis];
 
             auto output_data_ptr = output_data + b * slice * slice_size;
@@ -55,7 +55,7 @@ void SplitvCommon(Blob *input, const std::vector<Blob *> &outputs, const int axi
 
 void SplitvChannel(Blob *input, const std::vector<Blob *> &outputs, const int axis) {
     auto input_dims             = input->GetBlobDesc().dims;
-    auto input_data             = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
+    auto input_data             = reinterpret_cast<float *>(arm::GetBlobHandlePtr(input->GetHandle()));
     DimsVector round_input_dims = GetNCXHWXRoundDims(input_dims, 4);
 
     int slice_offset = 0;
@@ -63,7 +63,7 @@ void SplitvChannel(Blob *input, const std::vector<Blob *> &outputs, const int ax
         auto output                  = outputs[i];
         auto output_dims             = output->GetBlobDesc().dims;
         DimsVector round_output_dims = GetNCXHWXRoundDims(output_dims, 4);
-        auto output_data             = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
+        auto output_data             = reinterpret_cast<float *>(arm::GetBlobHandlePtr(output->GetHandle()));
         const int slice              = output_dims[axis];
         auto plane                   = DimsVectorUtils::Count(output_dims, 2);
         for (int b = 0; b < output_dims[0]; b++) {
@@ -107,13 +107,13 @@ void SplitvChannelC4(Blob *input, const std::vector<Blob *> &outputs, const int 
     const int slice_size  = DimsVectorUtils::Count(round_input_dims, axis + 1);
     // different from split common, treat 4 element in channel as one
     const int slice_input = UP_DIV(input_dims[axis], 4);
-    auto input_data       = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
+    auto input_data       = reinterpret_cast<float *>(arm::GetBlobHandlePtr(input->GetHandle()));
 
     for (int b = 0; b < batch; b++) {
         int slice_input_offset = 0;
         for (int i = 0; i < outputs.size(); i++) {
             auto output_blob = outputs[i];
-            auto output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
+            auto output_data = reinterpret_cast<float *>(arm::GetBlobHandlePtr(output_blob->GetHandle()));
             // different from split common, treat 4 element in channel as one
             const int slice = UP_DIV(output_blob->GetBlobDesc().dims[axis], 4);
 

@@ -125,7 +125,7 @@ private:
     ModelConfig model_config_;
     
     AbstractNetwork *GetNetwork();
-    Status GetNetworkType(NetworkType &network_type, Devicetype &device_type);
+    Status GetNetworkType(NetworkType &network_type, DeviceType &device_type);
 
     //Mat interface for simple use
 public:
