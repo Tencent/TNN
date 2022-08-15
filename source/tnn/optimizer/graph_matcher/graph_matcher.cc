@@ -233,7 +233,7 @@ Status AnchorGraph::sanityCheck() {
 
 
 
-void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> pattern,  std::vector<std::shared_ptr<AnchorGraph>>  &results) throw(...) {
+void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> pattern,  std::vector<std::shared_ptr<AnchorGraph>>  &results)  {
     results.resize(0);
 
     std::vector<Node *> pattern_outs = pattern->outputNodes();

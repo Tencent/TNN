@@ -129,7 +129,7 @@ struct AnchorGraph : public Graph {
 
 };
 
-void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> pattern, std::vector<std::shared_ptr<AnchorGraph>> &results) throw(...);
+void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> pattern, std::vector<std::shared_ptr<AnchorGraph>> &results) ;
 
 std::vector<std::vector<std::shared_ptr<AnchorGraph>>> clustering(const std::vector<std::shared_ptr<AnchorGraph>> &matches);
 

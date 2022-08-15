@@ -395,7 +395,7 @@ namespace TNN_NS {
         return TNN_OK;
     }
 
-    std::vector<const Tensor*> Graph::getTensorsByNames(const std::vector<std::string> &names) const throw(...) {
+    std::vector<const Tensor*> Graph::getTensorsByNames(const std::vector<std::string> &names) const  {
         std::vector<const Tensor*> res;
         for(auto &name : names) {
             auto tensor = getTensorByName(name);
