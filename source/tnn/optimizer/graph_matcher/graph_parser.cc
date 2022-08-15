@@ -194,16 +194,80 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph) {
     std::vector<std::shared_ptr<Edge>> edges;
     std::vector<std::shared_ptr<Node>> nodes;
     std::vector<std::shared_ptr<Node>> placeholders;
-    std::vector<std::shared_ptr<Node>> outputs;
 
-    for(auto &n : ssa.inputs) {
-        placeholders.push_back(std::make_shared<Node>(n.identifier));
+
+    std::map<std::string, Node *> tensor_2_node;
+
+    std::map<std::string, int> node_cnt;
+    auto getNodeName = [&](const Token &tk) -> std::string {
+        if (node_cnt.count(tk.text()) == 0) node_cnt[tk.text()] = 0;
+        return tk.text() + std::string("_") + std::to_string(node_cnt[tk.text()]++);
+    };
+
+    auto createNode = [&](const SSANode& node) -> std::shared_ptr<Node> {
+        if (node.outputs.size() == 0) {
+            reportError("Node has no output", node.source);
+        }
+
+        auto n = std::make_shared<Node>(getNodeName(node.source));
+        n->info->type = GlobalConvertLayerType(node.source.text());
+
+        if (n->info->type == LAYER_PLACEHOLDER) {
+            reportError("placeHolder is not expected", node.source);
+        }
+
+        for(auto &input : node.inputs) {
+            if (tensor_2_node.count(input.identifier) == 0) {
+                reportError("specified input not found when constructiing graph.", input.source);
+            }
+            Node * src = tensor_2_node.at(input.identifier);
+            auto e = std::make_shared<Edge>(src, n.get(), input.identifier);
+            edges.push_back(e);
+            RAISE_ON_ERROR(src->addOutputEdge(e.get()));
+            RAISE_ON_ERROR(n->addInput(e.get()));
+        }
+
+        n->info->outputs = {};
+        for(auto &v : node.outputs) {
+            n->info->outputs.push_back(v.identifier);
+            tensor_2_node[v.identifier] = n.get();
+        }
+
+        nodes.push_back(n);
+        return n;
+    };
+
+    for(auto &v : ssa.inputs) {
+        auto n = std::make_shared<Node>(v.identifier);
+        placeholders.push_back(n);
+        tensor_2_node[v.identifier] = n.get();
     }
 
-    for(auto &n : ssa.outputs) {
-        auto dummy = std::make_shared<Node>(n.identifier);
-        dummy->info->type = LAYER_DUMMY_TYPE;
-        outputs.push_back(dummy);
+    bool on_exit = false;
+    std::set<Value> return_values;
+
+    for(auto &ssa_node : ssa.nodes) {
+        if (on_exit) {
+            reportError("unexpected Node", ssa_node.source);
+        }
+        if (ssa_node.source.kind == TK_RETURN) {
+            for(auto &v : ssa_node.inputs) {
+                return_values.insert(v);
+            }
+            on_exit = true;
+            continue;
+        }
+        createNode(ssa_node);
+    }
+
+    *graph = Graph(nodes, placeholders, edges, {});
+    RAISE_ON_ERROR(graph->reBuildTensorIndex());
+
+    for(auto &v : return_values) {
+        if (tensor_2_node.count(v.identifier) == 0) {
+            reportError("specified return value not found when constructiing graph.", v.source);
+        }
+        RAISE_ON_ERROR(graph->markOutput(v.identifier));
     }
 
     return TNN_OK;

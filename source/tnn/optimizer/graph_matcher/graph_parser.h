@@ -30,6 +30,10 @@ struct Value {
     Value(const std::string &ident, const Token& tk): identifier(ident), source(tk) {};
     std::string identifier;
     Token source;
+
+    bool operator<(const  Value &o) const {
+        return identifier < o.identifier;
+    }
 };
 
 struct Attributes {

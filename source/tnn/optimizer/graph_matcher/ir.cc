@@ -305,7 +305,7 @@ namespace TNN_NS {
 
     Status Graph::markOutput(const std::string &tensor_name) {
         if (tensor_map.find(tensor_name) == tensor_map.end()) {
-            ERRORV("specified tensor not found.", msg);
+            ERRORV("specified tensor [%s] not found.", msg, tensor_name.c_str());
             return Status(TNNERR_COMMON_ERROR, msg);
         }
         marked_outputs.insert(tensor_name);

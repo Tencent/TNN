@@ -59,8 +59,8 @@ namespace optimizer {
     }
 
     Status NetOptimizerFuseConvActivation::Optimize(NetStructure *structure, NetResource *resource) {
-        tnn::Logger::instance().set_verbose_level("D");
-
+        // This optimizer is only for illustrating purpose, not running it.
+        return TNN_OK;
 
         if (!structure) {
             LOGE("Error: empty NetStructure\n");

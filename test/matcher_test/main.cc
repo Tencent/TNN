@@ -26,9 +26,9 @@ int main(int argc, char ** argv) {
         "        MatMul",
         "        Add+{act}",
         "Add+>",
-        "Add",
+        "Add@branch",
         "Mul     ",
-        "Mul",
+        "Mul+{branch}",
     };
 
 
@@ -47,23 +47,25 @@ int main(int argc, char ** argv) {
     }
 
     {
-        tnn::GraphParser graph_parser;
-
         std::string graph_str = R"(
             graph(%a):
-                %a = Add(%5)
-                %b = Mul(%a)
-                return (%b)
+                %c = Add(%a)
+                %d = Mul(%c)
+                %e = Mul(%d, %c)
+                return (%e)
         )";
 
+        tnn::GraphParser graph_parser;
         if (graph_parser.parseFromString(graph_str)) {
-            pattern = parser.getGraph();
+            pattern = graph_parser.getGraph();
             std::ofstream f("ssa_pattern.tnnproto");
             if (!pattern) {
                 ERROR("invalid pattern");
                 return -1;
             }
             pattern->dump(f);
+        } else {
+            return -1;
         }
 
         auto gen = [](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::Graph> {
@@ -74,7 +76,7 @@ int main(int argc, char ** argv) {
             auto g = std::make_shared<tnn::Graph>();
             auto in_name = "input_1";
             auto in1 = g->getNodeOrCreatePlaceHolder(in_name);
-            auto status = g->createNode(tnn::LAYER_TANH, {in_name}, {"new_heir_node"});
+            auto status = g->createNode(tnn::LAYER_SIGMOID, {in_name}, {"ssa_node"});
             if (status != tnn::TNN_OK) {
                 return nullptr;
             }
@@ -84,7 +86,6 @@ int main(int argc, char ** argv) {
 
         graph->rewrite(pattern, gen);
     }
-
 
     {
         std::vector<std::string> text_graph_pattern = {

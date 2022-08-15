@@ -281,12 +281,6 @@ struct SlotManager {
 
 };
 
-void reportError(const std::string &msg, const Token &tok) {
-    std::stringstream ss;
-    ss << "Error: " << msg << ", correspoding source is:\n";
-    tok.str.highlight(ss);
-    throw std::runtime_error(ss.str());
-}
 
 
 Status constructGraph(const TextGraph &tg, Graph * graph) throw(...)
@@ -377,8 +371,8 @@ Status constructGraph(const TextGraph &tg, Graph * graph) throw(...)
                                     [](std::shared_ptr<Node> &n){ return  n->info->type == LAYER_PLACEHOLDER; }),
                                     nodes.end());
                                 
-    *graph = Graph(nodes, placeholders, edges);
-    graph->reBuildTensorIndex();
+    *graph = Graph(nodes, placeholders, edges, {});
+    RAISE_ON_ERROR(graph->reBuildTensorIndex());
     
     return TNN_OK;
 }

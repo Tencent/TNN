@@ -62,7 +62,6 @@ bool AnchorGraph::matchUp(const Node *node, Node* probe, int recursion, bool sil
         }
     }
 
-    // We need Another type wildcard type here.
     if (probe->info->type == LAYER_PLACEHOLDER) {
         if (!silence) DEBUG("%*srec[%d] node[%s] matched with pattern placeholder [%s]", (recursion%20)*4, "", recursion, node->name().c_str(), probe->name().c_str());
         paired_nodes[node] = NodePair(node, probe, recursion);
