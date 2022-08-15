@@ -163,6 +163,8 @@ void AnchorGraph::formalize(Graph *g) {
     //     3.the AnchorGraph do not use marked_outputs.
 
     *dynamic_cast<Graph*>(this) = Graph();
+    tnn_structure = g->tnn_structure;
+    tnn_resource = g->tnn_resource;
 
     // removed pairs that anchor is a placeholder
     for(auto it = paired_nodes.begin(); it!= paired_nodes.end(); ) {
@@ -193,7 +195,7 @@ void AnchorGraph::formalize(Graph *g) {
 
     // Create input Tensors from the edges. multiple edges may point to the same node.
     for(auto &e : inEdges()) {
-        if (tensors.find(e->tensor_name) == tensors.end()) {
+        if (tensor_map.find(e->tensor_name) == tensor_map.end()) {
             // this function will build the tensor
             getNodeOrCreatePlaceHolder(e->tensor_name);
         }

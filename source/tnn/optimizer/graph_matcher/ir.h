@@ -159,10 +159,11 @@ namespace TNN_NS {
         std::vector<std::shared_ptr<Node>> nodes;
         std::vector<std::shared_ptr<Edge>> edges;
         std::vector<std::shared_ptr<Node>> placeholders;
+        std::vector<std::shared_ptr<Tensor>> tensors;
 
-        std::unordered_map<std::string, std::shared_ptr<Tensor>> tensors;
         std::set<std::string> marked_outputs;
 
+        std::unordered_map<std::string, std::shared_ptr<Tensor>> tensor_map;
         std::map<std::string, std::shared_ptr<Node>> tensor_2_node;
         std::map<std::string, std::vector<Edge*>> tensor_2_edge;
 

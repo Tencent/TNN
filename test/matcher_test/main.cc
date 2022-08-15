@@ -20,6 +20,7 @@ int main(int argc, char ** argv) {
             %b,%c = Mul(%a)
             return (%b)
     )";
+
     graph_parser.parseFromString(graph_str);
     // return 0;
 
