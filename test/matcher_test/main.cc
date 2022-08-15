@@ -12,18 +12,6 @@
 int main(int argc, char ** argv) {
     tnn::Logger::instance().set_verbose_level("I");
 
-    tnn::GraphParser graph_parser;
-
-    std::string graph_str = R"(
-        graph(%a):
-            %a = Add(%5)
-            %b,%c = Mul(%a)
-            return (%b)
-    )";
-
-    graph_parser.parseFromString(graph_str);
-    // return 0;
-
     std::vector<std::string> text_graph = {
         "LayerNorm # some comments",
         "        MatMul<",
@@ -44,10 +32,10 @@ int main(int argc, char ** argv) {
     };
 
 
-    tnn::TextGraphParser parser;
 
     std::shared_ptr<tnn::Graph> graph, pattern;
 
+    tnn::TextGraphParser parser;
     auto status = parser.parseFromString(text_graph);
     if (status == tnn::TNN_OK){
         graph = parser.getGraph();
@@ -56,6 +44,45 @@ int main(int argc, char ** argv) {
     } else {
         printf("parse got error, code:%d msg:%s\n", int(status), status.description().c_str());
         return 0;
+    }
+
+    {
+        tnn::GraphParser graph_parser;
+
+        std::string graph_str = R"(
+            graph(%a):
+                %a = Add(%5)
+                %b = Mul(%a)
+                return (%b)
+        )";
+
+        if (graph_parser.parseFromString(graph_str)) {
+            pattern = parser.getGraph();
+            std::ofstream f("ssa_pattern.tnnproto");
+            if (!pattern) {
+                ERROR("invalid pattern");
+                return -1;
+            }
+            pattern->dump(f);
+        }
+
+        auto gen = [](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::Graph> {
+            if (in->inputs().size() != 1 || in->outputs().size() != 1 ){
+                return nullptr;
+            }
+
+            auto g = std::make_shared<tnn::Graph>();
+            auto in_name = "input_1";
+            auto in1 = g->getNodeOrCreatePlaceHolder(in_name);
+            auto status = g->createNode(tnn::LAYER_TANH, {in_name}, {"new_heir_node"});
+            if (status != tnn::TNN_OK) {
+                return nullptr;
+            }
+
+            return g;
+        };
+
+        graph->rewrite(pattern, gen);
     }
 
 
