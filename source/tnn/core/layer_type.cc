@@ -261,6 +261,10 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"DynamicRangeQuantizedLSTMONNX", LAYER_LSTMONNX},
     {"DynamicRangeQuantizedMatMul", LAYER_MATMUL},
     {"DynamicRangeQuantizedInnerProduct", LAYER_INNER_PRODUCT},
+
+    // TNN Graph Matcher related LAYER_TYPES
+    {"Dummy", LAYER_DUMMY_TYPE},
+    {"AnyType", LAYER_ANY_TYPE},
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {
@@ -269,6 +273,10 @@ LayerType GlobalConvertLayerType(std::string layer_type_str) {
     } else {
         return LAYER_NOT_SUPPORT;
     }
+}
+
+const std::map<std::string, LayerType> &GetGlobalLayerTypeMap() {
+    return global_layer_type_map;
 }
 
 }  // namespace TNN_NS
