@@ -59,6 +59,7 @@ namespace optimizer {
     }
 
     Status NetOptimizerFuseConvActivation::Optimize(NetStructure *structure, NetResource *resource) {
+        tnn::Logger::instance().set_verbose_level("D");
 
 
         if (!structure) {

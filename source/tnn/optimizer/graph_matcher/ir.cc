@@ -149,21 +149,31 @@ namespace TNN_NS {
         tnn_structure = structure;
         tnn_resource = resource;
         for (auto &p : tnn_structure->inputs_shape_map) {
-            auto n = getNodeOrCreatePlaceHolder(p.first);
             auto t = std::make_shared<Tensor>(p.first);
             t->dims = p.second;
+            tensors.push_back(t);
+            auto n = getNodeOrCreatePlaceHolder(p.first);
         }
 
         for (auto &p : tnn_structure->input_data_type_map) {
-            auto n = getNodeOrCreatePlaceHolder(p.first);
             auto t = getTensorByName(p.first);
             if (!t) {
                 ERRORV("Found unknown blob [%s] in input_data_type_map", msg, p.first.c_str());
                 return Status(TNNERR_PARAM_ERR, msg);
             }
             t->data_type = p.second;
+            auto n = getNodeOrCreatePlaceHolder(p.first);
         }
-        // TODO: add constant blob from net_resource as placeholders
+
+        if (tnn_resource) {
+            for(auto &p : tnn_resource->constant_map) {
+                auto t = std::make_shared<Tensor>(p.first);
+                t->dims = p.second->GetBufferDims();
+                t->data_type = p.second->GetDataType();
+                tensors.push_back(t);
+                auto n = getNodeOrCreatePlaceHolder(p.first);
+            }
+        }
 
         for (auto layer : tnn_structure->layers) {
             auto node = std::make_shared<Node>(layer);
