@@ -720,26 +720,24 @@ void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc
 #ifdef __aarch64__
             int64_t ldc_offset = ldc * sizeof(float) - 16;
             int64_t k_64       = k;
-            asm volatile(
-                ".macro INIT1x8                     \n"
-                "   mov x9,        %2               \n"
-                "   ld1 {v8.4s},  [x9], #16         \n"
-                "   ld1 {v20.4s}, [x9], %3          \n"
-                "   movi v9.4s,    #0               \n"
+
+            #define INIT1x8                             \
+                "   mov x9,        %2               \n" \
+                "   ld1 {v8.4s},  [x9], #16         \n" \
+                "   ld1 {v20.4s}, [x9], %3          \n" \
+                "   movi v9.4s,    #0               \n" \
                 "   movi v21.4s,   #0               \n"
-                ".endm                              \n"
-                "                                   \n"
-                ".macro SAVE1x8                     \n"
-                "   mov x9,        %2               \n"
-                "   fadd v8.4s,  v8.4s,  v9.4s      \n"
-                "   fadd v20.4s, v20.4s, v21.4s     \n"
-                "   st1 {v8.4s},  [x9], #16         \n"
-                "   st1 {v20.4s}, [x9], %3          \n"
-                ".endm                              \n"
-                "                                   \n"
+            #define SAVE1x8                             \
+                "   mov x9,        %2               \n" \
+                "   fadd v8.4s,  v8.4s,  v9.4s      \n" \
+                "   fadd v20.4s, v20.4s, v21.4s     \n" \
+                "   st1 {v8.4s},  [x9], #16         \n" \
+                "   st1 {v20.4s}, [x9], %3          \n" \
+
+            asm volatile(
                 "   ld1 {v0.4s}, [%0], #16          \n"
                 "   ld1 {v2.4s}, [%1], #16          \n"
-                "INIT1x8                            \n"
+                INIT1x8
                 "mov x8,%4                          \n"
                 "0:                                 \n"
                 "   subs x9, x8, #4                 \n"
@@ -775,11 +773,14 @@ void Kernel_1x8(int m, int n, int k, const float *sa, const float *sb, float *sc
                 "   ld1 {v2.4s}, [%1], #16          \n"
                 "   bne 1b                          \n"
                 "2:                                 \n"
-                "   SAVE1x8                         \n"
+                    SAVE1x8
                 "                                   \n"
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
                 : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v3", "v4", "v8", "v9", "v20", "v21");
+
+            #undef INIT1x8
+            #undef SAVE1x8
 #else
             int ldc_offset = ldc * sizeof(float) - 16;
             asm volatile(

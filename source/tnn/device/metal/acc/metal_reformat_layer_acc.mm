@@ -65,9 +65,9 @@ Status MetalReformatLayerAcc::AllocateBufferParam(const std::vector<Blob *> &inp
         metal_params.width   = DimsFunctionUtils::GetDimProduct(dims, 3);
         metal_params.height  = DimsFunctionUtils::GetDim(dims, 2);
         metal_params.size    = metal_params.height * metal_params.width;
-        metal_params.channel = dims[1];
-        metal_params.slice   = UP_DIV(metal_params.channel, 4);
-        metal_params.batch   = dims[0];
+        metal_params.channel = DimsFunctionUtils::GetDim(dims, 1);
+        metal_params.slice   = UP_DIV(metal_params.channel, 4) > 0 ? UP_DIV(metal_params.channel, 4) : 1;
+        metal_params.batch   = DimsFunctionUtils::GetDim(dims, 0);
         buffer_param_        = [device newBufferWithBytes:(const void *)(&metal_params)
                                                 length:sizeof(metal_params)
                                                options:MTLResourceCPUCacheModeWriteCombined];
@@ -79,7 +79,7 @@ Status MetalReformatLayerAcc::ComputeThreadSize(const std::vector<Blob *> &input
                                                 const std::vector<Blob *> &outputs,
                                                 MTLSize &size) {
     auto dims_output = outputs[0]->GetBlobDesc().dims;
-    size = MTLSizeMake(DimsFunctionUtils::GetDimProduct(dims_output, 2), UP_DIV(dims_output[1], 4), dims_output[0]);
+    size = MTLSizeMake(DimsFunctionUtils::GetDimProduct(dims_output, 2), UP_DIV(DimsFunctionUtils::GetDim(dims_output, 1), 4)>0 ? UP_DIV(DimsFunctionUtils::GetDim(dims_output, 1), 4) : 1, DimsFunctionUtils::GetDim(dims_output, 0));
     return TNN_OK;
 }
     

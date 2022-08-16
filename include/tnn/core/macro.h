@@ -210,10 +210,13 @@
         }                                                                                                         \
     } while (0)
 
+#define RETURN_IF_FAIL(status)  RETURN_ON_NEQ(status, TNN_NS::TNN_OK)
+
 #define CHECK_PARAM_NULL(param)                                                   \
     do {                                                                                                         \
         if (!param) {                                                                                        \
-            return Status(TNNERR_PARAM_ERR, "Error: param is nil");                                                    \
+            LOGE("Error: param is nil\n");                                                       \
+            return Status(TNNERR_PARAM_ERR, "Error: param is nil");       \
         }                                                                                                          \
     } while (0)
 
