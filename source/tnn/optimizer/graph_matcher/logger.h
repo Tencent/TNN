@@ -78,7 +78,8 @@ public:
     PUBLIC void renew_session() {
         std::lock_guard<std::mutex> guard(mutex_);
         history_.push_back(this->str());
-        std::stringstream().swap(output_stream_);
+        output_stream_.str("");
+        output_stream_.clear();
         while(history_.size() > 100) {
             history_.erase(history_.begin());
         }
