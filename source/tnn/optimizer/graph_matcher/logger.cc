@@ -75,7 +75,7 @@ Logger::~Logger() { }
 Logger::Logger()
 {
 #ifdef _WIN32
-    m_pid = GetCurProcessId();
+    pid_ = GetCurProcessId();
 #else
     pid_ = getpid();
 #endif
