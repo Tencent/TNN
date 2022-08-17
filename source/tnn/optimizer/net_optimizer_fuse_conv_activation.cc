@@ -75,7 +75,7 @@ namespace optimizer {
             "AnyType@act",
         };
 
-        tnn::TextGraphParser parser;
+        TextGraphParser parser;
         std::shared_ptr<Graph> pattern = nullptr;
         if (parser.parseFromString(text_graph_pattern)) {
             pattern = parser.getGraph();
@@ -83,7 +83,7 @@ namespace optimizer {
             return Status(TNNERR_PARAM_ERR, "invalid pattern syntax.");
         }
 
-        auto gen = [&](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::Graph> {
+        auto gen = [&](std::shared_ptr<AnchorGraph> in) -> std::shared_ptr<Graph> {
             if (in->inputs().size() != 1 || in->outputs().size() != 1 ){
                 return nullptr;
             }
@@ -101,11 +101,11 @@ namespace optimizer {
             INFO("found pattern at Node:%s", conv_node->name().c_str());
             // create new node. 
             // inorder the maintain the net_resoruce map un changed. we create a Node of the same name as before
-            auto g = std::make_shared<tnn::Graph>();
+            auto g = std::make_shared<Graph>();
             auto in_name = "input_1";
             auto in1 = g->getNodeOrCreatePlaceHolder(in_name);
-            auto status = g->createNode(tnn::LAYER_CONVOLUTION, {in_name}, {conv_node->name()});
-            if (status != tnn::TNN_OK) {
+            auto status = g->createNode(LAYER_CONVOLUTION, {in_name}, {conv_node->name()});
+            if (status != TNN_OK) {
                 return nullptr;
             }
             auto new_node = g->getNodeByTensorName(conv_node->name());

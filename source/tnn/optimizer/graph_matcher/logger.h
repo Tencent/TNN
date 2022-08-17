@@ -141,37 +141,37 @@ public:
 #define DEBUG(f_, ...) \
   do { \
     __LOG_FORMAT(__ss, 2000, f_, ##__VA_ARGS__); \
-    ::tnn::Logger::instance().log(std::string(__ss), ::tnn::Logger::kLogLevelDebug());\
+    ::TNN_NS::Logger::instance().log(std::string(__ss), ::TNN_NS::Logger::kLogLevelDebug());\
   } while(0)
 
 #define INFO(f_, ...) \
   do { \
     __LOG_FORMAT(__ss, 2000, f_, ##__VA_ARGS__); \
-    ::tnn::Logger::instance().log(std::string(__ss), ::tnn::Logger::kLogLevelInfo());\
+    ::TNN_NS::Logger::instance().log(std::string(__ss), ::TNN_NS::Logger::kLogLevelInfo());\
   } while(0)
 
 #define WARN(f_, ...) \
   do { \
     __LOG_FORMAT(__ss, 2000, f_, ##__VA_ARGS__); \
-    ::tnn::Logger::instance().log(std::string(__ss), ::tnn::Logger::kLogLevelWarning());\
+    ::TNN_NS::Logger::instance().log(std::string(__ss), ::TNN_NS::Logger::kLogLevelWarning());\
   } while(0)
 
 #define ERROR(f_, ...) \
   do { \
     __LOG_FORMAT(__ss, 2000, f_, ##__VA_ARGS__); \
-    ::tnn::Logger::instance().log(std::string(__ss), ::tnn::Logger::kLogLevelError());\
+    ::TNN_NS::Logger::instance().log(std::string(__ss), ::TNN_NS::Logger::kLogLevelError());\
   } while(0)
 
 #define ERRORV(f_, vname_, ...) \
   __LOG_FORMAT(vname_, 2000, f_, ##__VA_ARGS__); \
   do { \
-    ::tnn::Logger::instance().log(std::string(vname_), ::tnn::Logger::kLogLevelError());\
+    ::TNN_NS::Logger::instance().log(std::string(vname_), ::TNN_NS::Logger::kLogLevelError());\
   } while(0)
 
 #define FATAL(f_, ...) \
   do { \
     __LOG_FORMAT(__ss, 2000, f_, ##__VA_ARGS__); \
-    ::tnn::Logger::instance().log(std::string(__ss), ::tnn::Logger::kLogLevelFatal());\
+    ::TNN_NS::Logger::instance().log(std::string(__ss), ::TNN_NS::Logger::kLogLevelFatal());\
     throw std::runtime_error(std::string(__ss));\
   } while(0)
 
@@ -193,7 +193,7 @@ public:
     char __ss[2000];\
     PY_FRAMEINFO(_fname, _lineno, f, lino);\
     snprintf(__ss, 2000, "%s:%d %s",  _fname, _lineno, msg);\
-    ::tnn::Logger::instance().log(std::string(__ss), ::tnn::Logger::kLogLevelDebug());\
+    ::TNN_NS::Logger::instance().log(std::string(__ss), ::TNN_NS::Logger::kLogLevelDebug());\
   } while(0)
 
 #define PYINFO(msg, f, lino) \
@@ -201,7 +201,7 @@ public:
     char __ss[2000];\
     PY_FRAMEINFO(_fname, _lineno, f, lino);\
     snprintf(__ss, 2000, "%s:%d %s",  _fname, _lineno, msg);\
-    ::tnn::Logger::instance().log(std::string(__ss), ::tnn::Logger::kLogLevelInfo());\
+    ::TNN_NS::Logger::instance().log(std::string(__ss), ::TNN_NS::Logger::kLogLevelInfo());\
   } while(0)
 
 #define PYWARN(msg, f, lino) \
@@ -209,7 +209,7 @@ public:
     char __ss[2000];\
     PY_FRAMEINFO(_fname, _lineno, f, lino);\
     snprintf(__ss, 2000, "%s:%d %s",  _fname, _lineno, msg);\
-    ::tnn::Logger::instance().log(std::string(__ss), ::tnn::Logger::kLogLevelWarning());\
+    ::TNN_NS::Logger::instance().log(std::string(__ss), ::TNN_NS::Logger::kLogLevelWarning());\
   } while(0)
 
 #define PYERROR(msg, f, lino) \
@@ -217,7 +217,7 @@ public:
     char __ss[2000];\
     PY_FRAMEINFO(_fname, _lineno, f, lino);\
     snprintf(__ss, 2000, "%s:%d %s",  _fname, _lineno, msg);\
-    ::tnn::Logger::instance().log(std::string(__ss), ::tnn::Logger::kLogLevelError());\
+    ::TNN_NS::Logger::instance().log(std::string(__ss), ::TNN_NS::Logger::kLogLevelError());\
   } while(0)
 
 #define PYFATAL(msg, f, lino) \
@@ -225,7 +225,7 @@ public:
     char __ss[2000];\
     PY_FRAMEINFO(_fname, _lineno, f, lino);\
     snprintf(__ss, 2000, "%s:%d %s",  _fname, _lineno, msg);\
-    ::tnn::Logger::instance().log(std::string(__ss), ::tnn::Logger::kLogLevelFatal());\
+    ::TNN_NS::Logger::instance().log(std::string(__ss), ::TNN_NS::Logger::kLogLevelFatal());\
     throw std::runtime_error(std::string(__ss));\
   } while(0)
 

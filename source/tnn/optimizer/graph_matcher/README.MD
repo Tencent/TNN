@@ -18,7 +18,7 @@ Represents a model in TNN. Including Nodes, Tensors, Edges.
             "AnyType@act",
         };
 
-        tnn::TextGraphParser parser;
+        TNN_NS::TextGraphParser parser;
         std::shared_ptr<Graph> pattern = nullptr;
         if (parser.parseFromString(text_graph_pattern)) {
             pattern = parser.getGraph();
@@ -35,7 +35,7 @@ Represents a model in TNN. Including Nodes, Tensors, Edges.
             return (%b)
     )";
     
-    tnn::GraphParser graph_parser;
+    TNN_NS::GraphParser graph_parser;
     if (parser.parseFromString(graph_str)) {
         pattern = parser.getGraph();
     }
@@ -45,7 +45,7 @@ Represents a model in TNN. Including Nodes, Tensors, Edges.
 ``` 
         Graph * graph = ...;
         Graph * pattern = ...;
-        auto gen = [](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::Graph> {
+        auto gen = [](std::shared_ptr<TNN_NS::AnchorGraph> in) -> std::shared_ptr<TNN_NS::Graph> {
             return nullptr;
         };
         graph->rewrite(pattern, gen);
@@ -61,7 +61,7 @@ The AnchorGraph represents a subgraph of some other Graph.  Note that :
 ``` 
         Graph * graph = ...;
         Graph * pattern = ...;
-        auto gen = [](std::shared_ptr<tnn::AnchorGraph> in) -> std::shared_ptr<tnn::Graph> {
+        auto gen = [](std::shared_ptr<TNN_NS::AnchorGraph> in) -> std::shared_ptr<TNN_NS::Graph> {
             // a pattern might matched with subgraphs that an internal node is referenced 
             // by nodes outside the subgraph, which leds to an incresement of outputs()
             // so we check it here.
@@ -78,11 +78,11 @@ The AnchorGraph represents a subgraph of some other Graph.  Note that :
 
             // Create a new Graph and return it, it will replace the AnchorGraph
             // Notes that the number of inputs and number of outputs for the AnchorGraph and new Graph must match.
-            auto g = std::make_shared<tnn::Graph>();
+            auto g = std::make_shared<TNN_NS::Graph>();
             auto in_name = "input_1";
             auto in1 = g->getNodeOrCreatePlaceHolder(in_name);
-            auto status = g->createNode(tnn::LAYER_TANH, {in_name}, {"new_heir_node"});
-            if (status != tnn::TNN_OK) {
+            auto status = g->createNode(TNN_NS::LAYER_TANH, {in_name}, {"new_heir_node"});
+            if (status != TNN_NS::TNN_OK) {
                 return nullptr;
             }
 
@@ -151,7 +151,7 @@ an larger TextGraph :
 
 1. Set logger level to DEBUG.
 ```
-    tnn::Logger::instance().set_verbose_level("D");
+    TNN_NS::Logger::instance().set_verbose_level("D");
 ```
 
 2. Dump the Graph to proto:
