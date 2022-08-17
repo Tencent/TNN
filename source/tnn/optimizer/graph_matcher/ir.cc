@@ -288,13 +288,13 @@ namespace TNN_NS {
             return TNN_OK;
         }
 
-        auto new_node = std::make_shared<tnn::Node>(out_names[0]);
+        auto new_node = std::make_shared<Node>(out_names[0]);
         new_node->info->type = type;
         new_node->info->outputs = out_names;
 
         for(auto & in : in_names) {
             auto src = getNodeByTensorName(in);
-            auto e = std::make_shared<tnn::Edge>(src.get(), new_node.get(), in);
+            auto e = std::make_shared<Edge>(src.get(), new_node.get(), in);
             src->addOutputEdge(e.get());
             new_node->addInput(e.get());
             edges.push_back(e);
