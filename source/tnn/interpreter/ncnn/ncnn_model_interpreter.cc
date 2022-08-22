@@ -165,7 +165,7 @@ namespace ncnn {
     Status NCNNModelInterpreter::AppendCommonLayer(
             str_arr& layer_cfg_arr,
             NetStructure *structure,
-            std::map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map) {
+            const safe_map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &layer_interpreter_map) {
         Status ret = TNN_OK;
         auto cur_layer = std::make_shared<LayerInfo>();
         // 0.LayerType;1.layer_name;2.input_count;3.output_count
@@ -209,7 +209,7 @@ namespace ncnn {
 
         // 3. Create Layer interpreter
         auto layer_interpreter = layer_interpreter_map[type_str];
-        if (layer_interpreter == NULL) {
+        if (layer_interpreter == nullptr) {
             LOGET("layer %s not supported\n", "ncnn", type_str.c_str());
             return Status(TNNERR_INVALID_NETCFG, "nill interpreter");
         }
@@ -268,7 +268,7 @@ namespace ncnn {
 
             // 0. Create Layer interpreter
             auto layer_interpreter = layer_interpreter_map[type_str];
-            if (layer_interpreter == NULL) {
+            if (layer_interpreter == nullptr) {
                 LOGET("layer %s not supported\n", "ncnn", type_str.c_str());
                 return Status(TNNERR_INVALID_NETCFG, "nill interpreter");
             }
@@ -291,14 +291,18 @@ namespace ncnn {
 
     Status NCNNModelInterpreter::RegisterLayerInterpreter(std::string type_name,
                                                           AbstractLayerInterpreter *interpreter) {
-        auto &layer_interpreter_map      = GetLayerInterpreterMap();
+        auto &layer_interpreter_map      = LayerInterpreterMap();
         layer_interpreter_map[type_name] = std::shared_ptr<AbstractLayerInterpreter>(interpreter);
         return TNN_OK;
     }
 
-    std::map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &NCNNModelInterpreter::GetLayerInterpreterMap() {
-        static std::map<std::string, std::shared_ptr<AbstractLayerInterpreter>> layer_interpreter_map;
+    safe_map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &NCNNModelInterpreter::LayerInterpreterMap() {
+        static safe_map<std::string, std::shared_ptr<AbstractLayerInterpreter>> layer_interpreter_map;
         return layer_interpreter_map;
+    }
+
+    const safe_map<std::string, std::shared_ptr<AbstractLayerInterpreter>> &NCNNModelInterpreter::GetLayerInterpreterMap() {
+        return LayerInterpreterMap();
     }
 
 }  // namespace ncnn

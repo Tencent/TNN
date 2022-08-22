@@ -60,22 +60,22 @@ void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision 
 
     ret = Init(interp, precision, cpu_input_data_format, device_input_data_format);
     if (ret != TNN_OK) {
-        EXPECT_EQ((int)ret, TNN_OK);
         DeInit();
+        EXPECT_EQ((int)ret, TNN_OK);
         return;
     }
 
     ret = InitInputBlobsDataRandom();
     if (ret != TNN_OK) {
-        EXPECT_EQ((int)ret, TNN_OK);
         DeInit();
+        EXPECT_EQ((int)ret, TNN_OK);
         return;
     }
 
     ret = Forward();
     if (ret != TNN_OK) {
-        EXPECT_EQ((int)ret, TNN_OK);
         DeInit();
+        EXPECT_EQ((int)ret, TNN_OK);
         return;
     }
 
@@ -272,6 +272,8 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
     } else if (blob_desc_device.data_type == DATA_TYPE_HALF && device_blob->GetBlobDesc().device_type == DEVICE_ARM) {
         // the value is initialized as half
         mat_type = RESERVED_FP16_TEST;
+    } else if (blob_desc_device.data_type == DATA_TYPE_INT32) {
+        mat_type = NC_INT32;
     }
     TNN_NS::Mat input_mat_cpu(DEVICE_NAIVE, mat_type, blob_desc.dims);
     void* input_data = input_mat_cpu.GetData();
@@ -302,6 +304,8 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
         } else {
             InitRandom(static_cast<bfp16_t*>(input_data), blob_count, bfp16_t(1.0f + magic_num));
         }
+    } else if (mat_type == NC_INT32) {
+        InitRandom(static_cast<int32_t*>(input_data), blob_count, integer_input_min_, integer_input_max_);
     }
 
     // default param for the blob_converter

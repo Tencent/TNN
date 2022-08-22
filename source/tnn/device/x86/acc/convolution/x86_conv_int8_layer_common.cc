@@ -24,6 +24,8 @@
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
+using namespace x86;
+
 /*
 X86ConvInt8LayerCommon as the last conv int8 solution
 */
@@ -463,9 +465,9 @@ Status X86ConvInt8LayerCommon::DoForward(const std::vector<Blob *> &inputs, cons
     auto output_batch_stride   = output_channel_stride * oc_r4;
     auto kernel_group_stride   = oc_g_r4 * ROUND_UP(ic_g_r4 * conv_param->kernels[0] * conv_param->kernels[1], 16);
 
-    int8_t *input_data     = reinterpret_cast<int8_t *>(input->GetHandle().base);
-    int8_t *output_data    = reinterpret_cast<int8_t *>(output->GetHandle().base);
-    int8_t *add_input_data = add_input ? reinterpret_cast<int8_t *>(add_input->GetHandle().base) : nullptr;
+    int8_t *input_data     = handle_ptr<int8_t *>(input->GetHandle());
+    int8_t *output_data    = handle_ptr<int8_t *>(output->GetHandle());
+    int8_t *add_input_data = add_input ? handle_ptr<int8_t *>(add_input->GetHandle()) : nullptr;
 
     float *scale_ptr   = buffer_scale_.force_to<float *>();
     int32_t *bias_ptr  = buffer_bias_.force_to<int32_t *>();

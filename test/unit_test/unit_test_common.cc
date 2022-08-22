@@ -66,7 +66,16 @@ void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device,
     ASSERT(*cpu_context != NULL);
 
     // device
-    *device = GetDevice(config.device_type);
+    auto type = config.device_type;
+    if(type == DEVICE_APPLE_NPU) {
+        //use DEVICE_ARM OR DEVICE_X86 according to hardware
+#if defined(__arm__) || defined(__arm64__)
+        type = DEVICE_ARM;
+#else
+        type = DEVICE_X86;
+#endif
+    }
+    *device = GetDevice(type);
     ASSERT(*device != NULL);
 
     *device_context = (*device)->CreateContext(config.device_id);
@@ -93,11 +102,22 @@ InputShapesMap GenerateInputShapeMap(std::vector<std::vector<int>>& input_vec) {
     return shape_map;
 }
 
+InputDataTypeMap GenerateInputDataTypeMap(const std::vector<DataType>& input_dtype) {
+    InputDataTypeMap dtype_map;
+    for (int i = 0; i < input_dtype.size(); ++i) {
+        std::ostringstream ostr;
+        ostr << "input" << i;
+        dtype_map[ostr.str()] = input_dtype[i];
+    }
+    return dtype_map;
+}
+
 std::shared_ptr<AbstractModelInterpreter> GenerateInterpreter(std::string layer_type_str,
                                                               std::vector<std::vector<int>> input_vec,
                                                               std::shared_ptr<LayerParam> param,
                                                               std::shared_ptr<LayerResource> resource,
-                                                              int output_count) {
+                                                              int output_count,
+                                                              std::vector<DataType> input_dtype) {
     auto interpreter = CreateModelInterpreter(MODEL_TYPE_TNN);
     if (!interpreter) {
         return nullptr;
@@ -111,7 +131,8 @@ std::shared_ptr<AbstractModelInterpreter> GenerateInterpreter(std::string layer_
     NetResource* net_resource   = default_interpreter->GetNetResource();
 
     // generate net structure
-    net_structure->inputs_shape_map = GenerateInputShapeMap(input_vec);
+    net_structure->inputs_shape_map    = GenerateInputShapeMap(input_vec);
+    net_structure->input_data_type_map = GenerateInputDataTypeMap(input_dtype);
 
     std::shared_ptr<LayerInfo> layer_info = std::make_shared<LayerInfo>();
     layer_info->type                      = GlobalConvertLayerType(layer_type_str);

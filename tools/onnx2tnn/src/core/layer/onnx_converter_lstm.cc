@@ -21,18 +21,22 @@
 
 
 DECLARE_OP_CONVERTER_WITH_FUNC(LSTM,
-                               std::vector<std::string> GetInputNames(NodeProto &node, OnnxNetInfo &net_info););
+                               std::vector<std::string> GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info););
 
 string OnnxOpConverterLSTM::TNNOpType(NodeProto& node,
                                                 OnnxNetInfo &net_info) {
     return "LSTMONNX";
 }
 
-std::vector<std::string> OnnxOpConverterLSTM::GetInputNames(NodeProto &node, OnnxNetInfo &net_info) {
+std::vector<std::string> OnnxOpConverterLSTM::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
     std::vector<std::string> input_names;
     for (int j = 0; j < (int)node.input_size(); j++) {
         const auto input_name = node.input(j);
         if (input_name.length() <= 0) {
+            continue;
+        }
+        // skip sequence_lens
+        if (j == 4) {
             continue;
         }
         input_names.push_back(input_name);
@@ -42,11 +46,6 @@ std::vector<std::string> OnnxOpConverterLSTM::GetInputNames(NodeProto &node, Onn
 
 string OnnxOpConverterLSTM::TNNLayerParam(NodeProto& node,
                                                     OnnxNetInfo& net_info) {
-    if (node.input(4).length() > 0) {
-        DLog("Note: sequence_lens  is only supported\n");
-        assert(0);
-    }
-    
     int hidden_size = (int)get_node_attr_i(node, "hidden_size", 0);
     auto direction_s = get_node_attr_s(node, "direction", "forward");
     int direction = 0;

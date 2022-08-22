@@ -635,8 +635,13 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
             if (option->compute_units >= TNNComputeUnitsGPU) {
                 LOGE("**********Warning*********\n");
                 LOGE("CreateInst failed for compute unit (%d), automatically try cpu now\n", option->compute_units);
+#if defined(TNN_USE_NEON)
                 device_type_               = TNN_NS::DEVICE_ARM;
                 network_config.device_type = TNN_NS::DEVICE_ARM;
+#else
+                device_type_               = TNN_NS::DEVICE_X86;
+                network_config.device_type = TNN_NS::DEVICE_X86;
+#endif
                 network_config.network_type = TNN_NS::NETWORK_TYPE_DEFAULT;
                 instance                   = net_->CreateInst(network_config, status,  option->input_shapes);
             }

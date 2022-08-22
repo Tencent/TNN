@@ -1,4 +1,4 @@
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
+<div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/TNN.png"/>
 
 [中文版本](../cn/front_page.md)
 
@@ -77,7 +77,7 @@ At present, TNN has been launched in various major businesses, and its following
 
 * TNN architecture diagram：
 
-   <div align=left><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/cn/imgs/tnn_architect.jpg" width="512" alt=TNN架构 />
+   <div align=left><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/en/imgs/tnn_architect.jpg" width="512" alt=TNN架构 />
 
 * TNN supports TensorFlow, Pytorch, MxNet, Caffe, and other training frameworks through ONNX, leveraging the continuous improvement of the ONNX open-source society.
   Currently TNN supports 55 ONNX operators, and will be developed to cover 80 operators shortly, consisting of most of the mainstream CNN operators needed.
@@ -120,8 +120,8 @@ At present, TNN has been launched in various major businesses, and its following
 
 * Everyone is welcome to participate to build the best mobile inference framework in the industry.
 
-* Technical Discussion QQ Group: 913940506 Answer: TNN
+* Technical Discussion QQ Group: 704900079 Answer: TNN
 
 * Scan the QR code to join the TNN discussion group：
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN-QQ.png"/>
+<div align=left ><img src="../../TNN-QQ.png"/>
 

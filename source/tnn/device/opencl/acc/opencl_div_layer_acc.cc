@@ -52,6 +52,7 @@ Status OpenCLDivLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
     }
 
     build_options.emplace(" -DOPERATOR=" + compute);
+    build_options.insert(build_options_.begin(), build_options_.end());
     ret = CreateExecuteUnit(execute_units_[0], "binary", kernel_name_, build_options);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");

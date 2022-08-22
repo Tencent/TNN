@@ -66,8 +66,8 @@ Status X86ConvLayer1x1::DoForward(const std::vector<Blob *> &inputs, const std::
     float *weights_data = buffer_weight_.force_to<float*>();
     float *bias_data    = buffer_bias_.force_to<float*>();
 
-    const float *src_origin = reinterpret_cast<const float *>(input->GetHandle().base);
-    float *dst_origin = reinterpret_cast<float *>(output->GetHandle().base);
+    const float *src_origin = handle_ptr<const float *>(input->GetHandle());
+    float *dst_origin = handle_ptr<float *>(output->GetHandle());
 
     // X86_matrixMul in row major format
     int m = dims_output[1];

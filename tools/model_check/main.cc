@@ -86,7 +86,7 @@ int InitModelConfig(ModelConfig& model_config, std::string proto_file, std::stri
     {
         std::ifstream proto_stream(proto_file);
         if (!proto_stream.is_open() || !proto_stream.good()) {
-            printf("read proto_file failed!\n");
+            LOGE("read proto_file failed! path: %s\n", proto_file.c_str());
             return -1;
         }
         auto buffer = std::string((std::istreambuf_iterator<char>(proto_stream)), std::istreambuf_iterator<char>());
@@ -96,7 +96,7 @@ int InitModelConfig(ModelConfig& model_config, std::string proto_file, std::stri
     {
         std::ifstream model_stream(model_file, std::ios::binary);
         if (!model_stream.is_open() || !model_stream.good()) {
-            printf("read model_file failed!\n");
+            LOGE("read model_file failed! path: %s\n", model_file.c_str());
             return -1;
         }
         auto buffer = std::string((std::istreambuf_iterator<char>(model_stream)), std::istreambuf_iterator<char>());
@@ -139,7 +139,7 @@ std::pair<std::string, FileFormat> GetFileInfo(std::string input_path) {
     if (access(input_path.c_str(), F_OK) == 0) {
 #endif
         if (GetInputType(input_path, format)) {
-            printf("\tfile name: %s  type: %d\n", input_path.c_str(), format);
+            LOGE("\tfile name: %s  type: %d\n", input_path.c_str(), format);
             return std::make_pair(input_path, format);
         }
     }
@@ -289,7 +289,7 @@ int main(int argc, char* argv[]) {
     ModelChecker model_checker;
     auto status = model_checker.SetModelCheckerParams(model_checker_param);
     if (status != TNN_OK) {
-        printf("set model_checker params failed! (error: %s)\n", status.description().c_str());
+        LOGE("set model_checker params failed! (error: %s)\n", status.description().c_str());
         return -1;
     }
     if ("" == FLAGS_sp) {
@@ -308,13 +308,13 @@ int main(int argc, char* argv[]) {
     printf("tnn precision %d\n", net_config.precision);
     status = model_checker.Init(net_config, model_config);
     if (status != TNN_OK) {
-        printf("model_checker init failed! (error: %s)\n", status.description().c_str());
+        LOGE("model_checker init failed! (error: %s)\n", status.description().c_str());
         return -1;
     }
 
     status = model_checker.RunModelChecker();
     if (status != TNN_OK) {
-        printf("model check failed! (error: %s)\n", status.description().c_str());
+        LOGE("model check failed! (error: %s)\n", status.description().c_str());
         return -1;
     }
     printf("model check pass!\n");

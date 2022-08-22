@@ -25,6 +25,7 @@
 #include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
+namespace arm {
 
 #if TNN_ARM82
 // used for reformat
@@ -75,6 +76,7 @@ void DeconvFp16O8C1(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long w
 #endif
 #endif
 
+}  // namespace arm
 }  // namespace TNN_NS
 
 #endif  // TNN_ARM_COMPUTE_HALF_H_

@@ -98,6 +98,7 @@ if (MSVC)
               src/gmock-all.cc
               src/gmock_main.cc)
 else()
+  set(cxx_strict "${cxx_strict} -Wno-deprecated-copy")
   cxx_library(gmock "${cxx_strict}" src/gmock-all.cc)
   target_link_libraries(gmock PUBLIC gtest)
   cxx_library(gmock_main "${cxx_strict}" src/gmock_main.cc)

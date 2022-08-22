@@ -58,6 +58,31 @@ static inline int upsample_nearest2d(float *output_data, const float *input_data
     return 0;
 }
 
+static inline void get_bilinear_coeffs(float *h_coeffs_ptr, float *w_coeffs_ptr, int ih, int iw, int oh, int ow,
+                                       bool align_corners) {
+    if (align_corners) {
+        const float rheight = (oh > 1) ? (float)(ih - 1) / (oh - 1) : 0.f;
+        const float rwidth  = (ow > 1) ? (float)(iw - 1) / (ow - 1) : 0.f;
+        for (int h = 0; h < oh; ++h) {
+            h_coeffs_ptr[h] = h * rheight;
+        }
+        for (int w = 0; w < ow; ++w) {
+            w_coeffs_ptr[w] = w * rwidth;
+        }
+    } else {
+        const float rheight = (oh > 1) ? (float)(ih) / (oh) : 0.f;
+        const float rwidth  = (ow > 1) ? (float)(iw) / (ow) : 0.f;
+        for (int h = 0; h < oh; ++h) {
+            h_coeffs_ptr[h] = rheight * (h + 0.5) - 0.5;
+            h_coeffs_ptr[h] = h_coeffs_ptr[h] >= 0 ? h_coeffs_ptr[h] : 0;
+        }
+        for (int w = 0; w < ow; ++w) {
+            w_coeffs_ptr[w] = rwidth * (w + 0.5) - 0.5;
+            w_coeffs_ptr[w] = w_coeffs_ptr[w] >= 0 ? w_coeffs_ptr[w] : 0;
+        }
+    }
+}
+
 // bilinear interpolate function
 static inline int upsample_bilinear2d(float *output_data, const float *input_data, int input_height, int input_width,
                                       int output_height, int output_width, int channels, bool align_corners) {
@@ -69,66 +94,34 @@ static inline int upsample_bilinear2d(float *output_data, const float *input_dat
         return 0;
     }
 
-    // align corners option from pytorch
-    if (align_corners) {
-        const float rheight = (output_height > 1) ? (float)(input_height - 1) / (output_height - 1) : 0.f;
-        const float rwidth  = (output_width > 1) ? (float)(input_width - 1) / (output_width - 1) : 0.f;
-        OMP_PARALLEL_FOR_
-        for (int h2 = 0; h2 < output_height; ++h2) {
-            const float h1r = rheight * h2;
+    RawBuffer h_coeffs(output_height * sizeof(float));
+    RawBuffer w_coeffs(output_width * sizeof(float));
+    auto h_coeffs_ptr = h_coeffs.force_to<float *>();
+    auto w_coeffs_ptr = w_coeffs.force_to<float *>();
 
-            const int h1         = static_cast<int>(h1r);
-            const int h1p        = (h1 < input_height - 1) ? 1 : 0;
-            const float h1lambda = h1r - h1;
-            const float h0lambda = (float)1. - h1lambda;
-            for (int w2 = 0; w2 < output_width; ++w2) {
-                const float w1r      = rwidth * w2;
-                const int w1         = static_cast<int>(w1r);
-                const int w1p        = (w1 < input_width - 1) ? 1 : 0;
-                const float w1lambda = w1r - w1;
-                const float w0lambda = (float)1. - w1lambda;
-                const float *Xdata   = &(input_data[h1 * input_width + w1]);
-                float *Ydata         = &(output_data[h2 * output_width + w2]);
-                for (int c = 0; c < channels; ++c) {
-                    Ydata[0] =
-                        h0lambda * (w0lambda * Xdata[0] + w1lambda * Xdata[w1p]) +
-                        h1lambda * (w0lambda * Xdata[h1p * input_width] + w1lambda * Xdata[h1p * input_width + w1p]);
-                    Xdata += input_width * input_height;
-                    Ydata += output_width * output_height;
-                }
-            }
-        }
-    } else {
-        const float rheight = (output_height > 1) ? (float)(input_height) / (output_height) : 0.f;
-        const float rwidth  = (output_width > 1) ? (float)(input_width) / (output_width) : 0.f;
+    get_bilinear_coeffs(h_coeffs_ptr, w_coeffs_ptr, input_height, input_width, output_height, output_width, align_corners);
 
-        OMP_PARALLEL_FOR_
-        for (int h2 = 0; h2 < output_height; ++h2) {
-            float h1r     = static_cast<float>(rheight * (h2 + 0.5) - 0.5);
-            h1r           = h1r >= 0 ? h1r : 0;
-            const int h1  = static_cast<int>(h1r);
-            const int h1p = (h1 < input_height - 1) ? 1 : 0;
-
-            const float h1lambda = h1r - h1;
-            const float h0lambda = (float)1. - h1lambda;
-
-            for (int w2 = 0; w2 < output_width; ++w2) {
-                float w1r = static_cast<float>(rwidth * (w2 + 0.5) - 0.5);
-                w1r       = w1r >= 0 ? w1r : 0;
-
-                const int w1            = static_cast<int>(w1r);
-                const int w1p           = (w1 < input_width - 1) ? 1 : 0;
-                const float w1lambda    = w1r - w1;
-                const float w0lambda    = (float)1. - w1lambda;
-                const float *x_data_ptr = &(input_data[h1 * input_width + w1]);
-                float *y_data_ptr       = &(output_data[h2 * output_width + w2]);
-                for (int c = 0; c < channels; ++c) {
-                    y_data_ptr[0] = h0lambda * (w0lambda * x_data_ptr[0] + w1lambda * x_data_ptr[w1p]) +
-                                    h1lambda * (w0lambda * x_data_ptr[h1p * input_width] +
-                                                w1lambda * x_data_ptr[h1p * input_width + w1p]);
-                    x_data_ptr += input_width * input_height;
-                    y_data_ptr += output_width * output_height;
-                }
+    OMP_PARALLEL_FOR_
+    for (int h2 = 0; h2 < output_height; ++h2) {
+        const float h1r      = h_coeffs_ptr[h2];
+        const int h1         = h1r;
+        const int h1p        = (h1 < input_height - 1) ? 1 : 0;
+        const float h1lambda = h1r - h1;
+        const float h0lambda = (float)1. - h1lambda;
+        for (int w2 = 0; w2 < output_width; ++w2) {
+            const float w1r      = w_coeffs_ptr[w2];
+            const int w1         = w1r;
+            const int w1p        = (w1 < input_width - 1) ? 1 : 0;
+            const float w1lambda = w1r - w1;
+            const float w0lambda = (float)1. - w1lambda;
+            const float *Xdata   = &(input_data[h1 * input_width + w1]);
+            float *Ydata         = &(output_data[h2 * output_width + w2]);
+            for (int c = 0; c < channels; ++c) {
+                Ydata[0] =
+                    h0lambda * (w0lambda * Xdata[0] + w1lambda * Xdata[w1p]) +
+                    h1lambda * (w0lambda * Xdata[h1p * input_width] + w1lambda * Xdata[h1p * input_width + w1p]);
+                Xdata += input_width * input_height;
+                Ydata += output_width * output_height;
             }
         }
     }
@@ -236,8 +229,8 @@ Status X86UpsampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
 
     DataType data_type = output_blob->GetBlobDesc().data_type;
 
-    float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-    float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+    float *input_data  = handle_ptr<float *>(input_blob->GetHandle());
+    float *output_data = handle_ptr<float *>(output_blob->GetHandle());
 
     RawBuffer buffer_scale_;
     bool do_scale_;

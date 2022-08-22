@@ -147,7 +147,7 @@ Status OpenCLHdrGuideLayerAcc::Init(Context *context, LayerParam *param, LayerRe
 
     // create kernel
     std::string kernel_name = "HdrGuide";
-    ret                     = CreateExecuteUnit(execute_units_[0], "hdr_guide", kernel_name);
+    ret                     = CreateExecuteUnit(execute_units_[0], "hdr_guide", kernel_name, build_options_);
     if (ret != TNN_OK) {
         LOGE("create execute unit failed!\n");
         return ret;

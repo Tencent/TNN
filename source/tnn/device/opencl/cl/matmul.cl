@@ -97,7 +97,6 @@ __kernel void MatMul6D(GLOBAL_SIZE_2_DIMS __read_only image2d_t matrix_a, __read
     const int output_d4_idx  = output_d4_d5 / matrix_c_shape.data[5];
     const int output_d5_idx  = output_d4_d5 % matrix_c_shape.data[5];
 
-    FLOAT4 in0, in1;
     const int matrix_a_b_idx   = select(output_b_idx, 0, matrix_a_shape.data[0] == 1);
     const int matrix_a_c_4_idx = select(matrix_a_c_4_blocks - 1, output_c_4_idx, output_c_4_idx < matrix_a_c_4_blocks);
     const int matrix_a_d2_idx  = select(output_d2_idx, 0, matrix_a_shape.data[2] == 1);
@@ -122,11 +121,13 @@ __kernel void MatMul6D(GLOBAL_SIZE_2_DIMS __read_only image2d_t matrix_a, __read
     int matrix_b_iy = matrix_b_b_idx * matrix_b_shape.data[2] * matrix_b_shape.data[3] +
                       matrix_b_d2_idx * matrix_b_shape.data[3] + matrix_b_d3_idx;
 
-    FLOAT4 sum  = (FLOAT4)0;
+    // use float for calculations to prevent overflow.
+    float4 sum = (float4)0;
+    float4 in0, in1;
     const int K = matrix_a_shape.data[5];
     for (int k = 1; k <= K; k++) {
-        in0 = RI_F(matrix_a, SAMPLER, (int2)(matrix_a_ix, matrix_a_iy));
-        in1 = RI_F(matrix_b, SAMPLER, (int2)(matrix_b_ix, matrix_b_iy));
+        in0 = convert_float4(RI_F(matrix_a, SAMPLER, (int2)(matrix_a_ix, matrix_a_iy)));
+        in1 = convert_float4(RI_F(matrix_b, SAMPLER, (int2)(matrix_b_ix, matrix_b_iy)));
 
         if (matrix_a_shape.data[1] == 1) {
             in0.y = in0.x;
@@ -146,5 +147,5 @@ __kernel void MatMul6D(GLOBAL_SIZE_2_DIMS __read_only image2d_t matrix_a, __read
         matrix_b_ix += matrix_b_shape.data[5];
     }
 
-    WI_F(matrix_c, (int2)(image_row, image_col), sum);
+    WI_F(matrix_c, (int2)(image_row, image_col), CONVERT_FLOAT4(sum));
 }

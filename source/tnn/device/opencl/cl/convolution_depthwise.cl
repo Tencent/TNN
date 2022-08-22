@@ -14,6 +14,11 @@ __kernel void DepthwiseConv2DS1(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
     const int outChannelWidthIdx = get_global_id(0);
     const int outHeightBlockIdx  = get_global_id(1);
     DEAL_NON_UNIFORM_DIM2(outChannelWidthIdx, outHeightBlockIdx);
+
+#ifdef CHECK_INPUT_COOR
+    int2 input_dims = get_image_dim(input);
+#endif
+
     int ow4                      = (output_wh.x + 3) / 4;
     const int outChannelBlockIdx = outChannelWidthIdx / ow4;
     const int outWidthBlockidx   = outChannelWidthIdx % ow4;
@@ -47,6 +52,19 @@ __kernel void DepthwiseConv2DS1(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
         in1 = RI_F(input, SAMPLER, (int2)(inWidthIdx0, in_hb_value));
         in2 = RI_F(input, SAMPLER, (int2)(inWidthIdx1, in_hb_value));
         in3 = RI_F(input, SAMPLER, (int2)(inWidthIdx2, in_hb_value));
+
+#ifdef CHECK_INPUT_COOR
+        if (!InRange((int2)(inWidthIdx0, in_hb_value), input_dims)) {
+            in1 = (FLOAT4)0;
+        }
+        if (!InRange((int2)(inWidthIdx1, in_hb_value), input_dims)) {
+            in2 = (FLOAT4)0;
+        }
+        if (!InRange((int2)(inWidthIdx2, in_hb_value), input_dims)) {
+            in3 = (FLOAT4)0;
+        }
+#endif
+
         for (int kw = 0; kw < kernel_wh.x; kw++) {
             int filterIdx = mad24(kh, kernel_wh.x, kw);
 
@@ -57,6 +75,12 @@ __kernel void DepthwiseConv2DS1(GLOBAL_SIZE_2_DIMS __read_only image2d_t input,
             int inWidthIdx = in_width3 + kw;
             inWidthIdx     = select(in_idx + inWidthIdx, -1, (inWidthIdx < 0 || inWidthIdx >= input_wh.x));
             in3 = RI_F(input, SAMPLER, (int2)(inWidthIdx, in_hb_value));
+
+#ifdef CHECK_INPUT_COOR
+            if (!InRange((int2)(inWidthIdx, in_hb_value), input_dims)) {
+                in3 = (FLOAT4)0;
+            }
+#endif
 
             FLOAT4 weights = RI_F(filter, SAMPLER, (int2)(filterIdx, inChannelBlockIdx));
 
@@ -89,6 +113,10 @@ __kernel void DepthwiseConv2D(
     const int outChannelWidthIdx = get_global_id(0);
     const int outHeightIdx       = get_global_id(1);
     DEAL_NON_UNIFORM_DIM2(outChannelWidthIdx, outHeightIdx);
+
+#ifdef CHECK_INPUT_COOR
+    int2 input_dims = get_image_dim(input);
+#endif
 
     int ow4                      = (output_wh.x + 3) / 4;
     const int outChannelBlockIdx = outChannelWidthIdx / ow4;

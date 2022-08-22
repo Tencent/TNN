@@ -38,7 +38,7 @@ def main():
     # onnx.checker.check_model(onnx_model)
     # onnx_model = shape_inference.infer_shapes(onnx_model)
 
-    cml_model = coremltools.converters.onnx.convert(model=onnx_net_path)
+    cml_model = coremltools.converters.onnx.convert(model=onnx_net_path, minimum_ios_deployment_target='13')
     # cml_model = convert(onnx_model, image_input_names=[onnx_inputs[0].name])
     cml_model.save(cml_net_path)
     # new_cml_spec = cml_model.get_spec()

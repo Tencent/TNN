@@ -23,18 +23,22 @@
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
+using namespace arm;
 
 static inline void *armMalloc(size_t size) {
-#if _POSIX_C_SOURCE >= 200112L || (__ANDROID__ && __ANDROID_API__ >= 17)
     void *ptr = 0;
+#if _POSIX_C_SOURCE >= 200112L || (__ANDROID__ && __ANDROID_API__ >= 17)
     if (posix_memalign(&ptr, 32, size))
         ptr = 0;
-    return ptr;
 #elif __ANDROID__ && __ANDROID_API__ < 17
-    return memalign(32, size);
+    ptr = memalign(32, size);
 #else
-    return malloc(size);
+    ptr = malloc(size);
 #endif
+    if (ptr && size > 0) {
+        memset(ptr, 0, size);
+    }
+    return ptr;
 }
 
 ArmDevice::ArmDevice(DeviceType device_type) : AbstractDevice(device_type) {}

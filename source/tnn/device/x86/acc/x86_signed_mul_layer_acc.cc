@@ -33,8 +33,8 @@ Status X86SignedMulLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
 
     auto input_blob    = inputs[0];
     auto output_blob   = outputs[0];
-    float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-    float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+    float *input_data  = handle_ptr<float *>(input_blob->GetHandle());
+    float *output_data = handle_ptr<float *>(output_blob->GetHandle());
     int batch          = input_blob->GetBlobDesc().dims[0];
     int channel        = input_blob->GetBlobDesc().dims[1];
     int channel_size   = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, 2);

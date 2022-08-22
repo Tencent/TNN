@@ -18,7 +18,7 @@
 #include <limits.h>
 
 #include <cfloat>
-#include <map>
+#include <set>
 #include <memory>
 #include <string>
 #include <vector>
@@ -47,8 +47,12 @@ struct LayerParam {
     /**layer name*/
     std::string name;
     bool quantized = false;
+    // use int8 save, float32 interpreting
+    bool dynamic_range_quantized = false;
     // weight data size for ncnn param
     size_t weight_data_size = 0;
+    // extra config set, such as arm conv algo (gemm or winograd)
+    std::set<std::string> extra_config;
 
     PARAM_COPY(LayerParam)
 };
@@ -69,6 +73,9 @@ enum FusionType {
 struct BatchNormLayerParam : public LayerParam {
     int channels = 0;
     float eps    = 1e-5f;
+    
+    //now only used by coreml
+    int is_instance_norm = 0;
 
     PARAM_COPY(BatchNormLayerParam)
 };

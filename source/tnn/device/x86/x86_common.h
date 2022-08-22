@@ -17,10 +17,13 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/core/blob_int8.h"
+#if __APPLE__
+#include <TargetConditionals.h>
+#endif
 
 #if defined(_MSC_VER)
 #include <intrin.h>
-#else
+#elif (!__APPLE__ || TARGET_CPU_X86_64)  // Not Apple(mac/iOS) system or macOS(x86) open
 #include <x86intrin.h>
 #endif
 

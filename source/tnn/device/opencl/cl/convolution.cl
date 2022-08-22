@@ -16,6 +16,10 @@ __kernel void Conv2D(
     const int output_bh_idx = get_global_id(1);
     DEAL_NON_UNIFORM_DIM2(output_cw_idx, output_bh_idx);
 
+#ifdef CHECK_INPUT_COOR
+    int2 input_dims = get_image_dim(input);
+#endif
+
     const int out_channel_block_idx = output_cw_idx / out_width_blocks;
     const int out_width_block_idx   = output_cw_idx % out_width_blocks;
 
@@ -95,6 +99,10 @@ __kernel void Conv2D_CB2(
     const int output_bh_idx = get_global_id(1);
     DEAL_NON_UNIFORM_DIM2(output_channel_slice_w_idx, output_bh_idx);
 
+#ifdef CHECK_INPUT_COOR
+    int2 input_dims = get_image_dim(input);
+#endif
+
     const int out_channel_slice_idx = output_channel_slice_w_idx / out_width_blocks;
     const int out_channel_block_idx = out_channel_slice_idx << 1;
     const int out_width_block_idx   = output_channel_slice_w_idx % out_width_blocks;
@@ -142,6 +150,21 @@ __kernel void Conv2D_CB2(
                 in1 = RI_F(input, SAMPLER, (int2)(select(-1, in_cw_value.y, is_w_in_boundary.y), in_hb_value));
                 in2 = RI_F(input, SAMPLER, (int2)(select(-1, in_cw_value.z, is_w_in_boundary.z), in_hb_value));
                 in3 = RI_F(input, SAMPLER, (int2)(select(-1, in_cw_value.w, is_w_in_boundary.w), in_hb_value));
+
+#ifdef CHECK_INPUT_COOR
+                if (!InRange((int2)(select(-1, in_cw_value.x, is_w_in_boundary.x), in_hb_value), input_dims)) {
+                    in0 = (FLOAT4)0;
+                }
+                if (!InRange((int2)(select(-1, in_cw_value.y, is_w_in_boundary.y), in_hb_value), input_dims)) {
+                    in1 = (FLOAT4)0;
+                }
+                if (!InRange((int2)(select(-1, in_cw_value.z, is_w_in_boundary.z), in_hb_value), input_dims)) {
+                    in2 = (FLOAT4)0;
+                }
+                if (!InRange((int2)(select(-1, in_cw_value.w, is_w_in_boundary.w), in_hb_value), input_dims)) {
+                    in3 = (FLOAT4)0;
+                }
+#endif
 
                 weights_c0_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.x, weights_y_idx.x));
                 weights_c1_s0 = RI_F(weights, SAMPLER, (int2)(weights_x_idx.y, weights_y_idx.x));

@@ -75,7 +75,7 @@ public:
     // @brief judge if a charactor is punctuate chracter
     bool is_punct_char(char cp);
 
-    // @brief seperate text with whitespace and punctuate character
+    // @brief separate text with whitespace and punctuate character
     std::string basic_separate(std::string text);
 
     // @brief set a string to lower case
@@ -88,7 +88,7 @@ public:
     // @brief calculate probabilities for result
     Status CalProbs(std::vector<std::shared_ptr<prelim_prediction>> scores);
 private:
-    // @brief seperate token to indivisible one
+    // @brief separate token to indivisible one
     void max_seg_(std::string s, std::vector<size_t>& results);
 
     // @brief get vocabulary by lines of char
@@ -109,7 +109,7 @@ private:
     static std::string kUnkToken;
     // @param [Mask] for Mask
     static std::string kMaskToken;
-    // @param [Sep] for Seperate
+    // @param [Sep] for Separate
     static std::string kSepToken;
     // @param [Pad] for Pad
     static std::string kPadToken;

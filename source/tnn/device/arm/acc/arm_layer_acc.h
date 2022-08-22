@@ -26,6 +26,8 @@
 #include "tnn/device/arm/arm_util.h"
 
 namespace TNN_NS {
+using namespace arm;
+
 // @brief conv layer arm acc
 class ArmLayerAcc : public AbstractLayerAcc {
 public:

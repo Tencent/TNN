@@ -72,6 +72,12 @@ def get_input_from_file(path: str) -> dict:
                 data.append(float(f.readline().strip('\n')))
             np_data = np.reshape(np.array(data).astype(np.float32), dims)
             input_dict.update({input_name: np_data})
+        elif data_type == 2:
+            # bool
+            for j in range(count):
+                data.append(int(f.readline().strip('\n')))
+            np_data = np.array(data).astype(np.bool).reshape(dims)
+            input_dict.update({input_name: np_data})
         elif data_type == 3:
             #int32
             for j in range(count):
@@ -106,6 +112,8 @@ def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
             data_type = np.int64
         elif item.type == "tensor(int32)":
             data_type = np.int32
+        elif item.type == "tensor(bool)":
+            data_type = np.bool
         input_data_dict[item.name] = input_data_dict[item.name].astype(data_type)
 
     output_info = session.get_outputs()
@@ -245,7 +253,9 @@ def get_input_shape_from_onnx(onnx_path) -> dict:
         data_type = 0
         if ip.type == 'tensor(float)':
             data_type = 0
-        elif ip.type == 'tensor(int64)':
+        elif ip.type == 'tensor(bool)':
+            data_type = 2
+        elif ip.type == 'tensor(int64)' or ip.type == 'tensor(int32)':
             data_type = 3
         else:
             logging.error("Do not support input date type")
