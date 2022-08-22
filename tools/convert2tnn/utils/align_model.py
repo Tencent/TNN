@@ -34,8 +34,8 @@ import numpy as np
 
 def run_tnn_model_check(proto_path, model_path, input_path, reference_output_path, is_tflite=False, align_batch=False):
     cmd.run("pwd")
-    relative_path = "bin/model_check"
-    model_check_path = parse_path.parse_path(relative_path)
+    current_file_dir = os.path.dirname(__file__)
+    model_check_path = current_file_dir + "/../bin/model_check"
     checker.check_file_exist(model_check_path)
     command = model_check_path + " -e -p  " + proto_path + " -m " + \
         model_path + " -i " + input_path + " -f " + reference_output_path + " -d NAIVE"
