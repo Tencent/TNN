@@ -88,7 +88,10 @@ def get_input_from_file(path: str) -> dict:
 
 
 def run_onnx(model_path: str, input_path: str, input_info: dict) -> str:
-    session = onnxruntime.InferenceSession(model_path)
+    so = onnxruntime.SessionOptions()
+    so.inter_op_num_threads = 1
+    so.intra_op_num_threads = 1
+    session = onnxruntime.InferenceSession(model_path, providers=['CPUExecutionProvider'], sess_options=so)
 
     output_path = input_path
     deli = "/"
@@ -244,7 +247,11 @@ def get_input_shape_from_onnx(onnx_path) -> dict:
     #                                       }
     #                         }
     onnxruntime.set_default_logger_severity(3)
-    session = onnxruntime.InferenceSession(onnx_path)
+    so = onnxruntime.SessionOptions()
+    so.inter_op_num_threads = 1
+    so.intra_op_num_threads = 1
+    session = onnxruntime.InferenceSession(onnx_path, providers=['CPUExecutionProvider'], sess_options=so)
+
     input_info: dict = {}
     for ip in session.get_inputs():
         name = ip.name
