@@ -16,6 +16,7 @@
 
 #ifdef _WIN32
 #include "windows.h"
+#include <ctime>
 #else
 #include <unistd.h>
 #endif
@@ -75,7 +76,7 @@ Logger::~Logger() { }
 Logger::Logger()
 {
 #ifdef _WIN32
-    pid_ = GetCurProcessId();
+    pid_ = GetCurrentProcessId();
 #else
     pid_ = getpid();
 #endif
