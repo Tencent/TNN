@@ -19,7 +19,11 @@
 
 namespace TNN_NS {
 
+<<<<<<< HEAD
 DECLARE_X86_ACC(GroupNorm, LAYER_SWISH);
+=======
+DECLARE_X86_ACC(GroupNorm, LAYER_GROUP_NORM);
+>>>>>>> 20b2b7a068c1bb6f1efb701009bece82e7a80bb4
 
 Status X86GroupNormLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto param = dynamic_cast<GroupNormLayerParam *>(param_);

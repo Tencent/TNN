@@ -184,6 +184,14 @@ struct Float4 {
         dst.value = _mm_div_ps(v1.value, v2.value);
         return dst;
     }
+    static float reduce_add(const Float4& v) {
+        Float4 dst;
+        dst.value = _mm_hadd_ps(v.value, v.value);
+        dst.value = _mm_hadd_ps(dst.value, dst.value);
+        float rst[4];
+        _mm_store_ps(rst, dst.value);        
+        return rst[0];
+    }
     static Float4 neg(const Float4 &v) {
         Float4 dst;
         dst.value = _mm_xor_ps (v.value, *(__m128*) _ps_sign_mask);

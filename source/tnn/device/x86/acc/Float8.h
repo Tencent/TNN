@@ -145,6 +145,14 @@ struct Float8 {
         dst.value = _mm256_div_ps(v1.value, v2.value);
         return dst;
     }
+    static float reduce_add(const Float8& v) {
+        Float8 tmp;
+        tmp.value = _mm256_hadd_ps(v.value, v.value);
+        tmp.value = _mm256_hadd_ps(tmp.value, tmp.value);
+        float rst[8];
+        _mm256_store_ps(rst, tmp.value);
+        return rst[0];
+    }
     static Float8 neg(const Float8 &v) {
         Float8 dst;
         dst.value = _mm256_xor_ps (v.value, *(__m256*) _ps256_sign_mask);

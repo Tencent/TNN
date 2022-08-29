@@ -118,7 +118,7 @@ Status BertTokenizer::SplitString(const char *str, size_t len, char sepChar, std
         len --;
     }
     if (len <= 0) {
-        return Status(TNNERR_INVALID_INPUT, "The vocab file is invalid, the seperate char should be \\n");
+        return Status(TNNERR_INVALID_INPUT, "The vocab file is invalid, the separate char should be \\n");
     }
 
     size_t ps = 0;
