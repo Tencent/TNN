@@ -49,6 +49,9 @@ static const std::string kNetOptimizerConvertInt8Layers =
 static const std::string kNetOptimizerDynamicRangeDequant =
     "net_optimizer_dynamic_range_dequant";
 
+static const std::string kNetOptimizerInsertInt32Cast =
+    "net_optimizer_insert_int32_cast";
+
 }
 
 #endif // TNN_SOURCE_TNN_OPTIMIZER_OPTIMIZER_CONST_H_

@@ -60,9 +60,6 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
     }
     
     if (runtime_model_ == RUNTIME_MODE_NORMAL) {
-        for (auto& output_blob : output_blobs) {
-            LOGD("InferOutputShape: %s\n", output_blob->GetBlobDesc().description().c_str());
-        }
         auto dims = output_blobs[0]->GetBlobDesc().dims;
         for (auto item : dims) {
             if (item < 0) {
@@ -120,8 +117,7 @@ Status BaseLayer::InferOutputDataType() {
     auto const_resource = const_resource_;
     
     // Init base type, will re write in different device acc
-    // output data_type = input_data_tyep as default.
-    
+    // output data_type = input_data_type as default.
     int flag = DATA_FLAG_CHANGE_NEVER;
     for (auto iter : input_blobs_) {
         if (const_resource) {
@@ -131,9 +127,17 @@ Status BaseLayer::InferOutputDataType() {
                 iter->GetBlobDesc().data_type = res->second->GetDataType();
             }
         }
-        flag = DataFlagUtils::MinChangeStatus(flag, iter->GetFlag());
+        if (runtime_model_ == RUNTIME_MODE_NORMAL && type_ == LAYER_CAST 
+         && input_blobs_[0]->GetBlobDesc().data_type != output_blobs_[0]->GetBlobDesc().data_type) {
+            // 修改处：由于为支持 INT32-ARM 计算，在部分 const 输入后添加 CAST 层
+            // 新添 CAST 层不应以 const 形式被忽略
+            flag = DataFlagUtils::MinChangeStatus(flag, DATA_FLAG_CHANGE_ALWAYS);
+        }
+        else {
+            flag = DataFlagUtils::MinChangeStatus(flag, iter->GetFlag());
+        }
     }
-    
+
     //find first blob which is not const
     auto input_blob_not_const = input_blobs_[0];
     for (auto input_blob : input_blobs_) {
@@ -142,11 +146,11 @@ Status BaseLayer::InferOutputDataType() {
             break;
         }
     }
-    
+
     for (auto output_blob : output_blobs_) {
         output_blob->GetBlobDesc().data_type = input_blob_not_const->GetBlobDesc().data_type;
     }
-    
+
     for (auto iter : output_blobs_) {
         if (runtime_model_ == RUNTIME_MODE_NORMAL) {
             if (const_resource != nullptr && const_resource->find(iter->GetBlobDesc().name) != const_resource->end()) {

@@ -478,41 +478,10 @@ Status ArmConcatLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
     return TNN_OK;
 }
 
-// 修改处：添加了新的函数TransDataType，用于将T_IN类别数据转化为T_OUT类别存储
-template <typename T_IN, typename T_OUT>
-Status ArmConcatLayerAcc::TransDataType(void *data, const DimsVector &shapes, bool padding) {
-    if (std::is_same<T_IN, T_OUT>::value) {
-        return TNN_OK;
-    }
-    size_t data_size =DimsVectorUtils::Count(shapes);
-    // 算子数据格式为 NC4HW4 需要考虑对 padding 的拷贝
-    if (shapes.size() > 1 && padding) {
-        int batch     = DimsFunctionUtils::GetDim(shapes, 0);
-        int channel   = DimsFunctionUtils::GetDim(shapes, 1);
-        int hw        = DimsVectorUtils::Count(shapes, 2);
-        data_size = batch * (channel + 3) / 4 * 4 * hw;
-    }
-    T_OUT *output = (T_OUT *)data;
-    T_IN *origin  = reinterpret_cast<T_IN *>(data);
-    for (int i = 0; i < data_size; i++) {
-        auto temp = origin[i];
-        output[i] = (T_OUT)temp;
-    }
-    return TNN_OK;
-}
-
 Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     if (inputs.size() < 2) {
         LOGE("Error: invalid inputs count\n");
         return Status(TNNERR_LAYER_ERR, "Concat layer's inputs size must >= 2");
-    }
-
-    for (int inid = 0; inid < inputs.size(); inid++) {
-        if (inputs[inid]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
-            bool IS_NC4HW4 = inputs[inid]->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4;
-            TransDataType<int32_t, float>(GetBlobHandlePtr(inputs[inid]->GetHandle()), inputs[inid]->GetBlobDesc().dims, IS_NC4HW4);
-            inputs[inid]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
-        }
     }
 
     if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT8) {
@@ -539,15 +508,6 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         return Status(TNNERR_LAYER_ERR, "Unsupported data format in concat");
     }
 
-    if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
-        if (inputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-            // LOGD("修改处：将 FLOAT 类型的 output 转换为 INT32 类型\n");
-            bool IS_NC4HW4 = outputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4;
-            TransDataType<float, int32_t>(GetBlobHandlePtr(outputs[0]->GetHandle()), outputs[0]->GetBlobDesc().dims, IS_NC4HW4);
-        } else {
-            return Status(TNNERR_LAYER_ERR, "Unsupported output format in concat");
-        }
-    }
     return TNN_OK;
 }
 

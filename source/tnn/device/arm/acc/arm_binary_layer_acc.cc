@@ -301,12 +301,7 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
 
         if (element_handle.GetDataType() == DATA_TYPE_HALF)
             element_handle = ConvertHalfHandle(element_handle);
-        
-        if (element_handle.GetDataType() == DATA_TYPE_INT32) {
-            auto layer_data     = element_handle.force_to<void *>();
-            TransDataType<int, float>(layer_data, dims);
-            element_handle.SetDataType(DATA_TYPE_FLOAT);
-        }
+
         auto layer_res_size = element_handle.GetDataCount();
         auto data_byte_size = DataTypeUtils::GetBytesSize(element_handle.GetDataType());
         auto layer_data     = element_handle.force_to<void *>();
@@ -404,7 +399,6 @@ Status ArmBinaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
             BinaryFunc<T, op_type>(output_ptr, output_ptr, input_ptr, output_dims, input0_pad_shape, alpha_, beta_);
         }
     }
-
     return TNN_OK;
 }
 
@@ -412,39 +406,9 @@ Status ArmBinaryLayerAcc::ExecInt8(const std::vector<Blob *> &inputs, const std:
     return TNN_OK;
 }
 
-template <typename T_IN, typename T_OUT>
-Status ArmBinaryLayerAcc::TransDataType(void *data, const DimsVector &shapes) {
-    if (std::is_same<T_IN, T_OUT>::value) {
-        return TNN_OK;
-    }
-    size_t data_size;
-    // arm binary 算子默认数据格式为 NC4HW4 需要考虑对 padding 的拷贝
-    if (shapes.size() < 2) {
-        size_t data_size = DimsVectorUtils::Count(shapes);
-    } else {
-        int batch     = DimsFunctionUtils::GetDim(shapes, 0); 
-        int channel   = DimsFunctionUtils::GetDim(shapes, 1);
-        int hw        = DimsVectorUtils::Count(shapes, 2);
-        data_size = batch * (channel + 3) / 4 * 4 * hw;
-    }
-    T_OUT *output = (T_OUT *)data;
-    T_IN *origin  = reinterpret_cast<T_IN *>(data);
-    for (int i = 0; i < data_size; i++) {
-        auto temp = origin[i];
-        output[i] = (T_OUT)temp;
-    }
-    return TNN_OK;
-}
-
 Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     // prepare input ptrs, since blob memory is allocted after init
-    for (size_t inid = 0; inid < inputs.size(); inid++) {
-        if (inputs[inid]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
-            TransDataType<int, float>(GetBlobHandlePtr(inputs[inid]->GetHandle()), input_shapes_[inid]);
-            inputs[inid]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
-        }
-    }
     input_ptrs_.clear();
     input_ptrs_.reserve(4);
     if (broadcast_.GetBytesSize() > 0) {
@@ -519,16 +483,18 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             case ArmBinaryOpType::kADD:
                 return ExecInt8(inputs, outputs);
             case ArmBinaryOpType::kEQUAL:
+                outputs[0]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
                 Exec<float, ArmBinaryOpType::kEQUAL>(inputs, outputs);
                 break;
             case ArmBinaryOpType::kGREATER:
+                outputs[0]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
                 Exec<float, ArmBinaryOpType::kGREATER>(inputs, outputs);
                 break;
             default:
                 LOGE("Error, int8 binary op only support add\n");
                 return TNNERR_LAYER_ERR;
-        } 
-        return TransDataType<float, int8_t>(GetBlobHandlePtr(outputs[0]->GetHandle()), outputs[0]->GetBlobDesc().dims);
+        }
+        return TNN_OK;
     }
 #if TNN_ARM82
     else if (data_type == DATA_TYPE_HALF) {
@@ -553,32 +519,6 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         }
     }
 #endif
-    else if (data_type == DATA_TYPE_INT32) {
-        switch (op_type_) {
-            case ArmBinaryOpType::kADD:
-                Exec<float, ArmBinaryOpType::kADD>(inputs, outputs);
-                break;
-            case ArmBinaryOpType::kSUB:
-                Exec<float, ArmBinaryOpType::kSUB>(inputs, outputs);
-                break;
-            case ArmBinaryOpType::kMUL:
-                Exec<float, ArmBinaryOpType::kMUL>(inputs, outputs);
-                break;
-            case ArmBinaryOpType::kDIV:
-                Exec<float, ArmBinaryOpType::kDIV>(inputs, outputs);
-                break;
-            case ArmBinaryOpType::kEQUAL:
-                Exec<float, ArmBinaryOpType::kEQUAL>(inputs, outputs);
-                break;
-            case ArmBinaryOpType::kGREATER:
-                Exec<float, ArmBinaryOpType::kGREATER>(inputs, outputs);
-                break;
-            default:
-                LOGE("Error, unknown binary op_type\n");
-                return TNNERR_LAYER_ERR;
-        }
-        return TransDataType<float, int32_t>(GetBlobHandlePtr(outputs[0]->GetHandle()), outputs[0]->GetBlobDesc().dims);
-    }
     else {
         return TNNERR_LAYER_ERR;
     }
