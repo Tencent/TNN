@@ -459,19 +459,12 @@ Status X86_GroupNorm_FMA(
                 T::mla(sum_x2_pack, src, src);
             }
             double sum_x = 0., sum_x2 = 0.;
-<<<<<<< HEAD
-            for (int i = 0; i < pack; i++) {
-                sum_x   += sum_x_pack.value[i];
-                sum_x2  += sum_x2_pack.value[i];
-            }
-=======
             // for (int i = 0; i < pack; i++) {
             //     sum_x   += sum_x_pack.value[i];
             //     sum_x2  += sum_x2_pack.value[i];
             // }
             sum_x  = T::reduce_add(sum_x_pack);
             sum_x2 = T::reduce_add(sum_x2_pack);
->>>>>>> 20b2b7a068c1bb6f1efb701009bece82e7a80bb4
             for (int hw = tail_group_area; hw < group_area; hw++) {
                 sum_x   += input_data[hw];
                 sum_x2  += input_data[hw] * input_data[hw];
