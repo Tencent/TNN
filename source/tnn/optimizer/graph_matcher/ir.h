@@ -91,7 +91,10 @@ namespace TNN_NS {
               const std::vector<std::shared_ptr<Node>> _placeholders, 
               const std::vector<std::shared_ptr<Edge>> _edges,
               const std::vector<std::shared_ptr<Tensor>> _tensors) 
-              : nodes(_nodes), placeholders(_placeholders), edges(_edges), tensors(_tensors) {}
+              : nodes(_nodes), placeholders(_placeholders), edges(_edges), tensors(_tensors) 
+        {
+            RAISE_ON_ERROR(createUnspecifiedTensors());
+        }
 
         Status fromInterpreted(NetStructure * , NetResource *);
 
@@ -107,9 +110,10 @@ namespace TNN_NS {
 
         Status markOutput(const std::string &tensor_name);
 
+        // will also handle the tensors
         Status addNode(const std::shared_ptr<Node> &pattern);
 
-        // create node of specified type, Node name is set to the first output tensor_name
+        // create node of specified type, Node name is set to the first output tensor_name, will also handle the tensors by addNode function
         Status createNode(const LayerType &type, const std::vector<std::string> &in_names, const std::vector<std::string> &out_names);
 
         const std::vector<std::weak_ptr<const Node>> allNodes() const;
@@ -148,6 +152,9 @@ namespace TNN_NS {
         virtual std::vector<const Tensor*> outputs() const;
         virtual std::vector<const Tensor*> inputs() const;
 
+        virtual Status setInputsOrder(std::vector<std::string> tensor_names);
+        virtual Status setOutputsOrder(std::vector<std::string> tensor_names);
+
     protected:
 
         Status buildNodeTensorIndex(const std::shared_ptr<Node> );
@@ -155,6 +162,10 @@ namespace TNN_NS {
         void embed(std::shared_ptr<Graph> g, const std::shared_ptr<AnchorGraph> anchor, std::string name_prefx) ;
 
         Status topologicalSort();
+
+    private:
+        Status createDefaultTensor(std::string name);
+        Status createUnspecifiedTensors();
 
     protected:
         std::vector<std::shared_ptr<Node>> nodes;

@@ -171,7 +171,7 @@ namespace TNN_NS {
                 t->dims = p.second->GetBufferDims();
                 t->data_type = p.second->GetDataType();
                 tensors.push_back(t);
-                auto n = getNodeOrCreatePlaceHolder(p.first);
+                RETURN_IF_FAIL(createNode(LAYER_CONST, {}, {p.first}));
             }
         }
 
@@ -198,6 +198,7 @@ namespace TNN_NS {
             }
         }
 
+        RETURN_IF_FAIL(createUnspecifiedTensors());
         RETURN_IF_FAIL(reBuildTensorIndex());
 
         for (auto name : tnn_structure->outputs) {
@@ -221,6 +222,8 @@ namespace TNN_NS {
         }
         auto input = std::make_shared<Node>(tensor_name);
         placeholders.push_back(input);
+        // create Tensor
+        RAISE_ON_ERROR(createDefaultTensor(tensor_name));
         RAISE_ON_ERROR(buildNodeTensorIndex(input));
         return input;
     }
@@ -244,9 +247,25 @@ namespace TNN_NS {
         return nullptr;
     }
 
+    Status Graph::createDefaultTensor(std::string name) {
+        auto t = getTensorByName(name);
+        if (t) {
+            ERRORV("Tensor %s alread exists.", msg, name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        t = std::make_shared<Tensor>(name);
+        tensors.push_back(t);
+        return TNN_OK;
+    }
+
+
     Status Graph::addNode(const std::shared_ptr<Node> &n) {
         RETURN_ON_NEQ(n->sanityCheck(), TNN_OK);
         nodes.push_back(n);
+        // create Tensor
+        for(auto out_name : n->info->outputs) {
+            RETURN_IF_FAIL(createDefaultTensor(out_name));
+        }
         RETURN_ON_NEQ(buildNodeTensorIndex(n), TNN_OK);
         return TNN_OK;
     }
@@ -327,13 +346,13 @@ namespace TNN_NS {
             tensor_2_node[out] = n;
 
             if (tensor_map.find(out) != tensor_map.end()) {
-                ERRORV("duplicated tensors found.", msg);
+                ERRORV("duplicated tensor : %s found.", msg, out.c_str());
                 return Status(TNNERR_COMMON_ERROR, msg);
             }
             auto t = getTensorByName(out);
             if (!t) {
-                t = std::make_shared<Tensor>(out);
-                tensors.push_back(t);
+                ERRORV("tensor %s not found.", msg, out.c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
             }
             tensor_map[out] =  t;
         } 
@@ -369,9 +388,27 @@ namespace TNN_NS {
             RETURN_IF_FAIL(buildNodeTensorIndex(n));
         }
         return sanityCheck();
-        // return TNN_OK;
     }
-    
+
+    Status Graph::createUnspecifiedTensors() {
+        for(auto n : placeholders) {
+            for(auto out_name : n->info->outputs) {
+                auto t = getTensorByName(out_name);
+                if (!t) {
+                    RETURN_IF_FAIL(createDefaultTensor(out_name));
+                }
+            }
+        }
+        for(auto n: nodes) {
+            for(auto out_name : n->info->outputs) {
+                auto t = getTensorByName(out_name);
+                if (!t) {
+                    RETURN_IF_FAIL(createDefaultTensor(out_name));
+                }
+            }
+        }
+        return TNN_OK;
+    }
     Status Graph::sanityCheck() {
         for(auto &n : placeholders) {
             RETURN_IF_FAIL(n->sanityCheck());
@@ -432,6 +469,14 @@ namespace TNN_NS {
         }
         return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
     }
+
+    Status Graph::setInputsOrder(std::vector<std::string>) {
+        return TNN_OK;
+    } 
+
+    Status Graph::setOutputsOrder(std::vector<std::string>) {
+        return TNN_OK;
+    } 
 
     Status Graph::rewrite(std::shared_ptr<Graph> &pattern, graph_generator generator) {
         try { 
@@ -534,6 +579,20 @@ namespace TNN_NS {
         }
 
     }
+
+
+    // output based reverse BFS with Priority Que 
+    // Priorities:
+    //  P0: fast forward for single input single output Node
+    //  P1: Depth based 
+    //  P2: from left to right
+    //  P3: Layer Type CMP ?  Need to prove that P2 still not stable for an arbitrary graph.
+    // 
+    // The outputs should be sorted with stable methods first.
+
+    // inherit the topologicalSort function in anchorGraph
+    // check IsConnectedGraph
+    // implement the inputs and outputs ordering 
 
     Status Graph::topologicalSort() {
         std::set<std::string> known_names;
@@ -738,6 +797,7 @@ namespace TNN_NS {
 
         g->nodes.insert(g->nodes.end(), nodes.begin(), nodes.end());
         g->edges.insert(g->edges.end(), edges.begin(), edges.end());
+        g->tensors.insert(g->tensors.end(), tensors.begin(), tensors.end());
 
         RAISE_ON_ERROR(g->reBuildTensorIndex());
 

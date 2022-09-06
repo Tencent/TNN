@@ -56,7 +56,7 @@ struct AnchorGraph : public Graph {
 
     void formalize(Graph *g);
 
-    bool inSubGraph(Edge * e) {
+    bool inSubGraph(Edge * e) const {
         bool src_inside = paired_nodes.find(e->src) != paired_nodes.end();
         bool dst_inside = paired_nodes.find(e->dst) != paired_nodes.end();
         return src_inside && dst_inside;
