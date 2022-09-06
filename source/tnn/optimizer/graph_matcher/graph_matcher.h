@@ -25,6 +25,7 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/optimizer/graph_matcher/ir.h"
+#include "tnn/optimizer/graph_matcher/logger.h"
 
 namespace TNN_NS {
 
@@ -42,6 +43,7 @@ struct NodePair {
 
 struct AnchorGraph : public Graph {
     std::map<const Node *, NodePair> paired_nodes;
+    std::vector<std::pair<const Node *, size_t>> input_order;
 
     AnchorGraph(): Graph() {};
     AnchorGraph(const AnchorGraph &g): Graph(g), paired_nodes(g.paired_nodes) {};
@@ -54,6 +56,7 @@ struct AnchorGraph : public Graph {
 
     std::vector<const Node *> allStructualMatchedNodes(const Node * pattern_sibling_node);
 
+    Status getIOOrderingOfPatternGraph(Graph *g, std::vector<std::string> & in, std::vector<std::string> & out);
     void formalize(Graph *g);
 
     bool inSubGraph(Edge * e) const {
@@ -115,7 +118,11 @@ struct AnchorGraph : public Graph {
             }
         }
 
-        return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
+        if (output_order.size() == 0) {
+            return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
+        }
+        RAISE_ON_ERROR(validateSetAndVector(names, output_order));
+        return getTensorsByNames(output_order);
     }
 
     virtual std::vector<const Tensor*> inputs() const override {
@@ -124,8 +131,17 @@ struct AnchorGraph : public Graph {
 
         for(auto &e : inEdges()) names.insert(e->tensor_name);
 
-        return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
+        if (input_order.size() == 0) {
+            return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
+        }
+
+        std::vector<std::string> ordered_names;
+        for(auto p : input_order) ordered_names.push_back(p.first->info->inputs[p.second]);
+        RAISE_ON_ERROR(validateSetAndVector(names, ordered_names));
+        return getTensorsByNames(ordered_names);
     }
+
+    virtual Status setInputsOrder(std::vector<std::string> tensor_names) override;
 
 };
 

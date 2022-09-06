@@ -195,6 +195,7 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph) {
     std::vector<std::shared_ptr<Node>> nodes;
     std::vector<std::shared_ptr<Node>> placeholders;
 
+    std::vector<std::string> input_order, output_order;
 
     std::map<std::string, Node *> tensor_2_node;
 
@@ -241,6 +242,7 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph) {
         auto n = std::make_shared<Node>(v.identifier);
         placeholders.push_back(n);
         tensor_2_node[v.identifier] = n.get();
+        input_order.push_back(v.identifier);
     }
 
     bool on_exit = false;
@@ -253,6 +255,7 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph) {
         if (ssa_node.source.kind == TK_RETURN) {
             for(auto &v : ssa_node.inputs) {
                 return_values.insert(v);
+                output_order.push_back(v.identifier);
             }
             on_exit = true;
             continue;
@@ -262,6 +265,8 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph) {
 
     *graph = Graph(nodes, placeholders, edges, {});
     RAISE_ON_ERROR(graph->reBuildTensorIndex());
+    RAISE_ON_ERROR(graph->setInputsOrder(input_order));
+    RAISE_ON_ERROR(graph->setOutputsOrder(output_order));
 
     for(auto &v : return_values) {
         if (tensor_2_node.count(v.identifier) == 0) {

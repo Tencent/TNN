@@ -25,17 +25,11 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
+#include "tnn/core/common.h"
 #include "tnn/interpreter/net_structure.h"
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/core/layer_type.h"
-
-#define RAISE_ON_ERROR(status)                                  \
-    do {                                                        \
-        auto _status = status;                                  \
-        if ((_status) != TNN_OK) {                              \
-            throw std::runtime_error(_status.description());    \
-        }                                                       \
-    } while (0)
+#include "tnn/optimizer/graph_matcher/common.h"
 
 namespace TNN_NS {
 
@@ -131,23 +125,9 @@ namespace TNN_NS {
 
         std::vector<const Tensor*> getTensorsByNames(const std::vector<std::string> &tensor_names) const ;
 
-        virtual std::vector<Node*> outputNodes() const {
-            std::vector<Node *> res;
-            for(auto &n : nodes) {
-                if (n->output_edges.size() == 0) {
-                    res.push_back(n.get());
-                }
-            }
-            return res;
-        }
-
-        virtual std::vector<Node*> inputNodes() const {
-            std::vector<Node*> res;
-            for(auto &n : placeholders) {
-                res.push_back(n.get());
-            }
-            return res;
-        }
+        virtual std::vector<Node*> outputNodes() const;
+        // Returns the nodes that produce the input tensors. e.g. placeholders
+        virtual std::vector<Node*> inputNodes() const;
 
         virtual std::vector<const Tensor*> outputs() const;
         virtual std::vector<const Tensor*> inputs() const;
@@ -175,6 +155,10 @@ namespace TNN_NS {
 
         std::set<std::string> marked_outputs;
 
+        // following members are used to manage the ordering of outputs
+        std::vector<std::string> output_order;
+
+        // following members are managed by the reBuidlTensorIndex function
         std::unordered_map<std::string, std::shared_ptr<Tensor>> tensor_map;
         std::map<std::string, std::shared_ptr<Node>> tensor_2_node;
         std::map<std::string, std::vector<Edge*>> tensor_2_edge;
