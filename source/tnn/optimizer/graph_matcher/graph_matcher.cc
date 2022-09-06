@@ -200,6 +200,7 @@ void AnchorGraph::formalize(Graph *g) {
         }
     }
 
+    RAISE_ON_ERROR(createUnspecifiedTensors());
     RAISE_ON_ERROR(reBuildTensorIndex());
 
     auto getShared = [&](const Node *p) {

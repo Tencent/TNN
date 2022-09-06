@@ -8,6 +8,7 @@
 #include "tnn/optimizer/graph_matcher/text_graph_parser.h"
 #include "tnn/optimizer/graph_matcher/graph_matcher.h"
 #include "tnn/optimizer/graph_matcher/logger.h"
+#include "tnn/optimizer/graph_matcher/graph_utils.h"
 
 int main(int argc, char ** argv) {
     TNN_NS::Logger::instance().set_verbose_level("I");
@@ -26,9 +27,9 @@ int main(int argc, char ** argv) {
         "        MatMul",
         "        Add+{act}",
         "Add+>",
-        "Add@branch",
-        "Mul     ",
-        "Mul+{branch}",
+        "Add@branch                                                     Div@another",
+        "Mul+{another}@final                                            Sub",
+        "Mul+{branch}                                                   ReLU+{final}",
     };
 
 
@@ -43,6 +44,13 @@ int main(int argc, char ** argv) {
         graph->dump(f);
     } else {
         printf("parse got error, code:%d msg:%s\n", int(status), status.description().c_str());
+        return 0;
+    }
+
+    bool connected = false;
+    RETURN_IF_FAIL(IsConnectedGraph(graph.get(), connected));
+    if (!connected) {
+        printf("The graph is not connected.\n");
         return 0;
     }
 
@@ -117,7 +125,7 @@ int main(int argc, char ** argv) {
             auto in_name = "input_1";
             auto in1 = g->getNodeOrCreatePlaceHolder(in_name);
             auto status = g->createNode(TNN_NS::LAYER_TANH, {in_name}, {"new_heir_node"});
-            if (status != TNN_NS::S::TNN_OK) {
+            if (status != TNN_NS::TNN_OK) {
                 return nullptr;
             }
 
