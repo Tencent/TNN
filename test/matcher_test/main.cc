@@ -27,9 +27,9 @@ int main(int argc, char ** argv) {
         "        MatMul",
         "        Add+{act}",
         "Add+>",
-        "Add@branch                                                     Div@another",
-        "Mul+{another}@final                                            Sub",
-        "Mul+{branch}                                                   ReLU+{final}",
+        "Add@branch",
+        "Mul",
+        "Mul+{branch}",
     };
 
 
@@ -168,11 +168,12 @@ int main(int argc, char ** argv) {
 
 
     {
-        std::vector<std::string> text_graph_pattern = {
-            "Placeholder Placeholder",
-            "AnyType",
-            "AnyType+>",
-        };
+        std::string graph_str = R"(
+            graph(%a, %b):
+                %c = AnyType(%a)
+                %d = AnyType(%c, %b)
+                return (%d)
+        )";
 
         auto gen = [](std::shared_ptr<TNN_NS::AnchorGraph> in) -> std::shared_ptr<TNN_NS::Graph> {
             if (in->inputs().size() != 2 || in->outputs().size() != 1 ){
@@ -197,8 +198,9 @@ int main(int argc, char ** argv) {
             return g;
         };
 
-        if (parser.parseFromString(text_graph_pattern)) {
-            pattern = parser.getGraph();
+        TNN_NS::GraphParser graph_parser;
+        if (graph_parser.parseFromString(graph_str)) {
+            pattern = graph_parser.getGraph();
             std::ofstream f("pattern3.tnnproto");
             pattern->dump(f);
             graph->rewrite(pattern, gen);

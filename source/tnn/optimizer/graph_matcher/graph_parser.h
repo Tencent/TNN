@@ -50,7 +50,6 @@ struct SSANode {
 
 struct SSAGraph {
     std::vector<Value> inputs;
-    std::vector<Value> outputs;
     std::vector<SSANode> nodes;
 };
 

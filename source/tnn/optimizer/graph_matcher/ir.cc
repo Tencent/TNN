@@ -20,6 +20,7 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
+#include "tnn/optimizer/graph_matcher/common.h"
 #include "tnn/optimizer/graph_matcher/lexer.h"
 #include "tnn/optimizer/graph_matcher/graph_matcher.h"
 #include "tnn/optimizer/graph_matcher/logger.h"
@@ -140,7 +141,9 @@ namespace TNN_NS {
         return TNN_OK;
     }
 
-    // Status Graph::fromNetStructure(std::vector<std::shared_ptr<LayerInfo> > layers) {
+    // The TNN_NS::NetStructure do not store the inputs order and outputs order, 
+    // since the container is std::set and std::map.
+    // So, the ordering of the inputs and outputs is alphabetical order.
     Status Graph::fromInterpreted(NetStructure * structure, NetResource * resource) {
         if (!structure || ! resource) {
             return Status(TNNERR_PARAM_ERR, "got nullptr from Interpreted tnn model.");
@@ -445,6 +448,24 @@ namespace TNN_NS {
         return res;
     }
 
+    std::vector<Node*> Graph::outputNodes() const {
+        std::vector<Node *> res;
+        for(auto &n : nodes) {
+            if (n->output_edges.size() == 0) {
+                res.push_back(n.get());
+            }
+        }
+        return res;
+    }
+
+    std::vector<Node*> Graph::inputNodes() const {
+        std::vector<Node*> res;
+        for(auto &n : placeholders) {
+            res.push_back(n.get());
+        }
+        return res;
+    }
+
     std::vector<const Tensor*> Graph::outputs() const {
         std::set<std::string> names = marked_outputs;
 
@@ -455,26 +476,72 @@ namespace TNN_NS {
                     names.insert(name);
             }
         }
-        return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
+        if (output_order.size() == 0) {
+            return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
+        }
+        RAISE_ON_ERROR(validateSetAndVector(names, output_order));
+        return getTensorsByNames(output_order);
     }
 
     std::vector<const Tensor*> Graph::inputs() const {
-        std::set<std::string> names;
+        std::vector<std::string> names;
 
         for(auto &n : placeholders) {
             RAISE_ON_ERROR(n->sanityCheck());
             if (n->output_edges.size() > 0) {
-                names.insert(n->info->outputs[0]);
+                names.push_back(n->info->outputs[0]);
             }
         }
-        return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
+        return getTensorsByNames(names);
     }
 
-    Status Graph::setInputsOrder(std::vector<std::string>) {
+    Status Graph::setInputsOrder(std::vector<std::string> tensor_names) {
+        std::set<std::string> names_set(tensor_names.begin(), tensor_names.end());
+        if (names_set.size() != tensor_names.size()) {
+            ERRORV("setInputsOrder got dulicated tensor names", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        if (names_set.size() != placeholders.size()) {
+            ERRORV("In setInputsOrder, number of tensors not match", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+
+        std::vector<std::shared_ptr<Node>> sorted_placeholders;
+        for(auto name : tensor_names) {
+            auto n = getNodeByTensorName(name);
+            if (!n) {
+                ERRORV("setInputsOrder got unknown tensor name: %s", msg, name.c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
+            }
+            if (n->info->type != LAYER_PLACEHOLDER) {
+                ERRORV("setInputsOrder got invalid tensor : %s, which is not a input tensor.", msg, name.c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
+            }
+            sorted_placeholders.push_back(n);
+        }
+        placeholders = sorted_placeholders;
         return TNN_OK;
     } 
 
-    Status Graph::setOutputsOrder(std::vector<std::string>) {
+    Status Graph::setOutputsOrder(std::vector<std::string> tensor_names) {
+        std::set<std::string> names_set(tensor_names.begin(), tensor_names.end());
+        if (names_set.size() != tensor_names.size()) {
+            ERRORV("setOutputsOrder got dulicated tensor names", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        if (names_set.size() != outputs().size()) {
+            ERRORV("In setOutputsOrder, number of tensors not match, %lu != %lu", msg, names_set.size(), outputs().size());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+
+        for(auto name : tensor_names) {
+            auto n = getNodeByTensorName(name);
+            if (!n) {
+                ERRORV("setOutputsOrder got unknown tensor name: %s", msg, name.c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
+            }
+        }
+        output_order = tensor_names;
         return TNN_OK;
     } 
 
