@@ -65,7 +65,10 @@ namespace TNN_NS {
         Status addOutputEdge(Edge * e);
         Status addInputEdge(Edge * e);
         Status addInput(Edge * e);
-        Status updateInput(const std::string &name, const std::string &new_name, Edge * e);
+        // update info->inputs and replace the edge
+        Status updateInput(const std::string &name, const std::string &new_name, Edge * new_edge);
+        // update info->outputs and rename the edge->tensor
+        Status updateOutput(const std::string &name, const std::string &new_name);
 
         Status sanityCheck();
 

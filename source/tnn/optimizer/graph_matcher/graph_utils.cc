@@ -89,8 +89,9 @@ std::vector<std::shared_ptr<DAGNode<Node,GraphType>>> DAGNode<Node,GraphType>::n
 
 } // namespace utils
 
-Status IsConnectedGraph(Graph * g, bool & result) {
-    utils::UnionFind<Node, Graph> uf;
+template<typename GraphType>
+Status IsConnectedGraph(GraphType * g, bool & result) {
+    utils::UnionFind<Node, GraphType> uf;
     uf.Init(g);
 
     std::map<const Node * , bool> visited;
@@ -129,5 +130,8 @@ Status IsConnectedGraph(Graph * g, bool & result) {
 
     return TNN_OK;
 }
+
+template Status IsConnectedGraph(Graph* g, bool & result);
+template Status IsConnectedGraph(AnchorGraph* g, bool & result);
 
 } // namespace tnn
