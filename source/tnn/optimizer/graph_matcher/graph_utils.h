@@ -132,7 +132,8 @@ public:
 
 } // union_find
 
-Status IsConnectedGraph(Graph * g, bool & result);
+template<typename GraphType>
+Status IsConnectedGraph(GraphType * g, bool & result);
 
 Status LeastCommonAncestors(Graph * g, std::vector<Node *> nodes, Node * &result);
 

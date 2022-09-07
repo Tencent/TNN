@@ -24,6 +24,7 @@
 #include "tnn/optimizer/graph_matcher/lexer.h"
 #include "tnn/optimizer/graph_matcher/graph_matcher.h"
 #include "tnn/optimizer/graph_matcher/logger.h"
+#include "tnn/optimizer/graph_matcher/graph_utils.h"
 
 namespace TNN_NS {
 
@@ -92,7 +93,7 @@ namespace TNN_NS {
         return TNN_OK;
     }
 
-    Status Node::updateInput(const std::string &name, const std::string &new_name, Edge * e) {
+    Status Node::updateInput(const std::string &name, const std::string &new_name, Edge * new_edge) {
         if (std::find(info->inputs.begin(), info->inputs.end(), name) == info->inputs.end()) {
             ERRORV("input tensor[%s] not found in Node[%s]'s inputs.", msg, name.c_str(), info->name.c_str());
             return Status(TNNERR_COMMON_ERROR, msg);
@@ -108,10 +109,29 @@ namespace TNN_NS {
         }
         for(auto it = input_edges.begin(); it != input_edges.end(); it++) {
             if ((*it)->tensor_name == name) {
-                *it = e;
+                *it = new_edge;
             }
         }
-        e->tensor_name = new_name;
+        new_edge->tensor_name = new_name;
+        return TNN_OK;
+    }
+
+    Status Node::updateOutput(const std::string &name, const std::string &new_name) {
+        if (std::find(info->outputs.begin(), info->outputs.end(), name) == info->outputs.end()) {
+            ERRORV("output tensor[%s] not found in Node[%s]'s inputs.", msg, name.c_str(), info->name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        for(auto it = info->outputs.begin(); it != info->outputs.end(); it++) {
+            if (*it == name) {
+                *it = new_name;
+            }
+        }
+        for(auto it = output_edges.begin(); it != output_edges.end(); it++) {
+            if ((*it)->tensor_name == name) {
+                (*it)->tensor_name = new_name;
+            }
+        }
+        // !!! Graph::tensors also needs to be updated.
         return TNN_OK;
     }
 
@@ -432,6 +452,18 @@ namespace TNN_NS {
                 return Status(TNNERR_COMMON_ERROR, msg);
             }
         }
+        // Check if the graph is a connected graph
+        AnchorGraph* anchor_ptr = dynamic_cast<AnchorGraph*>(this);
+        bool connected;
+        if (anchor_ptr != nullptr) {
+            RETURN_IF_FAIL(IsConnectedGraph(anchor_ptr, connected));
+        } else {
+            RETURN_IF_FAIL(IsConnectedGraph(this, connected));
+        }
+        if (!connected) {
+            ERRORV("the graph is not connected.", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
         return TNN_OK;
     }
 
@@ -750,6 +782,7 @@ namespace TNN_NS {
         // 3. connect new_inEdges to g
         // 3. replace all outEdges->src to new_graph.
         // 5. remove unused Nodes
+        // NB. we need to keep the original graph output tensor names un-changed.
 
         std::set<std::string> tensor_names;
         for(auto & p : tensor_map) tensor_names.insert(p.first);
@@ -764,6 +797,13 @@ namespace TNN_NS {
         std::map<std::string, std::string> out_mapping;
         for(size_t i=0;i<anchor->outputs().size();i++) {
             out_mapping[anchor->outputs()[i]->name] = outputs()[i]->name;
+        }
+
+        std::map<std::string, std::string> graph_output_names;
+        for(auto v: g->outputs()) {
+            if (out_mapping.count(v->name) > 0) {
+                graph_output_names[out_mapping.at(v->name)] = v->name;
+            }
         }
 
         // check first
@@ -822,6 +862,20 @@ namespace TNN_NS {
                     RAISE_ON_ERROR(src_node->addOutputEdge(e));
                 }
             }
+            for(auto &out : n->info->outputs) {
+                if (graph_output_names.count(out) > 0) {
+                    // update out names of graph output node
+                    DEBUG("Updating output from %s -> %s for Node[%s]", out.c_str(), graph_output_names.at(out).c_str(), n->name().c_str());
+                    RAISE_ON_ERROR(n->updateOutput(out, graph_output_names.at(out)));
+                }
+            }
+        }
+
+        // update tensors of the generated-graph for those nodes that is the output of the whole graph
+        for(auto &t : tensors) {
+            if (graph_output_names.count(t->name) > 0) {
+                t->name = graph_output_names.at(t->name);
+            }
         }
 
         for(auto & e : out_edges) {
@@ -833,16 +887,19 @@ namespace TNN_NS {
             auto old_name = e->tensor_name;
             auto new_name = out_mapping[e->tensor_name];
             e->src = new_node;
-            DEBUG("Updating input from %s -> %s for Node[%s]", old_name.c_str(), new_name.c_str(), e->dst->name().c_str());
-            RAISE_ON_ERROR(e->dst->updateInput(old_name, new_name, e));
+
+            if (graph_output_names.count(new_name) == 0) {
+                // update Inputs of dst node when this node is not graph output
+                DEBUG("Updating input from %s -> %s for Node[%s]", old_name.c_str(), new_name.c_str(), e->dst->name().c_str());
+                RAISE_ON_ERROR(e->dst->updateInput(old_name, new_name, e));
+            } 
             RAISE_ON_ERROR(new_node->addOutputEdge(e));
         }
 
-        // Update marked_outptus, net_structure->blobs, net_structure->outputs
+        // Update graph marked_outptus, net_structure->blobs, net_structure->outputs
+        // since we need keep the output names un-changed, only update the blobs
         for(auto &p : out_mapping) {
-            updateSet(marked_outputs, p.first, p.second);
-            if (g->tnn_structure) {
-                updateSet(g->tnn_structure->blobs, p.first, p.second);
+            if (g->tnn_structure && graph_output_names.count(p.second) == 0) {
                 updateSet(g->tnn_structure->blobs, p.first, p.second);
             }
         }
