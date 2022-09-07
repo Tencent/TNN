@@ -165,71 +165,79 @@ namespace TNN_NS {
     // since the container is std::set and std::map.
     // So, the ordering of the inputs and outputs is alphabetical order.
     Status Graph::fromInterpreted(NetStructure * structure, NetResource * resource) {
+
         if (!structure || ! resource) {
             return Status(TNNERR_PARAM_ERR, "got nullptr from Interpreted tnn model.");
         }
-        *this = Graph();
-        tnn_structure = structure;
-        tnn_resource = resource;
-        for (auto &p : tnn_structure->inputs_shape_map) {
-            auto t = std::make_shared<Tensor>(p.first);
-            t->dims = p.second;
-            tensors.push_back(t);
-            auto n = getNodeOrCreatePlaceHolder(p.first);
-        }
-
-        for (auto &p : tnn_structure->input_data_type_map) {
-            auto t = getTensorByName(p.first);
-            if (!t) {
-                ERRORV("Found unknown blob [%s] in input_data_type_map", msg, p.first.c_str());
-                return Status(TNNERR_PARAM_ERR, msg);
+        try {
+            *this = Graph();
+            tnn_structure = structure;
+            tnn_resource = resource;
+            for (auto &p : tnn_structure->inputs_shape_map) {
+                auto n = getNodeOrCreatePlaceHolder(p.first);
+                auto t = getTensorByName(p.first);
+                t->dims = p.second;
             }
-            t->data_type = p.second;
-            auto n = getNodeOrCreatePlaceHolder(p.first);
-        }
 
-        if (tnn_resource) {
-            for(auto &p : tnn_resource->constant_map) {
-                auto t = std::make_shared<Tensor>(p.first);
-                t->dims = p.second->GetBufferDims();
-                t->data_type = p.second->GetDataType();
-                tensors.push_back(t);
-                RETURN_IF_FAIL(createNode(LAYER_CONST, {}, {p.first}));
-            }
-        }
-
-        for (auto layer : tnn_structure->layers) {
-            auto node = std::make_shared<Node>(layer);
-            nodes.push_back(node);
-            for (auto out : layer->outputs) {
-                if (tensor_2_node.find(out) != tensor_2_node.end()) {
-                    ERRORV("duplicated tensor_name found.", msg);
-                    return Status(TNNERR_COMMON_ERROR ,msg);
-                }
-                tensor_2_node[out] = node;
-            }
-            for (auto in : layer->inputs) {
-                auto n = getNodeByTensorName(in);
-                if (!n) {
-                    ERRORV("Found unknown blob [%s] at Node [%s]", msg, in.c_str(), node->name().c_str());
+            for (auto &p : tnn_structure->input_data_type_map) {
+                auto t = getTensorByName(p.first);
+                if (!t) {
+                    ERRORV("Found unknown blob [%s] in input_data_type_map", msg, p.first.c_str());
                     return Status(TNNERR_PARAM_ERR, msg);
                 }
-                auto e = std::make_shared<Edge>(n.get(), node.get(), in);
-                RETURN_IF_FAIL(n->addOutputEdge(e.get()));
-                RETURN_IF_FAIL(node->addInputEdge(e.get()));
-                edges.push_back(e);
+                t->data_type = p.second;
+                auto n = getNodeOrCreatePlaceHolder(p.first);
             }
-        }
 
-        RETURN_IF_FAIL(createUnspecifiedTensors());
-        RETURN_IF_FAIL(reBuildTensorIndex());
-
-        for (auto name : tnn_structure->outputs) {
-            auto n = getNodeByTensorName(name);
-            if (!n) {
-                ERRORV("Found unknown blob [%s] in netstructure->outputs", msg, name.c_str());
-                return Status(TNNERR_PARAM_ERR, msg);
+            if (tnn_resource) {
+                for(auto &p : tnn_resource->constant_map) {
+                    auto t = std::make_shared<Tensor>(p.first);
+                    t->dims = p.second->GetBufferDims();
+                    t->data_type = p.second->GetDataType();
+                    tensors.push_back(t);
+                    RETURN_IF_FAIL(createNode(LAYER_CONST, {}, {p.first}));
+                }
             }
+
+            for (auto layer : tnn_structure->layers) {
+                auto node = std::make_shared<Node>(layer);
+                nodes.push_back(node);
+                for (auto out : layer->outputs) {
+                    if (tensor_2_node.find(out) != tensor_2_node.end()) {
+                        ERRORV("duplicated tensor_name found.", msg);
+                        return Status(TNNERR_COMMON_ERROR ,msg);
+                    }
+                    tensor_2_node[out] = node;
+                }
+                for (auto in : layer->inputs) {
+                    auto n = getNodeByTensorName(in);
+                    if (!n) {
+                        ERRORV("Found unknown blob [%s] at Node [%s]", msg, in.c_str(), node->name().c_str());
+                        return Status(TNNERR_PARAM_ERR, msg);
+                    }
+                    auto e = std::make_shared<Edge>(n.get(), node.get(), in);
+                    RETURN_IF_FAIL(n->addOutputEdge(e.get()));
+                    RETURN_IF_FAIL(node->addInputEdge(e.get()));
+                    edges.push_back(e);
+                }
+            }
+
+            RETURN_IF_FAIL(createUnspecifiedTensors());
+            RETURN_IF_FAIL(reBuildTensorIndex());
+
+            for (auto name : tnn_structure->outputs) {
+                auto n = getNodeByTensorName(name);
+                if (!n) {
+                    ERRORV("Found unknown blob [%s] in netstructure->outputs", msg, name.c_str());
+                    return Status(TNNERR_PARAM_ERR, msg);
+                }
+            }
+        } catch (const std::runtime_error& error) {
+            ERROR("%s", error.what());
+            return Status(TNNERR_COMMON_ERROR, error.what());
+        } catch (...) {
+            ERRORV("Graph::fromfromInterpreted got unknow error.", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
         }
         return TNN_OK;
     }
