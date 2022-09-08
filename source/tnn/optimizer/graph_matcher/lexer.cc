@@ -52,6 +52,17 @@ std::string tokenName(int kind) {
     } 
 }
 
+void expect(const Token &tk, const std::vector<int> kinds) {
+    if (std::find(kinds.begin(), kinds.end(), tk.kind) == kinds.end()) {
+        std::stringstream ss;
+        ss << "Expected token types : ";
+        for(auto kind: kinds)
+            ss << tokenName(kind) << " ";
+        ss << ", but got " << tk.name() << ":\n";
+        tk.str.highlight(ss);
+        throw std::runtime_error(ss.str());
+    }
+}
 void expect(const Token &tk, const int kind) {
     if (tk.kind != kind) {
         std::stringstream ss;

@@ -47,6 +47,7 @@ struct AnchorGraph : public Graph {
 
     AnchorGraph(): Graph() {};
     AnchorGraph(const AnchorGraph &g): Graph(g), paired_nodes(g.paired_nodes) {};
+    AnchorGraph& operator=(const AnchorGraph &g)=delete;
 
     virtual Status sanityCheck() override;
 

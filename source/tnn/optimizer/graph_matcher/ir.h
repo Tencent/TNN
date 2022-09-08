@@ -39,6 +39,9 @@ namespace TNN_NS {
 
     struct AnchorGraph;
 
+    struct SSAGraph;
+    struct GraphRegistry;
+
     struct Tensor {
         Tensor(const std::string &_name): name(_name) {}
         std::string name;
@@ -59,6 +62,13 @@ namespace TNN_NS {
         Node(std::shared_ptr<LayerInfo> &layer_info);
         // create placeholder node 
         Node(const std::string &tensor_name);
+
+        // DeepCopy of the Node, Caution !!! : Edges is not processed!
+        std::shared_ptr<Node> Copy() const {
+            auto new_node = std::make_shared<Node>(*this);
+            new_node->info = info->Copy();
+            return new_node;
+        }
 
         std::string name() const {return info->name;}
 
@@ -84,6 +94,7 @@ namespace TNN_NS {
 
         Graph() {};
 
+        Graph(std::string proto_str);
         Graph(const std::vector<std::shared_ptr<Node>> _nodes, 
               const std::vector<std::shared_ptr<Node>> _placeholders, 
               const std::vector<std::shared_ptr<Edge>> _edges,
@@ -93,9 +104,9 @@ namespace TNN_NS {
             RAISE_ON_ERROR(createUnspecifiedTensors());
         }
 
-        Status fromInterpreted(NetStructure * , NetResource *);
+        std::shared_ptr<Graph> Copy() const;
 
-        Graph(std::string proto_str);
+        Status fromInterpreted(NetStructure * , NetResource *);
 
         Status reBuildTensorIndex();
 
@@ -173,6 +184,7 @@ namespace TNN_NS {
         int rewrite_count = 0;
 
         friend class AnchorGraph;
+        friend Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * registry);
     };
 
 }

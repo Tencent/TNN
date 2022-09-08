@@ -47,9 +47,11 @@ public:
             return nullptr;
         }
         *layer_info.get() = *this;
-        auto layer_param = param->Copy();
-        if (nullptr != layer_param) {
-            layer_info->param = layer_param;
+        if (param) {
+            auto layer_param = param->Copy();
+            if (nullptr != layer_param) {
+                layer_info->param = layer_param;
+            }
         }
 
         return layer_info;

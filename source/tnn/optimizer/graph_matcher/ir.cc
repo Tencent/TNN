@@ -247,6 +247,58 @@ namespace TNN_NS {
         // Could be used as pattern for GraphRewriter 
     }
 
+    std::shared_ptr<Graph> Graph::Copy() const {
+        std::vector<std::shared_ptr<Node>> new_nodes;
+        std::vector<std::shared_ptr<Edge>> new_edges;
+        std::vector<std::shared_ptr<Node>> new_placeholders;
+        std::vector<std::shared_ptr<Tensor>> new_tensors;
+        std::map<Node*, Node*> node_mapping;
+        std::map<Edge*, Edge*> edge_mapping;
+        for(auto t : tensors) new_tensors.push_back(std::make_shared<Tensor>(*t));
+        for(auto n : placeholders) {
+            auto new_node = n->Copy();
+            new_placeholders.push_back(new_node);
+            node_mapping[n.get()] = new_node.get();
+        }
+        for(auto n : nodes) {
+            auto new_node = n->Copy();
+            new_nodes.push_back(new_node);
+            node_mapping[n.get()] = new_node.get();
+        }
+        for(auto e : edges) {
+            auto new_edge = std::make_shared<Edge>(*e);
+            new_edges.push_back(new_edge);
+            edge_mapping[e.get()] = new_edge.get();
+        }
+
+        // update new_edge pointer to new_nodes.
+        for(auto e : new_edges) {
+            e->src = node_mapping[e->src];
+            e->dst = node_mapping[e->dst];
+        }
+
+        for(auto n : new_placeholders) {
+            std::vector<Edge*> inputs, outputs;
+            for(auto e : n->input_edges) { inputs.push_back(edge_mapping[e]); }
+            for(auto e : n->output_edges) { outputs.push_back(edge_mapping[e]); }
+            n->input_edges = inputs;
+            n->output_edges = outputs;
+        }
+
+        for(auto n : new_nodes) {
+            std::vector<Edge*> inputs, outputs;
+            for(auto e : n->input_edges) { inputs.push_back(edge_mapping[e]); }
+            for(auto e : n->output_edges) { outputs.push_back(edge_mapping[e]); }
+            n->input_edges = inputs;
+            n->output_edges = outputs;
+        }
+
+        auto new_graph = std::make_shared<Graph>(new_nodes, new_placeholders, new_edges, new_tensors);
+        RAISE_ON_ERROR(new_graph->reBuildTensorIndex());
+        RAISE_ON_ERROR(new_graph->setOutputsOrder(output_order));
+        return new_graph;
+    }
+
     std::shared_ptr<Node> Graph::getNodeOrCreatePlaceHolder(const std::string &tensor_name) {
         if (tensor_2_node.find(tensor_name) != tensor_2_node.end()) {
             return tensor_2_node[tensor_name];
@@ -340,6 +392,7 @@ namespace TNN_NS {
 
         auto new_node = std::make_shared<Node>(out_names[0]);
         new_node->info->type = type;
+        new_node->info->type_str = layerTypeName(type);
         new_node->info->outputs = out_names;
 
         for(auto & in : in_names) {
@@ -780,6 +833,8 @@ namespace TNN_NS {
             updateSet(tnn_structure->blobs, old_name, new_name);
             updateSet(tnn_structure->outputs, old_name, new_name);
         }
+
+        updateVector(output_order, old_name, new_name);
 
         return reBuildTensorIndex();;
     }
