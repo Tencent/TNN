@@ -9,6 +9,7 @@
 #include "tnn/optimizer/graph_matcher/graph_matcher.h"
 #include "tnn/optimizer/graph_matcher/logger.h"
 #include "tnn/optimizer/graph_matcher/graph_utils.h"
+#include "tnn/optimizer/graph_matcher/graph_registry.h"
 
 int main(int argc, char ** argv) {
     TNN_NS::Logger::instance().set_verbose_level("I");
@@ -33,10 +34,13 @@ int main(int argc, char ** argv) {
     };
 
 
+    TNN_NS::GraphRegistry registry;
 
     std::shared_ptr<TNN_NS::Graph> graph, pattern;
 
     TNN_NS::TextGraphParser parser;
+    TNN_NS::GraphParser graph_parser(&registry);
+
     auto status = parser.parseFromString(text_graph);
     if (status == TNN_NS::TNN_OK){
         graph = parser.getGraph();
@@ -63,7 +67,6 @@ int main(int argc, char ** argv) {
                 return (%e)
         )";
 
-        TNN_NS::GraphParser graph_parser;
         if (graph_parser.parseFromString(graph_str)) {
             pattern = graph_parser.getGraph();
             std::ofstream f("ssa_pattern.tnnproto");
@@ -75,6 +78,8 @@ int main(int argc, char ** argv) {
         } else {
             return -1;
         }
+
+        RETURN_IF_FAIL(registry.registerGraph("ssa", pattern));
 
         auto gen = [](std::shared_ptr<TNN_NS::AnchorGraph> in) -> std::shared_ptr<TNN_NS::Graph> {
             if (in->inputs().size() != 1 || in->outputs().size() != 1 ){
@@ -163,7 +168,10 @@ int main(int argc, char ** argv) {
             std::ofstream f("pattern2.tnnproto");
             pattern->dump(f);
             graph->rewrite(pattern, gen);
+
+            RETURN_IF_FAIL(registry.registerGraph("add_mul_mul", pattern));
         }
+
     }
 
 
@@ -198,7 +206,6 @@ int main(int argc, char ** argv) {
             return g;
         };
 
-        TNN_NS::GraphParser graph_parser;
         if (graph_parser.parseFromString(graph_str)) {
             pattern = graph_parser.getGraph();
             std::ofstream f("pattern3.tnnproto");
@@ -208,24 +215,12 @@ int main(int argc, char ** argv) {
     }
 
     {
-        std::vector<std::string> text_graph_ffn = {
-            "LayerNorm",
-            "        MatMul<",
-            "        AnyType",
-            "                                      Mul<",
-            "                            Mul<+>",
-            "                Mul<        Add",
-            "                Mul+>",
-            "                Tanh@act",
-            "        Mul     AnyType",
-            "        Mul+>",
-            "        MatMul",
-            "        AnyType+{act}",
-            "Add+>",
-            "Add",
-            "Mul     ",
-            "Mul",
-        };
+        std::string graph_str = R"(
+            graph(%a):
+                %c, %d = add_mul_mul(%a)
+                return (%c, %d)
+        )";
+
         auto gen = [](std::shared_ptr<TNN_NS::AnchorGraph> in) -> std::shared_ptr<TNN_NS::Graph> {
             if (in->inputs().size() != 1 || in->outputs().size() != 1 ){
                 printf("Expect HeirGraph to Have 1 inputs and 1 outputs, but got %lu inputs and %lu outptus.\n",
@@ -244,7 +239,7 @@ int main(int argc, char ** argv) {
             return g;
         };
 
-        if (parser.parseFromString(text_graph_ffn) == TNN_NS::TNN_OK) {
+        if (graph_parser.parseFromString(graph_str) == TNN_NS::TNN_OK) {
             pattern = parser.getGraph();
             if (graph) graph->rewrite(pattern, gen);
         }
