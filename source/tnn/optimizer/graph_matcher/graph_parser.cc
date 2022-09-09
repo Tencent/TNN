@@ -264,7 +264,7 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * regist
         std::shared_ptr<Graph> sub_graph = g->Copy();
         std::string name_prefix = node.source.text() + std::string("_") + std::to_string(ssa_cnt++) + std::string("_");
         for(auto &t: sub_graph->tensors) { 
-            ERROR("rename subgraph tensor from %s to %s", t->name.c_str(), (name_prefix+t->name).c_str());
+            // DEBUG("rename subgraph tensor from %s to %s", t->name.c_str(), (name_prefix+t->name).c_str());
             sub_graph->renameTensor(t->name, name_prefix + t->name);
         }
 
@@ -277,12 +277,11 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * regist
             Node * src = tensor_2_node.at(input.identifier);
             const Tensor * t = sub_graph->inputs()[i];
 
-            ERROR("procesing %lu th input of name:%s GraphFunction input name:%s ",i, input.identifier.c_str(), t->name.c_str());
-            ERROR("\tsrc %p type:%s of name:%s", src, layerTypeName(src->info->type).c_str(), src->name().c_str());
-            ERROR("\trename tensor from %s to %s", t->name.c_str(), input.identifier.c_str());
+            // DEBUG("procesing %lu th input of name:%s GraphFunction input name:%s ",i, input.identifier.c_str(), t->name.c_str());
+            // DEBUG("\tsrc %p type:%s of name:%s", src, layerTypeName(src->info->type).c_str(), src->name().c_str());
+            // DEBUG("\trename tensor from %s to %s", t->name.c_str(), input.identifier.c_str());
 
             RAISE_ON_ERROR(sub_graph->renameTensor(t->name, input.identifier));
-            ERROR("\trename ok");
 
             auto edges = sub_graph->tensor_2_edge.at(t->name);
             for(auto e : edges) {
@@ -290,7 +289,6 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * regist
                                             return cur == e;
                                         }), e->src->output_edges.end());
                 e->src = src;
-                ERROR("\tadd output edge %s %p to node %s", e->tensor_name.c_str(), e, src->name().c_str());
                 RAISE_ON_ERROR(src->addOutputEdge(e));
 
             }
@@ -300,11 +298,10 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * regist
             auto output = node.outputs[i];
             const Tensor * t = sub_graph->outputs()[i];
 
-            ERROR("procesing %lu th output of name:%s GraphFunction output name:%s ",i, output.identifier.c_str(), t->name.c_str());
+            // DEBUG("procesing %lu th output of name:%s GraphFunction output name:%s ",i, output.identifier.c_str(), t->name.c_str());
+            // DEBUG("\trename tensor %p from %s to %s, ouput_order.size()=%lu", t, t->name.c_str(), output.identifier.c_str(), sub_graph->output_order.size());
 
-            ERROR("\trename tensor %p from %s to %s, ouput_order.size()=%lu", t, t->name.c_str(), output.identifier.c_str(), sub_graph->output_order.size());
             RAISE_ON_ERROR(sub_graph->renameTensor(t->name, output.identifier));
-            ERROR("\trename ok");
 
             auto n = sub_graph->getNodeByTensorName(output.identifier);
             if (!n) {
@@ -313,6 +310,11 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * regist
             }
             tensor_2_node[output.identifier] = n.get();
         }
+
+        for(auto n : sub_graph->nodes) {
+            n->info->name = getNodeName(Token(TK_LAYER_TYPE, layerTypeName(n->info->type)));
+        }
+
         nodes.insert(nodes.begin(), sub_graph->nodes.begin(), sub_graph->nodes.end());
         edges.insert(edges.begin(), sub_graph->edges.begin(), sub_graph->edges.end());
         tensors.insert(tensors.begin(), sub_graph->tensors.begin(), sub_graph->tensors.end());

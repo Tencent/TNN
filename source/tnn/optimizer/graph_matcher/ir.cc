@@ -805,7 +805,7 @@ namespace TNN_NS {
     }
 
 
-    Status Graph::renameTensor(const std::string &old_name, const std::string &new_name) {
+    Status Graph::renameTensor(const std::string old_name, const std::string new_name) {
         for(auto &n : placeholders) {
             updateVector(n->info->inputs, old_name, new_name);
             updateVector(n->info->outputs, old_name, new_name);

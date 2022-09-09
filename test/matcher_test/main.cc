@@ -217,7 +217,8 @@ int main(int argc, char ** argv) {
     {
         std::string graph_str = R"(
             graph(%a):
-                %c, %d = add_mul_mul(%a)
+                %e = Add(%a)
+                %c, %d = add_mul_mul(%e)
                 return (%c, %d)
         )";
 
@@ -240,7 +241,10 @@ int main(int argc, char ** argv) {
         };
 
         if (graph_parser.parseFromString(graph_str) == TNN_NS::TNN_OK) {
-            pattern = parser.getGraph();
+            pattern = graph_parser.getGraph();
+            std::ofstream f("ssa_with_function_graph.tnnproto");
+            pattern->dump(f);
+
             if (graph) graph->rewrite(pattern, gen);
         }
     }
