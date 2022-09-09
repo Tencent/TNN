@@ -30,7 +30,10 @@
     do {                                                        \
         auto _status = status;                                  \
         if ((_status) != TNN_OK) {                              \
-            throw std::runtime_error(_status.description());    \
+            throw std::runtime_error(                           \
+                std::string(__PRETTY_FUNCTION__) +              \
+                std::string(" : status ") +                     \
+                _status.description());                         \
         }                                                       \
     } while (0)
 

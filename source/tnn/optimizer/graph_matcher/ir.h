@@ -114,7 +114,7 @@ namespace TNN_NS {
 
         virtual Status sanityCheck();
 
-        Status renameTensor(const std::string &old_name, const std::string &new_name);
+        Status renameTensor(const std::string old_name, const std::string new_name);
 
         Status markOutput(const std::string &tensor_name);
 
