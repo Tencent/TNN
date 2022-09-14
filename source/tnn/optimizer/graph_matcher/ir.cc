@@ -189,13 +189,27 @@ namespace TNN_NS {
                 auto n = getNodeOrCreatePlaceHolder(p.first);
             }
 
+            std::set<std::string> const_folder_created_tensors;
+            for (auto layer : tnn_structure->layers) {
+                if (tnn_resource->constant_layers.find(layer->name) != tnn_resource->constant_layers.end()) {
+                    for (auto out : layer->outputs) {
+                        if (tnn_resource->constant_blob_flags.find(out) != tnn_resource->constant_blob_flags.end()) {
+                            const_folder_created_tensors.insert(out);
+                        }
+                    }
+                }
+            }
+
             if (tnn_resource) {
                 for(auto &p : tnn_resource->constant_map) {
+                    // Ignore const folder created tensors, thus avoid duplicated tensor creating.
+                    if (const_folder_created_tensors.find(p.first) != const_folder_created_tensors.end()) {
+                        continue;
+                    }
                     auto t = std::make_shared<Tensor>(p.first);
                     t->dims = p.second->GetBufferDims();
                     t->data_type = p.second->GetDataType();
-                    tensors.push_back(t);
-                    RETURN_IF_FAIL(createNode(LAYER_CONST, {}, {p.first}));
+                    RETURN_IF_FAIL(createNode(LAYER_CONST, {}, {p.first}, {t}));
                 }
             }
 
@@ -301,7 +315,7 @@ namespace TNN_NS {
 
     std::shared_ptr<Node> Graph::getNodeOrCreatePlaceHolder(const std::string &tensor_name) {
         if (tensor_2_node.find(tensor_name) != tensor_2_node.end()) {
-            return tensor_2_node[tensor_name];
+            return tensor_2_node.at(tensor_name);
         }
         auto input = std::make_shared<Node>(tensor_name);
         placeholders.push_back(input);
@@ -342,19 +356,20 @@ namespace TNN_NS {
     }
 
 
-    Status Graph::addNode(const std::shared_ptr<Node> &n) {
+    Status Graph::addNode(const std::shared_ptr<Node> &n, bool create_tensors) {
         RETURN_ON_NEQ(n->sanityCheck(), TNN_OK);
         nodes.push_back(n);
-        // create Tensor
-        for(auto out_name : n->info->outputs) {
-            RETURN_IF_FAIL(createDefaultTensor(out_name));
+        if (create_tensors) {
+            for(auto out_name : n->info->outputs) {
+                RETURN_IF_FAIL(createDefaultTensor(out_name));
+            }
         }
         RETURN_ON_NEQ(buildNodeTensorIndex(n), TNN_OK);
         return TNN_OK;
     }
 
     Status Graph::createNode(const LayerType &type, const std::vector<std::string> &in_names, 
-                            const std::vector<std::string> &out_names) {
+                            const std::vector<std::string> &out_names, const std::vector<std::shared_ptr<Tensor>> out_tensors) {
         if (out_names.size() == 0) {
             ERRORV("you must specify at least one output.", msg);
             return Status(TNNERR_COMMON_ERROR, msg);
@@ -402,7 +417,12 @@ namespace TNN_NS {
             new_node->addInput(e.get());
             edges.push_back(e);
         }
-        RETURN_IF_FAIL(addNode(new_node));
+        if (out_tensors.size() == 0) {
+            RETURN_IF_FAIL(addNode(new_node));
+        } else {
+            tensors.insert(tensors.end(), out_tensors.begin(), out_tensors.end());
+            RETURN_IF_FAIL(addNode(new_node, false));
+        }
         return TNN_OK;
     }
 
@@ -999,7 +1019,10 @@ namespace TNN_NS {
             // update net_structure
             std::vector<std::shared_ptr<LayerInfo>> new_layers;
             for(auto &n: g->nodes) {
-                new_layers.push_back(n->info);
+                // ignore const layers, which are added in fromIntepreted function accourding to const_map.
+                if (n->info->type != LAYER_CONST) {
+                    new_layers.push_back(n->info);
+                }
             }
             g->tnn_structure->layers = new_layers;
         }

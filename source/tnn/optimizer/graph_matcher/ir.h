@@ -119,10 +119,11 @@ namespace TNN_NS {
         Status markOutput(const std::string &tensor_name);
 
         // will also handle the tensors
-        Status addNode(const std::shared_ptr<Node> &pattern);
+        Status addNode(const std::shared_ptr<Node> &pattern, bool creat_tensors = true);
 
-        // create node of specified type, Node name is set to the first output tensor_name, will also handle the tensors by addNode function
-        Status createNode(const LayerType &type, const std::vector<std::string> &in_names, const std::vector<std::string> &out_names);
+        // create node of specified type, Node name is set to the first output tensor_name, will also handle the tensors by addNode function if out_tensors not specified.
+        Status createNode(const LayerType &type, const std::vector<std::string> &in_names, const std::vector<std::string> &out_names, 
+                            const std::vector<std::shared_ptr<Tensor>> out_tensors = {});
 
         const std::vector<std::weak_ptr<const Node>> allNodes() const;
 
