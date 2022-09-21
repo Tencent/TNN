@@ -81,6 +81,36 @@ struct Half4 {
         dst.value = vcvt_f32_f16(v1.value);
         return dst;
     }
+    static Half4 max(const Half4& v1, const Half4& v2) {
+        Half4 dst;
+        dst.value = vmax_f16(v1.value, v2.value);
+        return dst;
+    }
+    Half4 operator+(const Half4& lr) const {
+        Half4 dst;
+        dst.value = vadd_f16(value, lr.value);
+        return dst;
+    }
+    Half4 operator-(const Half4& lr) const {
+        Half4 dst;
+        dst.value = vsub_f16(value, lr.value);
+        return dst;
+    }
+    Half4 operator*(const Half4& lr) const {
+        Half4 dst;
+        dst.value = vmul_f16(value, lr.value);
+        return dst;
+    }
+    Half4 operator*(__fp16 lr) {
+        Half4 dst;
+        dst.value = vmul_n_f16(value, lr);
+        return dst;
+    }
+    static Half4 exp(const Half4& v) {
+        Half4 dst;
+        dst.value = vcvt_f16_f32(exp_ps(vcvt_f32_f16(v.value)));
+        return dst;
+    }
 };
 
 struct Half8 {
