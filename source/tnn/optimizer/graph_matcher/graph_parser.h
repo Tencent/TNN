@@ -23,6 +23,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/optimizer/graph_matcher/ir.h"
 #include "tnn/optimizer/graph_matcher/lexer.h"
+#include "tnn/optimizer/graph_matcher/graph_registry.h"
 
 namespace TNN_NS {
 
@@ -50,13 +51,13 @@ struct SSANode {
 
 struct SSAGraph {
     std::vector<Value> inputs;
-    std::vector<Value> outputs;
     std::vector<SSANode> nodes;
 };
 
 struct GraphParser {
 
     GraphParser() : l_(SubStr("")) {}
+    GraphParser(GraphRegistry * registry) : l_(SubStr(""), registry), registry_(registry) {}
 
     Status parseFromString(std::string text_graph);
 
@@ -77,6 +78,8 @@ protected:
 private:
     Lexer l_;
     SSAGraph g_;
+
+    GraphRegistry * registry_ = nullptr;
 
     std::shared_ptr<Graph> graph_ = nullptr;
 

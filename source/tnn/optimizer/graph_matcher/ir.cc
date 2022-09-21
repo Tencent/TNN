@@ -20,9 +20,11 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
+#include "tnn/optimizer/graph_matcher/common.h"
 #include "tnn/optimizer/graph_matcher/lexer.h"
 #include "tnn/optimizer/graph_matcher/graph_matcher.h"
 #include "tnn/optimizer/graph_matcher/logger.h"
+#include "tnn/optimizer/graph_matcher/graph_utils.h"
 
 namespace TNN_NS {
 
@@ -91,7 +93,7 @@ namespace TNN_NS {
         return TNN_OK;
     }
 
-    Status Node::updateInput(const std::string &name, const std::string &new_name, Edge * e) {
+    Status Node::updateInput(const std::string &name, const std::string &new_name, Edge * new_edge) {
         if (std::find(info->inputs.begin(), info->inputs.end(), name) == info->inputs.end()) {
             ERRORV("input tensor[%s] not found in Node[%s]'s inputs.", msg, name.c_str(), info->name.c_str());
             return Status(TNNERR_COMMON_ERROR, msg);
@@ -107,10 +109,29 @@ namespace TNN_NS {
         }
         for(auto it = input_edges.begin(); it != input_edges.end(); it++) {
             if ((*it)->tensor_name == name) {
-                *it = e;
+                *it = new_edge;
             }
         }
-        e->tensor_name = new_name;
+        new_edge->tensor_name = new_name;
+        return TNN_OK;
+    }
+
+    Status Node::updateOutput(const std::string &name, const std::string &new_name) {
+        if (std::find(info->outputs.begin(), info->outputs.end(), name) == info->outputs.end()) {
+            ERRORV("output tensor[%s] not found in Node[%s]'s inputs.", msg, name.c_str(), info->name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        for(auto it = info->outputs.begin(); it != info->outputs.end(); it++) {
+            if (*it == name) {
+                *it = new_name;
+            }
+        }
+        for(auto it = output_edges.begin(); it != output_edges.end(); it++) {
+            if ((*it)->tensor_name == name) {
+                (*it)->tensor_name = new_name;
+            }
+        }
+        // !!! Graph::tensors also needs to be updated.
         return TNN_OK;
     }
 
@@ -140,72 +161,97 @@ namespace TNN_NS {
         return TNN_OK;
     }
 
-    // Status Graph::fromNetStructure(std::vector<std::shared_ptr<LayerInfo> > layers) {
+    // The TNN_NS::NetStructure do not store the inputs order and outputs order, 
+    // since the container is std::set and std::map.
+    // So, the ordering of the inputs and outputs is alphabetical order.
     Status Graph::fromInterpreted(NetStructure * structure, NetResource * resource) {
+
         if (!structure || ! resource) {
             return Status(TNNERR_PARAM_ERR, "got nullptr from Interpreted tnn model.");
         }
-        *this = Graph();
-        tnn_structure = structure;
-        tnn_resource = resource;
-        for (auto &p : tnn_structure->inputs_shape_map) {
-            auto t = std::make_shared<Tensor>(p.first);
-            t->dims = p.second;
-            tensors.push_back(t);
-            auto n = getNodeOrCreatePlaceHolder(p.first);
-        }
-
-        for (auto &p : tnn_structure->input_data_type_map) {
-            auto t = getTensorByName(p.first);
-            if (!t) {
-                ERRORV("Found unknown blob [%s] in input_data_type_map", msg, p.first.c_str());
-                return Status(TNNERR_PARAM_ERR, msg);
-            }
-            t->data_type = p.second;
-            auto n = getNodeOrCreatePlaceHolder(p.first);
-        }
-
-        if (tnn_resource) {
-            for(auto &p : tnn_resource->constant_map) {
-                auto t = std::make_shared<Tensor>(p.first);
-                t->dims = p.second->GetBufferDims();
-                t->data_type = p.second->GetDataType();
-                tensors.push_back(t);
+        try {
+            *this = Graph();
+            tnn_structure = structure;
+            tnn_resource = resource;
+            for (auto &p : tnn_structure->inputs_shape_map) {
                 auto n = getNodeOrCreatePlaceHolder(p.first);
+                auto t = getTensorByName(p.first);
+                t->dims = p.second;
             }
-        }
 
-        for (auto layer : tnn_structure->layers) {
-            auto node = std::make_shared<Node>(layer);
-            nodes.push_back(node);
-            for (auto out : layer->outputs) {
-                if (tensor_2_node.find(out) != tensor_2_node.end()) {
-                    ERRORV("duplicated tensor_name found.", msg);
-                    return Status(TNNERR_COMMON_ERROR ,msg);
-                }
-                tensor_2_node[out] = node;
-            }
-            for (auto in : layer->inputs) {
-                auto n = getNodeByTensorName(in);
-                if (!n) {
-                    ERRORV("Found unknown blob [%s] at Node [%s]", msg, in.c_str(), node->name().c_str());
+            for (auto &p : tnn_structure->input_data_type_map) {
+                auto t = getTensorByName(p.first);
+                if (!t) {
+                    ERRORV("Found unknown blob [%s] in input_data_type_map", msg, p.first.c_str());
                     return Status(TNNERR_PARAM_ERR, msg);
                 }
-                auto e = std::make_shared<Edge>(n.get(), node.get(), in);
-                RETURN_IF_FAIL(n->addOutputEdge(e.get()));
-                RETURN_IF_FAIL(node->addInputEdge(e.get()));
-                edges.push_back(e);
+                t->data_type = p.second;
+                auto n = getNodeOrCreatePlaceHolder(p.first);
             }
-        }
 
-        RETURN_IF_FAIL(reBuildTensorIndex());
-
-        for (auto name : tnn_structure->outputs) {
-            auto n = getNodeByTensorName(name);
-            if (!n) {
-                ERRORV("Found unknown blob [%s] in netstructure->outputs", msg, name.c_str());
-                return Status(TNNERR_PARAM_ERR, msg);
+            std::set<std::string> const_folder_created_tensors;
+            for (auto layer : tnn_structure->layers) {
+                if (tnn_resource->constant_layers.find(layer->name) != tnn_resource->constant_layers.end()) {
+                    for (auto out : layer->outputs) {
+                        if (tnn_resource->constant_blob_flags.find(out) != tnn_resource->constant_blob_flags.end()) {
+                            const_folder_created_tensors.insert(out);
+                        }
+                    }
+                }
             }
+
+            if (tnn_resource) {
+                for(auto &p : tnn_resource->constant_map) {
+                    // Ignore const folder created tensors, thus avoid duplicated tensor creating.
+                    if (const_folder_created_tensors.find(p.first) != const_folder_created_tensors.end()) {
+                        continue;
+                    }
+                    auto t = std::make_shared<Tensor>(p.first);
+                    t->dims = p.second->GetBufferDims();
+                    t->data_type = p.second->GetDataType();
+                    RETURN_IF_FAIL(createNode(LAYER_CONST, {}, {p.first}, {t}));
+                }
+            }
+
+            for (auto layer : tnn_structure->layers) {
+                auto node = std::make_shared<Node>(layer);
+                nodes.push_back(node);
+                for (auto out : layer->outputs) {
+                    if (tensor_2_node.find(out) != tensor_2_node.end()) {
+                        ERRORV("duplicated tensor_name found.", msg);
+                        return Status(TNNERR_COMMON_ERROR ,msg);
+                    }
+                    tensor_2_node[out] = node;
+                }
+                for (auto in : layer->inputs) {
+                    auto n = getNodeByTensorName(in);
+                    if (!n) {
+                        ERRORV("Found unknown blob [%s] at Node [%s]", msg, in.c_str(), node->name().c_str());
+                        return Status(TNNERR_PARAM_ERR, msg);
+                    }
+                    auto e = std::make_shared<Edge>(n.get(), node.get(), in);
+                    RETURN_IF_FAIL(n->addOutputEdge(e.get()));
+                    RETURN_IF_FAIL(node->addInputEdge(e.get()));
+                    edges.push_back(e);
+                }
+            }
+
+            RETURN_IF_FAIL(createUnspecifiedTensors());
+            RETURN_IF_FAIL(reBuildTensorIndex());
+
+            for (auto name : tnn_structure->outputs) {
+                auto n = getNodeByTensorName(name);
+                if (!n) {
+                    ERRORV("Found unknown blob [%s] in netstructure->outputs", msg, name.c_str());
+                    return Status(TNNERR_PARAM_ERR, msg);
+                }
+            }
+        } catch (const std::runtime_error& error) {
+            ERROR("%s", error.what());
+            return Status(TNNERR_COMMON_ERROR, error.what());
+        } catch (...) {
+            ERRORV("Graph::fromfromInterpreted got unknow error.", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
         }
         return TNN_OK;
     }
@@ -215,12 +261,66 @@ namespace TNN_NS {
         // Could be used as pattern for GraphRewriter 
     }
 
+    std::shared_ptr<Graph> Graph::Copy() const {
+        std::vector<std::shared_ptr<Node>> new_nodes;
+        std::vector<std::shared_ptr<Edge>> new_edges;
+        std::vector<std::shared_ptr<Node>> new_placeholders;
+        std::vector<std::shared_ptr<Tensor>> new_tensors;
+        std::map<Node*, Node*> node_mapping;
+        std::map<Edge*, Edge*> edge_mapping;
+        for(auto t : tensors) new_tensors.push_back(std::make_shared<Tensor>(*t));
+        for(auto n : placeholders) {
+            auto new_node = n->Copy();
+            new_placeholders.push_back(new_node);
+            node_mapping[n.get()] = new_node.get();
+        }
+        for(auto n : nodes) {
+            auto new_node = n->Copy();
+            new_nodes.push_back(new_node);
+            node_mapping[n.get()] = new_node.get();
+        }
+        for(auto e : edges) {
+            auto new_edge = std::make_shared<Edge>(*e);
+            new_edges.push_back(new_edge);
+            edge_mapping[e.get()] = new_edge.get();
+        }
+
+        // update new_edge pointer to new_nodes.
+        for(auto e : new_edges) {
+            e->src = node_mapping[e->src];
+            e->dst = node_mapping[e->dst];
+        }
+
+        for(auto n : new_placeholders) {
+            std::vector<Edge*> inputs, outputs;
+            for(auto e : n->input_edges) { inputs.push_back(edge_mapping[e]); }
+            for(auto e : n->output_edges) { outputs.push_back(edge_mapping[e]); }
+            n->input_edges = inputs;
+            n->output_edges = outputs;
+        }
+
+        for(auto n : new_nodes) {
+            std::vector<Edge*> inputs, outputs;
+            for(auto e : n->input_edges) { inputs.push_back(edge_mapping[e]); }
+            for(auto e : n->output_edges) { outputs.push_back(edge_mapping[e]); }
+            n->input_edges = inputs;
+            n->output_edges = outputs;
+        }
+
+        auto new_graph = std::make_shared<Graph>(new_nodes, new_placeholders, new_edges, new_tensors);
+        RAISE_ON_ERROR(new_graph->reBuildTensorIndex());
+        RAISE_ON_ERROR(new_graph->setOutputsOrder(output_order));
+        return new_graph;
+    }
+
     std::shared_ptr<Node> Graph::getNodeOrCreatePlaceHolder(const std::string &tensor_name) {
         if (tensor_2_node.find(tensor_name) != tensor_2_node.end()) {
-            return tensor_2_node[tensor_name];
+            return tensor_2_node.at(tensor_name);
         }
         auto input = std::make_shared<Node>(tensor_name);
         placeholders.push_back(input);
+        // create Tensor
+        RAISE_ON_ERROR(createDefaultTensor(tensor_name));
         RAISE_ON_ERROR(buildNodeTensorIndex(input));
         return input;
     }
@@ -244,15 +344,32 @@ namespace TNN_NS {
         return nullptr;
     }
 
-    Status Graph::addNode(const std::shared_ptr<Node> &n) {
+    Status Graph::createDefaultTensor(std::string name) {
+        auto t = getTensorByName(name);
+        if (t) {
+            ERRORV("Tensor %s alread exists.", msg, name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        t = std::make_shared<Tensor>(name);
+        tensors.push_back(t);
+        return TNN_OK;
+    }
+
+
+    Status Graph::addNode(const std::shared_ptr<Node> &n, bool create_tensors) {
         RETURN_ON_NEQ(n->sanityCheck(), TNN_OK);
         nodes.push_back(n);
+        if (create_tensors) {
+            for(auto out_name : n->info->outputs) {
+                RETURN_IF_FAIL(createDefaultTensor(out_name));
+            }
+        }
         RETURN_ON_NEQ(buildNodeTensorIndex(n), TNN_OK);
         return TNN_OK;
     }
 
     Status Graph::createNode(const LayerType &type, const std::vector<std::string> &in_names, 
-                            const std::vector<std::string> &out_names) {
+                            const std::vector<std::string> &out_names, const std::vector<std::shared_ptr<Tensor>> out_tensors) {
         if (out_names.size() == 0) {
             ERRORV("you must specify at least one output.", msg);
             return Status(TNNERR_COMMON_ERROR, msg);
@@ -290,6 +407,7 @@ namespace TNN_NS {
 
         auto new_node = std::make_shared<Node>(out_names[0]);
         new_node->info->type = type;
+        new_node->info->type_str = layerTypeName(type);
         new_node->info->outputs = out_names;
 
         for(auto & in : in_names) {
@@ -299,7 +417,12 @@ namespace TNN_NS {
             new_node->addInput(e.get());
             edges.push_back(e);
         }
-        RETURN_IF_FAIL(addNode(new_node));
+        if (out_tensors.size() == 0) {
+            RETURN_IF_FAIL(addNode(new_node));
+        } else {
+            tensors.insert(tensors.end(), out_tensors.begin(), out_tensors.end());
+            RETURN_IF_FAIL(addNode(new_node, false));
+        }
         return TNN_OK;
     }
 
@@ -327,13 +450,13 @@ namespace TNN_NS {
             tensor_2_node[out] = n;
 
             if (tensor_map.find(out) != tensor_map.end()) {
-                ERRORV("duplicated tensors found.", msg);
+                ERRORV("duplicated tensor : %s found.", msg, out.c_str());
                 return Status(TNNERR_COMMON_ERROR, msg);
             }
             auto t = getTensorByName(out);
             if (!t) {
-                t = std::make_shared<Tensor>(out);
-                tensors.push_back(t);
+                ERRORV("tensor %s not found.", msg, out.c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
             }
             tensor_map[out] =  t;
         } 
@@ -369,9 +492,27 @@ namespace TNN_NS {
             RETURN_IF_FAIL(buildNodeTensorIndex(n));
         }
         return sanityCheck();
-        // return TNN_OK;
     }
-    
+
+    Status Graph::createUnspecifiedTensors() {
+        for(auto n : placeholders) {
+            for(auto out_name : n->info->outputs) {
+                auto t = getTensorByName(out_name);
+                if (!t) {
+                    RETURN_IF_FAIL(createDefaultTensor(out_name));
+                }
+            }
+        }
+        for(auto n: nodes) {
+            for(auto out_name : n->info->outputs) {
+                auto t = getTensorByName(out_name);
+                if (!t) {
+                    RETURN_IF_FAIL(createDefaultTensor(out_name));
+                }
+            }
+        }
+        return TNN_OK;
+    }
     Status Graph::sanityCheck() {
         for(auto &n : placeholders) {
             RETURN_IF_FAIL(n->sanityCheck());
@@ -392,6 +533,18 @@ namespace TNN_NS {
                 return Status(TNNERR_COMMON_ERROR, msg);
             }
         }
+        // Check if the graph is a connected graph
+        AnchorGraph* anchor_ptr = dynamic_cast<AnchorGraph*>(this);
+        bool connected;
+        if (anchor_ptr != nullptr) {
+            RETURN_IF_FAIL(IsConnectedGraph(anchor_ptr, connected));
+        } else {
+            RETURN_IF_FAIL(IsConnectedGraph(this, connected));
+        }
+        if (!connected) {
+            ERRORV("the graph is not connected.", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
         return TNN_OK;
     }
 
@@ -408,6 +561,24 @@ namespace TNN_NS {
         return res;
     }
 
+    std::vector<Node*> Graph::outputNodes() const {
+        std::vector<Node *> res;
+        for(auto &n : nodes) {
+            if (n->output_edges.size() == 0) {
+                res.push_back(n.get());
+            }
+        }
+        return res;
+    }
+
+    std::vector<Node*> Graph::inputNodes() const {
+        std::vector<Node*> res;
+        for(auto &n : placeholders) {
+            res.push_back(n.get());
+        }
+        return res;
+    }
+
     std::vector<const Tensor*> Graph::outputs() const {
         std::set<std::string> names = marked_outputs;
 
@@ -418,20 +589,74 @@ namespace TNN_NS {
                     names.insert(name);
             }
         }
-        return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
+        if (output_order.size() == 0) {
+            return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
+        }
+        RAISE_ON_ERROR(validateSetAndVector(names, output_order));
+        return getTensorsByNames(output_order);
     }
 
     std::vector<const Tensor*> Graph::inputs() const {
-        std::set<std::string> names;
+        std::vector<std::string> names;
 
         for(auto &n : placeholders) {
             RAISE_ON_ERROR(n->sanityCheck());
             if (n->output_edges.size() > 0) {
-                names.insert(n->info->outputs[0]);
+                names.push_back(n->info->outputs[0]);
             }
         }
-        return getTensorsByNames(std::vector<std::string>(names.begin(), names.end()));
+        return getTensorsByNames(names);
     }
+
+    Status Graph::setInputsOrder(std::vector<std::string> tensor_names) {
+        std::set<std::string> names_set(tensor_names.begin(), tensor_names.end());
+        if (names_set.size() != tensor_names.size()) {
+            ERRORV("setInputsOrder got dulicated tensor names", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        if (names_set.size() != placeholders.size()) {
+            ERRORV("In setInputsOrder, number of tensors not match", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+
+        std::vector<std::shared_ptr<Node>> sorted_placeholders;
+        for(auto name : tensor_names) {
+            auto n = getNodeByTensorName(name);
+            if (!n) {
+                ERRORV("setInputsOrder got unknown tensor name: %s", msg, name.c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
+            }
+            if (n->info->type != LAYER_PLACEHOLDER) {
+                ERRORV("setInputsOrder got invalid tensor : %s, which is not a input tensor.", msg, name.c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
+            }
+            sorted_placeholders.push_back(n);
+        }
+        placeholders = sorted_placeholders;
+        return TNN_OK;
+    } 
+
+    Status Graph::setOutputsOrder(std::vector<std::string> tensor_names) {
+        std::set<std::string> names_set(tensor_names.begin(), tensor_names.end());
+        if (names_set.size() != tensor_names.size()) {
+            ERRORV("setOutputsOrder got dulicated tensor names", msg);
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        if (names_set.size() != outputs().size()) {
+            ERRORV("In setOutputsOrder, number of tensors not match, %lu != %lu", msg, names_set.size(), outputs().size());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+
+        for(auto name : tensor_names) {
+            auto n = getNodeByTensorName(name);
+            if (!n) {
+                ERRORV("setOutputsOrder got unknown tensor name: %s", msg, name.c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
+            }
+        }
+        output_order = tensor_names;
+        return TNN_OK;
+    } 
 
     Status Graph::rewrite(std::shared_ptr<Graph> &pattern, graph_generator generator) {
         try { 
@@ -535,6 +760,20 @@ namespace TNN_NS {
 
     }
 
+
+    // output based reverse BFS with Priority Que 
+    // Priorities:
+    //  P0: fast forward for single input single output Node
+    //  P1: Depth based 
+    //  P2: from left to right
+    //  P3: Layer Type CMP ?  Need to prove that P2 still not stable for an arbitrary graph.
+    // 
+    // The outputs should be sorted with stable methods first.
+
+    // inherit the topologicalSort function in anchorGraph
+    // check IsConnectedGraph
+    // implement the inputs and outputs ordering 
+
     Status Graph::topologicalSort() {
         std::set<std::string> known_names;
         std::list<std::shared_ptr<Node>> pool;
@@ -586,7 +825,7 @@ namespace TNN_NS {
     }
 
 
-    Status Graph::renameTensor(const std::string &old_name, const std::string &new_name) {
+    Status Graph::renameTensor(const std::string old_name, const std::string new_name) {
         for(auto &n : placeholders) {
             updateVector(n->info->inputs, old_name, new_name);
             updateVector(n->info->outputs, old_name, new_name);
@@ -615,6 +854,8 @@ namespace TNN_NS {
             updateSet(tnn_structure->outputs, old_name, new_name);
         }
 
+        updateVector(output_order, old_name, new_name);
+
         return reBuildTensorIndex();;
     }
 
@@ -624,6 +865,7 @@ namespace TNN_NS {
         // 3. connect new_inEdges to g
         // 3. replace all outEdges->src to new_graph.
         // 5. remove unused Nodes
+        // NB. we need to keep the original graph output tensor names un-changed.
 
         std::set<std::string> tensor_names;
         for(auto & p : tensor_map) tensor_names.insert(p.first);
@@ -638,6 +880,13 @@ namespace TNN_NS {
         std::map<std::string, std::string> out_mapping;
         for(size_t i=0;i<anchor->outputs().size();i++) {
             out_mapping[anchor->outputs()[i]->name] = outputs()[i]->name;
+        }
+
+        std::map<std::string, std::string> graph_output_names;
+        for(auto v: g->outputs()) {
+            if (out_mapping.count(v->name) > 0) {
+                graph_output_names[out_mapping.at(v->name)] = v->name;
+            }
         }
 
         // check first
@@ -696,6 +945,20 @@ namespace TNN_NS {
                     RAISE_ON_ERROR(src_node->addOutputEdge(e));
                 }
             }
+            for(auto &out : n->info->outputs) {
+                if (graph_output_names.count(out) > 0) {
+                    // update out names of graph output node
+                    DEBUG("Updating output from %s -> %s for Node[%s]", out.c_str(), graph_output_names.at(out).c_str(), n->name().c_str());
+                    RAISE_ON_ERROR(n->updateOutput(out, graph_output_names.at(out)));
+                }
+            }
+        }
+
+        // update tensors of the generated-graph for those nodes that is the output of the whole graph
+        for(auto &t : tensors) {
+            if (graph_output_names.count(t->name) > 0) {
+                t->name = graph_output_names.at(t->name);
+            }
         }
 
         for(auto & e : out_edges) {
@@ -707,16 +970,19 @@ namespace TNN_NS {
             auto old_name = e->tensor_name;
             auto new_name = out_mapping[e->tensor_name];
             e->src = new_node;
-            DEBUG("Updating input from %s -> %s for Node[%s]", old_name.c_str(), new_name.c_str(), e->dst->name().c_str());
-            RAISE_ON_ERROR(e->dst->updateInput(old_name, new_name, e));
+
+            if (graph_output_names.count(new_name) == 0) {
+                // update Inputs of dst node when this node is not graph output
+                DEBUG("Updating input from %s -> %s for Node[%s]", old_name.c_str(), new_name.c_str(), e->dst->name().c_str());
+                RAISE_ON_ERROR(e->dst->updateInput(old_name, new_name, e));
+            } 
             RAISE_ON_ERROR(new_node->addOutputEdge(e));
         }
 
-        // Update marked_outptus, net_structure->blobs, net_structure->outputs
+        // Update graph marked_outptus, net_structure->blobs, net_structure->outputs
+        // since we need keep the output names un-changed, only update the blobs
         for(auto &p : out_mapping) {
-            updateSet(marked_outputs, p.first, p.second);
-            if (g->tnn_structure) {
-                updateSet(g->tnn_structure->blobs, p.first, p.second);
+            if (g->tnn_structure && graph_output_names.count(p.second) == 0) {
                 updateSet(g->tnn_structure->blobs, p.first, p.second);
             }
         }
@@ -738,6 +1004,7 @@ namespace TNN_NS {
 
         g->nodes.insert(g->nodes.end(), nodes.begin(), nodes.end());
         g->edges.insert(g->edges.end(), edges.begin(), edges.end());
+        g->tensors.insert(g->tensors.end(), tensors.begin(), tensors.end());
 
         RAISE_ON_ERROR(g->reBuildTensorIndex());
 
@@ -752,7 +1019,10 @@ namespace TNN_NS {
             // update net_structure
             std::vector<std::shared_ptr<LayerInfo>> new_layers;
             for(auto &n: g->nodes) {
-                new_layers.push_back(n->info);
+                // ignore const layers, which are added in fromIntepreted function accourding to const_map.
+                if (n->info->type != LAYER_CONST) {
+                    new_layers.push_back(n->info);
+                }
             }
             g->tnn_structure->layers = new_layers;
         }

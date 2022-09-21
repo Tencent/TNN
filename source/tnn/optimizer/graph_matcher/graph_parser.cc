@@ -9,6 +9,7 @@
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
 #include "tnn/optimizer/graph_matcher/ir.h"
+#include "tnn/optimizer/graph_matcher/graph_registry.h"
 #include "tnn/optimizer/graph_matcher/logger.h"
 
 namespace TNN_NS {
@@ -81,7 +82,7 @@ void GraphParser::parseNode() {
     while(l_.cur().kind == TK_WHITESPACE) l_.next();
 
     Token layer_type = l_.next();
-    expect(layer_type, TK_LAYER_TYPE);
+    expect(layer_type, {TK_LAYER_TYPE, TK_GRAPH_FUNCTION});
     n.source = layer_type;
 
     expect(l_.next(), '(');
@@ -155,13 +156,13 @@ void GraphParser::parseLine() {
     }
 }
 
-Status constructGraph(const SSAGraph &ssa, Graph * graph);
+Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * registry);
 
 Status GraphParser::parseFromString(std::string graph_str) {
-    l_ = Lexer(graph_str);
-    g_ = SSAGraph();
-
     try {
+        l_ = Lexer(graph_str, registry_);
+        g_ = SSAGraph();
+
         // parse graph header and inputs
         while(l_.cur().kind == TK_WHITESPACE || l_.cur().kind == TK_NEWLINE) l_.next();
         expect(l_.next(), TK_GRAPH);
@@ -176,7 +177,7 @@ Status GraphParser::parseFromString(std::string graph_str) {
 
         graph_ = std::make_shared<Graph>("");
 
-        RETURN_ON_NEQ(constructGraph(g_, graph_.get()), TNN_OK);
+        RETURN_ON_NEQ(constructGraph(g_, graph_.get(), registry_), TNN_OK);
 
     } catch (const std::runtime_error& error) {
         ERROR("%s", error.what());
@@ -189,12 +190,14 @@ Status GraphParser::parseFromString(std::string graph_str) {
     return TNN_OK;
 }
 
-Status constructGraph(const SSAGraph &ssa, Graph * graph) {
+Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * registry) {
 
     std::vector<std::shared_ptr<Edge>> edges;
     std::vector<std::shared_ptr<Node>> nodes;
+    std::vector<std::shared_ptr<Tensor>> tensors;
     std::vector<std::shared_ptr<Node>> placeholders;
 
+    std::vector<std::string> input_order, output_order;
 
     std::map<std::string, Node *> tensor_2_node;
 
@@ -211,6 +214,7 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph) {
 
         auto n = std::make_shared<Node>(getNodeName(node.source));
         n->info->type = GlobalConvertLayerType(node.source.text());
+        n->info->type_str = node.source.text();
 
         if (n->info->type == LAYER_PLACEHOLDER) {
             reportError("placeHolder is not expected", node.source);
@@ -237,10 +241,90 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph) {
         return n;
     };
 
+    size_t ssa_cnt = 0;
+    auto createFunction = [&](const SSANode& node) -> void {
+        if (!registry) {
+            ERRORV("GraphRegistry is nullptr.", msg);
+            reportError(msg, node.source);
+        }
+        auto g = registry->queryGraphByName(node.source.text());
+        if (!g) {
+            ERRORV("GraphFunction with name:%s is found.", msg, node.source.text().c_str());
+            reportError(msg, node.source);
+        }
+        if (node.inputs.size() != g->inputs().size()) {
+            ERRORV("GraphFunction input size got %lu, expected: %lu.", msg, node.inputs.size(), g->inputs().size());
+            reportError(msg, node.source);
+        }
+        if (node.outputs.size() != g->outputs().size()) {
+            ERRORV("GraphFunction output size got %lu, expected: %lu.", msg, node.outputs.size(), g->outputs().size());
+            reportError(msg, node.source);
+        }
+
+        std::shared_ptr<Graph> sub_graph = g->Copy();
+        std::string name_prefix = node.source.text() + std::string("_") + std::to_string(ssa_cnt++) + std::string("_");
+        for(auto &t: sub_graph->tensors) { 
+            // DEBUG("rename subgraph tensor from %s to %s", t->name.c_str(), (name_prefix+t->name).c_str());
+            sub_graph->renameTensor(t->name, name_prefix + t->name);
+        }
+
+        for(size_t i=0;i<node.inputs.size();i++) {
+            auto input = node.inputs[i];
+            if (tensor_2_node.count(input.identifier) == 0) {
+                reportError("specified input not found when constructiing graph.", input.source);
+            }
+
+            Node * src = tensor_2_node.at(input.identifier);
+            const Tensor * t = sub_graph->inputs()[i];
+
+            // DEBUG("procesing %lu th input of name:%s GraphFunction input name:%s ",i, input.identifier.c_str(), t->name.c_str());
+            // DEBUG("\tsrc %p type:%s of name:%s", src, layerTypeName(src->info->type).c_str(), src->name().c_str());
+            // DEBUG("\trename tensor from %s to %s", t->name.c_str(), input.identifier.c_str());
+
+            RAISE_ON_ERROR(sub_graph->renameTensor(t->name, input.identifier));
+
+            auto edges = sub_graph->tensor_2_edge.at(t->name);
+            for(auto e : edges) {
+                e->src->output_edges.erase(std::remove_if(e->src->output_edges.begin(), e->src->output_edges.end(), [&](Edge * cur){
+                                            return cur == e;
+                                        }), e->src->output_edges.end());
+                e->src = src;
+                RAISE_ON_ERROR(src->addOutputEdge(e));
+
+            }
+        }
+
+        for(size_t i=0;i<node.outputs.size();i++) {
+            auto output = node.outputs[i];
+            const Tensor * t = sub_graph->outputs()[i];
+
+            // DEBUG("procesing %lu th output of name:%s GraphFunction output name:%s ",i, output.identifier.c_str(), t->name.c_str());
+            // DEBUG("\trename tensor %p from %s to %s, ouput_order.size()=%lu", t, t->name.c_str(), output.identifier.c_str(), sub_graph->output_order.size());
+
+            RAISE_ON_ERROR(sub_graph->renameTensor(t->name, output.identifier));
+
+            auto n = sub_graph->getNodeByTensorName(output.identifier);
+            if (!n) {
+                ERRORV("GraphFunction output node of name %s not found.", msg, output.identifier.c_str());
+                reportError(msg, node.source);
+            }
+            tensor_2_node[output.identifier] = n.get();
+        }
+
+        for(auto n : sub_graph->nodes) {
+            n->info->name = getNodeName(Token(TK_LAYER_TYPE, layerTypeName(n->info->type)));
+        }
+
+        nodes.insert(nodes.begin(), sub_graph->nodes.begin(), sub_graph->nodes.end());
+        edges.insert(edges.begin(), sub_graph->edges.begin(), sub_graph->edges.end());
+        tensors.insert(tensors.begin(), sub_graph->tensors.begin(), sub_graph->tensors.end());
+    };
+
     for(auto &v : ssa.inputs) {
         auto n = std::make_shared<Node>(v.identifier);
         placeholders.push_back(n);
         tensor_2_node[v.identifier] = n.get();
+        input_order.push_back(v.identifier);
     }
 
     bool on_exit = false;
@@ -253,15 +337,22 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph) {
         if (ssa_node.source.kind == TK_RETURN) {
             for(auto &v : ssa_node.inputs) {
                 return_values.insert(v);
+                output_order.push_back(v.identifier);
             }
             on_exit = true;
             continue;
         }
-        createNode(ssa_node);
+        if (ssa_node.source.kind == TK_GRAPH_FUNCTION) {
+            createFunction(ssa_node);
+        } else {
+            createNode(ssa_node);
+        }
     }
 
-    *graph = Graph(nodes, placeholders, edges, {});
+    *graph = Graph(nodes, placeholders, edges, tensors);
     RAISE_ON_ERROR(graph->reBuildTensorIndex());
+    RAISE_ON_ERROR(graph->setInputsOrder(input_order));
+    RAISE_ON_ERROR(graph->setOutputsOrder(output_order));
 
     for(auto &v : return_values) {
         if (tensor_2_node.count(v.identifier) == 0) {

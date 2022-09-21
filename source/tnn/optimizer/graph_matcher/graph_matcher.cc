@@ -200,6 +200,7 @@ void AnchorGraph::formalize(Graph *g) {
         }
     }
 
+    RAISE_ON_ERROR(createUnspecifiedTensors());
     RAISE_ON_ERROR(reBuildTensorIndex());
 
     auto getShared = [&](const Node *p) {
@@ -230,8 +231,123 @@ Status AnchorGraph::sanityCheck() {
     return TNN_OK;
 };
 
+Status AnchorGraph::setInputsOrder(std::vector<std::string> tensor_names) {
+    std::set<std::string> names_set(tensor_names.begin(), tensor_names.end());
+    if (names_set.size() != tensor_names.size()) {
+        ERRORV("AnchorGaaph::setInputsOrder got dulicated tensor names", msg);
+        return Status(TNNERR_COMMON_ERROR, msg);
+    }
+    input_order.clear();
+    if (names_set.size() != inputs().size()) {
+        ERRORV("In AnchorGraph::setInputsOrder, number of tensors not match", msg);
+        return Status(TNNERR_COMMON_ERROR, msg);
+    }
+
+    auto in_edges = inEdges();
+    auto findNode = [&](const std::string name) -> std::pair<const Node *, size_t> {
+        // return the first Node that reference this tensor
+        for(auto e: in_edges) {
+            if (e->tensor_name == name) {
+                size_t offset = 0;
+                while(offset < e->dst->info->inputs.size()) {
+                    if (e->dst->info->inputs[offset] == name)
+                        break;
+                    offset ++;
+                }
+                if (offset == e->dst->info->inputs.size()) 
+                    return std::make_pair(nullptr, 0);
+                return std::make_pair(e->dst, offset);
+            }
+        }
+        return std::make_pair(nullptr, 0);
+    };
+
+    for(auto name : tensor_names) {
+        auto p = findNode(name);
+        if (p.first == nullptr) {
+            ERRORV("AnchorGaaph::setInputsOrder got invalid tensor name: %s", msg, name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        input_order.push_back(p);
+    }
+    return TNN_OK;
+};
+
+Status AnchorGraph::getIOOrderingOfPatternGraph(Graph * pattern_graph, std::vector<std::string> &_input_order, std::vector<std::string> &_output_order) {
+    auto findPairedNode= [&](const Node * probe_node ) -> const Node * {
+        for(auto p : paired_nodes) {
+            if (p.second.anchor == probe_node) {
+                return p.second.node;
+            }
+        }
+        return nullptr;
+    };
+
+    auto findPairedInputTensor = [&](const std::string pattern_tensor_name) -> std::string {
+        auto pattern_placeholder = pattern_graph->getNodeByTensorName(pattern_tensor_name);
+        if (!pattern_placeholder) {
+            ERRORV("pattern input tensor %s not found.", msg, pattern_tensor_name.c_str());
+            throw std::runtime_error(msg);
+        }
+        if (pattern_placeholder->output_edges.size() == 0) {
+            ERRORV("pattern tensor %s is not referenced.", msg, pattern_tensor_name.c_str());
+            throw std::runtime_error(msg);
+        }
+        auto pattern_node = pattern_placeholder->output_edges[0]->dst;
+        auto paired_node = findPairedNode(pattern_node);
+        auto paired_placeholder = findPairedNode(pattern_placeholder.get());
+        if (!paired_node || !paired_placeholder ) {
+            ERRORV("paired node or paired_placeholder not found on pattern_tensor:%s.", msg, pattern_tensor_name.c_str());
+            throw std::runtime_error(msg);
+        }
+        for(auto e : paired_node->input_edges) {
+            if (e->src == paired_placeholder) {
+                return e->tensor_name;
+            }
+        }
+        ERRORV("paired node and paired_placeholder not match on pattern_tensor:%s.", msg, pattern_tensor_name.c_str());
+        throw std::runtime_error(msg);
+    };
+
+    auto findPairedOutputTensor = [&](const std::string pattern_tensor_name) -> std::string {
+        auto pattern_node = pattern_graph->getNodeByTensorName(pattern_tensor_name);
+        if (!pattern_node) {
+            ERRORV("pattern output tensor %s not found.", msg, pattern_tensor_name.c_str());
+            throw std::runtime_error(msg);
+        }
+        auto paired_node = findPairedNode(pattern_node.get());
+        if (!paired_node) {
+            ERRORV("paired node not found on pattern_tensor:%s.", msg, pattern_tensor_name.c_str());
+            throw std::runtime_error(msg);
+        }
+        size_t offset = 0;
+        for(auto name : pattern_node->info->outputs) {
+            if (name == pattern_tensor_name) {
+                return paired_node->info->outputs[offset];
+            }
+            offset ++;
+        }
+        ERRORV("pattern node not found pattern_tensor:%s.", msg, pattern_tensor_name.c_str());
+        throw std::runtime_error(msg);
+    };
 
 
+    _input_order.clear();
+    _output_order.clear();
+    for(auto t : pattern_graph->inputs()) {
+        std::string paired_tensor_name = findPairedInputTensor(t->name);
+        DEBUG("pattern input %s paired with %s", t->name.c_str(), paired_tensor_name.c_str());
+        _input_order.push_back(paired_tensor_name);
+    }
+
+    for(auto t : pattern_graph->outputs()) {
+        std::string paired_tensor_name = findPairedOutputTensor(t->name);
+        DEBUG("pattern output %s paired with %s", t->name.c_str(), paired_tensor_name.c_str());
+        _output_order.push_back(paired_tensor_name);
+    }
+
+    return TNN_OK;
+};
 
 void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> pattern,  std::vector<std::shared_ptr<AnchorGraph>>  &results)  {
     results.resize(0);
@@ -267,7 +383,13 @@ void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> patt
 
                 if (cur.output_id == pattern_outs.size())  {
                     auto snapshot = std::make_shared<AnchorGraph>(*res);
+                    std::vector<std::string> _in_order, _out_order;
+                    RAISE_ON_ERROR(snapshot->getIOOrderingOfPatternGraph(pattern.get(), _in_order, _out_order));
                     snapshot->formalize(graph.get());
+                    if (snapshot->inputs().size() == pattern->inputs().size()) 
+                        RAISE_ON_ERROR(snapshot->setInputsOrder(_in_order));
+                    if (snapshot->outputs().size() == pattern->outputs().size()) 
+                        RAISE_ON_ERROR(snapshot->setOutputsOrder(_out_order));
                     results.push_back(snapshot);
                     INFO("matched at node [%s] and pattern [%s]", cur.node->name().c_str(), pattern_outs[cur.output_id-1]->name().c_str());
                     continue;

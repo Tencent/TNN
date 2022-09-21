@@ -469,3 +469,8 @@ endif()
 if(TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
     add_subdirectory(tools/dynamic_range_quantization)
 endif()
+
+if (MSVC)
+    target_compile_options(TNN PUBLIC "/Zc:__cplusplus")
+    target_compile_features(TNN PUBLIC cxx_std_11)
+endif()
