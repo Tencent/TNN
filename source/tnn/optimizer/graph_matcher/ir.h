@@ -25,17 +25,11 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
+#include "tnn/core/common.h"
 #include "tnn/interpreter/net_structure.h"
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/core/layer_type.h"
-
-#define RAISE_ON_ERROR(status)                                  \
-    do {                                                        \
-        auto _status = status;                                  \
-        if ((_status) != TNN_OK) {                              \
-            throw std::runtime_error(_status.description());    \
-        }                                                       \
-    } while (0)
+#include "tnn/optimizer/graph_matcher/common.h"
 
 namespace TNN_NS {
 
@@ -44,6 +38,9 @@ namespace TNN_NS {
     struct Graph;
 
     struct AnchorGraph;
+
+    struct SSAGraph;
+    struct GraphRegistry;
 
     struct Tensor {
         Tensor(const std::string &_name): name(_name) {}
@@ -66,12 +63,22 @@ namespace TNN_NS {
         // create placeholder node 
         Node(const std::string &tensor_name);
 
+        // DeepCopy of the Node, Caution !!! : Edges is not processed!
+        std::shared_ptr<Node> Copy() const {
+            auto new_node = std::make_shared<Node>(*this);
+            new_node->info = info->Copy();
+            return new_node;
+        }
+
         std::string name() const {return info->name;}
 
         Status addOutputEdge(Edge * e);
         Status addInputEdge(Edge * e);
         Status addInput(Edge * e);
-        Status updateInput(const std::string &name, const std::string &new_name, Edge * e);
+        // update info->inputs and replace the edge
+        Status updateInput(const std::string &name, const std::string &new_name, Edge * new_edge);
+        // update info->outputs and rename the edge->tensor
+        Status updateOutput(const std::string &name, const std::string &new_name);
 
         Status sanityCheck();
 
@@ -87,15 +94,19 @@ namespace TNN_NS {
 
         Graph() {};
 
+        Graph(std::string proto_str);
         Graph(const std::vector<std::shared_ptr<Node>> _nodes, 
               const std::vector<std::shared_ptr<Node>> _placeholders, 
               const std::vector<std::shared_ptr<Edge>> _edges,
               const std::vector<std::shared_ptr<Tensor>> _tensors) 
-              : nodes(_nodes), placeholders(_placeholders), edges(_edges), tensors(_tensors) {}
+              : nodes(_nodes), placeholders(_placeholders), edges(_edges), tensors(_tensors) 
+        {
+            RAISE_ON_ERROR(createUnspecifiedTensors());
+        }
+
+        std::shared_ptr<Graph> Copy() const;
 
         Status fromInterpreted(NetStructure * , NetResource *);
-
-        Graph(std::string proto_str);
 
         Status reBuildTensorIndex();
 
@@ -103,14 +114,16 @@ namespace TNN_NS {
 
         virtual Status sanityCheck();
 
-        Status renameTensor(const std::string &old_name, const std::string &new_name);
+        Status renameTensor(const std::string old_name, const std::string new_name);
 
         Status markOutput(const std::string &tensor_name);
 
-        Status addNode(const std::shared_ptr<Node> &pattern);
+        // will also handle the tensors
+        Status addNode(const std::shared_ptr<Node> &pattern, bool creat_tensors = true);
 
-        // create node of specified type, Node name is set to the first output tensor_name
-        Status createNode(const LayerType &type, const std::vector<std::string> &in_names, const std::vector<std::string> &out_names);
+        // create node of specified type, Node name is set to the first output tensor_name, will also handle the tensors by addNode function if out_tensors not specified.
+        Status createNode(const LayerType &type, const std::vector<std::string> &in_names, const std::vector<std::string> &out_names, 
+                            const std::vector<std::shared_ptr<Tensor>> out_tensors = {});
 
         const std::vector<std::weak_ptr<const Node>> allNodes() const;
 
@@ -127,26 +140,15 @@ namespace TNN_NS {
 
         std::vector<const Tensor*> getTensorsByNames(const std::vector<std::string> &tensor_names) const ;
 
-        virtual std::vector<Node*> outputNodes() const {
-            std::vector<Node *> res;
-            for(auto &n : nodes) {
-                if (n->output_edges.size() == 0) {
-                    res.push_back(n.get());
-                }
-            }
-            return res;
-        }
-
-        virtual std::vector<Node*> inputNodes() const {
-            std::vector<Node*> res;
-            for(auto &n : placeholders) {
-                res.push_back(n.get());
-            }
-            return res;
-        }
+        virtual std::vector<Node*> outputNodes() const;
+        // Returns the nodes that produce the input tensors. e.g. placeholders
+        virtual std::vector<Node*> inputNodes() const;
 
         virtual std::vector<const Tensor*> outputs() const;
         virtual std::vector<const Tensor*> inputs() const;
+
+        virtual Status setInputsOrder(std::vector<std::string> tensor_names);
+        virtual Status setOutputsOrder(std::vector<std::string> tensor_names);
 
     protected:
 
@@ -156,6 +158,10 @@ namespace TNN_NS {
 
         Status topologicalSort();
 
+    private:
+        Status createDefaultTensor(std::string name);
+        Status createUnspecifiedTensors();
+
     protected:
         std::vector<std::shared_ptr<Node>> nodes;
         std::vector<std::shared_ptr<Edge>> edges;
@@ -164,6 +170,10 @@ namespace TNN_NS {
 
         std::set<std::string> marked_outputs;
 
+        // following members are used to manage the ordering of outputs
+        std::vector<std::string> output_order;
+
+        // following members are managed by the reBuidlTensorIndex function
         std::unordered_map<std::string, std::shared_ptr<Tensor>> tensor_map;
         std::map<std::string, std::shared_ptr<Node>> tensor_2_node;
         std::map<std::string, std::vector<Edge*>> tensor_2_edge;
@@ -175,6 +185,7 @@ namespace TNN_NS {
         int rewrite_count = 0;
 
         friend class AnchorGraph;
+        friend Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * registry);
     };
 
 }

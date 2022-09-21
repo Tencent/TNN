@@ -373,6 +373,13 @@ Status constructGraph(const TextGraph &tg, Graph * graph)
                                 
     *graph = Graph(nodes, placeholders, edges, {});
     RAISE_ON_ERROR(graph->reBuildTensorIndex());
+
+    std::vector<std::string> in_order, out_order;
+
+    for(auto t : graph->inputs()) in_order.push_back(t->name);
+    for(auto t : graph->outputs()) out_order.push_back(t->name);
+    RAISE_ON_ERROR(graph->setInputsOrder(in_order));
+    RAISE_ON_ERROR(graph->setOutputsOrder(out_order));
     
     return TNN_OK;
 }

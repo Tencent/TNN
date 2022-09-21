@@ -26,6 +26,8 @@
 
 #include "tnn/core/macro.h"
 #include "tnn/optimizer/graph_matcher/ir.h"
+#include "tnn/optimizer/graph_matcher/graph_registry.h"
+#include "tnn/optimizer/graph_matcher/logger.h"
 
 namespace TNN_NS {
 
@@ -39,6 +41,7 @@ namespace TNN_NS {
   _(TK_LAYER_TYPE, "layer_type", "")             \
   _(TK_GRAPH, "graph", "graph")                       \
   _(TK_RETURN, "return", "return")                     \
+  _(TK_GRAPH_FUNCTION, "graph_function", "")            \
 
 static const char* valid_single_char_tokens = "+<>#@{}()[]=%:,";
 
@@ -170,6 +173,20 @@ struct TrieTree {
         nexts.back()->insert(str+1, token_kind);
     }
 
+    void remove(const char * str)  {
+        if (!str) return;
+        if (str[0] == '\0') {
+            kind = 0;
+            return;
+        }
+        for(size_t i=0;i<nexts.size();i++) {
+            if (next_chars[i] == str[0]) {
+                nexts[i]->remove(str+1);
+                return;
+            }
+        }
+    }
+
     int kind = 0;
     std::vector<TrieTreePtr> nexts;
     std::vector<char> next_chars;
@@ -215,6 +232,45 @@ if (*(tokstring) != '\0') {         \
             head->insert(str.c_str(), TK_LAYER_TYPE);
         }
 
+    }
+
+    Tokenizer& operator=(Tokenizer && rhs) {
+        head.swap(rhs.head);
+        if (registry) {
+            RAISE_ON_ERROR(registry->unRegisterTokenizer(this));
+        }
+        if (rhs.registry) {
+            RAISE_ON_ERROR(rhs.registry->unRegisterTokenizer(&rhs));
+        }
+        registry = rhs.registry;
+        rhs.registry = nullptr;
+        if (registry) {
+            RAISE_ON_ERROR(registry->registerTokenizer(this));
+        }
+        return *this;
+    }
+    
+    ~Tokenizer()  {
+        if (registry) {
+            registry->unRegisterTokenizer(this);
+        } 
+    }
+
+    void bindGraphRegistry(GraphRegistry * _registry) {
+        if (_registry) {
+            RAISE_ON_ERROR(_registry->registerTokenizer(this));
+            registry = _registry;
+        }
+    }
+
+    void onNewToken(std::string str, int kind) {
+        // DEBUG("Tokenizer %p got graph %s kind:%d", this, str.c_str(), kind);
+        head->insert(str.c_str(), kind);
+    }
+
+    void onDelete(std::string str) {
+        // DEBUG("Tokenizer %p remove graph %s", this, str.c_str());
+        head->remove(str.c_str());
     }
 
     bool isNumber(SubStr& str, Token * token) {
@@ -300,10 +356,12 @@ if (*(tokstring) != '\0') {         \
 
 private:
     TrieTreePtr head;
+    GraphRegistry * registry = nullptr;
 };
 
 
 void expect(const Token &tk, const int kind);
+void expect(const Token &tk, const std::vector<int> kind);
 
 void unexpect(const Token &tk);
 
@@ -311,6 +369,17 @@ void reportError(const std::string &msg, const Token &tok);
 
 struct Lexer {
     Lexer(SubStr str): source_(str) { step();};
+    Lexer(SubStr str, GraphRegistry* registry): source_(str) { t_.bindGraphRegistry(registry);  step();};
+
+    Lexer(const Lexer &)=delete;
+    Lexer(const Lexer &&)=delete;
+    Lexer& operator=(Lexer && rhs) {
+        t_ = std::move(rhs.t_);
+        source_ = std::move(rhs.source_);
+        prev_ = std::move(rhs.prev_);
+        next_tokens = std::move(rhs.next_tokens);
+        return *this;
+    }
 
     Token& lookahead() {
         if (next_tokens.size() < 2) {
