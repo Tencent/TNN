@@ -354,66 +354,66 @@ void Kernel_12x8(int m, int n, int k, const float *sa, const float *sb, float *s
             float *c           = cr + j;
             int64_t ldc_offset = ldc * sizeof(float) - 16;
             int64_t k_64       = k;
-            asm volatile(
-                ".macro INIT12x8                    \n"
-                "   mov x9,        %2               \n"
-                "   ld1 {v8.4s},  [x9], #16         \n"
-                "   ld1 {v20.4s}, [x9], %3          \n"
-                "   ld1 {v9.4s},  [x9], #16         \n"
-                "   ld1 {v21.4s}, [x9], %3          \n"
-                "   ld1 {v10.4s}, [x9], #16         \n"
-                "   ld1 {v22.4s}, [x9], %3          \n"
-                "   ld1 {v11.4s}, [x9], #16         \n"
-                "   ld1 {v23.4s}, [x9], %3          \n"
-                "   ld1 {v12.4s}, [x9], #16         \n"
-                "   ld1 {v24.4s}, [x9], %3          \n"
-                "   ld1 {v13.4s}, [x9], #16         \n"
-                "   ld1 {v25.4s}, [x9], %3          \n"
-                "   ld1 {v14.4s}, [x9], #16         \n"
-                "   ld1 {v26.4s}, [x9], %3          \n"
-                "   ld1 {v15.4s}, [x9], #16         \n"
-                "   ld1 {v27.4s}, [x9], %3          \n"
-                "   ld1 {v16.4s}, [x9], #16         \n"
-                "   ld1 {v28.4s}, [x9], %3          \n"
-                "   ld1 {v17.4s}, [x9], #16         \n"
-                "   ld1 {v29.4s}, [x9], %3          \n"
-                "   ld1 {v18.4s}, [x9], #16         \n"
-                "   ld1 {v30.4s}, [x9], %3          \n"
-                "   ld1 {v19.4s}, [x9], #16         \n"
+
+                #define INIT12x8                        \
+                "   mov x9,        %2               \n" \
+                "   ld1 {v8.4s},  [x9], #16         \n" \
+                "   ld1 {v20.4s}, [x9], %3          \n" \
+                "   ld1 {v9.4s},  [x9], #16         \n" \
+                "   ld1 {v21.4s}, [x9], %3          \n" \
+                "   ld1 {v10.4s}, [x9], #16         \n" \
+                "   ld1 {v22.4s}, [x9], %3          \n" \
+                "   ld1 {v11.4s}, [x9], #16         \n" \
+                "   ld1 {v23.4s}, [x9], %3          \n" \
+                "   ld1 {v12.4s}, [x9], #16         \n" \
+                "   ld1 {v24.4s}, [x9], %3          \n" \
+                "   ld1 {v13.4s}, [x9], #16         \n" \
+                "   ld1 {v25.4s}, [x9], %3          \n" \
+                "   ld1 {v14.4s}, [x9], #16         \n" \
+                "   ld1 {v26.4s}, [x9], %3          \n" \
+                "   ld1 {v15.4s}, [x9], #16         \n" \
+                "   ld1 {v27.4s}, [x9], %3          \n" \
+                "   ld1 {v16.4s}, [x9], #16         \n" \
+                "   ld1 {v28.4s}, [x9], %3          \n" \
+                "   ld1 {v17.4s}, [x9], #16         \n" \
+                "   ld1 {v29.4s}, [x9], %3          \n" \
+                "   ld1 {v18.4s}, [x9], #16         \n" \
+                "   ld1 {v30.4s}, [x9], %3          \n" \
+                "   ld1 {v19.4s}, [x9], #16         \n" \
                 "   ld1 {v31.4s}, [x9]              \n"
-                ".endm                              \n"
-                "                                   \n"
-                ".macro SAVE12x8                    \n"
-                "   mov x9,        %2               \n"
-                "   st1 {v8.4s},  [x9], #16         \n"
-                "   st1 {v20.4s}, [x9], %3          \n"
-                "   st1 {v9.4s},  [x9], #16         \n"
-                "   st1 {v21.4s}, [x9], %3          \n"
-                "   st1 {v10.4s}, [x9], #16         \n"
-                "   st1 {v22.4s}, [x9], %3          \n"
-                "   st1 {v11.4s}, [x9], #16         \n"
-                "   st1 {v23.4s}, [x9], %3          \n"
-                "   st1 {v12.4s}, [x9], #16         \n"
-                "   st1 {v24.4s}, [x9], %3          \n"
-                "   st1 {v13.4s}, [x9], #16         \n"
-                "   st1 {v25.4s}, [x9], %3          \n"
-                "   st1 {v14.4s}, [x9], #16         \n"
-                "   st1 {v26.4s}, [x9], %3          \n"
-                "   st1 {v15.4s}, [x9], #16         \n"
-                "   st1 {v27.4s}, [x9], %3          \n"
-                "   st1 {v16.4s}, [x9], #16         \n"
-                "   st1 {v28.4s}, [x9], %3          \n"
-                "   st1 {v17.4s}, [x9], #16         \n"
-                "   st1 {v29.4s}, [x9], %3          \n"
-                "   st1 {v18.4s}, [x9], #16         \n"
-                "   st1 {v30.4s}, [x9], %3          \n"
-                "   st1 {v19.4s}, [x9], #16         \n"
+
+                #define SAVE12x8                        \
+                "   mov x9,        %2               \n" \
+                "   st1 {v8.4s},  [x9], #16         \n" \
+                "   st1 {v20.4s}, [x9], %3          \n" \
+                "   st1 {v9.4s},  [x9], #16         \n" \
+                "   st1 {v21.4s}, [x9], %3          \n" \
+                "   st1 {v10.4s}, [x9], #16         \n" \
+                "   st1 {v22.4s}, [x9], %3          \n" \
+                "   st1 {v11.4s}, [x9], #16         \n" \
+                "   st1 {v23.4s}, [x9], %3          \n" \
+                "   st1 {v12.4s}, [x9], #16         \n" \
+                "   st1 {v24.4s}, [x9], %3          \n" \
+                "   st1 {v13.4s}, [x9], #16         \n" \
+                "   st1 {v25.4s}, [x9], %3          \n" \
+                "   st1 {v14.4s}, [x9], #16         \n" \
+                "   st1 {v26.4s}, [x9], %3          \n" \
+                "   st1 {v15.4s}, [x9], #16         \n" \
+                "   st1 {v27.4s}, [x9], %3          \n" \
+                "   st1 {v16.4s}, [x9], #16         \n" \
+                "   st1 {v28.4s}, [x9], %3          \n" \
+                "   st1 {v17.4s}, [x9], #16         \n" \
+                "   st1 {v29.4s}, [x9], %3          \n" \
+                "   st1 {v18.4s}, [x9], #16         \n" \
+                "   st1 {v30.4s}, [x9], %3          \n" \
+                "   st1 {v19.4s}, [x9], #16         \n" \
                 "   st1 {v31.4s}, [x9]              \n"
-                ".endm                              \n"
+
+            asm volatile(
                 "                                   \n"
                 "   ld1 {v0.4s}, [%0], #16          \n"
                 "   ld1 {v2.4s}, [%1], #16          \n"
-                "INIT12x8                           \n"
+                INIT12x8
                 "mov x8,%4                          \n"
                 "0:                                 \n"
 
@@ -460,7 +460,7 @@ void Kernel_12x8(int m, int n, int k, const float *sa, const float *sb, float *s
                 "   prfm pldl1keep, [%1, #256]      \n"
                 "   fmla v31.4s, v1.4s, v4.s[3]     \n"
                 "   bne 0b                          \n"
-                "SAVE12x8                           \n"
+                SAVE12x8
                 "                                   \n"
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
@@ -551,34 +551,32 @@ void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc
 #ifdef __aarch64__
             int64_t ldc_offset = ldc * sizeof(float) - 16;
             int64_t k_64       = k;
-            asm volatile(
-                ".macro INIT4x8                     \n"
-                "   mov x9,        %2               \n"
-                "   ld1 {v8.4s},  [x9], #16         \n"
-                "   ld1 {v20.4s}, [x9], %3          \n"
-                "   ld1 {v9.4s},  [x9], #16         \n"
-                "   ld1 {v21.4s}, [x9], %3          \n"
-                "   ld1 {v10.4s}, [x9], #16         \n"
-                "   ld1 {v22.4s}, [x9], %3          \n"
-                "   ld1 {v11.4s}, [x9], #16         \n"
+                #define INIT4x8                         \
+                "   mov x9,        %2               \n" \
+                "   ld1 {v8.4s},  [x9], #16         \n" \
+                "   ld1 {v20.4s}, [x9], %3          \n" \
+                "   ld1 {v9.4s},  [x9], #16         \n" \
+                "   ld1 {v21.4s}, [x9], %3          \n" \
+                "   ld1 {v10.4s}, [x9], #16         \n" \
+                "   ld1 {v22.4s}, [x9], %3          \n" \
+                "   ld1 {v11.4s}, [x9], #16         \n" \
                 "   ld1 {v23.4s}, [x9], %3          \n"
-                ".endm                              \n"
-                "                                   \n"
-                ".macro SAVE4x8                     \n"
-                "   mov x9,        %2               \n"
-                "   st1 {v8.4s},  [x9], #16         \n"
-                "   st1 {v20.4s}, [x9], %3          \n"
-                "   st1 {v9.4s},  [x9], #16         \n"
-                "   st1 {v21.4s}, [x9], %3          \n"
-                "   st1 {v10.4s}, [x9], #16         \n"
-                "   st1 {v22.4s}, [x9], %3          \n"
-                "   st1 {v11.4s}, [x9], #16         \n"
+
+                #define SAVE4x8                         \
+                "   mov x9,        %2               \n" \
+                "   st1 {v8.4s},  [x9], #16         \n" \
+                "   st1 {v20.4s}, [x9], %3          \n" \
+                "   st1 {v9.4s},  [x9], #16         \n" \
+                "   st1 {v21.4s}, [x9], %3          \n" \
+                "   st1 {v10.4s}, [x9], #16         \n" \
+                "   st1 {v22.4s}, [x9], %3          \n" \
+                "   st1 {v11.4s}, [x9], #16         \n" \
                 "   st1 {v23.4s}, [x9], %3          \n"
-                ".endm                              \n"
-                "                                   \n"
+
+            asm volatile(
                 "   ld1 {v0.4s}, [%0], #16          \n"
                 "   ld1 {v2.4s}, [%1], #16          \n"
-                "INIT4x8                            \n"
+                INIT4x8
                 "mov x8,%4                          \n"
                 "0:                                 \n"
 
@@ -600,7 +598,7 @@ void Kernel_4x8(int m, int n, int k, const float *sa, const float *sb, float *sc
                 "   subs x8, x8, #1                 \n"
                 "   ld1 {v2.4s}, [%1], #16          \n"
                 "   bne 0b                          \n"
-                "SAVE4x8                            \n"
+                SAVE4x8
                 "                                   \n"
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
