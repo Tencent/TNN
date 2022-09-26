@@ -245,40 +245,39 @@ void Kernel_4x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
                 : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v8", "v9", "v10", "v11", "v20", "v21", "v22", "v23");
 #else
             int ldc_offset = ldc * sizeof(fp16_t) - 16;
-            asm volatile(
-                ".macro INIT4x16H                   \n"
-                "   mov r9,        %2               \n"
-                "   vld1.16 {d16,d17},  [r9]!       \n"
-                "   vld1.16 {d18,d19},  [r9]        \n"
-                "   add      r9,   r9, %3           \n"
-                "   vld1.16 {d20,d21}, [r9]!        \n"
-                "   vld1.16 {d22,d23}, [r9]         \n"
-                "   add      r9,   r9, %3           \n"
-                "   vld1.16 {d24,d25}, [r9]!        \n"
-                "   vld1.16 {d26,d27}, [r9]         \n"
-                "   add      r9,   r9, %3           \n"
-                "   vld1.16 {d28,d29}, [r9]!        \n"
+
+                #define INIT4x16H                       \
+                "   mov r9,        %2               \n" \
+                "   vld1.16 {d16,d17},  [r9]!       \n" \
+                "   vld1.16 {d18,d19},  [r9]        \n" \
+                "   add      r9,   r9, %3           \n" \
+                "   vld1.16 {d20,d21}, [r9]!        \n" \
+                "   vld1.16 {d22,d23}, [r9]         \n" \
+                "   add      r9,   r9, %3           \n" \
+                "   vld1.16 {d24,d25}, [r9]!        \n" \
+                "   vld1.16 {d26,d27}, [r9]         \n" \
+                "   add      r9,   r9, %3           \n" \
+                "   vld1.16 {d28,d29}, [r9]!        \n" \
                 "   vld1.16 {d30,d31}, [r9]         \n"
-                ".endm                              \n"
-                "                                   \n"
-                ".macro SAVE4x16H                   \n"
-                "   mov r9,        %2               \n"
-                "   vst1.16 {d16,d17},  [r9]!       \n"
-                "   vst1.16 {d18,d19},  [r9]        \n"
-                "   add      r9,   r9, %3           \n"
-                "   vst1.16 {d20,d21}, [r9]!        \n"
-                "   vst1.16 {d22,d23}, [r9]         \n"
-                "   add      r9,   r9, %3           \n"
-                "   vst1.16 {d24,d25}, [r9]!        \n"
-                "   vst1.16 {d26,d27}, [r9]         \n"
-                "   add      r9,   r9, %3           \n"
-                "   vst1.16 {d28,d29}, [r9]!        \n"
+
+                #define SAVE4x16H                       \
+                "   mov r9,        %2               \n" \
+                "   vst1.16 {d16,d17},  [r9]!       \n" \
+                "   vst1.16 {d18,d19},  [r9]        \n" \
+                "   add      r9,   r9, %3           \n" \
+                "   vst1.16 {d20,d21}, [r9]!        \n" \
+                "   vst1.16 {d22,d23}, [r9]         \n" \
+                "   add      r9,   r9, %3           \n" \
+                "   vst1.16 {d24,d25}, [r9]!        \n" \
+                "   vst1.16 {d26,d27}, [r9]         \n" \
+                "   add      r9,   r9, %3           \n" \
+                "   vst1.16 {d28,d29}, [r9]!        \n" \
                 "   vst1.16 {d30,d31}, [r9]         \n"
-                ".endm                              \n"
-                "                                   \n"
+
+            asm volatile(
                 "   vld1.16 {d0,d1},  [%0]!         \n"
                 "   vld1.16 {d4},     [%1]!         \n"
-                "INIT4x16H                          \n"
+                INIT4x16H
                 "mov r8,%4                          \n"
                 "0:                                 \n"
                 "   vmla.f16 q8,  q0, d4[0]         \n"
@@ -295,7 +294,7 @@ void Kernel_4x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
                 "   vmla.f16 q15, q1, d4[3]         \n"
                 "   vld1.16 {d4},     [%1]!         \n"
                 "   bne 0b                          \n"
-                "SAVE4x16H                          \n"
+                SAVE4x16H
                 "                                   \n"
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k)
@@ -436,26 +435,24 @@ void Kernel_1x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
                 : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v3", "v4", "v8", "v9", "v20", "v21");
 #else
             int ldc_offset = ldc * sizeof(float) - 16;
-            asm volatile(
-                ".macro INIT1x16H                   \n"
-                "   mov r9,        %2               \n"
-                "   vld1.16 {d16,d17}, [r9]!        \n"
-                "   vld1.16 {d20,d21}, [r9]         \n"
-                "   vmov.u32 q9,   #0               \n"
+                #define INIT1x16H                       \
+                "   mov r9,        %2               \n" \
+                "   vld1.16 {d16,d17}, [r9]!        \n" \
+                "   vld1.16 {d20,d21}, [r9]         \n" \
+                "   vmov.u32 q9,   #0               \n" \
                 "   vmov.u32 q11,  #0               \n"
-                ".endm                              \n"
-                "                                   \n"
-                ".macro SAVE1x16H                   \n"
-                "   mov r9,       %2                \n"
-                "   vadd.f16 q8,  q8,  q9           \n"
-                "   vadd.f16 q10, q10, q11          \n"
-                "   vst1.16 {d16,d17}, [r9]!        \n"
+
+                #define SAVE1x16H                       \
+                "   mov r9,       %2                \n" \
+                "   vadd.f16 q8,  q8,  q9           \n" \
+                "   vadd.f16 q10, q10, q11          \n" \
+                "   vst1.16 {d16,d17}, [r9]!        \n" \
                 "   vst1.16 {d20,d21}, [r9]         \n"
-                ".endm                              \n"
-                "                                   \n"
+
+            asm volatile(
                 "   vld1.16 {d0,d1}, [%0]!          \n"
                 "   vld1.16 {d4},    [%1]!          \n"
-                "INIT1x16H                          \n"
+                INIT1x16H
                 "mov r8,%4                          \n"
                 "0:                                 \n"
                 "   subs r9, r8,  #4                \n"
@@ -491,7 +488,7 @@ void Kernel_1x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
                 "   vld1.16 {d4},     [%1]!         \n"
                 "   bne 1b                          \n"
                 "2:                                 \n"
-                "   SAVE1x16H                       \n"
+                SAVE1x16H
                 "                                   \n"
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k)
