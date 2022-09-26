@@ -245,6 +245,7 @@ namespace TNN_NS {
                     ERRORV("Found unknown blob [%s] in netstructure->outputs", msg, name.c_str());
                     return Status(TNNERR_PARAM_ERR, msg);
                 }
+                RETURN_IF_FAIL(markOutput(name));
             }
         } catch (const std::runtime_error& error) {
             ERROR("%s", error.what());
