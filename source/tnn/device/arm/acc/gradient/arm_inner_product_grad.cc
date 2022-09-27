@@ -133,14 +133,14 @@ Status ArmInnerProductGradOp::OnGrad(const std::vector<Blob *> &inputs, const st
             fw_inputs[0]->GetBlobDesc().data_format != DATA_FORMAT_NCHW && !FloatBlobCanIgnorePack(output_dims[0]);
         RawBuffer output_grad_reordered;
         if (output_need_reformat) {
-            output_grad_reordered = RawBuffer(batch * oc);
+            output_grad_reordered = RawBuffer(batch * oc * sizeof(float));
             float *reordered_ptr  = output_grad_reordered.force_to<float *>();
             UnpackFloatBlob(reordered_ptr, output_grad_ptr, output_dims[0]);
             output_grad_ptr = reordered_ptr;
         }
         RawBuffer input_grad_reordered;
         if (input_need_reformat) {
-            input_grad_reordered = RawBuffer(batch * ic);
+            input_grad_reordered = RawBuffer(batch * ic * sizeof(float));
             float *reordered_ptr = input_grad_reordered.force_to<float *>();
             input_grad_ptr       = reordered_ptr;
         }
@@ -162,7 +162,7 @@ Status ArmInnerProductGradOp::OnGrad(const std::vector<Blob *> &inputs, const st
 
             RawBuffer input_reordered;
             if (input_need_reformat) {
-                input_reordered      = RawBuffer(batch * ic);
+                input_reordered      = RawBuffer(batch * ic * sizeof(float));
                 float *reordered_ptr = input_reordered.force_to<float *>();
                 UnpackFloatBlob(reordered_ptr, input_ptr, input_dims[0]);
                 input_ptr = reordered_ptr;
