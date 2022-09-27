@@ -568,6 +568,9 @@ struct Half4 {
     Half4(const Float4& lr) {
         value = vreinterpret_s16_f16(vcvt_f16_f32(lr.value));
     }
+    Half4(const int16_t lr) {
+        value = vdup_n_s16(lr);
+    }
     static Half4 load(const fp16_t* addr) {
         Half4 v;
         asm volatile(
@@ -606,6 +609,59 @@ struct Half4 {
     static Float4 half4_to_float4(const Half4& v) {
         Float4 dst;
         dst.value = vcvt_f32_f16(vreinterpret_f16_s16(v.value));
+        return dst;
+    }
+    static Half4 max(const Half4& v1, const Half4& v2) {
+        Half4 dst;
+        asm volatile(
+            "vmax.f16 %0, %2, %3\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(v1.value),"w"(v2.value)
+            :
+        );
+        return dst;
+    }
+    Half4 operator+(const Half4& lr) const {
+        Half4 dst;
+        asm volatile(
+            "vadd.f16 %0, %2, %3\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(value),"w"(lr.value)
+            :
+        );
+        return dst;
+    }
+    Half4 operator-(const Half4& lr) const {
+        Half4 dst;
+        asm volatile(
+            "vsub.f16 %0, %2, %3\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(value),"w"(lr.value)
+            :
+        );
+        return dst;
+    }
+    Half4 operator*(const Half4& lr) const{
+        Half4 dst;
+        asm volatile(
+            "vmul.f16 %0, %2, %3\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(value),"w"(lr.value)
+            :
+        );
+        return dst;
+    }
+    Half4 operator*(int16_t lr) const {
+        Half4 dst;
+        dst.value = vreinterpret_s16_f16(vmul_f16(vreinterpret_f16_s16(value), vreinterpret_f16_s16(vdup_n_s16(lr))));
+        return dst;
+    }
+    static Half4 exp(const Half4& v) {
+        Half4 dst;
+        float32x4_t v_temp;
+        v_temp = vcvt_f32_f16(vreinterpret_f16_s16(v.value));
+        v_temp = exp_ps(v_temp);
+        dst.value = vreinterpret_s16_f16(vcvt_f16_f32(v_temp));
         return dst;
     }
 };
