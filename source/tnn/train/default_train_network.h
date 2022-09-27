@@ -51,13 +51,15 @@ protected:
     virtual Status SetGradientLayerRuntimeInfo();
     virtual Status SetSolverLayerRuntimeInfo();
 
+    virtual Status CopyLossAndLossGradNames(AbstractModelInterpreter *interpreter);
+
     std::map<Blob *, Blob *> input_to_grad_map_;
     std::map<Blob *, RawBuffer *> grad_to_resource_map_;
 
     std::vector<BaseLayer *> need_refresh_layers_;
 
-    std::string loss_name_;
-    std::string loss_grad_name_;
+    std::vector<std::string> loss_names_;
+    std::vector<std::string> loss_grad_names_;
     std::string global_step_name_;
     std::string global_step_init_name_;
 

@@ -65,6 +65,11 @@ struct NetStructure {
     std::set<std::string> blobs;
     ModelType source_model_type = MODEL_TYPE_TNN;
 
+#ifdef TNN_TRAIN
+    std::vector<std::string> loss_names;
+    std::vector<std::string> loss_grad_names;
+#endif
+
 public:
     std::shared_ptr<NetStructure> Copy() {
         std::shared_ptr<NetStructure> net_structure(new NetStructure());

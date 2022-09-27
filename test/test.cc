@@ -50,6 +50,19 @@ namespace TNN_NS {
 
 namespace test {
 
+     void LogFeedbackStep(const TrainingFeedback &feed_back) {
+         static char buf[1024];
+         std::string output;
+         sprintf(buf, "Training step: %d, loss:", feed_back.global_step_value);
+         output += buf;
+         for (auto loss_value: feed_back.loss_values) {
+             sprintf(buf, " %f", loss_value);
+             output += buf;
+         }
+         output += "\n";
+         LOGI("%s", output.c_str());
+    }
+
     int Run(int argc, char* argv[]) {
         // parse command line params
         if (!ParseAndCheckCommandLine(argc, argv))
@@ -114,7 +127,7 @@ namespace test {
                     }
                     TrainingFeedback feed_back;
                     ret = instance->GetTrainingFeedback(feed_back);
-                    LOGI("Training step: %d, loss: %f\n", feed_back.global_step_value, feed_back.loss_value);
+                    LogFeedbackStep(feed_back);
                 }
 #endif  // TNN_TRAIN
                 for(auto element : output_converters_map) {
@@ -158,7 +171,7 @@ namespace test {
                     }
                     TrainingFeedback feed_back;
                     ret = instance->GetTrainingFeedback(feed_back);
-                    LOGI("Training step: %d, loss: %f\n", feed_back.global_step_value, feed_back.loss_value);
+                    LogFeedbackStep(feed_back);
                 }
 #endif  // TNN_TRAIN
 
@@ -281,34 +294,55 @@ namespace test {
         }
     }
 
-    static std::pair<std::string, std::vector<int>> GetInputShape(const std::string message) {
-        std::string name;
-        std::vector<int> dims;
-        if(!message.empty()) {
+    static std::vector<std::string> split_message(std::string message, std::string delimiter) {
+        std::vector<std::string> result;
+        size_t pos;
+        while ((pos = message.find(delimiter)) != std::string::npos) {
+            result.push_back(message.substr(0, pos));
+            message.erase(0, pos + delimiter.length());
+        }
+        if (message.length() != 0) {
+            result.push_back(message);
+        }
+        return result;
+    }
+
+    static std::vector<std::pair<std::string, std::vector<int>>> GetInputShapes(const std::string message) {
+        std::vector<std::pair<std::string, std::vector<int>>> result;
+
+        auto tokens = split_message(message, " ");
+        for (const auto &token : tokens) {
+            std::string name;
+            std::vector<int> dims;
             std::string delimiter = "[";
-            std::ptrdiff_t p1 = 0, p2;
-            p2 = message.find(delimiter, p1);
-            name = message.substr(p1, p2 -p1);
+            size_t p1 = 0, p2;
+            p2 = token.find(delimiter, p1);
+            name = token.substr(p1, p2 -p1);
             p1 = p2 + 1;
             delimiter = ",";
             while (true) {
-                p2 = message.find(delimiter, p1);
+                p2 = token.find(delimiter, p1);
                 if (p2 != std::string::npos) {
-                    dims.push_back(atoi(message.substr(p1, p2 - p1).c_str()));
+                    dims.push_back(atoi(token.substr(p1, p2 - p1).c_str()));
                     p1 = p2 + 1;
                 } else {
-                    dims.push_back(atoi(message.substr(p1, message.length() - 1 - p1).c_str()));
+                    dims.push_back(atoi(token.substr(p1, token.length() - 1 - p1).c_str()));
                     break;
                 }
             }
+            result.emplace_back(name, dims);
         }
-        return {name, dims};
+
+        return result;
     }
 
     InputShapesMap GetInputShapesMap() {
         InputShapesMap input_shape;
         if(!FLAGS_is.empty()) {
-            input_shape.insert(GetInputShape(FLAGS_is));
+            auto input_shapes = GetInputShapes(FLAGS_is);
+            for (auto item : input_shapes) {
+                input_shape.insert(item);
+            }
         }
         return input_shape;
     }
@@ -401,14 +435,19 @@ namespace test {
             }
 
             if (train_config.loss_func != LOSS_FUNC_DEFAULT) {
+                // target layers
                 if (!FLAGS_tl.empty()) {
-                    train_config.target_layer = FLAGS_tl;
+                    train_config.target_layers = split_message(FLAGS_tl, " ");
                 }
+                // auto add prob layer
                 train_config.auto_add_prob_layer = FLAGS_ap;
+                // target names and target shapes
                 if (!FLAGS_ts.empty()) {
-                    auto target_and_shape = GetInputShape(FLAGS_ts);
-                    train_config.target_name  = target_and_shape.first;
-                    train_config.target_shape = target_and_shape.second;
+                    auto target_and_shapes = GetInputShapes(FLAGS_ts);
+                    for (const auto &ts : target_and_shapes) {
+                        train_config.target_names.push_back(ts.first);
+                        train_config.target_shapes.push_back(ts.second);
+                    }
                 } else {
                     LOGE("Loss layer will be created, please provide target for calculating loss!\n");
                 }

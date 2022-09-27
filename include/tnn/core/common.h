@@ -172,11 +172,11 @@ struct PUBLIC TrainConfig {
     // loss 
     LossFunc loss_func     = LOSS_FUNC_DEFAULT;
     // if loss_func is not default, the following informations are used to create loss layer
-    std::string target_layer = "";      // the layer whose output is used to calculate loss, default is the last layer
+    std::vector<std::string> target_layers; // the layers whose outputs are used to calculate losses, default is the last layer
     bool auto_add_prob_layer = true;    // add softmax or sigmoid layer before loss layer
     // target used to calculate loss
-    std::string target_name  = "";      // the ground truth, provide by model inputs
-    DimsVector target_shape  = {};      // the shape of the ground truth
+    std::vector<std::string> target_names;      // the ground truths, provide by model inputs
+    std::vector<DimsVector> target_shapes;      // the shapes of the ground truths
 
     // solver
     SolverType solver_type = SOLVER_TYPE_SGD;
@@ -189,8 +189,8 @@ struct PUBLIC TrainConfig {
 };
 
 struct PUBLIC TrainingFeedback {
-    std::string loss_name        = "";
-    float loss_value             = 0.0;
+    std::vector<std::string> loss_names;
+    std::vector<float> loss_values;
     std::string global_step_name = "";
     int global_step_value        = 0;
 };

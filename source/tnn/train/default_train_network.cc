@@ -11,7 +11,6 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
-
 #include "tnn/train/default_train_network.h"
 
 #include "tnn/train/gradient/gradient_layer.h"
@@ -37,6 +36,8 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
                                enable_const_folder);
     RETURN_ON_NEQ(ret, TNN_OK);
 
+    RETURN_ON_NEQ(CopyLossAndLossGradNames(interpreter), TNN_OK);
+
     RETURN_ON_NEQ(InitTrainingStatus(), TNN_OK);
 
     RETURN_ON_NEQ(InitRuntimeInfo(), TNN_OK);
@@ -44,10 +45,36 @@ Status DefaultTrainNetwork::Init(NetworkConfig &net_config, ModelConfig &model_c
     return TNN_OK;
 }
 
+Status DefaultTrainNetwork::CopyLossAndLossGradNames(AbstractModelInterpreter *interpreter) {
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+    CHECK_PARAM_NULL(default_interpreter);
+
+    const NetStructure *net_structure = default_interpreter->GetNetStructure();
+    if (net_structure == NULL) {
+        LOGE("ERROR: network_ is nil, network_type may not support\n");
+        return Status(TNNERR_NULL_PARAM, "network_ is nil, network_type may not support");
+    }
+
+    loss_names_ = net_structure->loss_names;
+    loss_grad_names_ = net_structure->loss_grad_names;
+
+    if (loss_names_.empty()) {
+        LOGE("DefaultTrainNetwork::CopyLossAndLossGradNames ERROR, cannot get loss names\n");
+        return Status(TNNERR_TRAIN_ERROR, "cannot get loss names");
+    }
+    if (loss_grad_names_.empty()) {
+        LOGE("DefaultTrainNetwork::CopyLossAndLossGradNames ERROR, cannot get loss grad names\n");
+        return Status(TNNERR_TRAIN_ERROR, "cannot get loss grad names");
+    }
+    return TNN_OK;
+}
+
 Status DefaultTrainNetwork::GetAllInputBlobs(BlobMap &blobs) {
     blob_manager_->GetAllInputBlobs(blobs);
     // loss grad is assumed to be one
-    blobs.erase(loss_grad_name_);
+    for (auto loss_grad_name : loss_grad_names_) {
+        blobs.erase(loss_grad_name);
+    }
     // global step init value is assumed to be zero
     blobs.erase(global_step_init_name_);
     return TNN_OK;
@@ -81,34 +108,24 @@ Status DefaultTrainNetwork::TrainStep() {
 }
 
 Status DefaultTrainNetwork::GetTrainingFeedback(TrainingFeedback &feed_back) {
-    feed_back.loss_name        = loss_name_;
+    for (const auto & loss_name : loss_names_) {
+        feed_back.loss_names.push_back(loss_name);
+    }
     feed_back.global_step_name = global_step_name_;
     return TNN_OK;
 }
 
 Status DefaultTrainNetwork::InitTrainingStatus() {
-    LayerInfo *loss_layer      = nullptr;
-    LayerInfo *loss_grad_layer = nullptr;
-    int cnt                    = 0;
+    std::vector<LayerInfo *> loss_layers;
+    std::vector<LayerInfo *> loss_grad_layers;
+    int cnt = 0;
     for (auto layer : net_structure_->layers) {
         if (layer->type == LAYER_GRADIENT) {
-            loss_grad_layer = layer.get();
             break;
         }
-        loss_layer = layer.get();
         cnt++;
     }
     forward_layer_count_ = cnt;
-    if (!loss_layer) {
-        LOGE("DefaultTrainNetwork::InitTrainingStatus ERROR, cannot get loss layer\n");
-        return Status(TNNERR_TRAIN_ERROR, "cannot get loss layer");
-    }
-    if (!loss_grad_layer) {
-        LOGE("DefaultTrainNetwork::InitTrainingStatus ERROR, cannot get loss grad layer\n");
-        return Status(TNNERR_TRAIN_ERROR, "cannot get loss grad layer");
-    }
-    loss_name_      = loss_layer->outputs[0];
-    loss_grad_name_ = loss_grad_layer->inputs.back();
 
     LayerInfo *solver_layer_info = net_structure_->layers.back().get();
     if (!solver_layer_info) {
@@ -131,50 +148,55 @@ Status DefaultTrainNetwork::InitRuntimeInfo() {
 }
 
 Status DefaultTrainNetwork::SetLossGrad() {
-    Blob *loss_blob = blob_manager_->GetBlob(loss_name_);
-    if (!loss_blob) {
-        LOGE("DefaultTrainNetwork::SetLossGrad get loss_blob failed\n");
-        return Status(TNNERR_TRAIN_ERROR, "get loss_blob failed!");
-    }
-    auto loss_data_count = DimsVectorUtils::Count(loss_blob->GetBlobDesc().dims);
-    if (loss_data_count != 1) {
-        LOGE(
-            "DefaultTrainNetwork::SetLossGrad only support loss data count = 1 now, got %d. Try to change loss "
-            "function type or loss target layer!\n",
-            loss_data_count);
-        return Status(TNNERR_TRAIN_ERROR,
-                      "loss data count not supported, try to change loss function type or loss target layer!");
-    }
+    for (int loss_idx = 0; loss_idx < loss_names_.size(); ++loss_idx) {
+        const auto loss_name = loss_names_[loss_idx];
+        const auto loss_grad_name = loss_grad_names_[loss_idx];
 
-    std::shared_ptr<Mat> mat(new Mat(DEVICE_ARM, NCHW_FLOAT, {loss_data_count}));
-    if (!mat || !mat->GetData()) {
-        LOGE("DefaultTrainNetwork::SetLossGrad create mat failed\n");
-        return Status(TNNERR_TRAIN_ERROR, "create mat failed");
-    }
+        Blob *loss_blob = blob_manager_->GetBlob(loss_name);
+        if (!loss_blob) {
+            LOGE("DefaultTrainNetwork::SetLossGrad get loss_blob failed\n");
+            return Status(TNNERR_TRAIN_ERROR, "get loss_blob failed!");
+        }
+        auto loss_data_count = DimsVectorUtils::Count(loss_blob->GetBlobDesc().dims);
+        if (loss_data_count != 1) {
+            LOGE(
+                "DefaultTrainNetwork::SetLossGrad only support loss data count = 1 now, got %d. Try to change loss "
+                "function type or loss target layer!\n",
+                loss_data_count);
+            return Status(TNNERR_TRAIN_ERROR,
+                          "loss data count not supported, try to change loss function type or loss target layer!");
+        }
 
-    // init loss grad as one
-    auto ptr = reinterpret_cast<float *>(mat->GetData());
-    for (int i = 0; i < loss_data_count; ++i) {
-        ptr[i] = 1.0;
-    }
+        std::shared_ptr<Mat> mat(new Mat(DEVICE_ARM, NCHW_FLOAT, {loss_data_count}));
+        if (!mat || !mat->GetData()) {
+            LOGE("DefaultTrainNetwork::SetLossGrad create mat failed\n");
+            return Status(TNNERR_TRAIN_ERROR, "create mat failed");
+        }
 
-    Blob *loss_grad = blob_manager_->GetBlob(loss_grad_name_);
-    if (!loss_grad) {
-        LOGE("DefaultTrainNetwork::SetLossGrad get loss_grad failed\n");
-        return Status(TNNERR_TRAIN_ERROR, "get loss_grad failed!");
-    }
+        // init loss grad as one
+        auto ptr = reinterpret_cast<float *>(mat->GetData());
+        for (int i = 0; i < loss_data_count; ++i) {
+            ptr[i] = 1.0;
+        }
 
-    // create blob convert
-    std::shared_ptr<BlobConverter> blob_converter = std::make_shared<BlobConverter>(loss_grad);
+        Blob *loss_grad = blob_manager_->GetBlob(loss_grad_name);
+        if (!loss_grad) {
+            LOGE("DefaultTrainNetwork::SetLossGrad get loss_grad failed\n");
+            return Status(TNNERR_TRAIN_ERROR, "get loss_grad failed!");
+        }
 
-    // get command queue
-    void *command_queue = nullptr;
-    RETURN_ON_NEQ(GetCommandQueue(&command_queue), TNN_OK);
+        // create blob convert
+        std::shared_ptr<BlobConverter> blob_converter = std::make_shared<BlobConverter>(loss_grad);
 
-    Status status = blob_converter->ConvertFromMatAsync(*(mat.get()), MatConvertParam(), command_queue);
-    if (status != TNN_OK) {
-        LOGE("DefaultTrainNetwork::SetLossGrad, ConvertFromMatAsync Error: %s\n", status.description().c_str());
-        return status;
+        // get command queue
+        void *command_queue = nullptr;
+        RETURN_ON_NEQ(GetCommandQueue(&command_queue), TNN_OK);
+
+        Status status = blob_converter->ConvertFromMatAsync(*(mat.get()), MatConvertParam(), command_queue);
+        if (status != TNN_OK) {
+            LOGE("DefaultTrainNetwork::SetLossGrad, ConvertFromMatAsync Error: %s\n", status.description().c_str());
+            return status;
+        }
     }
 
     return TNN_OK;

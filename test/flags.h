@@ -117,11 +117,11 @@ static const char train_mode_message[] = "train mode: PREDICT, TRAIN, default PR
 DECLARE_string(lf);
 static const char loss_function_message[] = "loss function: BCE, CCE, default treat last layer as loss layer";
 DECLARE_string(tl);
-static const char target_layer_message[] = "target layer to calculate loss: default use the last layer";
+static const char target_layer_message[] = "list of target layer to calculate loss: default use the last layer";
 DECLARE_bool(ap);
 static const char auto_add_probability_layer[] = "add sigmoid or softmax before calculating loss: default true";
 DECLARE_string(ts);
-static const char target_shape_message[] = "ground truth and its shape: name[n,c,h,w]";
+static const char target_shape_message[] = "list of ground truth and its shape: name1[n,c,h,w] name2[n,c,h,w]";
 DECLARE_string(st);
 static const char solver_type_message[] = "solver type: SGD, default SGD";
 DECLARE_double(lr);
