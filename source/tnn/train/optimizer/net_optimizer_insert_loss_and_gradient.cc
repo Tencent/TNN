@@ -100,7 +100,7 @@ namespace optimizer {
             // the last layer should output loss
             auto loss_layer = net_structure->layers.back();
             loss_blobs_.push_back(loss_layer->outputs[0]);
-            net_structure->loss_names.push_back(loss_layer->name);
+            net_structure->loss_names.push_back(loss_layer->outputs[0]);
             return TNN_OK;
         }
 
