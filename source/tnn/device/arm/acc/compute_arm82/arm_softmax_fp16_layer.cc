@@ -105,9 +105,8 @@ static void SoftmaxChannelFuncFp16Tile4(fp16_t *dst, fp16_t *src, int channel) {
     // div
     c                  = 0;
     fp16_t denominator = (fp16_t)(1.0f / sum);
-    Half4 denominator_v = Half4(denominator);
     for (; c <= channel - 4; c += 4) {
-        Half4::save(dst + c, Half4::load(dst + c) * denominator_v);
+        Half4::save(dst + c, Half4::load(dst + c) * denominator);
     }
     for (; c < channel; ++c) {
         dst[c] *= denominator;

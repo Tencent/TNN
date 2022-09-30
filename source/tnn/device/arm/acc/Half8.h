@@ -568,8 +568,13 @@ struct Half4 {
     Half4(const Float4& lr) {
         value = vreinterpret_s16_f16(vcvt_f16_f32(lr.value));
     }
-    Half4(const int16_t lr) {
-        value = vdup_n_s16(lr);
+    Half4(const fp16_t v) {
+        asm volatile(
+            "vdup.16 %0, %2\n\t"
+            :"=w"(value)
+            :"0"(value),"r"(v)
+            :
+        );
     }
     static Half4 load(const fp16_t* addr) {
         Half4 v;
@@ -651,9 +656,15 @@ struct Half4 {
         );
         return dst;
     }
-    Half4 operator*(int16_t lr) const {
+    Half4 operator*(const fp16_t lr) const{
         Half4 dst;
-        dst.value = vreinterpret_s16_f16(vmul_f16(vreinterpret_f16_s16(value), vreinterpret_f16_s16(vdup_n_s16(lr))));
+        asm volatile(
+            "vdup.16  d3, %3    \n\t"
+            "vmul.f16 %0, %2, d3\n\t"
+            :"=w"(dst.value)
+            :"0"(dst.value),"w"(value),"r"(lr)
+            :
+        );
         return dst;
     }
     static Half4 exp(const Half4& v) {
