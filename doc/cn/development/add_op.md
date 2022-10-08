@@ -122,11 +122,19 @@
 (4）实现Metal的kernel，在目录 `<path_to_TNN>/source/tnn/device/metal/acc` 添加对应的metal文件，以.metal为后缀。
 
 ### 3.5 NPU平台  
+#### 3.5.1 华为NPU
 在文件夹`<path_to_TNN>/source/tnn/device/huawei_npu/convert`下添加对应算子的LayerConvert实现。  
 (1）声明新算子的LayerConvert实现，如果没有其他权重input，可以直接使用`DECLARE_NPU_LAYER`声明；  
 (2）`REGISTER_NPU_LAYER` 注册新算子的LayerConvert实现；  
 (3）实现以下接口：   
 * `Convert()` -- 使用ir翻译tnn模型算子；  
+
+#### 3.5.2 苹果NPU
+在文件夹`<path_to_TNN>/source/tnn/network/coreml/layer_convert`下添加对应算子的LayerConvert实现。  
+(1）声明新算子的LayerConvert实现，使用`DECLARE_COREML_LAYER`声明；  
+(2）`REGISTER_COREML_LAYER` 注册新算子的LayerConvert实现； 
+(3）实现以下接口：   
+* `BuildLayerParam()` -- 将tnn算子参数转换为coreml算子参数；
 
 ### 3.6 X86平台  
 
