@@ -175,8 +175,8 @@ struct PUBLIC TrainConfig {
     std::string target_layer = "";      // the layer whose output is used to calculate loss, default is the last layer
     bool auto_add_prob_layer = true;    // add softmax or sigmoid layer before loss layer
     // target used to calculate loss
-    std::string target_name  = "";      // the ground truth, provide by model inputs
-    DimsVector target_shape  = {};      // the shape of the ground truth
+    std::string ground_truth_name  = "";      // the ground truth, provide by model inputs
+    DimsVector ground_truth_shape = {};      // the shape of the ground truth
 
     // solver
     SolverType solver_type = SOLVER_TYPE_SGD;

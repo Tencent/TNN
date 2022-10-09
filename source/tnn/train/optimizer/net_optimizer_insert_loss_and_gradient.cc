@@ -104,7 +104,7 @@ namespace optimizer {
         }
 
         // target blob
-        if (train_config.target_name.empty() || train_config.target_shape.empty()) {
+        if (train_config.ground_truth_name.empty() || train_config.ground_truth_shape.empty()) {
             LOGE(
                 "NetOptimizerInsertLossAndGradient::InsertLossLayer, loss func is %d, please set target name and shape "
                 "to calculate loss\n",
@@ -112,8 +112,8 @@ namespace optimizer {
             return Status(TNNERR_TRAIN_ERROR,
                           "loss layer will be added, but target(ground truth) name and shape is empty!");
         }
-        net_structure->inputs_shape_map[train_config.target_name] = train_config.target_shape;
-        net_structure->blobs.insert(train_config.target_name);
+        net_structure->inputs_shape_map[train_config.ground_truth_name] = train_config.ground_truth_shape;
+        net_structure->blobs.insert(train_config.ground_truth_name);
 
         // target layer
         std::shared_ptr<LayerInfo> target_layer = GetTargetLayer(net_structure);
@@ -143,7 +143,7 @@ namespace optimizer {
         } else {
             auto entropy_input = prob_layer->outputs[0];
             entropy_layer->inputs.push_back(entropy_input);
-            entropy_layer->inputs.push_back(train_config.target_name);
+            entropy_layer->inputs.push_back(train_config.ground_truth_name);
             auto entropy_output = entropy_input + kEntropySuffix.at(train_config.loss_func);
             entropy_layer->outputs.push_back(entropy_output);
             net_structure->layers.push_back(entropy_layer);
@@ -353,7 +353,7 @@ namespace optimizer {
         new_layer->param                     = std::shared_ptr<LayerParam>(param);
         new_layer->param->type               = new_layer->type_str;
         new_layer->param->name               = new_layer->name;
-        for (int i = 0; i < train_config.target_shape.size(); ++i) {
+        for (int i = 0; i < train_config.ground_truth_shape.size(); ++i) {
             param->axis.push_back(i);
         }
         return new_layer;
@@ -368,7 +368,7 @@ namespace optimizer {
         new_layer->param                     = std::shared_ptr<LayerParam>(param);
         new_layer->param->type               = new_layer->type_str;
         new_layer->param->name               = new_layer->name;
-        param->forward_type                  = forward_layer->type;
+        param->forward_layer_type            = forward_layer->type;
         param->forward_layer_name            = forward_layer->name;
         param->forward_param                 = forward_layer->param.get();
         return new_layer;
