@@ -16,7 +16,7 @@
 
 namespace TNN_NS {
 
-// z = x + y
+// z = x * y
 // dz/dx = y
 // dz/dy = x
 typedef struct arm_mul_grad_function: arm_binary_grad_function {
