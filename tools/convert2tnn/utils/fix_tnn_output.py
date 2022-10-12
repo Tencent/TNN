@@ -18,7 +18,10 @@ import numpy as np
 
 
 def get_output_shape(onnx_path: str) -> dict:
-    session = onnxruntime.InferenceSession(onnx_path)
+    so = onnxruntime.SessionOptions()
+    so.inter_op_num_threads = 1
+    so.intra_op_num_threads = 1
+    session = onnxruntime.InferenceSession(onnx_path, providers=['CPUExecutionProvider'], sess_options=so)
     input_data = {}
     for inp in session.get_inputs():
         name = inp.name

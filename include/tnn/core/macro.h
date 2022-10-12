@@ -76,28 +76,35 @@
 #define __PRETTY_FUNCTION__ __FUNCSIG__
 #endif
 
+
+#ifdef _SOURCE_DIR_LEN
+#define __TNN_FILE__ &__FILE__[_SOURCE_DIR_LEN+1]
+#else
+#define __TNN_FILE__ __FILE__
+#endif
+
 // Log
 #ifdef __ANDROID__
 #include <android/log.h>
 #define LOGDT(fmt, tag, ...)                                                                                           \
-    __android_log_print(ANDROID_LOG_DEBUG, tag, ("%s [File %s][Line %d] " fmt), __PRETTY_FUNCTION__, __FILE__,         \
+    __android_log_print(ANDROID_LOG_DEBUG, tag, ("%s [File %s][Line %d] " fmt), __PRETTY_FUNCTION__, __TNN_FILE__,         \
                         __LINE__, ##__VA_ARGS__);                                                                      \
-    fprintf(stdout, ("D/%s: %s [File %s][Line %d] " fmt), tag, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
+    fprintf(stdout, ("D/%s: %s [File %s][Line %d] " fmt), tag, __PRETTY_FUNCTION__, __TNN_FILE__, __LINE__, ##__VA_ARGS__)
 #define LOGIT(fmt, tag, ...)                                                                                           \
-    __android_log_print(ANDROID_LOG_INFO, tag, ("%s [File %s][Line %d] " fmt), __PRETTY_FUNCTION__, __FILE__,          \
+    __android_log_print(ANDROID_LOG_INFO, tag, ("%s [File %s][Line %d] " fmt), __PRETTY_FUNCTION__, __TNN_FILE__,          \
                         __LINE__, ##__VA_ARGS__);                                                                      \
-    fprintf(stdout, ("I/%s: %s [File %s][Line %d] " fmt), tag, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
+    fprintf(stdout, ("I/%s: %s [File %s][Line %d] " fmt), tag, __PRETTY_FUNCTION__, __TNN_FILE__, __LINE__, ##__VA_ARGS__)
 #define LOGET(fmt, tag, ...)                                                                                           \
-    __android_log_print(ANDROID_LOG_ERROR, tag, ("%s [File %s][Line %d] " fmt), __PRETTY_FUNCTION__, __FILE__,         \
+    __android_log_print(ANDROID_LOG_ERROR, tag, ("%s [File %s][Line %d] " fmt), __PRETTY_FUNCTION__, __TNN_FILE__,         \
                         __LINE__, ##__VA_ARGS__);                                                                      \
-    fprintf(stderr, ("E/%s: %s [File %s][Line %d] " fmt), tag, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
+    fprintf(stderr, ("E/%s: %s [File %s][Line %d] " fmt), tag, __PRETTY_FUNCTION__, __TNN_FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define LOGDT(fmt, tag, ...)                                                                                           \
-    fprintf(stdout, ("D/%s: %s [File %s][Line %d] " fmt), tag, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
+    fprintf(stdout, ("D/%s: %s [File %s][Line %d] " fmt), tag, __FUNCTION__, __TNN_FILE__, __LINE__, ##__VA_ARGS__)
 #define LOGIT(fmt, tag, ...)                                                                                           \
-    fprintf(stdout, ("I/%s: %s [File %s][Line %d] " fmt), tag, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
+    fprintf(stdout, ("I/%s: %s [File %s][Line %d] " fmt), tag, __FUNCTION__, __TNN_FILE__, __LINE__, ##__VA_ARGS__)
 #define LOGET(fmt, tag, ...)                                                                                           \
-    fprintf(stderr, ("E/%s: %s [File %s][Line %d] " fmt), tag, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)
+    fprintf(stderr, ("E/%s: %s [File %s][Line %d] " fmt), tag, __FUNCTION__, __TNN_FILE__, __LINE__, ##__VA_ARGS__)
 #endif  //__ANDROID__
 
 #define LOGD(fmt, ...) LOGDT(fmt, DEFAULT_TAG, ##__VA_ARGS__)
@@ -209,6 +216,8 @@
             return _status;                                                                               \
         }                                                                                                         \
     } while (0)
+
+#define RETURN_IF_FAIL(status)  RETURN_ON_NEQ(status, TNN_NS::TNN_OK)
 
 #define CHECK_PARAM_NULL(param)                                                   \
     do {                                                                                                         \
