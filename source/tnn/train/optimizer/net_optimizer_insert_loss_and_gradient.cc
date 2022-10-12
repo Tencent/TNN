@@ -24,7 +24,7 @@
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/optimizer/optimizer_const.h"
-// #include "tnn/interpreter/tnn/model_packer.h"
+#include "tnn/interpreter/tnn/model_packer.h"
 
 namespace TNN_NS {
 
@@ -390,6 +390,19 @@ namespace optimizer {
 
     Status NetOptimizerInsertLossAndGradient::GetNeedGradLayers(NetStructure *structure,
                                                                 std::set<std::string> &need_grad_layers) {
+        // check params first
+        std::set<std::string> layer_names_set;
+        for(auto ly : structure->layers) {
+            layer_names_set.insert(ly->name);
+        }
+
+        for (auto name : train_config.trainable_layers) {
+            if (layer_names_set.find(name) == layer_names_set.end()) {
+                LOGE("NetOptimizerInsertLossAndGradient::GetNeedGradLayers, specified trainable layer: %s not found.\n", name.c_str());
+                return Status(TNNERR_TRAIN_ERROR, "specified tranable layer not found.");
+            }
+        }
+
         std::map<std::string, LayerInfo *> blob_to_layer;
         for (auto &layer : structure->layers) {
             for (auto &name : layer->outputs) {
