@@ -240,6 +240,10 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool 
         }
         RETURN_ON_NEQ(status, TNN_OK);
 
+        BlobDesc blob_desc = blob->GetBlobDesc();
+        blob_desc.name     = iter->GetBlobDesc().name;
+        blob->SetBlobDesc(blob_desc);
+
         blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map[name] = blob;
         iter->SetHandle(blob->GetHandle());
