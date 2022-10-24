@@ -27,9 +27,6 @@ ILayer* BatchNormTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-    auto input_dims        = input_blobs_[0]->GetBlobDesc().dims;
-    int channel            = input_dims[1];
-    int count              = DimsVectorUtils::Count(input_dims);
 
     Weights power { nvinfer1::DataType::kFLOAT, nullptr, 0 };
     Weights shift;

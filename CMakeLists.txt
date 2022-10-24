@@ -285,6 +285,9 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/memory_manager/*.h"
                       "source/tnn/memory_manager/*.cc")
 
+string(LENGTH ${CMAKE_SOURCE_DIR} CMAKE_SOURCE_DIR_LEN)
+add_definitions(-D_SOURCE_DIR_LEN=${CMAKE_SOURCE_DIR_LEN})
+
 if(TNN_SYMBOL_HIDE AND UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
 endif()
@@ -465,4 +468,9 @@ endif()
 
 if(TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
     add_subdirectory(tools/dynamic_range_quantization)
+endif()
+
+if (MSVC)
+    target_compile_options(TNN PUBLIC "/Zc:__cplusplus")
+    target_compile_features(TNN PUBLIC cxx_std_11)
 endif()
