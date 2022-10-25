@@ -608,16 +608,6 @@ Status DefaultNetwork::Forward() {
         auto layer = layers_[cnt];
         std::vector<Blob *> inputs  = layer->GetInputBlobs();
         std::vector<Blob *> outputs = layer->GetOutputBlobs();
-//        std::cout << "Layer " << layer->GetLayerName() << " forward begin" << std::endl;
-//        std::cout << "\tinputs:\n";
-//        for (auto input: inputs) {
-//            std::cout << "\t\t" << input->GetBlobDesc().name << std::endl;
-//        }
-//        std::cout << "\toutputs:\n";
-//        for (auto output: outputs) {
-//            std::cout << "\t\t" << output->GetBlobDesc().name << std::endl;
-//        }
-
         {
 
 #if DUMP_INPUT_BLOB
@@ -643,7 +633,6 @@ Status DefaultNetwork::Forward() {
 #endif  // DUMP_INPUT_BLOB
             
             status = layer->Forward();
-//            std::cout << "Layer " << layer->GetLayerName() << " forward done" << std::endl;
             LOGD("layer name: %s, forward result: %d \n", layer->GetLayerName().c_str(), (int)status);
             LOGD("Output Shape: [%s]\n", layer->GetOutputBlobs()[0]->GetBlobDesc().description().c_str());
             if (status != TNN_OK) {
