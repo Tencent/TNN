@@ -82,7 +82,7 @@ Status CudaSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
       dim3 griddim;
       griddim.x = (slices[i] * inner_size + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
       griddim.y = DimsVectorUtils::Count(dims, 1, axis);
-      griddim.z = DimsVectorUtils::Count(dims, 0, 1);
+      griddim.z = DimsVectorUtils::Count(dims, 0, min(1, axis));
 
       float* output_data = static_cast<float*>(output_blob->GetHandle().base);
       splitv_separate_kernel<THREAD_PER_BLOCK, ELE_PER_THREAD><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>

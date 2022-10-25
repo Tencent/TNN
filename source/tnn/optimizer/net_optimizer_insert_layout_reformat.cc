@@ -121,7 +121,7 @@ namespace optimizer {
 
     // metal and opencl may use adaptor layer to fall back computing on arm
     std::shared_ptr<const ImplementedLayout> NetOptimizerInsertLayoutReformat::GetLayoutsByLayerType(LayerInfo *layer) {
-        LayerType forward_type = layer->type;
+        LayerType forward_layer_type = layer->type;
 #if TNN_TRAIN
         if (layer->type == LAYER_GRADIENT) {
             auto param = dynamic_cast<GradientParam *>(layer->param.get());
@@ -129,15 +129,15 @@ namespace optimizer {
                 LOGE("NetOptimizerInsertLayoutReformat Error: empty param of gradient layer\n");
                 return nullptr;
             }
-            forward_type = param->forward_type;
+            forward_layer_type = param->forward_layer_type;
         }
 #endif  // TNN_TRAIN
-        auto device_layouts = device_->GetImplementedLayout(layer->type, forward_type);
+        auto device_layouts = device_->GetImplementedLayout(layer->type, forward_layer_type);
         if (!device_layouts || device_layouts->layouts.size() < 1) {
-            auto adaptor_device_layouts = adaptor_device_->GetImplementedLayout(layer->type, forward_type);
+            auto adaptor_device_layouts = adaptor_device_->GetImplementedLayout(layer->type, forward_layer_type);
             if (!adaptor_device_layouts || adaptor_device_layouts->layouts.size() < 1) {
-                LOGE("NetOptimizerInsertLayoutReformat Error: empty adaptor device layouts of %d, %d\n", layer->type,
-                     forward_type);
+                LOGE("NetOptimizerInsertLayoutReformat Error: empty adaptor device layouts of %d, forward layer_type:%d\n", layer->type,
+                     forward_layer_type);
                 return std::make_shared<ImplementedLayout>();
             } else {
                 return GetAdaptorLayouts(device_->GetDeviceType());

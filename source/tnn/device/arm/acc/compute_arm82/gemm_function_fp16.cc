@@ -41,50 +41,49 @@ void Kernel_8x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
             fp16_t *c          = cr + j;
             int64_t ldc_offset = ldc * sizeof(fp16_t) - 16;
             int64_t k_64       = k;
-            asm volatile(
-                ".macro INIT8x16H                   \n"
-                "   mov x9,        %2               \n"
-                "   ld1 {v8.8h},  [x9], #16         \n"
-                "   ld1 {v20.8h}, [x9], %3          \n"
-                "   ld1 {v9.8h},  [x9], #16         \n"
-                "   ld1 {v21.8h}, [x9], %3          \n"
-                "   ld1 {v10.8h}, [x9], #16         \n"
-                "   ld1 {v22.8h}, [x9], %3          \n"
-                "   ld1 {v11.8h}, [x9], #16         \n"
-                "   ld1 {v23.8h}, [x9], %3          \n"
-                "   ld1 {v12.8h}, [x9], #16         \n"
-                "   ld1 {v24.8h}, [x9], %3          \n"
-                "   ld1 {v13.8h}, [x9], #16         \n"
-                "   ld1 {v25.8h}, [x9], %3          \n"
-                "   ld1 {v14.8h}, [x9], #16         \n"
-                "   ld1 {v26.8h}, [x9], %3          \n"
-                "   ld1 {v15.8h}, [x9], #16         \n"
+
+                #define INIT8x16H                       \
+                "   mov x9,        %2               \n" \
+                "   ld1 {v8.8h},  [x9], #16         \n" \
+                "   ld1 {v20.8h}, [x9], %3          \n" \
+                "   ld1 {v9.8h},  [x9], #16         \n" \
+                "   ld1 {v21.8h}, [x9], %3          \n" \
+                "   ld1 {v10.8h}, [x9], #16         \n" \
+                "   ld1 {v22.8h}, [x9], %3          \n" \
+                "   ld1 {v11.8h}, [x9], #16         \n" \
+                "   ld1 {v23.8h}, [x9], %3          \n" \
+                "   ld1 {v12.8h}, [x9], #16         \n" \
+                "   ld1 {v24.8h}, [x9], %3          \n" \
+                "   ld1 {v13.8h}, [x9], #16         \n" \
+                "   ld1 {v25.8h}, [x9], %3          \n" \
+                "   ld1 {v14.8h}, [x9], #16         \n" \
+                "   ld1 {v26.8h}, [x9], %3          \n" \
+                "   ld1 {v15.8h}, [x9], #16         \n" \
                 "   ld1 {v27.8h}, [x9]              \n"
-                ".endm                              \n"
-                "                                   \n"
-                ".macro SAVE8x16H                   \n"
-                "   mov x9,        %2               \n"
-                "   st1 {v8.8h},  [x9], #16         \n"
-                "   st1 {v20.8h}, [x9], %3          \n"
-                "   st1 {v9.8h},  [x9], #16         \n"
-                "   st1 {v21.8h}, [x9], %3          \n"
-                "   st1 {v10.8h}, [x9], #16         \n"
-                "   st1 {v22.8h}, [x9], %3          \n"
-                "   st1 {v11.8h}, [x9], #16         \n"
-                "   st1 {v23.8h}, [x9], %3          \n"
-                "   st1 {v12.8h}, [x9], #16         \n"
-                "   st1 {v24.8h}, [x9], %3          \n"
-                "   st1 {v13.8h}, [x9], #16         \n"
-                "   st1 {v25.8h}, [x9], %3          \n"
-                "   st1 {v14.8h}, [x9], #16         \n"
-                "   st1 {v26.8h}, [x9], %3          \n"
-                "   st1 {v15.8h}, [x9], #16         \n"
+
+                #define SAVE8x16H                       \
+                "   mov x9,        %2               \n" \
+                "   st1 {v8.8h},  [x9], #16         \n" \
+                "   st1 {v20.8h}, [x9], %3          \n" \
+                "   st1 {v9.8h},  [x9], #16         \n" \
+                "   st1 {v21.8h}, [x9], %3          \n" \
+                "   st1 {v10.8h}, [x9], #16         \n" \
+                "   st1 {v22.8h}, [x9], %3          \n" \
+                "   st1 {v11.8h}, [x9], #16         \n" \
+                "   st1 {v23.8h}, [x9], %3          \n" \
+                "   st1 {v12.8h}, [x9], #16         \n" \
+                "   st1 {v24.8h}, [x9], %3          \n" \
+                "   st1 {v13.8h}, [x9], #16         \n" \
+                "   st1 {v25.8h}, [x9], %3          \n" \
+                "   st1 {v14.8h}, [x9], #16         \n" \
+                "   st1 {v26.8h}, [x9], %3          \n" \
+                "   st1 {v15.8h}, [x9], #16         \n" \
                 "   st1 {v27.8h}, [x9]              \n"
-                ".endm                              \n"
-                "                                   \n"
+
+            asm volatile(
                 "   ld1 {v0.8h}, [%0], #16          \n"
                 "   ld1 {v2.8h}, [%1], #16          \n"
-                "INIT8x16H                          \n"
+                INIT8x16H
                 "mov x8,%4                          \n"
                 "0:                                 \n"
 
@@ -115,7 +114,7 @@ void Kernel_8x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
 
                 "   ld1 {v2.8h}, [%1], #16          \n"
                 "   bne 0b                          \n"
-                "SAVE8x16H                          \n"
+                SAVE8x16H
                 "                                   \n"
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
@@ -189,34 +188,33 @@ void Kernel_4x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
 #ifdef TNN_ARM82_A64
             int64_t ldc_offset = ldc * sizeof(fp16_t) - 16;
             int64_t k_64       = k;
-            asm volatile(
-                ".macro INIT4x16H                   \n"
-                "   mov x9,        %2               \n"
-                "   ld1 {v8.8h},  [x9], #16         \n"
-                "   ld1 {v20.8h}, [x9], %3          \n"
-                "   ld1 {v9.8h},  [x9], #16         \n"
-                "   ld1 {v21.8h}, [x9], %3          \n"
-                "   ld1 {v10.8h}, [x9], #16         \n"
-                "   ld1 {v22.8h}, [x9], %3          \n"
-                "   ld1 {v11.8h}, [x9], #16         \n"
+
+                #define INIT4x16H                       \
+                "   mov x9,        %2               \n" \
+                "   ld1 {v8.8h},  [x9], #16         \n" \
+                "   ld1 {v20.8h}, [x9], %3          \n" \
+                "   ld1 {v9.8h},  [x9], #16         \n" \
+                "   ld1 {v21.8h}, [x9], %3          \n" \
+                "   ld1 {v10.8h}, [x9], #16         \n" \
+                "   ld1 {v22.8h}, [x9], %3          \n" \
+                "   ld1 {v11.8h}, [x9], #16         \n" \
                 "   ld1 {v23.8h}, [x9]              \n"
-                ".endm                              \n"
-                "                                   \n"
-                ".macro SAVE4x16H                   \n"
-                "   mov x9,        %2               \n"
-                "   st1 {v8.8h},  [x9], #16         \n"
-                "   st1 {v20.8h}, [x9], %3          \n"
-                "   st1 {v9.8h},  [x9], #16         \n"
-                "   st1 {v21.8h}, [x9], %3          \n"
-                "   st1 {v10.8h}, [x9], #16         \n"
-                "   st1 {v22.8h}, [x9], %3          \n"
-                "   st1 {v11.8h}, [x9], #16         \n"
+
+                #define SAVE4x16H                       \
+                "   mov x9,        %2               \n" \
+                "   st1 {v8.8h},  [x9], #16         \n" \
+                "   st1 {v20.8h}, [x9], %3          \n" \
+                "   st1 {v9.8h},  [x9], #16         \n" \
+                "   st1 {v21.8h}, [x9], %3          \n" \
+                "   st1 {v10.8h}, [x9], #16         \n" \
+                "   st1 {v22.8h}, [x9], %3          \n" \
+                "   st1 {v11.8h}, [x9], #16         \n" \
                 "   st1 {v23.8h}, [x9]              \n"
-                ".endm                              \n"
-                "                                   \n"
+
+            asm volatile(
                 "   ld1 {v0.8h}, [%0], #16          \n"
                 "   ld1 {v2.4h}, [%1], #8           \n"
-                "INIT4x16H                          \n"
+                INIT4x16H
                 "mov x8,%4                          \n"
                 "0:                                 \n"
 
@@ -238,47 +236,46 @@ void Kernel_4x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
                 "   subs x8, x8, #1                 \n"
                 "   ld1 {v2.4h}, [%1], #8           \n"
                 "   bne 0b                          \n"
-                "SAVE4x16H                          \n"
+                SAVE4x16H
                 "                                   \n"
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
                 : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v8", "v9", "v10", "v11", "v20", "v21", "v22", "v23");
 #else
             int ldc_offset = ldc * sizeof(fp16_t) - 16;
-            asm volatile(
-                ".macro INIT4x16H                   \n"
-                "   mov r9,        %2               \n"
-                "   vld1.16 {d16,d17},  [r9]!       \n"
-                "   vld1.16 {d18,d19},  [r9]        \n"
-                "   add      r9,   r9, %3           \n"
-                "   vld1.16 {d20,d21}, [r9]!        \n"
-                "   vld1.16 {d22,d23}, [r9]         \n"
-                "   add      r9,   r9, %3           \n"
-                "   vld1.16 {d24,d25}, [r9]!        \n"
-                "   vld1.16 {d26,d27}, [r9]         \n"
-                "   add      r9,   r9, %3           \n"
-                "   vld1.16 {d28,d29}, [r9]!        \n"
+
+                #define INIT4x16H                       \
+                "   mov r9,        %2               \n" \
+                "   vld1.16 {d16,d17},  [r9]!       \n" \
+                "   vld1.16 {d18,d19},  [r9]        \n" \
+                "   add      r9,   r9, %3           \n" \
+                "   vld1.16 {d20,d21}, [r9]!        \n" \
+                "   vld1.16 {d22,d23}, [r9]         \n" \
+                "   add      r9,   r9, %3           \n" \
+                "   vld1.16 {d24,d25}, [r9]!        \n" \
+                "   vld1.16 {d26,d27}, [r9]         \n" \
+                "   add      r9,   r9, %3           \n" \
+                "   vld1.16 {d28,d29}, [r9]!        \n" \
                 "   vld1.16 {d30,d31}, [r9]         \n"
-                ".endm                              \n"
-                "                                   \n"
-                ".macro SAVE4x16H                   \n"
-                "   mov r9,        %2               \n"
-                "   vst1.16 {d16,d17},  [r9]!       \n"
-                "   vst1.16 {d18,d19},  [r9]        \n"
-                "   add      r9,   r9, %3           \n"
-                "   vst1.16 {d20,d21}, [r9]!        \n"
-                "   vst1.16 {d22,d23}, [r9]         \n"
-                "   add      r9,   r9, %3           \n"
-                "   vst1.16 {d24,d25}, [r9]!        \n"
-                "   vst1.16 {d26,d27}, [r9]         \n"
-                "   add      r9,   r9, %3           \n"
-                "   vst1.16 {d28,d29}, [r9]!        \n"
+
+                #define SAVE4x16H                       \
+                "   mov r9,        %2               \n" \
+                "   vst1.16 {d16,d17},  [r9]!       \n" \
+                "   vst1.16 {d18,d19},  [r9]        \n" \
+                "   add      r9,   r9, %3           \n" \
+                "   vst1.16 {d20,d21}, [r9]!        \n" \
+                "   vst1.16 {d22,d23}, [r9]         \n" \
+                "   add      r9,   r9, %3           \n" \
+                "   vst1.16 {d24,d25}, [r9]!        \n" \
+                "   vst1.16 {d26,d27}, [r9]         \n" \
+                "   add      r9,   r9, %3           \n" \
+                "   vst1.16 {d28,d29}, [r9]!        \n" \
                 "   vst1.16 {d30,d31}, [r9]         \n"
-                ".endm                              \n"
-                "                                   \n"
+
+            asm volatile(
                 "   vld1.16 {d0,d1},  [%0]!         \n"
                 "   vld1.16 {d4},     [%1]!         \n"
-                "INIT4x16H                          \n"
+                INIT4x16H
                 "mov r8,%4                          \n"
                 "0:                                 \n"
                 "   vmla.f16 q8,  q0, d4[0]         \n"
@@ -295,7 +292,7 @@ void Kernel_4x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
                 "   vmla.f16 q15, q1, d4[3]         \n"
                 "   vld1.16 {d4},     [%1]!         \n"
                 "   bne 0b                          \n"
-                "SAVE4x16H                          \n"
+                SAVE4x16H
                 "                                   \n"
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k)
@@ -374,26 +371,25 @@ void Kernel_1x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
 #ifdef TNN_ARM82_A64
             int64_t ldc_offset = ldc * sizeof(fp16_t) - 16;
             int64_t k_64       = k;
-            asm volatile(
-                ".macro INIT1x16H                   \n"
-                "   mov x9,        %2               \n"
-                "   ld1 {v8.8h},  [x9], #16         \n"
-                "   ld1 {v20.8h}, [x9], %3          \n"
-                "   movi v9.8h,    #0               \n"
+
+                #define INIT1x16H                       \
+                "   mov x9,        %2               \n" \
+                "   ld1 {v8.8h},  [x9], #16         \n" \
+                "   ld1 {v20.8h}, [x9], %3          \n" \
+                "   movi v9.8h,    #0               \n" \
                 "   movi v21.8h,   #0               \n"
-                ".endm                              \n"
-                "                                   \n"
-                ".macro SAVE1x16H                   \n"
-                "   mov x9,        %2               \n"
-                "   fadd v8.8h,  v8.8h,  v9.8h      \n"
-                "   fadd v20.8h, v20.8h, v21.8h     \n"
-                "   st1 {v8.8h},  [x9], #16         \n"
+
+                #define SAVE1x16H                       \
+                "   mov x9,        %2               \n" \
+                "   fadd v8.8h,  v8.8h,  v9.8h      \n" \
+                "   fadd v20.8h, v20.8h, v21.8h     \n" \
+                "   st1 {v8.8h},  [x9], #16         \n" \
                 "   st1 {v20.8h}, [x9], %3          \n"
-                ".endm                              \n"
-                "                                   \n"
+
+            asm volatile(
                 "   ld1 {v0.8h}, [%0], #16          \n"
                 "   ld1 {v2.4h}, [%1], #8           \n"
-                "INIT1x16H                          \n"
+                INIT1x16H
                 "mov x8,%4                          \n"
                 "0:                                 \n"
                 "   subs x9, x8, #4                 \n"
@@ -429,33 +425,31 @@ void Kernel_1x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
                 "   ld1 {v2.4h}, [%1], #8           \n"
                 "   bne 1b                          \n"
                 "2:                                 \n"
-                "   SAVE1x16H                       \n"
+                SAVE1x16H
                 "                                   \n"
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k_64)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k_64)
                 : "memory", "cc", "x8", "x9", "v0", "v1", "v2", "v3", "v4", "v8", "v9", "v20", "v21");
 #else
             int ldc_offset = ldc * sizeof(float) - 16;
-            asm volatile(
-                ".macro INIT1x16H                   \n"
-                "   mov r9,        %2               \n"
-                "   vld1.16 {d16,d17}, [r9]!        \n"
-                "   vld1.16 {d20,d21}, [r9]         \n"
-                "   vmov.u32 q9,   #0               \n"
+                #define INIT1x16H                       \
+                "   mov r9,        %2               \n" \
+                "   vld1.16 {d16,d17}, [r9]!        \n" \
+                "   vld1.16 {d20,d21}, [r9]         \n" \
+                "   vmov.u32 q9,   #0               \n" \
                 "   vmov.u32 q11,  #0               \n"
-                ".endm                              \n"
-                "                                   \n"
-                ".macro SAVE1x16H                   \n"
-                "   mov r9,       %2                \n"
-                "   vadd.f16 q8,  q8,  q9           \n"
-                "   vadd.f16 q10, q10, q11          \n"
-                "   vst1.16 {d16,d17}, [r9]!        \n"
+
+                #define SAVE1x16H                       \
+                "   mov r9,       %2                \n" \
+                "   vadd.f16 q8,  q8,  q9           \n" \
+                "   vadd.f16 q10, q10, q11          \n" \
+                "   vst1.16 {d16,d17}, [r9]!        \n" \
                 "   vst1.16 {d20,d21}, [r9]         \n"
-                ".endm                              \n"
-                "                                   \n"
+
+            asm volatile(
                 "   vld1.16 {d0,d1}, [%0]!          \n"
                 "   vld1.16 {d4},    [%1]!          \n"
-                "INIT1x16H                          \n"
+                INIT1x16H
                 "mov r8,%4                          \n"
                 "0:                                 \n"
                 "   subs r9, r8,  #4                \n"
@@ -491,7 +485,7 @@ void Kernel_1x16(int m, int n, int k, const fp16_t *sa, const fp16_t *sb, fp16_t
                 "   vld1.16 {d4},     [%1]!         \n"
                 "   bne 1b                          \n"
                 "2:                                 \n"
-                "   SAVE1x16H                       \n"
+                SAVE1x16H
                 "                                   \n"
                 : "=r"(b), "=r"(a), "=r"(c), "=r"(ldc_offset), "=r"(k)
                 : "0"(b), "1"(a), "2"(c), "3"(ldc_offset), "4"(k)

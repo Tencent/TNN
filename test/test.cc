@@ -262,7 +262,7 @@ namespace test {
         printf("            If lf is not default, specify following options:\n");
         printf("            -tl \"<target layer>\"      \t\t%s \n", target_layer_message);
         printf("            -ap \"<auto probability>\"  \t\t%s \n", auto_add_probability_layer);
-        printf("            -ts \"<target shape>\"      \t\t%s \n", target_shape_message);
+        printf("            -gts \"<target shape>\"      \t\t%s \n", ground_truth_shape_message);
         printf("\n");
         printf("        -st \"<solver type>\"           \t\t%s \n", solver_type_message);
         printf("            If st is SGD, specify following options:\n");
@@ -442,11 +442,11 @@ namespace test {
                 // auto add prob layer
                 train_config.auto_add_prob_layer = FLAGS_ap;
                 // target names and target shapes
-                if (!FLAGS_ts.empty()) {
-                    auto target_and_shapes = GetInputShapes(FLAGS_ts);
+                if (!FLAGS_gts.empty()) {
+                    auto target_and_shapes = GetInputShapes(FLAGS_gts);
                     for (const auto &ts : target_and_shapes) {
-                        train_config.target_names.push_back(ts.first);
-                        train_config.target_shapes.push_back(ts.second);
+                        train_config.ground_truth_names.push_back(ts.first);
+                        train_config.ground_truth_shapes.push_back(ts.second);
                     }
                 } else {
                     LOGE("Loss layer will be created, please provide target for calculating loss!\n");
@@ -455,7 +455,7 @@ namespace test {
                 if (!FLAGS_tl.empty()) {
                     LOGI("No loss layer will be created, target layer will be ignored!\n");
                 }
-                if (!FLAGS_ts.empty()) {
+                if (!FLAGS_gts.empty()) {
                     LOGI("No loss layer will be created, target will be ignored!\n");
                 }
             }

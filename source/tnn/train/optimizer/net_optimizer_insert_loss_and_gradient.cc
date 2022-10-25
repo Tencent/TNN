@@ -24,7 +24,7 @@
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/optimizer/optimizer_const.h"
-// #include "tnn/interpreter/tnn/model_packer.h"
+#include "tnn/interpreter/tnn/model_packer.h"
 
 namespace TNN_NS {
 
@@ -105,7 +105,7 @@ namespace optimizer {
         }
 
         // target blob
-        if (train_config_.target_names.empty() || train_config_.target_shapes.empty()) {
+        if (train_config_.ground_truth_names.empty() || train_config_.ground_truth_shapes.empty()) {
             LOGE(
                 "NetOptimizerInsertLossAndGradient::InsertLossLayer, loss func is %d, please set target name and shape "
                 "to calculate loss\n",
@@ -124,18 +124,18 @@ namespace optimizer {
                 return Status(TNNERR_TRAIN_ERROR, "get target layer error");
             }
         }
-        if (target_layers.size() != train_config_.target_names.size()) {
+        if (target_layers.size() != train_config_.ground_truth_names.size()) {
             return Status(TNNERR_TRAIN_ERROR, "size of target layers should eq size of target names");
         }
 
         // insert prob, loss and reduce mean layers
-        for (int i = 0; i < train_config_.target_names.size(); ++i) {
+        for (int i = 0; i < train_config_.ground_truth_names.size(); ++i) {
             auto target_layer = target_layers[i];
-            auto target_name = train_config_.target_names[i];
-            auto target_shape = train_config_.target_shapes[i];
+            auto ground_truth_name = train_config_.ground_truth_names[i];
+            auto ground_truth_shape = train_config_.ground_truth_shapes[i];
 
-            net_structure->inputs_shape_map[target_name] = target_shape;
-            net_structure->blobs.insert(target_name);
+            net_structure->inputs_shape_map[ground_truth_name] = ground_truth_shape;
+            net_structure->blobs.insert(ground_truth_name);
 
             // insert probability layer
             std::shared_ptr<LayerInfo> prob_layer = GetOrCreateProbability(target_layer);
@@ -159,7 +159,7 @@ namespace optimizer {
             } else {
                 auto entropy_input = prob_layer->outputs[0];
                 entropy_layer->inputs.push_back(entropy_input);
-                entropy_layer->inputs.push_back(target_name);
+                entropy_layer->inputs.push_back(ground_truth_name);
                 auto entropy_output = entropy_input + kEntropySuffix.at(train_config_.loss_func);
                 entropy_layer->outputs.push_back(entropy_output);
                 net_structure->layers.push_back(entropy_layer);
@@ -168,7 +168,7 @@ namespace optimizer {
 
             // reduce mean
             std::shared_ptr<LayerInfo> reduce_layer = CreateReduceMean(entropy_layer->name + loss_suffix,
-                                                                       target_shape.size());
+                                                                       ground_truth_shape.size());
             if (reduce_layer == nullptr) {
                 return Status(TNNERR_TRAIN_ERROR, "create reduce mean layer error");
             } else {
@@ -401,7 +401,7 @@ namespace optimizer {
         new_layer->param                     = std::shared_ptr<LayerParam>(param);
         new_layer->param->type               = new_layer->type_str;
         new_layer->param->name               = new_layer->name;
-        param->forward_type                  = forward_layer->type;
+        param->forward_layer_type            = forward_layer->type;
         param->forward_layer_name            = forward_layer->name;
         param->forward_param                 = forward_layer->param.get();
         return new_layer;
@@ -423,6 +423,19 @@ namespace optimizer {
 
     Status NetOptimizerInsertLossAndGradient::GetNeedGradLayers(NetStructure *structure,
                                                                 std::set<std::string> &need_grad_layers) {
+        // check params first
+        std::set<std::string> layer_names_set;
+        for(auto ly : structure->layers) {
+            layer_names_set.insert(ly->name);
+        }
+
+        for (auto name : train_config_.trainable_layers) {
+            if (layer_names_set.find(name) == layer_names_set.end()) {
+                LOGE("NetOptimizerInsertLossAndGradient::GetNeedGradLayers, specified trainable layer: %s not found.\n", name.c_str());
+                return Status(TNNERR_TRAIN_ERROR, "specified tranable layer not found.");
+            }
+        }
+
         std::map<std::string, LayerInfo *> blob_to_layer;
         for (auto &layer : structure->layers) {
             for (auto &name : layer->outputs) {
