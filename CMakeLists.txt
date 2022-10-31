@@ -266,6 +266,7 @@ message(STATUS "\tONNX2TNN Converter:\t${TNN_ONNX2TNN_ENABLE}")
 message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 message(STATUS "\tBENCHMARK Test Lib:\t${TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE}")
 message(STATUS "\tDynamic Range Quantization:\t${TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE}")
+message(STATUS "\tSHARING_MEM_WITH_OPENGL:\t${SHARING_MEM_WITH_OPENGL}")
 
 include_directories(include)
 include_directories(source)

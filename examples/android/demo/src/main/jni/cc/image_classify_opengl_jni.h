@@ -12,32 +12,22 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#ifndef ANDROID_IMAGE_CLASSIFY_OPENGL_JNI_H_
+#define ANDROID_IMAGE_CLASSIFY_OPENGL_JNI_H_
 
-#ifndef ANDROID_TNN_LIB_H_
-#define ANDROID_TNN_LIB_H_
 
-#include "tnn/core/tnn.h"
-#include "tnn/core/instance.h"
+#include <jni.h>
+#include "tnn_lib.h"
+#define TNN_CLASSIFY_OPENGL(sig) Java_com_tencent_tnn_demo_ImageClassifyOpenGL_##sig
+#ifdef __cplusplus
+extern "C" {
+#endif
+JNIEXPORT JNICALL jint TNN_CLASSIFY_OPENGL(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint width, jint height, jint computeUnitType);
+JNIEXPORT JNICALL jint TNN_CLASSIFY_OPENGL(deinit)(JNIEnv *env, jobject thiz);
+JNIEXPORT JNICALL jintArray TNN_CLASSIFY_OPENGL(detectFromImage)(JNIEnv *env, jobject thiz, jobject imageSource, jint width, jint height);
 
-#define CL_TARGET_OPENCL_VERSION 200
-#define CL_HPP_TARGET_OPENCL_VERSION 120
-#define CL_HPP_MINIMUM_OPENCL_VERSION 110
+#ifdef __cplusplus
+}
+#endif
 
-class TNNLib {
-public:
-    TNNLib();
-
-    int Init(const std::string& proto_file, const std::string& model_file, const std::string& device);
-
-    std::vector<float> Forward(void* sourcePixelscolor);
-
-    ~TNNLib();
-
-private:
-
-    TNN_NS::TNN tnn_;
-    std::shared_ptr<TNN_NS::Instance> instance_;
-
-};
-
-#endif // ANDROID_TNN_LIB_H_
+#endif // ANDROID_IMAGE_CLASSIFY_OPENGL_JNI_H_
