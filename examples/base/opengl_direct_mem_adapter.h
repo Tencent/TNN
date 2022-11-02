@@ -28,10 +28,16 @@
 #include "tnn/core/macro.h"
 #include "tnn/core/tnn.h"
 #include "tnn/utils/mat_utils.h"
-#include "CL/cl_egl.h"
-#include "tnn_lib.h"
 
 #if defined(SHARING_MEM_WITH_OPENGL) && (CL_HPP_TARGET_OPENCL_VERSION >= 120)
+#if _WIN32
+#include <windows.h>
+#define GL_GLEXT_PROTOTYPES
+#include <GL/glew.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include "CL/cl_gl.h"
+#else
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <EGL/eglplatform.h>
@@ -39,6 +45,8 @@
 #include <GLES3/gl3.h>
 #include <GLES2/gl2ext.h>
 #include <GLES3/gl3ext.h>
+#include "CL/cl_egl.h"
+#endif
 
 namespace TNN_NS {
 /**
@@ -151,11 +159,11 @@ public:
     /**
      * use cpu data update texture
      */
-    void UpdateTexture(unsigned char *cpu_data) const;
+    void UpdateTexture(std::shared_ptr<Mat> input_mat) const;
 
-    Status CreateGlesEnv();
+    Status CreateGlEnv();
 
-    void DestroyGlesEnv();
+    void DestroyGlEnv();
 
  public:
 
@@ -173,20 +181,27 @@ public:
     Status Transform(std::shared_ptr<Mat> input_mat, std::shared_ptr<Mat>& output_mat, cl::CommandQueue *command_queue, bool cpu_to_gpu=true);
 
  private:
-    EGLImageKHR egl_image_ = EGL_NO_IMAGE_KHR;    // some platform should use egl to zero copy
     GLuint gl_tex_ = 0;                           // gl texture
     cl_mem cl_mem_ = nullptr;                     // cl mem object
     unsigned char *cpu_data_ = nullptr;           // cpu data address
-    size_t width_ = 0;                            // data width
-    size_t height_ = 0;                           // data height
+    size_t width_ = 224;                          // data width
+    size_t height_ = 224;                         // data height
     cl_mem_flags mem_flags_;                      // mem flag, CL_MEM_WRITE_ONLY or CL_MEM_READ_ONLY
     cl_command_queue command_queue_ = nullptr;    // cl command queue
     cl_context context_;                          // cl context
     DirectMemType sharing_type_;                  // sharing type, glcl, egl, naive
+#ifdef _WIN32
+    HINSTANCE hInstance_;
+    HGLRC hglrc_;
+    HDC hdc_;
+    HWND hWnd_;
+#else
+    EGLImageKHR egl_image_ = EGL_NO_IMAGE_KHR;    // some platform should use egl to zero copy
     EGLDisplay egl_display_ = nullptr;            // egl display
     EGLContext egl_context_ = nullptr;            // egl context
     EGLConfig egl_config_ = nullptr;              // egl config
     EGLSurface egl_surface_ = nullptr;            // egl surface
+#endif
     cl::Image2D cl_image_2d_;                     // from cl_mem
     GLuint frame_buffer_ = 0;                     // frame buffer for gl readpixels
     bool support_share_context_ = false;

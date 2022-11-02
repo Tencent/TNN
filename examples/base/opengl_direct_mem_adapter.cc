@@ -17,8 +17,175 @@
 #if defined(SHARING_MEM_WITH_OPENGL) && (CL_HPP_TARGET_OPENCL_VERSION >= 120)
 namespace TNN_NS {
 
+#ifdef _WIN32
+
+    LRESULT CALLBACK WndProc(HWND    hWnd,           // Handle For This Window
+                             UINT    uMsg,           // Message For This Window
+                             WPARAM  wParam,         // Additional Message Information
+                             LPARAM  lParam)         // Additional Message Information
+    {
+        switch (uMsg)                                   // Check For Windows Messages
+        {
+            case WM_ACTIVATE:                           // Watch For Window Activate Message
+            {
+                LOGE("WM_ACTIVE called\n");
+                HDC hdc;
+                HGLRC hglrc;
+                // obtain a device context for the window
+                hdc = GetDC(hWnd);
+
+                // set an appropriate pixel format
+                PIXELFORMATDESCRIPTOR pfd = {
+                    sizeof(PIXELFORMATDESCRIPTOR),
+                    1,
+                    PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    //Flags
+                    PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
+                    32,                   // Colordepth of the framebuffer.
+                    0, 0, 0, 0, 0, 0,
+                    0,
+                    0,
+                    0,
+                    0, 0, 0, 0,
+                    24,                   // Number of bits for the depthbuffer
+                    8,                    // Number of bits for the stencilbuffer
+                    0,                    // Number of Aux buffers in the framebuffer.
+                    PFD_MAIN_PLANE,
+                    0,
+                    0, 0, 0
+                };
+
+                int pixel_format;
+                pixel_format = ChoosePixelFormat(hdc, &pfd);
+                SetPixelFormat(hdc, pixel_format, &pfd);
+
+                if (hglrc = wglCreateContext(hdc)) {
+                    // try to make it the thread's current rendering context
+                    if (!wglMakeCurrent(hdc, hglrc)) {
+                        LOGE("wgl make current context failed\n");
+                    }
+                }
+
+                return 0;                               // Return To The Message Loop
+            }
+
+            case WM_CLOSE:                              // Did We Receive A Close Message?
+            {
+                LOGE("WM_CLOSE called\n");
+                HDC hdc;
+                HGLRC hglrc;
+                if (hglrc = wglGetCurrentContext()) {
+                    hdc = wglGetCurrentDC();
+
+                    wglMakeCurrent(NULL, NULL);
+
+                    // release the device context
+                    ReleaseDC(hWnd, hdc);
+
+                    // delete the rendering context
+                    wglDeleteContext(hglrc);
+                }
+                PostQuitMessage(0);                     // Send A Quit Message
+                return 0;                               // Jump Back
+            }
+        }
+
+        // Pass All Unhandled Messages To DefWindowProc
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    }
+#endif
+
 // Create GLES Environment
-Status OpenGLDirectMemAdapter::CreateGlesEnv() {
+Status OpenGLDirectMemAdapter::CreateGlEnv() {
+    Status status = TNN_OK;
+#ifdef _WIN32
+
+    GLuint      PixelFormat;            // Holds The Results After Searching For A Match
+    WNDCLASS    wc;                     // Windows Class Structure
+    DWORD       dwExStyle;              // Window Extended Style
+    DWORD       dwStyle;                // Window Style
+    RECT        WindowRect;             // Grabs Rectangle Upper Left / Lower Right Values
+    WindowRect.left = (long)0;            // Set Left Value To 0
+    WindowRect.right = (long)width_;       // Set Right Value To Requested Width
+    WindowRect.top = (long)0;             // Set Top Value To 0
+    WindowRect.bottom = (long)height_;     // Set Bottom Value To Requested Height
+
+    hInstance_          = GetModuleHandle(NULL);                // Grab An Instance For Our Window
+    wc.style            = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;   // Redraw On Size, And Own DC For Window.
+    wc.lpfnWndProc      = (WNDPROC) WndProc;                    // WndProc Handles Messages
+    wc.cbClsExtra       = 0;                                    // No Extra Window Data
+    wc.cbWndExtra       = 0;                                    // No Extra Window Data
+    wc.hInstance        = hInstance_;                           // Set The Instance
+    wc.hIcon            = LoadIcon(NULL, IDI_WINLOGO);          // Load The Default Icon
+    wc.hCursor          = LoadCursor(NULL, IDC_ARROW);          // Load The Arrow Pointer
+    wc.hbrBackground    = NULL;                                 // No Background Required For GL
+    wc.lpszMenuName     = NULL;                                 // We Don't Want A Menu
+    wc.lpszClassName    = "OpenGL";                             // Set The Class Name
+
+    if (!RegisterClass(&wc)) {
+        return Status(TNNERR_COMMON_ERROR, "failed to register the window class");
+    }
+
+    dwExStyle=WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;           // Window Extended Style
+    dwStyle=WS_OVERLAPPEDWINDOW;                            // Windows Style
+    // Create The Window
+    if (!(hWnd_=CreateWindowEx( dwExStyle,                          // Extended Style For The Window
+                                "OpenGL",                           // Class Name
+                                "Window-Tile",                      // Window Title
+                                dwStyle |                           // Defined Window Style
+                                WS_CLIPSIBLINGS |                   // Required Window Style
+                                WS_CLIPCHILDREN,                    // Required Window Style
+                                0, 0,                               // Window Position
+                                WindowRect.right-WindowRect.left,   // Calculate Window Width
+                                WindowRect.bottom-WindowRect.top,   // Calculate Window Height
+                                NULL,                               // No Parent Window
+                                NULL,                               // No Menu
+                                hInstance_,                         // Instance
+                                NULL)))                             // Dont Pass Anything To WM_CREATE
+    {
+        return Status(TNNERR_COMMON_ERROR, "windows create failed");
+    }
+    hdc_ = GetDC(hWnd_);
+    if (!hdc_) {
+        return Status(TNNERR_COMMON_ERROR, "create gl device context failed");
+    }
+    // set an appropriate pixel format
+    PIXELFORMATDESCRIPTOR pfd = {
+        sizeof(PIXELFORMATDESCRIPTOR),
+        1,
+        PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,    //Flags
+        PFD_TYPE_RGBA,        // The kind of framebuffer. RGBA or palette.
+        32,                   // Colordepth of the framebuffer.
+        0, 0, 0, 0, 0, 0,
+        0,
+        0,
+        0,
+        0, 0, 0, 0,
+        24,                   // Number of bits for the depthbuffer
+        8,                    // Number of bits for the stencilbuffer
+        0,                    // Number of Aux buffers in the framebuffer.
+        PFD_MAIN_PLANE,
+        0,
+        0, 0, 0
+    };
+
+    int pixel_format;
+    pixel_format = ChoosePixelFormat(hdc_, &pfd);
+    if (!pixel_format) {
+        return Status(TNNERR_COMMON_ERROR, "choose suitable pixel format failed");
+    }
+    if (!SetPixelFormat(hdc_, pixel_format, &pfd)) {
+        return Status(TNNERR_COMMON_ERROR, "set pixel format failed");
+    }
+
+    hglrc_ = wglCreateContext(hdc_);
+    if (!hglrc_) {
+        return Status(TNNERR_COMMON_ERROR, "create gl rendering context failed");
+    }
+
+    if (!wglMakeCurrent(hdc_, hglrc_)) {
+        return Status(TNNERR_COMMON_ERROR, "active gl rendering context failed");
+    }
+#elif defined(__ANDROID__)
     // EGL config attributes
     const EGLint confAttr[] = {
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
@@ -48,7 +215,6 @@ Status OpenGLDirectMemAdapter::CreateGlesEnv() {
     EGLint eglMajVers, eglMinVers;
     EGLint numConfigs;
 
-    Status status = TNN_OK;
     do {
         // 1. Get EGLDisplay object
         egl_display_ = eglGetDisplay(EGL_DEFAULT_DISPLAY);
@@ -116,12 +282,26 @@ Status OpenGLDirectMemAdapter::CreateGlesEnv() {
             break;
         }
     } while (false);
+#endif
 
     return status;
 }
 
 // Destroy GLES Env
-void OpenGLDirectMemAdapter::DestroyGlesEnv() {
+void OpenGLDirectMemAdapter::DestroyGlEnv() {
+#ifdef _WIN32
+    if (hglrc_ = wglGetCurrentContext()) {
+        hdc_ = wglGetCurrentDC();
+
+        wglMakeCurrent(NULL, NULL);
+
+        // release the device context
+        ReleaseDC(hWnd_, hdc_);
+
+        // delete the rendering context
+        wglDeleteContext(hglrc_);
+    }
+#elif defined(__ANDROID__)
     if (egl_display_ != EGL_NO_DISPLAY) {
         eglMakeCurrent(egl_display_, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         eglDestroyContext(egl_display_, egl_context_);
@@ -133,6 +313,7 @@ void OpenGLDirectMemAdapter::DestroyGlesEnv() {
     egl_display_ = EGL_NO_DISPLAY;
     egl_surface_ = EGL_NO_SURFACE;
     egl_context_ = EGL_NO_CONTEXT;
+#endif
 }
 
 cl_mem OpenGLDirectMemAdapter::AcquireCLMem() {
@@ -158,6 +339,9 @@ cl_mem OpenGLDirectMemAdapter::AcquireCLMem() {
         }
         cl_image_2d_ = cl_mem_;
     } else if (sharing_type_ == EGL_SHARING && mem_flags_ == CL_MEM_READ_ONLY) {
+#ifndef __ANDROID__
+        LOGE("Acquire cl mem got unsupported sharing type/mem flag, sharing type: %d, mem_flag: %d\n", sharing_type_, mem_flags_);
+#else
         // EGL_SHARING have some problem in HUAWEI when mem flag is WRITE ONLY
         // we use egl sharing only when it is read only
         if (egl_image_ == EGL_NO_IMAGE_KHR) {
@@ -183,6 +367,7 @@ cl_mem OpenGLDirectMemAdapter::AcquireCLMem() {
             return nullptr;
         }
         cl_image_2d_ = cl_mem_;
+#endif
     } else {
         LOGE("Acquire cl mem got unsupported sharing type/mem flag, sharing type: %d, mem_flag: %d\n", sharing_type_, mem_flags_);
     }
@@ -199,16 +384,18 @@ void OpenGLDirectMemAdapter::ReleaseCLMem() {
             return;
         }
     } else if (sharing_type_ == EGL_SHARING && mem_flags_ == CL_MEM_READ_ONLY) {
+#ifdef __ANDROID__
         cl_mem cl_objects[] = {cl_mem_};
         cl_error = clEnqueueReleaseEGLObjectsKHR(command_queue_, 1, cl_objects, 0, NULL, NULL);
         if (cl_error != CL_SUCCESS) {
             LOGE("clEnqueueReleaseEGLObjectsKHR failed! (ERROR CODE: %d)\n", cl_error);
         }
+#endif
     }
     return;
 }
 
-void OpenGLDirectMemAdapter::UpdateTexture(unsigned char *cpu_data) const {
+void OpenGLDirectMemAdapter::UpdateTexture(std::shared_ptr<Mat> input_mat) const {
     glBindTexture(GL_TEXTURE_2D, gl_tex_);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -217,7 +404,15 @@ void OpenGLDirectMemAdapter::UpdateTexture(unsigned char *cpu_data) const {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     float *cpu_float_data = new float[width_ * height_ * 4];
     for (int i = 0; i < width_ * height_ * 4; i++) {
-        cpu_float_data[i] = (float)cpu_data[i];
+        unsigned char *cpu_data = static_cast<unsigned char *>(input_mat->GetData());
+        if (input_mat->GetMatType() == N8UC4) {
+            cpu_float_data[i] = (float)cpu_data[i];
+        } else if (input_mat->GetMatType() == N8UC3) {
+            int channel = i % 4;
+            int wh_block = i / 4;
+            int index = wh_block * 3 + channel;
+            cpu_float_data[i] = (float)cpu_data[index];
+        }
     }
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width_, height_, 0, GL_RGBA,
                  GL_FLOAT, cpu_float_data);
@@ -251,7 +446,7 @@ Status OpenGLDirectMemAdapter::Transform(std::shared_ptr<Mat> input_mat, std::sh
         }
         size_t width, height;
         if (!output_mat) {
-            output_mat.reset(new Mat(DEVICE_OPENCL, input_mat->GetMatType(), input_mat->GetDims()));
+            output_mat.reset(new Mat(DEVICE_OPENCL, N8UC4, input_mat->GetDims()));
         }
         if (output_mat->GetMatType() == N8UC4) {
             cl::Image *image = static_cast<cl::Image *>(output_mat->GetData());
@@ -263,17 +458,7 @@ Status OpenGLDirectMemAdapter::Transform(std::shared_ptr<Mat> input_mat, std::sh
         }
         auto ret = InitWithGLTex(0, width, height, 0, command_queue);
         CHECK_TNN_OK(ret);
-        UpdateTexture(static_cast<unsigned char *>(input_mat->GetData()));
-
-        #if 0
-        if (cpu_data_ == nullptr) {
-            cpu_data_ = new unsigned char[width_ * height_ * 4];
-        }
-        BindFrameBuffer(gl_tex_);
-        glReadPixels(0, 0, width_, height_, GL_RGBA, GL_UNSIGNED_BYTE, cpu_data_);
-
-        LOGD("glReadPixels cpu data: [%d, %d, %d, %d]\n", cpu_data_[0], cpu_data_[1], cpu_data_[2], cpu_data_[3]);
-        #endif
+        UpdateTexture(input_mat);
 
         cl_mem ocl_mem_in = AcquireCLMem();
         if (ocl_mem_in == nullptr) {
@@ -286,7 +471,7 @@ Status OpenGLDirectMemAdapter::Transform(std::shared_ptr<Mat> input_mat, std::sh
             return ret;
         }
         #else
-        output_mat.reset(new Mat(DEVICE_OPENCL, input_mat->GetMatType(), input_mat->GetDims(), (void *)GetImage2DPtr()));
+        output_mat.reset(new Mat(DEVICE_OPENCL, output_mat->GetMatType(), input_mat->GetDims(), (void *)GetImage2DPtr()));
         #endif
         size_t slice_pitch, row_pitch, element_size;
         cl_image_format format;
@@ -295,13 +480,13 @@ Status OpenGLDirectMemAdapter::Transform(std::shared_ptr<Mat> input_mat, std::sh
              format.image_channel_order, format.image_channel_data_type, width, height, slice_pitch, row_pitch, element_size);
 
         #if 0
-        std::shared_ptr<Mat> out_cpu_mat(new Mat(DEVICE_NAIVE, input_mat->GetMatType(), input_mat->GetDims(), cpu_data_));
+        std::shared_ptr<Mat> out_cpu_mat(new Mat(DEVICE_NAIVE, output_mat->GetMatType(), input_mat->GetDims()));
         ret = MatUtils::Copy(*output_mat, *out_cpu_mat, command_queue);
         CHECK_TNN_OK(ret);
         unsigned char* out_cpu_data = (unsigned char *)out_cpu_mat->GetData();
         unsigned char* input_cpu_data = (unsigned char *)input_mat->GetData();
-        LOGE("adapter input cpu data: [%d, %d, %d, %d]\n", input_cpu_data[0], input_cpu_data[1], input_cpu_data[2], input_cpu_data[3]);
-        LOGE("adapter output opencl data: [%d, %d, %d, %d]\n", out_cpu_data[0], out_cpu_data[1], out_cpu_data[2], out_cpu_data[3]);
+        LOGI("adapter input cpu data: [%d, %d, %d]\n", input_cpu_data[0], input_cpu_data[1], input_cpu_data[2]);
+        LOGI("adapter output opencl data: [%d, %d, %d], output mat_type: %d\n", out_cpu_data[0], out_cpu_data[1], out_cpu_data[2], output_mat->GetMatType());
         #endif
     }
     return TNN_OK;
@@ -347,7 +532,7 @@ Status OpenGLDirectMemAdapter::InitWithGLTex(GLuint tex, size_t width, size_t he
             LOGE("clGetCommandQueueInfo get context error!, ret:%d\n", ret);
             return TNN_OK;
         }
-        // 获取 device
+        // get device
         cl_device_id device_id;
         ret = clGetCommandQueueInfo(command_queue_, CL_QUEUE_DEVICE, sizeof(cl_device_id),
                                     &device_id, &sz);
@@ -355,18 +540,18 @@ Status OpenGLDirectMemAdapter::InitWithGLTex(GLuint tex, size_t width, size_t he
             LOGE("clGetCommandQueueInfo get device error!");
             return TNN_OK;
         }
-        // 获取 device name 信息
+        // get device name
         char device_name[256] = {0};
         ret = clGetDeviceInfo(device_id, CL_DEVICE_NAME, sizeof(device_name), &device_name, &sz);
         if (ret != CL_SUCCESS) {
             LOGE("clGetDeviceInfo get device name error!");
             return TNN_OK;
         }
-        // 获取 cl_khr_egl_image 支持
+        // check cl_khr_egl_image support
         std::string str_device_name(device_name);
-        LOGD("device name: %s\n", str_device_name.c_str());
+        LOGI("device name: %s\n", str_device_name.c_str());
 
-        char device_extension[1024] = {0};
+        char device_extension[4096] = {0};
         ret = clGetDeviceInfo(device_id, CL_DEVICE_EXTENSIONS, sizeof(device_extension), &device_extension, &sz);
         if (ret != CL_SUCCESS) {
             LOGE("clGetDeviceInfo get device extensions error!, ret: %d\n", ret);
@@ -377,7 +562,7 @@ Status OpenGLDirectMemAdapter::InitWithGLTex(GLuint tex, size_t width, size_t he
         if (str_device_extension.find("cl_khr_egl_image") != std::string::npos) {
             cl_egl_ext = true;
         }
-        // 获取 context properties，用于判断 share context
+        // get context properties，to check share context
         cl_context_properties context_prop[256] = {0};
         ret =
             clGetContextInfo(context_, CL_CONTEXT_PROPERTIES, sizeof(context_prop), &context_prop, &sz);
@@ -388,7 +573,11 @@ Status OpenGLDirectMemAdapter::InitWithGLTex(GLuint tex, size_t width, size_t he
         bool share_context_from_prop = false;
         for (size_t i = 0; i < sz; i++) {
             if (context_prop[i] == CL_GL_CONTEXT_KHR) {
+#ifdef _WIN32
+                if (context_prop[i + 1] == (cl_context_properties)wglGetCurrentContext()) {
+#else
                 if (context_prop[i + 1] == (cl_context_properties)eglGetCurrentContext()) {
+#endif
                     share_context_from_prop = true;
                     break;
                 }
@@ -403,31 +592,25 @@ Status OpenGLDirectMemAdapter::InitWithGLTex(GLuint tex, size_t width, size_t he
         }
 
         LOGE("opengl adapter sharing_type_: %d\n", sharing_type_);
+#ifdef __ANDROID__
         egl_display_ = eglGetCurrentDisplay();
         egl_context_ = eglGetCurrentContext();
+#endif
     }
     return TNN_OK;
 }
 
 OpenGLDirectMemAdapter::OpenGLDirectMemAdapter() {
-    Status ret = CreateGlesEnv();
+    Status ret = CreateGlEnv();
     if (ret != TNN_OK) {
-        LOGE("CreateGlesEnv failed err msg: %s\n", ret.description().c_str());
+        LOGE("CreateGlEnv failed err msg: %s\n", ret.description().c_str());
     }
+    support_share_context_ = CheckShareContextSupport();
 }
 
 void OpenGLDirectMemAdapter::CleanUp() {
-    if ((sharing_type_ == NAIVE_MEM) ||
-        (sharing_type_ == EGL_SHARING && mem_flags_ == CL_MEM_WRITE_ONLY)) {
-        if (cl_mem_ != nullptr) {
-            clReleaseMemObject(cl_mem_);
-            cl_mem_ = nullptr;
-        }
-        if (cpu_data_ != nullptr) {
-            delete[] cpu_data_;
-            cpu_data_ = nullptr;
-        }
-    } else if (sharing_type_ == EGL_SHARING && mem_flags_ == CL_MEM_READ_ONLY) {
+    if (sharing_type_ == EGL_SHARING && mem_flags_ == CL_MEM_READ_ONLY) {
+#ifdef __ANDROID__
         if (egl_image_ != EGL_NO_IMAGE_KHR) {
             eglDestroyImageKHR(egl_display_, egl_image_);
             egl_image_ = EGL_NO_IMAGE_KHR;
@@ -437,12 +620,13 @@ void OpenGLDirectMemAdapter::CleanUp() {
             clReleaseMemObject(cl_mem_);
             cl_mem_ = nullptr;
         }
+#endif
     }
 }
 
 OpenGLDirectMemAdapter::~OpenGLDirectMemAdapter() {
     CleanUp();
-    DestroyGlesEnv();
+    DestroyGlEnv();
 }
 
 bool OpenGLDirectMemAdapter::IsInit() {
@@ -478,6 +662,7 @@ bool OpenGLDirectMemAdapter::CheckShareContextSupport() {
     }
     LOGD("find %lu platforms\n", platforms.size());
     // search GPU
+    bool is_share_context_support = false;
     std::vector<cl::Device> devices;
     for (auto it = platforms.begin(); it != platforms.end(); ++it) {
         std::string platform_name;
@@ -486,42 +671,33 @@ bool OpenGLDirectMemAdapter::CheckShareContextSupport() {
         LOGD("platform (%s) has %lu GPUs\n", platform_name.c_str(), devices.size());
         if (devices.size() > 0) {
             std::string device_name = devices[0].getInfo<CL_DEVICE_NAME>();
-            LOGD("find GPU: %s\n", device_name.c_str());
+            std::string device_extension = devices[0].getInfo<CL_DEVICE_EXTENSIONS>();
+            if (device_extension.find("cl_khr_gl_sharing") == std::string::npos) {
+                LOGE("GPU (%s) not support share context\n", device_name.c_str());
+                continue;
+            }
             cl::Platform::setDefault(*it);
-            break;
+            cl_platform_id platform;
+            clGetPlatformIDs(1, &platform, NULL);
+            cl_context_properties context_prop[] = {CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
+                                                    CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(), 0};
+            cl_int ret;
+            std::shared_ptr<cl::Context> context_ = std::shared_ptr<cl::Context>(new cl::Context(devices[0],
+                                                                                                 context_prop,
+                                                                                                 nullptr,
+                                                                                                 nullptr,
+                                                                                                 &ret));
+
+            if (ret != CL_SUCCESS) {
+                LOGE("GPU (%s) not support share context\n", device_name.c_str());
+            } else {
+                LOGI("GPU (%s) support opencl share context\n", device_name.c_str());
+                is_share_context_support = true;
+            }
         }
     }
-    // not found, return error code.
-    if (devices.size() <= 0) {
-        LOGE("OpenCL Device not found!\n");
-        return false;
-    }
-    std::string device_name = devices[0].getInfo<CL_DEVICE_NAME>();
-    if (!(device_name.find("QUALCOMM") != std::string::npos)) {  // not QUALCOMM
-        LOGE("OpenCL Device name:%s!\n", device_name.c_str());
-        return false;
-    }
-    cl_platform_id platform;
-    clGetPlatformIDs(1, &platform, NULL);
-    LOGE("Create special opencl context to share with OpenGL success\n");
-    LOGE("eglGetCurrentContext(): 0x%x\n", eglGetCurrentContext());
-    LOGE("eglGetCurrentDisplay(): 0x%x\n", eglGetCurrentDisplay());
-    cl_int err;
-    cl_context_properties context_prop[] = {
-        CL_GL_CONTEXT_KHR, (cl_context_properties) eglGetCurrentContext(),
-        CL_EGL_DISPLAY_KHR, (cl_context_properties) eglGetCurrentDisplay(), CL_CONTEXT_PLATFORM,
-        (cl_context_properties) platform, 0};
-    std::shared_ptr<cl::Context> context_ = std::shared_ptr<cl::Context>(new cl::Context(devices[0],
-                                                                                         context_prop,
-                                                                                         nullptr,
-                                                                                         nullptr,
-                                                                                         &err));
 
-    if (err != CL_SUCCESS) {
-        LOGE("Create special opencl context falied\n");
-        return false;
-    }
-    return true;
+    return is_share_context_support;
 }
 
 }

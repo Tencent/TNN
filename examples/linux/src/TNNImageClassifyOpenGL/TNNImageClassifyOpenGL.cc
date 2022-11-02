@@ -19,6 +19,7 @@
 #include "image_classifier.h"
 #include "macro.h"
 #include "utils/utils.h"
+#include "opengl_direct_mem_adapter.h"
 
 #include "../flags.h"
 
@@ -40,6 +41,10 @@ int main(int argc, char** argv) {
         printf("\t-l, <label>    \t%s\n", label_path_message);
         return -1;
     }
+
+#if defined(SHARING_MEM_WITH_OPENGL) && (CL_HPP_TARGET_OPENCL_VERSION >= 120)
+    std::shared_ptr<OpenGLDirectMemAdapter> adapter = std::make_shared<OpenGLDirectMemAdapter>();
+#endif
 
     // 创建tnn实例
     auto proto_content = fdLoadFile(FLAGS_p.c_str());
@@ -87,20 +92,45 @@ int main(int argc, char** argv) {
 
     std::vector<int> nchw = {1, image_channel, image_height, image_width};
 
-    //Init
+    // Init
     std::shared_ptr<TNNSDKOutput> sdk_output = predictor->CreateSDKOutput();
     CHECK_TNN_STATUS(predictor->Init(option));
-    //Predict
     auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
-    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
+
+    auto net_input_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, predictor->GetInputShape());
+    ResizeParam param;
+    param.type = INTERP_TYPE_LINEAR;
+    
+    auto dst_dims = net_input_mat->GetDims();
+    auto src_dims = image_mat->GetDims();
+    param.scale_w = dst_dims[3] / static_cast<float>(src_dims[3]);
+    param.scale_h = dst_dims[2] / static_cast<float>(src_dims[2]);
+    MatUtils::Resize(*(image_mat.get()), *(net_input_mat.get()), param, nullptr);
+
+    std::string device = "opencl";
+#if defined(SHARING_MEM_WITH_OPENGL) && (CL_HPP_TARGET_OPENCL_VERSION >= 120)
+    std::shared_ptr<Mat> target_input_mat;
+
+    // opengl shared mem with opencl
+    void *command_queue = nullptr;
+    predictor->GetCommandQueue(&command_queue);
+    adapter->Transform(net_input_mat, target_input_mat, (cl::CommandQueue *)command_queue);
+
+    std::shared_ptr<TNNSDKInput> input = std::make_shared<TNNSDKInput>(target_input_mat);
+
+    device = "opencl-opengl";
+#else
+    std::shared_ptr<TNNSDKInput> input = std::make_shared<TNNSDKInput>(net_input_mat);
+#endif
+    // Predict
+    CHECK_TNN_STATUS(predictor->Predict(input, sdk_output));
 
     int class_id = -1;
     if (sdk_output && dynamic_cast<ImageClassifierOutput *>(sdk_output.get())) {
         auto classfy_output = dynamic_cast<ImageClassifierOutput *>(sdk_output.get());
         class_id = classfy_output->class_id;
     }
-    //完成计算，获取任意输出点
-    fprintf(stdout, "Classify done. Result: %sOutput argmax: %d\n", labels[class_id], class_id+1);
+    fprintf(stdout, "Classify done. Device: %s, Result: %s, Output argmax: %d\n", device.c_str(), labels[class_id], class_id+1);
     fprintf(stdout, "%s\n", predictor->GetBenchResult().Description().c_str());
     free(data);
     return 0;

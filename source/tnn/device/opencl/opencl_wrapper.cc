@@ -245,9 +245,9 @@ bool OpenCLSymbols::LoadLibraryFromPath(const std::string &library_path) {
     TNN_LOAD_FUNCTION_PTR(clEnqueueAcquireEGLObjectsKHR);
     TNN_LOAD_FUNCTION_PTR(clEnqueueReleaseEGLObjectsKHR);
 #else
-    TNN_TRY_LOAD_FUNCTION_PTR(clCreateFromEGLImageKHR);
-    TNN_TRY_LOAD_FUNCTION_PTR(clEnqueueAcquireEGLObjectsKHR);
-    TNN_TRY_LOAD_FUNCTION_PTR(clEnqueueReleaseEGLObjectsKHR);
+    // TNN_TRY_LOAD_FUNCTION_PTR(clCreateFromEGLImageKHR);
+    // TNN_TRY_LOAD_FUNCTION_PTR(clEnqueueAcquireEGLObjectsKHR);
+    // TNN_TRY_LOAD_FUNCTION_PTR(clEnqueueReleaseEGLObjectsKHR);
 #endif
     TNN_LOAD_FUNCTION_PTR(clEnqueueReadImage);
 #if CL_HPP_TARGET_OPENCL_VERSION >= 120
@@ -658,12 +658,12 @@ cl_int CL_API_CALL clEnqueueCopyImageToBuffer(cl_command_queue command_queue, cl
 //                         cl_mem_flags                /* flags */,
 //                         const cl_egl_image_properties_khr * /* properties */,
 //                         cl_int *                    /* errcode_ret */) CL_API_SUFFIX__VERSION_1_0;
-PUBLIC cl_mem clCreateFromEGLImageKHR(cl_context context,
-                                      CLeglDisplayKHR dsp,
-                                      CLeglImageKHR image,
-                                      cl_mem_flags flags,
-                                      const cl_egl_image_properties_khr *properties,
-                                      cl_int * errcode_ret) {
+cl_mem CL_API_CALL clCreateFromEGLImageKHR(cl_context context,
+                                           CLeglDisplayKHR dsp,
+                                           CLeglImageKHR image,
+                                           cl_mem_flags flags,
+                                           const cl_egl_image_properties_khr *properties,
+                                           cl_int * errcode_ret) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateFromEGLImageKHR;
     CHECK_NOTNULL(func);
     return func(context, dsp, image, flags, properties, errcode_ret);
@@ -675,12 +675,12 @@ PUBLIC cl_mem clCreateFromEGLImageKHR(cl_context context,
 //                               cl_uint          /* num_events_in_wait_list */,
 //                               const cl_event * /* event_wait_list */,
 //                               cl_event *       /* event */) CL_API_SUFFIX__VERSION_1_0;
-PUBLIC cl_int clEnqueueAcquireEGLObjectsKHR(cl_command_queue queue/* command_queue */,
-                              cl_uint n_obj         /* num_objects */,
-                              const cl_mem * mem  /* mem_objects */,
-                              cl_uint n_events         /* num_events_in_wait_list */,
-                              const cl_event *  e_list/* event_wait_list */,
-                              cl_event * event ) {
+cl_int CL_API_CALL clEnqueueAcquireEGLObjectsKHR(cl_command_queue queue/* command_queue */,
+                                                 cl_uint n_obj         /* num_objects */,
+                                                 const cl_mem * mem  /* mem_objects */,
+                                                 cl_uint n_events         /* num_events_in_wait_list */,
+                                                 const cl_event *  e_list/* event_wait_list */,
+                                                 cl_event * event ) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueAcquireEGLObjectsKHR;
     CHECK_NOTNULL(func);
     return func(queue, n_obj, mem, n_events, e_list, event);
@@ -692,12 +692,12 @@ PUBLIC cl_int clEnqueueAcquireEGLObjectsKHR(cl_command_queue queue/* command_que
 //                               cl_uint          /* num_events_in_wait_list */,
 //                               const cl_event * /* event_wait_list */,
 //                               cl_event *       /* event */) CL_API_SUFFIX__VERSION_1_0;
-PUBLIC cl_int clEnqueueReleaseEGLObjectsKHR(cl_command_queue queue/* command_queue */,
-                                            cl_uint n_obj         /* num_objects */,
-                                            const cl_mem * mem  /* mem_objects */,
-                                            cl_uint n_events         /* num_events_in_wait_list */,
-                                            const cl_event *  e_list/* event_wait_list */,
-                                            cl_event * event ) {
+cl_int CL_API_CALL clEnqueueReleaseEGLObjectsKHR(cl_command_queue queue/* command_queue */,
+                                                 cl_uint n_obj         /* num_objects */,
+                                                 const cl_mem * mem  /* mem_objects */,
+                                                 cl_uint n_events         /* num_events_in_wait_list */,
+                                                 const cl_event *  e_list/* event_wait_list */,
+                                                 cl_event * event ) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueReleaseEGLObjectsKHR;
     CHECK_NOTNULL(func);
     return func(queue, n_obj, mem, n_events, e_list, event);
@@ -714,18 +714,17 @@ PUBLIC cl_int clEnqueueReleaseEGLObjectsKHR(cl_command_queue queue/* command_que
 //                    cl_uint              /* num_events_in_wait_list */,
 //                    const cl_event *     /* event_wait_list */,
 //                    cl_event *           /* event */) CL_API_SUFFIX__VERSION_1_0;
-PUBLIC cl_int
-clEnqueueReadImage(cl_command_queue     v1/* command_queue */,
-                   cl_mem               v2/* image */,
-                   cl_bool              v3/* blocking_read */,
-                   const size_t *       v4/* origin[3] */,
-                   const size_t *       v5/* region[3] */,
-                   size_t               v6/* row_pitch */,
-                   size_t               v7/* slice_pitch */,
-                   void *               v8/* ptr */,
-                   cl_uint              v9/* num_events_in_wait_list */,
-                   const cl_event *     v10/* event_wait_list */,
-                   cl_event *           v11/* event */) {
+cl_int CL_API_CALL clEnqueueReadImage(cl_command_queue     v1/* command_queue */,
+                                      cl_mem               v2/* image */,
+                                      cl_bool              v3/* blocking_read */,
+                                      const size_t *       v4/* origin[3] */,
+                                      const size_t *       v5/* region[3] */,
+                                      size_t               v6/* row_pitch */,
+                                      size_t               v7/* slice_pitch */,
+                                      void *               v8/* ptr */,
+                                      cl_uint              v9/* num_events_in_wait_list */,
+                                      const cl_event *     v10/* event_wait_list */,
+                                      cl_event *           v11/* event */) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueReadImage;
     CHECK_NOTNULL(func);
     return func(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
@@ -754,34 +753,34 @@ cl_mem CL_API_CALL clCreateImage(cl_context context, cl_mem_flags flags, const c
     return func(context, flags, image_format, image_desc, host_ptr, errcode_ret);
 }
 
-cl_int clEnqueueReleaseGLObjects(cl_command_queue queue     /* command_queue */,
-                                        cl_uint n_obj              /* num_objects */,
-                                        const cl_mem * mem      /* mem_objects */,
-                                        cl_uint n_elist             /* num_events_in_wait_list */,
-                                        const cl_event * wlist    /* event_wait_list */,
-                                        cl_event * event           /* event */) {
+cl_int CL_API_CALL clEnqueueReleaseGLObjects(cl_command_queue queue     /* command_queue */,
+                                             cl_uint n_obj              /* num_objects */,
+                                             const cl_mem * mem      /* mem_objects */,
+                                             cl_uint n_elist             /* num_events_in_wait_list */,
+                                             const cl_event * wlist    /* event_wait_list */,
+                                             cl_event * event           /* event */) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueReleaseGLObjects;
     CHECK_NOTNULL(func);
     return func(queue, n_obj, mem, n_elist, wlist, event);
 }
 
-cl_int clEnqueueAcquireGLObjects(cl_command_queue queue     /* command_queue */,
-                                        cl_uint n_obj              /* num_objects */,
-                                        const cl_mem * mem      /* mem_objects */,
-                                        cl_uint n_elist             /* num_events_in_wait_list */,
-                                        const cl_event * wlist    /* event_wait_list */,
-                                        cl_event * event           /* event */) {
+cl_int CL_API_CALL clEnqueueAcquireGLObjects(cl_command_queue queue     /* command_queue */,
+                                             cl_uint n_obj              /* num_objects */,
+                                             const cl_mem * mem      /* mem_objects */,
+                                             cl_uint n_elist             /* num_events_in_wait_list */,
+                                             const cl_event * wlist    /* event_wait_list */,
+                                             cl_event * event           /* event */) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clEnqueueAcquireGLObjects;
     CHECK_NOTNULL(func);
     return func(queue, n_obj, mem, n_elist, wlist, event);
 }
 
-cl_mem clCreateFromGLTexture(cl_context context     /* context */,
-                      cl_mem_flags flags   /* flags */,
-                      cl_GLenum target     /* target */,
-                      cl_GLint level       /* miplevel */,
-                      cl_GLuint tex      /* texture */,
-                      cl_int * err       /* errcode_ret */) {
+cl_mem CL_API_CALL clCreateFromGLTexture(cl_context context     /* context */,
+                                         cl_mem_flags flags   /* flags */,
+                                         cl_GLenum target     /* target */,
+                                         cl_GLint level       /* miplevel */,
+                                         cl_GLuint tex      /* texture */,
+                                         cl_int * err       /* errcode_ret */) {
     auto func = TNN_NS::OpenCLSymbols::GetInstance()->clCreateFromGLTexture;
     CHECK_NOTNULL(func);
     return func(context, flags, target, level, tex, err);
