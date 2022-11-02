@@ -591,7 +591,7 @@ Status OpenGLDirectMemAdapter::InitWithGLTex(GLuint tex, size_t width, size_t he
             sharing_type_ = NAIVE_MEM;
         }
 
-        LOGE("opengl adapter sharing_type_: %d\n", sharing_type_);
+        LOGI("opengl adapter sharing_type_: %d\n", sharing_type_);
 #ifdef __ANDROID__
         egl_display_ = eglGetCurrentDisplay();
         egl_context_ = eglGetCurrentContext();
@@ -605,7 +605,9 @@ OpenGLDirectMemAdapter::OpenGLDirectMemAdapter() {
     if (ret != TNN_OK) {
         LOGE("CreateGlEnv failed err msg: %s\n", ret.description().c_str());
     }
+#ifdef _WIN32
     support_share_context_ = CheckShareContextSupport();
+#endif
 }
 
 void OpenGLDirectMemAdapter::CleanUp() {
@@ -679,8 +681,13 @@ bool OpenGLDirectMemAdapter::CheckShareContextSupport() {
             cl::Platform::setDefault(*it);
             cl_platform_id platform;
             clGetPlatformIDs(1, &platform, NULL);
+#ifdef _WIN32
             cl_context_properties context_prop[] = {CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
                                                     CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(), 0};
+#elif defined(__ANDROID__)
+            cl_context_properties context_prop[] = {CL_GL_CONTEXT_KHR, (cl_context_properties)eglGetCurrentContext(),
+                                                    CL_EGL_DISPLAY_KHR, (cl_context_properties)eglGetCurrentDisplay(), 0};
+#endif
             cl_int ret;
             std::shared_ptr<cl::Context> context_ = std::shared_ptr<cl::Context>(new cl::Context(devices[0],
                                                                                                  context_prop,
