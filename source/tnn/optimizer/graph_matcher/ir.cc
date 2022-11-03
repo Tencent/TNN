@@ -1024,6 +1024,19 @@ namespace TNN_NS {
                 if (n->info->type != LAYER_CONST) {
                     new_layers.push_back(n->info);
                 }
+
+                if (n->info->type == LAYER_CONST && n->info->outputs.size() == 1) {
+                    const auto &output_name = n->info->outputs.at(0);
+                    if (output_name.find(name_prefix) == output_name.npos) {
+                        continue;
+                    }
+                    const auto constant_name = output_name.substr(name_prefix.size());
+                    auto &constant_map       = g->tnn_resource->constant_map;
+                    if (constant_map.find(constant_name) != constant_map.end()) {
+                        constant_map[output_name] = constant_map[constant_name];
+                        constant_map.erase(constant_name);
+                    }
+                }
             }
             g->tnn_structure->layers = new_layers;
         }
