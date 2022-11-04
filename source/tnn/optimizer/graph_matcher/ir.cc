@@ -872,6 +872,22 @@ namespace TNN_NS {
         for(auto & p : tensor_map) tensor_names.insert(p.first);
         for(auto &name : tensor_names) renameTensor(name, name_prefix + name);
 
+        // update name in constant map
+        for (auto &n : nodes) {
+            if (n->info->type == LAYER_CONST && n->info->outputs.size() == 1) {
+                const auto &output_name = n->info->outputs.at(0);
+                if (output_name.find(name_prefix) == output_name.npos) {
+                    continue;
+                }
+                const auto constant_name = output_name.substr(name_prefix.size());
+                auto &constant_map       = g->tnn_resource->constant_map;
+                if (constant_map.find(constant_name) != constant_map.end()) {
+                    constant_map[output_name] = constant_map[constant_name];
+                    constant_map.erase(constant_name);
+                }
+            }
+        }
+
         std::map<std::string, std::string> in_mapping;
         for(size_t i=0;i<anchor->inputs().size();i++) {
             in_mapping[anchor->inputs()[i]->name] = inputs()[i]->name;
@@ -1023,19 +1039,6 @@ namespace TNN_NS {
                 // ignore const layers, which are added in fromIntepreted function accourding to const_map.
                 if (n->info->type != LAYER_CONST) {
                     new_layers.push_back(n->info);
-                }
-
-                if (n->info->type == LAYER_CONST && n->info->outputs.size() == 1) {
-                    const auto &output_name = n->info->outputs.at(0);
-                    if (output_name.find(name_prefix) == output_name.npos) {
-                        continue;
-                    }
-                    const auto constant_name = output_name.substr(name_prefix.size());
-                    auto &constant_map       = g->tnn_resource->constant_map;
-                    if (constant_map.find(constant_name) != constant_map.end()) {
-                        constant_map[output_name] = constant_map[constant_name];
-                        constant_map.erase(constant_name);
-                    }
                 }
             }
             g->tnn_structure->layers = new_layers;
