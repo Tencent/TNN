@@ -12,8 +12,6 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/optimizer/net_optimizer_convert_matmul_to_conv.h"
-
 #include <map>
 #include <memory>
 #include <vector>
@@ -26,6 +24,7 @@
 #include "tnn/optimizer/graph_matcher/logger.h"
 #include "tnn/optimizer/graph_matcher/text_graph_parser.h"
 #include "tnn/optimizer/net_optimizer_manager.h"
+#include "tnn/optimizer/net_optimizer_convert_matmul_to_conv.h"
 #include "tnn/optimizer/optimizer_const.h"
 
 namespace TNN_NS {
