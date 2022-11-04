@@ -72,7 +72,11 @@ namespace optimizer {
         }
 
         std::shared_ptr<Graph> graph = std::make_shared<Graph>();
-        RETURN_IF_FAIL(graph->fromInterpreted(structure, resource));
+        auto status = graph->fromInterpreted(structure, resource);
+        if (status != TNN_OK) {
+            LOGE("%s", status.description().c_str());
+            return TNN_OK;
+        }
 
         std::string graph_str = R"(
             graph(%in):
