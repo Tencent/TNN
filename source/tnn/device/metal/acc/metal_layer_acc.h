@@ -171,10 +171,11 @@ void GetSingleAxisSplitSize(const DimsVector& dims, int axis, MTLSize& size, boo
 
 class MetalTypeLayerLayoutCreator {
 public:
-    static std::shared_ptr<ImplementedLayout> UpdateImplementedLayout(LayerType layer_type, DataFormat layout) {
+    static std::shared_ptr<ImplementedLayout> UpdateImplementedLayout(LayerType layer_type, LayerType forward_type,    \
+                                                                        DataFormat layout) {
         // make sure arm device has been registered
         TypeDeviceRegister<MetalDevice> metal_device_register(DEVICE_METAL);
-        auto implemented_layout = GetDevice(DEVICE_METAL)->GetImplementedLayout(layer_type);
+        auto implemented_layout = GetDevice(DEVICE_METAL)->GetImplementedLayout(layer_type, forward_type);
         auto updated_layout     = std::make_shared<ImplementedLayout>(*implemented_layout);
         updated_layout->layouts.push_back(layout);
         return updated_layout;
@@ -183,7 +184,7 @@ public:
 
 #define REGISTER_METAL_LAYOUT(layer_type, layout)                                                                        \
     MetalTypeLayerLayoutRegister g_metal_##layer_type##_##layout##_layout_register(                                      \
-             layer_type, MetalTypeLayerLayoutCreator::UpdateImplementedLayout(layer_type, layout));
+             layer_type, MetalTypeLayerLayoutCreator::UpdateImplementedLayout(layer_type, layer_type, layout));
 
 }  // namespace TNN_NS
 

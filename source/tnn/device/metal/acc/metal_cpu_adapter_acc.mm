@@ -179,7 +179,7 @@ DataType MetalCpuAdapterAcc::GetCpuLayerAccPrecision(DataType metal_blob_data_ty
 }
 
  DataFormat MetalCpuAdapterAcc::GetCpuLayerAccDataFormat() {
-    auto cpu_layouts = impl_device_->GetImplementedLayout(impl_layer_type_);
+    auto cpu_layouts = impl_device_->GetImplementedLayout(impl_layer_type_, impl_layer_type_);
     return cpu_layouts->layouts[0];
  }
 

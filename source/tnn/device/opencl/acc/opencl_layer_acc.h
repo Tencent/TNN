@@ -102,10 +102,11 @@ private:
 
 class OpenCLTypeLayerLayoutCreator {
 public:
-    static std::shared_ptr<ImplementedLayout> UpdateImplementedLayout(LayerType layer_type, DataFormat layout) {
+    static std::shared_ptr<ImplementedLayout> UpdateImplementedLayout(LayerType layer_type, LayerType forward_type,    \
+                                                                        DataFormat layout) {
         // make sure opencl device has been registered
         TypeDeviceRegister<OpenCLDevice> opencl_device_register(DEVICE_OPENCL);
-        auto implemented_layout = GetDevice(DEVICE_OPENCL)->GetImplementedLayout(layer_type);
+        auto implemented_layout = GetDevice(DEVICE_OPENCL)->GetImplementedLayout(layer_type, forward_type);
         auto updated_layout     = std::make_shared<ImplementedLayout>(*implemented_layout);
         updated_layout->layouts.push_back(layout);
         return updated_layout;
@@ -114,7 +115,7 @@ public:
 
 #define REGISTER_OPENCL_LAYOUT(layer_type, layout)                                                                        \
     OpenCLTypeLayerLayoutRegister g_opencl_##layer_type##_##layout##_layout_register(                                      \
-             layer_type, OpenCLTypeLayerLayoutCreator::UpdateImplementedLayout(layer_type, layout));
+             layer_type, OpenCLTypeLayerLayoutCreator::UpdateImplementedLayout(layer_type, layer_type, layout));
 
 }  // namespace TNN_NS
 
