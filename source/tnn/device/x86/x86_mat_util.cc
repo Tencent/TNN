@@ -25,6 +25,7 @@
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
+namespace x86 {
 
 static inline void* x86Malloc(size_t size) {
     return _mm_malloc(size, 32);
@@ -1869,4 +1870,5 @@ void WarpAffineNearestYUV420sp(const uint8_t* src, int batch, int src_w, int src
     }
 }
 
+}  // namespace x86
 }  // namespace TNN_NS

@@ -64,7 +64,15 @@ Status X86Device::Allocate(void** handle, MatType mat_type, DimsVector dims) {
 
 Status X86Device::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
     if (handle) {
-        *handle = malloc(GetBlobMemoryBytesSize(size_info));
+        int size = GetBlobMemoryBytesSize(size_info);
+        *handle = malloc(size);
+        if (!(*handle)) {
+            LOGEV("X86Device allocate %d bytes failed.", msg, size);
+            return Status(TNNERR_OUTOFMEMORY, msg);
+        }
+        if (*handle && size > 0) {
+            memset(*handle, 0, size);
+        }
     }
     return TNN_OK;
 }

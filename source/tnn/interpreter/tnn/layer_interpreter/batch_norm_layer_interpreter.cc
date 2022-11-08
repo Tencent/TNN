@@ -19,7 +19,9 @@ namespace TNN_NS {
 DECLARE_LAYER_INTERPRETER(BatchNorm, LAYER_BATCH_NORM);
 
 Status BatchNormLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, LayerParam** param) {
-        return TNN_OK;
+    //No need to interpret channel, but we must create a param
+    auto p = CreateLayerParam<BatchNormLayerParam>(param);
+    return TNN_OK;
 }
 
 Status BatchNormLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerResource** resource) {

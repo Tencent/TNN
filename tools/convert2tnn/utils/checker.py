@@ -41,7 +41,11 @@ def is_ssd_model(proto_path):
 
 def check_onnx_dim(onnx_path : str):
     onnxruntime.set_default_logger_severity(3)
-    session = onnxruntime.InferenceSession(onnx_path)
+    so = onnxruntime.SessionOptions()
+    so.inter_op_num_threads = 1
+    so.intra_op_num_threads = 1
+
+    session = onnxruntime.InferenceSession(onnx_path, providers=['CPUExecutionProvider'], sess_options=so)
     current_shape = {}
     status = 0
     for ip in session.get_inputs():

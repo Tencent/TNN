@@ -18,8 +18,8 @@ namespace TNN_NS {
 
 DECLARE_COREML_LAYER_WITH_DATA(PRelu, LAYER_PRELU,
                                 std::shared_ptr<void> coreml_layer_type_;
-                                std::shared_ptr<void> coreml_layer_alpha_;
-                                std::shared_ptr<float> slope_fp32_ptr_;);
+                                std::shared_ptr<CoreML__Specification__WeightParams> coreml_layer_alpha_;
+                                std::shared_ptr<RawBuffer> rawbuffer_fp32_slope_;);
 
 Status CoreMLPReluLayer::BuildLayerType() {
     //layer type
@@ -55,36 +55,10 @@ Status CoreMLPReluLayer::BuildLayerParam() {
         coreml_layer_type_ = std::shared_ptr<CoreML__Specification__ActivationPReLU>(new CoreML__Specification__ActivationPReLU);
         coreml_layer_->activation->prelu = (CoreML__Specification__ActivationPReLU *)coreml_layer_type_.get();
         core_ml__specification__activation_pre_lu__init(coreml_layer_->activation->prelu);
-        coreml_layer_alpha_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
-        coreml_layer_->activation->prelu->alpha = (CoreML__Specification__WeightParams *)coreml_layer_alpha_.get();
-        core_ml__specification__weight_params__init(coreml_layer_->activation->prelu->alpha);
-        switch (slope_data_type) {
-            case DATA_TYPE_FLOAT:
-                coreml_layer_->activation->prelu->alpha->n_floatvalue = slope_count;
-                coreml_layer_->activation->prelu->alpha->floatvalue = layer_res->slope_handle.force_to<float *>();
-                break;
-            case DATA_TYPE_HALF:
-                {
-#if TNN_COREML_FULL_PRECISION
-                    coreml_layer_->activation->prelu->alpha->n_floatvalue = slope_count;
-                    void *slope_data_ptr = layer_res->slope_handle.force_to<void *>();
-                    slope_fp32_ptr_ = std::shared_ptr<float>(new float [slope_count], [](float* p) { delete[] p; });
-                    auto slope_fp32_ptr = slope_fp32_ptr_.get();
-                    RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)slope_data_ptr, (float *)slope_fp32_ptr, slope_count),TNN_OK);
-                    coreml_layer_->activation->prelu->alpha->floatvalue = slope_fp32_ptr;
-#else
-                    coreml_layer_->activation->prelu->alpha->float16value.len = layer_res->slope_handle.GetBytesSize();
-                    coreml_layer_->activation->prelu->alpha->float16value.data = layer_res->slope_handle.force_to<uint8_t *>();
-#endif
-                }
-                break;
-            default:
-                {
-                    LOGE("CoreMLPReluLayer dont support data type (%d)\n", slope_data_type);
-                    return Status(TNNERR_PARAM_ERR, "CoreMLPReluLayer dont support data type");
-                }
-                break;
-        }
+        
+        RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(layer_res->slope_handle),
+                                             coreml_layer_alpha_, rawbuffer_fp32_slope_), TNN_OK);
+        coreml_layer_->activation->prelu->alpha =  coreml_layer_alpha_.get();
     }
     
     return TNN_OK;

@@ -46,7 +46,7 @@ Refer to [demo documentaion](demo_en.md)
 
 ## FAQ
 Q: CMake not found in Windows?<br>
-A: If CMake was installed, add the CMake path to Windows Enviroment Viraibles. Or use Visual Studio Prompt to run build_x86_msvc.bat, which includes build-in CMake.
+A: If CMake was installed, add the CMake path to Windows Environment Viraibles. Or use Visual Studio Prompt to run build_x86_msvc.bat, which includes build-in CMake.
 
 Q: Visual Studio not found in Windows?<br>
 A: Execute the scripts with Visual Studio Version, Like

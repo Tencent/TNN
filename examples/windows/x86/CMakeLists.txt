@@ -51,7 +51,9 @@ file(GLOB_RECURSE UTIL_SRC
                    "${CMAKE_SOURCE_DIR}/../../utils/*.cc")
 
 file(GLOB_RECURSE WEBCAM_SRC "${CMAKE_SOURCE_DIR}/../../base/ocr*.cc")
-list(REMOVE_ITEM BASE_SRC ${WEBCAM_SRC})
+file(GLOB_RECURSE NANODET_SRC "${CMAKE_SOURCE_DIR}/../../base/*nanodet.cc")
+
+list(REMOVE_ITEM BASE_SRC ${WEBCAM_SRC} ${NANODET_SRC})
 
 if (TNN_DEMO_WITH_OPENCV)
     add_definitions(-D_OPENCV_)

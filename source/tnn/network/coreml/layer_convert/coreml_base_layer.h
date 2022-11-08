@@ -34,9 +34,19 @@
 #define TNN_COREML_FULL_PRECISION 1
 #endif
 
+using namespace std;
+
 namespace TNN_NS {
 
 std::shared_ptr<char> NullTerminatedCString(std::string & name);
+//@brief convert rawbuffer to CoreML__Specification__WeightParams, if rawbuffer is fp16, rawbuffer_fp32 will be allocate, the caller must keep reference of it, or runtime error may raise
+// @rawbuffer input rawbuffer
+// @coreml_weight output CoreML__Specification__WeightParams
+// @rawbuffer_fp32 output fp32 RawBuffer
+Status RawBuffer2CoreMLWeight(RawBuffer *rawbuffer,
+                              shared_ptr<CoreML__Specification__WeightParams> &coreml_weight, shared_ptr<RawBuffer> &rawbuffer_fp32);
+Status RawBuffer2CoreMLWeight(int data_count, void *data_ptr, DataType data_type, DimsVector data_dims,
+                              shared_ptr<CoreML__Specification__WeightParams> &coreml_weight, shared_ptr<RawBuffer> &rawbuffer_fp32);
 
 class CoreMLConstLayer;
 
@@ -56,10 +66,16 @@ public:
     virtual std::string GetLayerName();
     
     // @brief get internal coreml layers, include const weight input layer
+    //NOTE: make sure the order of layer be correct, or compile error may raise.
+    //protobuf spec. validator error: Layer '39' consumes an input named 'input_expanded' which is not present in this network.
     virtual std::vector<CoreML__Specification__NeuralNetworkLayer*> GetCoreMLLayerPtrs();
     
     // @brief convert to coreml layer
     Status Convert();
+    
+    
+    //@brief set layer name
+    void SetLayerName(std::string name);
 protected:
     // @brief set coreml layer type
     virtual Status BuildLayerType();
@@ -67,6 +83,7 @@ protected:
     virtual Status BuildLayerParam();
     // @brief convert weights to coreml const layer
     virtual Status BuildConstantWeightsLayer();
+    Status BuildConstantWeightsLayer(std::vector<std::string> const_names);
     /* @brief generate all inputs of coreml layer
      * For TNN op without input from layresource, you dont need override this func, it will generate all inputs form layer info automatically;
      * For TNN op with input from layresource, you must override this func to generate all inputs manually;
@@ -77,9 +94,6 @@ protected:
      * For TNN op with output from layresource, you must override this func to generate all outputs manually;
      */
     virtual std::vector<std::string> BuildLayerOutputs();
-
-    //@brief set layer name
-    void SetLayerName(std::string& name);
     
     //@brief set outputs for coreml layer
     void SetLayerInputs(std::vector<std::string>& inputs);
@@ -101,11 +115,13 @@ protected:
     std::vector<std::shared_ptr<char> > coreml_layer_outputs_;
 
     //for some op such as add, conv, weight value is stored in layer resource, so constant coreml layer is needed for every layer
-    std::vector<std::shared_ptr<CoreMLConstLayer> > coreml_layer_constant_weights_;
-    //for some op to add op before itself
-    std::shared_ptr<CoreMLBaseLayer> coreml_layer_before_;
-    //for some op to add op after itself
-    std::shared_ptr<CoreMLBaseLayer> coreml_layer_after_;
+    std::vector<std::shared_ptr<CoreMLConstLayer> > coreml_layer_constant_weights_ = {};
+    //for some op to add op before itself, see LSTM. Note layers must be added by compute order, otherwise mlmodel compiling error wil raise.
+    //e.g.  protobuf spec. validator error: Layer '39' consumes an input named 'input_expanded' which is not present in this network.
+    std::vector<std::shared_ptr<CoreMLBaseLayer> > coreml_layers_before_ = {};
+    //for some op to add op after itself, see LSTM. Note layers must be added by compute order, otherwise mlmodel compiling error wil raise.
+    //e.g.  protobuf spec. validator error: Layer '39' consumes an input named 'input_expanded' which is not present in this network.
+    std::vector<std::shared_ptr<CoreMLBaseLayer> > coreml_layers_after_ = {};
     
 };
 

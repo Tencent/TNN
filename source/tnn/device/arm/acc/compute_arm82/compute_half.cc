@@ -28,6 +28,9 @@
 
 namespace TNN_NS {
 
+using namespace arm;
+#pragma mark - other file func
+
 /*
 [1] Implement functions in compute.h with fp16 version 
 */
@@ -371,6 +374,9 @@ void ScaleBias(fp16_t *src, int channel, int hw, const float *scale, const float
     }
 }
 
+#pragma mark - namespace arm
+namespace arm {
+
 int PackNeonNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel) {
     if ((hw == 1) && (channel % 8 == 0)) {
         memcpy(dst, src, hw * channel * sizeof(fp16_t));
@@ -441,9 +447,12 @@ int UnpackNeonNHWC(fp16_t *dst, const fp16_t *src, size_t hw, size_t channel) {
 
     return 0;
 }
+}  // namespace arm
 
 #endif  // TNN_ARM82
 
+#pragma mark - namespace arm
+namespace arm {
 
 #if TNN_ARM82
 
@@ -1236,4 +1245,5 @@ void DeconvFp16O8C1(fp16_t* dst, const fp16_t* src, const fp16_t* weight, long w
 
 #endif  // TNN_ARM82_SIMU
 
+}  // namespace arm
 }  // namespace TNN_NS

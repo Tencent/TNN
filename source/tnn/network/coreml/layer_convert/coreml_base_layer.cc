@@ -14,6 +14,7 @@
 
 #include "coreml_base_layer.h"
 #include "coreml_const_layer.h"
+#include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
 
@@ -26,6 +27,65 @@ std::shared_ptr<char> NullTerminatedCString(std::string & name) {
     }
     ptr[name.size()] = '\0';
     return cstring;
+}
+
+Status RawBuffer2CoreMLWeight(RawBuffer *rawbuffer,
+                              shared_ptr<CoreML__Specification__WeightParams> &coreml_weight, shared_ptr<RawBuffer> &rawbuffer_fp32) {
+    return RawBuffer2CoreMLWeight(rawbuffer->GetDataCount(), rawbuffer->force_to<void *>(), rawbuffer->GetDataType(), rawbuffer->GetBufferDims(),
+                                  coreml_weight, rawbuffer_fp32);
+}
+
+Status RawBuffer2CoreMLWeight(int data_count, void *data_ptr, DataType data_type, DimsVector data_dims,
+                              shared_ptr<CoreML__Specification__WeightParams> &coreml_weight, shared_ptr<RawBuffer> &rawbuffer_fp32) {
+    coreml_weight = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
+    core_ml__specification__weight_params__init(coreml_weight.get());
+    
+    const int byte_size = DataTypeUtils::GetBytesSize(data_type);
+    
+    //TODO: to chcek data type
+    switch (data_type) {
+        case DATA_TYPE_FLOAT:
+        {
+            coreml_weight->n_floatvalue = data_count;
+            coreml_weight->floatvalue = (float *)data_ptr;
+        }
+            break;
+        case DATA_TYPE_INT32:
+            {
+                //CoreML only support FP32, so we need convert int32 to fp32
+                rawbuffer_fp32 = shared_ptr<RawBuffer>(new RawBuffer(data_count*sizeof(float), data_dims));
+                float *data_fp32_ptr = rawbuffer_fp32->force_to<float *>();
+                int *int32_data = (int *)data_ptr;
+                for (int i=0; i<data_count; i++) {
+                    data_fp32_ptr[i] = int32_data[i];
+                }
+                coreml_weight->n_floatvalue = data_count;
+                coreml_weight->floatvalue = data_fp32_ptr;
+            }
+            break;
+        case DATA_TYPE_HALF:
+            {
+#if TNN_COREML_FULL_PRECISION
+                rawbuffer_fp32 = shared_ptr<RawBuffer>(new RawBuffer(data_count*sizeof(float), data_dims));
+                float *data_fp32_ptr = rawbuffer_fp32->force_to<float *>();
+                RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)data_ptr, (float *)data_fp32_ptr, data_count),TNN_OK);
+                
+                coreml_weight->n_floatvalue = data_count;
+                coreml_weight->floatvalue = data_fp32_ptr;
+#else
+                coreml_weight->float16value.len = data_count*byte_size;
+                coreml_weight->float16value.data = (uint8_t *)data_ptr;
+#endif
+            }
+            break;
+        default:
+            {
+                LOGE("RawBuffer2CoreMLWeight dont support data type (%d)\n", data_type);
+                return Status(TNNERR_PARAM_ERR, "RawBuffer2CoreMLWeight dont support data type");
+            }
+            break;
+    }
+    return TNN_OK;
 }
 
 CoreMLBaseLayer::CoreMLBaseLayer(LayerType type) {
@@ -54,15 +114,16 @@ Status CoreMLBaseLayer::Convert() {
 };
 
 std::vector<CoreML__Specification__NeuralNetworkLayer*> CoreMLBaseLayer::GetCoreMLLayerPtrs() {
+    //Note layer_ptrs must be added by compute order, otherwise mlmodel compiling error wil raise.
+    //e.g.  protobuf spec. validator error: Layer '39' consumes an input named 'input_expanded' which is not present in this network.
     std::vector<CoreML__Specification__NeuralNetworkLayer*> layer_ptrs;
     for (auto& iter : coreml_layer_constant_weights_) {
         auto const_ptr = iter->GetCoreMLLayerPtrs();
         layer_ptrs.insert(layer_ptrs.end(), const_ptr.begin(), const_ptr.end());
     }
     
-    if (coreml_layer_before_) {
-        auto before_layer = coreml_layer_before_.get();
-        auto before_layer_ptr = before_layer->GetCoreMLLayerPtrs();
+    for (auto iter : coreml_layers_before_) {
+        auto before_layer_ptr = iter->GetCoreMLLayerPtrs();
         layer_ptrs.insert(layer_ptrs.end(), before_layer_ptr.begin(), before_layer_ptr.end());
     }
     
@@ -70,9 +131,8 @@ std::vector<CoreML__Specification__NeuralNetworkLayer*> CoreMLBaseLayer::GetCore
         layer_ptrs.push_back(coreml_layer_.get());
     }
     
-    if (coreml_layer_after_) {
-        auto after_layer = coreml_layer_after_.get();
-        auto after_layer_ptr = after_layer->GetCoreMLLayerPtrs();
+    for (auto iter : coreml_layers_after_) {
+        auto after_layer_ptr = iter->GetCoreMLLayerPtrs();
         layer_ptrs.insert(layer_ptrs.end(), after_layer_ptr.begin(), after_layer_ptr.end());
     }
     return layer_ptrs;
@@ -87,6 +147,36 @@ Status CoreMLBaseLayer::BuildLayerParam() {
 }
 
 Status CoreMLBaseLayer::BuildConstantWeightsLayer() {
+    //dont create constantlayer in CoreMLBaseLayer, do it in each layer's BuildConstantWeightsLayer
+    //because some layer use constant in constant_map for layer resource, we dont need create a constant layer, see LSTM
+    
+    //weight in constantmap
+    if (!layer_info_ || !net_resource_) {
+        LOGE("CoreMLBaseLayer has invalid layer info or net resource\n");
+        return Status(TNNERR_MODEL_ERR, "CoreMLBaseLayer has invalid layer info or net resource");
+    }
+    return BuildConstantWeightsLayer(layer_info_->inputs);
+}
+
+Status CoreMLBaseLayer::BuildConstantWeightsLayer(std::vector<std::string> const_names) {
+    for (auto iter : const_names) {
+        //only load data blob with flag DATA_FLAG_CHANGE_NEVER, ignore DATA_FLAG_CHANGE_IF_SHAPE_DIFFER
+        if (net_resource_->constant_blob_flags.find(iter) != net_resource_->constant_blob_flags.end()) {
+            auto blob_flag = net_resource_->constant_blob_flags[iter];
+            if (blob_flag != DATA_FLAG_CHANGE_NEVER) {
+                continue;
+            }
+        }
+
+        if (net_resource_->constant_map.find(iter) != net_resource_->constant_map.end()) {
+            auto weight_buffer = net_resource_->constant_map[iter];
+            auto weight_layer = std::make_shared<CoreMLConstLayer>(LAYER_CONST);
+            auto status = weight_layer->Init(iter, *(weight_buffer.get()));
+            RETURN_ON_NEQ(status, TNN_OK);
+
+            coreml_layer_constant_weights_.push_back(weight_layer);
+        }
+    }
     return TNN_OK;
 }
 
@@ -124,7 +214,7 @@ void CoreMLBaseLayer::SetNetResource(NetResource *net_resource) {
     net_resource_ = net_resource;
 }
 
-void CoreMLBaseLayer::SetLayerName(std::string& name) {
+void CoreMLBaseLayer::SetLayerName(std::string name) {
     coreml_layer_name_ = NullTerminatedCString(name);
     if (coreml_layer_) {
         coreml_layer_->name = coreml_layer_name_.get();
@@ -132,6 +222,9 @@ void CoreMLBaseLayer::SetLayerName(std::string& name) {
  }
 
 std::string CoreMLBaseLayer::GetLayerName() {
+    if (coreml_layer_name_) {
+        return coreml_layer_name_.get();
+    }
     return layer_info_ ? layer_info_->name : "";
 }
 
