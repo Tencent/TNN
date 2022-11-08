@@ -52,7 +52,7 @@ int main(int argc, char ** argv) {
     }
 
     bool connected = false;
-    RETURN_IF_FAIL(IsConnectedGraph(graph.get(), connected));
+    RETURN_ON_FAIL(IsConnectedGraph(graph.get(), connected));
     if (!connected) {
         printf("The graph is not connected.\n");
         return 0;
@@ -79,7 +79,7 @@ int main(int argc, char ** argv) {
             return -1;
         }
 
-        RETURN_IF_FAIL(registry.registerGraph("ssa", pattern));
+        RETURN_ON_FAIL(registry.registerGraph("ssa", pattern));
 
         auto gen = [](std::shared_ptr<TNN_NS::AnchorGraph> in) -> std::shared_ptr<TNN_NS::Graph> {
             if (in->inputs().size() != 1 || in->outputs().size() != 1 ){
@@ -169,7 +169,7 @@ int main(int argc, char ** argv) {
             pattern->dump(f);
             graph->rewrite(pattern, gen);
 
-            RETURN_IF_FAIL(registry.registerGraph("add_mul_mul", pattern));
+            RETURN_ON_FAIL(registry.registerGraph("add_mul_mul", pattern));
         }
 
     }

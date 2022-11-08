@@ -88,7 +88,7 @@ namespace TNN_NS {
     }
 
     Status Node::addInput(Edge * e) {
-        RETURN_IF_FAIL(addInputEdge(e));
+        RETURN_ON_FAIL(addInputEdge(e));
         info->inputs.push_back(e->tensor_name);
         return TNN_OK;
     }
@@ -209,7 +209,7 @@ namespace TNN_NS {
                     auto t = std::make_shared<Tensor>(p.first);
                     t->dims = p.second->GetBufferDims();
                     t->data_type = p.second->GetDataType();
-                    RETURN_IF_FAIL(createNode(LAYER_CONST, {}, {p.first}, {t}));
+                    RETURN_ON_FAIL(createNode(LAYER_CONST, {}, {p.first}, {t}));
                 }
             }
 
@@ -230,14 +230,14 @@ namespace TNN_NS {
                         return Status(TNNERR_PARAM_ERR, msg);
                     }
                     auto e = std::make_shared<Edge>(n.get(), node.get(), in);
-                    RETURN_IF_FAIL(n->addOutputEdge(e.get()));
-                    RETURN_IF_FAIL(node->addInputEdge(e.get()));
+                    RETURN_ON_FAIL(n->addOutputEdge(e.get()));
+                    RETURN_ON_FAIL(node->addInputEdge(e.get()));
                     edges.push_back(e);
                 }
             }
 
-            RETURN_IF_FAIL(createUnspecifiedTensors());
-            RETURN_IF_FAIL(reBuildTensorIndex());
+            RETURN_ON_FAIL(createUnspecifiedTensors());
+            RETURN_ON_FAIL(reBuildTensorIndex());
 
             for (auto name : tnn_structure->outputs) {
                 auto n = getNodeByTensorName(name);
@@ -245,7 +245,7 @@ namespace TNN_NS {
                     ERRORV("Found unknown blob [%s] in netstructure->outputs", msg, name.c_str());
                     return Status(TNNERR_PARAM_ERR, msg);
                 }
-                RETURN_IF_FAIL(markOutput(name));
+                RETURN_ON_FAIL(markOutput(name));
             }
         } catch (const std::runtime_error& error) {
             ERROR("%s", error.what());
@@ -362,7 +362,7 @@ namespace TNN_NS {
         nodes.push_back(n);
         if (create_tensors) {
             for(auto out_name : n->info->outputs) {
-                RETURN_IF_FAIL(createDefaultTensor(out_name));
+                RETURN_ON_FAIL(createDefaultTensor(out_name));
             }
         }
         RETURN_ON_NEQ(buildNodeTensorIndex(n), TNN_OK);
@@ -419,10 +419,10 @@ namespace TNN_NS {
             edges.push_back(e);
         }
         if (out_tensors.size() == 0) {
-            RETURN_IF_FAIL(addNode(new_node));
+            RETURN_ON_FAIL(addNode(new_node));
         } else {
             tensors.insert(tensors.end(), out_tensors.begin(), out_tensors.end());
-            RETURN_IF_FAIL(addNode(new_node, false));
+            RETURN_ON_FAIL(addNode(new_node, false));
         }
         return TNN_OK;
     }
@@ -482,15 +482,15 @@ namespace TNN_NS {
 
         // skip AnchorGraph 
         if (dynamic_cast<AnchorGraph*>(this) == nullptr) {
-            RETURN_IF_FAIL(topologicalSort());
+            RETURN_ON_FAIL(topologicalSort());
         }
 
         for(auto &n : placeholders) {
-            RETURN_IF_FAIL(buildNodeTensorIndex(n));
+            RETURN_ON_FAIL(buildNodeTensorIndex(n));
         }
 
         for(auto &n : nodes) {
-            RETURN_IF_FAIL(buildNodeTensorIndex(n));
+            RETURN_ON_FAIL(buildNodeTensorIndex(n));
         }
         return sanityCheck();
     }
@@ -500,7 +500,7 @@ namespace TNN_NS {
             for(auto out_name : n->info->outputs) {
                 auto t = getTensorByName(out_name);
                 if (!t) {
-                    RETURN_IF_FAIL(createDefaultTensor(out_name));
+                    RETURN_ON_FAIL(createDefaultTensor(out_name));
                 }
             }
         }
@@ -508,7 +508,7 @@ namespace TNN_NS {
             for(auto out_name : n->info->outputs) {
                 auto t = getTensorByName(out_name);
                 if (!t) {
-                    RETURN_IF_FAIL(createDefaultTensor(out_name));
+                    RETURN_ON_FAIL(createDefaultTensor(out_name));
                 }
             }
         }
@@ -516,11 +516,11 @@ namespace TNN_NS {
     }
     Status Graph::sanityCheck() {
         for(auto &n : placeholders) {
-            RETURN_IF_FAIL(n->sanityCheck());
+            RETURN_ON_FAIL(n->sanityCheck());
         }
 
         for(auto &n : nodes) {
-            RETURN_IF_FAIL(n->sanityCheck());
+            RETURN_ON_FAIL(n->sanityCheck());
 
             size_t total = 0;
             for(auto &name : n->info->outputs) {
@@ -538,9 +538,9 @@ namespace TNN_NS {
         AnchorGraph* anchor_ptr = dynamic_cast<AnchorGraph*>(this);
         bool connected;
         if (anchor_ptr != nullptr) {
-            RETURN_IF_FAIL(IsConnectedGraph(anchor_ptr, connected));
+            RETURN_ON_FAIL(IsConnectedGraph(anchor_ptr, connected));
         } else {
-            RETURN_IF_FAIL(IsConnectedGraph(this, connected));
+            RETURN_ON_FAIL(IsConnectedGraph(this, connected));
         }
         if (!connected) {
             ERRORV("the graph is not connected.", msg);
