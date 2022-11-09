@@ -902,6 +902,7 @@ namespace TNN_NS {
         std::map<std::string, std::string> graph_output_names;
         for(auto v: g->outputs()) {
             if (out_mapping.count(v->name) > 0) {
+                // old name -> new name
                 graph_output_names[out_mapping.at(v->name)] = v->name;
             }
         }
