@@ -24,6 +24,8 @@ std::string TorchBinaryConverter::TNNOpType(const torch::jit::Node *node, bool q
     std::string type = node->kind().toQualString();
     if (type == "aten::add") {
         return "Add";
+    } else if (type == "aten::floor_divide") {
+        return "Div";
     } else {
         LOGE("TorchBinaryConverter does not support type %s", type.c_str());
         return "";
@@ -48,28 +50,33 @@ TNN_NS::Status TorchBinaryConverter::exec(tnn::NetStructure &net_structure, tnn:
     cur_layer->outputs.push_back(node->output(0)->debugName());
     net_structure.layers.push_back(cur_layer);
     // parse param
-    auto param         = new TNN_NS::MultidirBroadcastLayerParam;
-    cur_layer->param   = std::shared_ptr<TNN_NS::LayerParam>(param);
-    param->type        = cur_layer->type_str;
-    param->name        = cur_layer->name;
-    param->quantized   = false;
-    const auto &inputs = node->inputs();
-    for (int i = 1; i < inputs.size() - 1; ++i) {
-        const auto &value_kind = inputs[i]->type()->kind();
-        if (value_kind == c10::TypeKind::TensorType) {
-            cur_layer->inputs.push_back(inputs[i]->debugName());
-            param->weight_input_index = -1;
-        } else {
-            param->weight_input_index                       = 1;
-            auto *layer_resource                            = new TNN_NS::EltwiseLayerResource;
-            layer_resource->name                            = cur_layer->name;
-            layer_resource->element_handle                  = CreateRawBufferFromValue(node->input(1));
-            layer_resource->element_shape                   = layer_resource->element_handle.GetBufferDims();
-            net_resource.resource_map[layer_resource->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
+    auto param             = new TNN_NS::MultidirBroadcastLayerParam;
+    cur_layer->param       = std::shared_ptr<TNN_NS::LayerParam>(param);
+    param->type            = cur_layer->type_str;
+    param->name            = cur_layer->name;
+    param->quantized       = false;
+    const auto &inputs     = node->inputs();
+    const auto input0_kind = inputs[0]->node()->kind();
+    const auto input1_kind = inputs[1]->node()->kind();
+    if (input0_kind == at::prim::Constant || input1_kind == at::prim::Constant) {
+        const int weight_input_index = input0_kind == at::prim::Constant ? 0 : 1;
+        const int input_index        = input0_kind == at::prim::Constant ? 1 : 0;
+        param->weight_input_index    = weight_input_index;
+        cur_layer->inputs.push_back(inputs[input_index]->debugName());
+
+        auto layer_resource                             = new TNN_NS::EltwiseLayerResource();
+        layer_resource->element_handle                  = CreateRawBufferFromValue(inputs[weight_input_index]);
+        layer_resource->element_shape                   = layer_resource->element_handle.GetBufferDims();
+        net_resource.resource_map[layer_resource->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
+    } else {
+        param->weight_input_index = -1;
+        for (auto &input : node->inputs()) {
+            cur_layer->inputs.push_back(input->debugName());
+            if (cur_layer->inputs.size() == 2) {
+                break;
+            }
         }
     }
-    // parse resource
-
     return TNN_NS::TNN_CONVERT_OK;
 }
 
