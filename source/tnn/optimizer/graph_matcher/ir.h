@@ -30,6 +30,7 @@
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/core/layer_type.h"
 #include "tnn/optimizer/graph_matcher/common.h"
+#include "tnn/optimizer/graph_matcher/logger.h"
 
 namespace TNN_NS {
 
@@ -81,6 +82,30 @@ namespace TNN_NS {
         Status updateOutput(const std::string &name, const std::string &new_name);
 
         Status sanityCheck();
+
+        template<typename T>
+        Status createParam() {
+            if (info->param) {
+                ERRORV("node %s already has a param", msg, name().c_str());
+                return Status(TNNERR_PARAM_ERR, msg);
+            }
+            info->param = std::make_shared<T>();
+            return TNN_OK;
+        }
+
+        template<typename T>
+        std::shared_ptr<T> param() {
+            if (!info->param) {
+                ERRORV("node %s's param is nullptr", msg, name().c_str());
+                throw std::runtime_error(msg);
+            }
+            auto p = std::dynamic_pointer_cast<T>(info->param);
+            if (!p) {
+                ERRORV("node %s's param type does not match", msg, name().c_str());
+                throw std::runtime_error(msg);
+            }
+            return p;
+        }
 
         std::shared_ptr<LayerInfo> info;
         std::vector<Edge*> output_edges;

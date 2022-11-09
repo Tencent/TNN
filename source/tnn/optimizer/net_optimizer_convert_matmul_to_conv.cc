@@ -165,35 +165,19 @@ namespace optimizer {
             const std::string in_name          = "input_1";
             const std::string reshape_in0_name = "reshape_in0";
             auto in1                           = g->getNodeOrCreatePlaceHolder(in_name);
-            auto status                        = g->createNode(LAYER_RESHAPE, {in_name}, {reshape_in0_name});
-            if (status != TNN_OK) {
-                return nullptr;
-            }
-            auto new_reshape_in0_node         = g->getNodeByTensorName(reshape_in0_name);
-            new_reshape_in0_node->info->param = std::make_shared<ReshapeLayerParam>();
-            auto reshape_in0_param  = std::dynamic_pointer_cast<ReshapeLayerParam>(new_reshape_in0_node->info->param);
+            CREATE_NODE(new_reshape_in0_node, g, LAYER_RESHAPE, {in_name}, {reshape_in0_name});
+            RETURN_VALUE_ON_NEQ(new_reshape_in0_node->createParam<ReshapeLayerParam>(), TNN_OK, nullptr);
             auto matmul_buffer_dims = matmul_buffer->GetBufferDims();
-            if (!reshape_in0_param) {
-                return nullptr;
-            }
             const int weight_dim0       = matmul_buffer_dims.front();
             const int weight_dim1       = matmul_buffer_dims.back();
-            reshape_in0_param->shape    = {0, -1, weight_dim0, 1};
-            reshape_in0_param->num_axes = reshape_in0_param->shape.size();
+            new_reshape_in0_node->param<ReshapeLayerParam>()->shape    = {0, -1, weight_dim0, 1};
+            new_reshape_in0_node->param<ReshapeLayerParam>()->num_axes = new_reshape_in0_node->param<ReshapeLayerParam>()->shape.size();
 
             // create Permute
             const std::string permute_in0_name = "permute_in0";
-            status                             = g->createNode(LAYER_PERMUTE, {reshape_in0_name}, {permute_in0_name});
-            if (status != TNN_OK) {
-                return nullptr;
-            }
-            auto new_permute_in0_node         = g->getNodeByTensorName(permute_in0_name);
-            new_permute_in0_node->info->param = std::make_shared<PermuteLayerParam>();
-            auto permute_in0_param = std::dynamic_pointer_cast<PermuteLayerParam>(new_permute_in0_node->info->param);
-            if (!permute_in0_param) {
-                return nullptr;
-            }
-            permute_in0_param->orders = {0, 2, 1, 3};
+            CREATE_NODE(new_permute_in0_node, g, LAYER_PERMUTE, {reshape_in0_name}, {permute_in0_name});
+            RETURN_VALUE_ON_NEQ(new_reshape_in0_node->createParam<PermuteLayerParam>(), TNN_OK, nullptr);
+            new_reshape_in0_node->param<PermuteLayerParam>()->orders = {0, 2, 1, 3};
 
             // create Convolution
             // generate conv weight
@@ -201,16 +185,9 @@ namespace optimizer {
             matmul_buffer->SetBufferDims({weight_dim1, weight_dim0, 1, 1});
 
             const std::string conv_name = name_prefix + "conv";
-            status                      = g->createNode(LAYER_CONVOLUTION, {permute_in0_name}, {conv_name});
-            if (status != TNN_OK) {
-                return nullptr;
-            }
-            auto new_conv_node         = g->getNodeByTensorName(conv_name);
-            new_conv_node->info->param = std::make_shared<ConvLayerParam>();
-            auto conv_param            = std::dynamic_pointer_cast<ConvLayerParam>(new_conv_node->info->param);
-            if (!conv_param) {
-                return nullptr;
-            }
+            CREATE_NODE(new_conv_node, g, LAYER_CONVOLUTION, {permute_in0_name}, {conv_name});
+            RETURN_VALUE_ON_NEQ(new_conv_node->createParam<ConvLayerParam>(), TNN_OK, nullptr);
+            auto conv_param            = new_conv_node->param<ConvLayerParam>();
             conv_param->input_channel  = weight_dim0;
             conv_param->output_channel = weight_dim1;
             conv_param->kernels        = {1, 1};
@@ -226,40 +203,20 @@ namespace optimizer {
 
             // create Permute
             const std::string permute_out_name = "permute_out";
-            status                             = g->createNode(LAYER_PERMUTE, {conv_name}, {permute_out_name});
-            if (status != TNN_OK) {
-                return nullptr;
-            }
-            auto new_permute_out_node         = g->getNodeByTensorName(permute_out_name);
-            new_permute_out_node->info->param = std::make_shared<PermuteLayerParam>();
-            auto permute_out_param = std::dynamic_pointer_cast<PermuteLayerParam>(new_permute_out_node->info->param);
-            if (!permute_out_param) {
-                return nullptr;
-            }
-            permute_out_param->orders = {0, 2, 1, 3};
+            CREATE_NODE(new_permute_out_node, g, LAYER_PERMUTE, {conv_name}, {permute_out_name});
+            RETURN_VALUE_ON_NEQ(new_permute_out_node->createParam<PermuteLayerParam>(), TNN_OK, nullptr);
+            new_permute_out_node->param<PermuteLayerParam>()->orders = {0, 2, 1, 3};
 
             // create Shape
             const std::string shape_in0_name = "shape_in0";
-            status                           = g->createNode(LAYER_SHAPE, {in_name}, {shape_in0_name});
-            if (status != TNN_OK) {
-                return nullptr;
-            }
-            auto new_shape_in0_node         = g->getNodeByTensorName(shape_in0_name);
-            new_shape_in0_node->info->param = std::make_shared<LayerParam>();
+            CREATE_NODE(new_shape_in0_node, g, LAYER_SHAPE, {in_name}, {shape_in0_name});
+            RETURN_VALUE_ON_NEQ(new_shape_in0_node->createParam<LayerParam>(), TNN_OK, nullptr);
 
             // create Slice
             const std::string slice_shape_name = "slice_shape";
-            status = g->createNode(LAYER_STRIDED_SLICE_V2, {shape_in0_name}, {slice_shape_name});
-            if (status != TNN_OK) {
-                return nullptr;
-            }
-            auto new_slice_shape_node         = g->getNodeByTensorName(slice_shape_name);
-            new_slice_shape_node->info->param = std::make_shared<StrideSliceV2LayerParam>();
-            auto slice_shape_param =
-                std::dynamic_pointer_cast<StrideSliceV2LayerParam>(new_slice_shape_node->info->param);
-            if (!slice_shape_param) {
-                return nullptr;
-            }
+            CREATE_NODE(new_slice_shape_node, g, LAYER_STRIDED_SLICE_V2, {shape_in0_name}, {slice_shape_name});
+            RETURN_VALUE_ON_NEQ(new_slice_shape_node->createParam<StrideSliceV2LayerParam>(), TNN_OK, nullptr);
+            auto slice_shape_param = new_slice_shape_node->param<StrideSliceV2LayerParam>();
             slice_shape_param->begins  = {0};
             slice_shape_param->ends    = {-1};
             slice_shape_param->strides = {1};
@@ -273,10 +230,7 @@ namespace optimizer {
             const std::string concat_constant_name       = name_prefix + "constant_dim";
             resource->constant_map[concat_constant_name] = concat_constant_buffer;
 
-            status = g->createNode(LAYER_CONST, {}, {concat_constant_name});
-            if (status != TNN_OK) {
-                return nullptr;
-            }
+            CREATE_NODE(new_concat_const_node, g, LAYER_CONST, {}, {concat_constant_name});
 
             // create Concat
             const std::string concat_shape_name = "concat_shape";
@@ -304,7 +258,7 @@ namespace optimizer {
             return g;
         };
 
-        RETURN_IF_FAIL(graph->rewrite(pattern, gen));
+        RETURN_ON_FAIL(graph->rewrite(pattern, gen));
 
         return TNN_OK;
     }
