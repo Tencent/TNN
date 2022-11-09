@@ -698,6 +698,12 @@ struct LogSoftmaxLayerParam : public LayerParam {
     PARAM_COPY(LogSoftmaxLayerParam)
 };
 
+struct AtenSizeLayerParam : public LayerParam {
+    int axis = 1;
+
+    PARAM_COPY(AtenSizeLayerParam);
+};
+
 };  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H

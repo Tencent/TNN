@@ -265,6 +265,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     // TNN Graph Matcher related LAYER_TYPES
     {"Dummy", LAYER_DUMMY_TYPE},
     {"AnyType", LAYER_ANY_TYPE},
+    {"AtenSize", LAYER_ATEN_SIZE},
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

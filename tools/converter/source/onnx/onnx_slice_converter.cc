@@ -19,7 +19,7 @@
 namespace TNN_CONVERTER {
 DECLARE_OP_CONVERTER(Slice);
 
-int Int64ToInt32(const int64_t number) {
+static int Int64ToInt32(const int64_t number) {
     if (number < INT_MIN) {
         return INT_MIN;
     } else if (number > INT_MAX) {

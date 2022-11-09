@@ -54,6 +54,7 @@ option(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE "Enable Use CXX11 ABI" ON)
 option(TNN_METAL_FLOAT32 "Enable Metal Float32" OFF)
 option(TNN_COREML_FLOAT32 "Enable Float32 CoreML Model" ON)
 option(TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE "Enable Dynamic Range Quantization" OFF)
+option(TNN_CONVERTER_TORCH_ENABLE "Enable Model Convert Support TorchScript" OFF)
 
 set(TNN_USE_GFLAGS OFF)
 
@@ -266,6 +267,7 @@ message(STATUS "\tONNX2TNN Converter:\t${TNN_ONNX2TNN_ENABLE}")
 message(STATUS "\tTNN2MEM:\t${TNN_TNN2MEM_ENABLE}")
 message(STATUS "\tBENCHMARK Test Lib:\t${TNN_BUILD_BENCHMARK_TEST_LIB_ENABLE}")
 message(STATUS "\tDynamic Range Quantization:\t${TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE}")
+message(STATUS "\tModel Converter Support TorchScript:\t${TNN_CONVERTER_TORCH_ENABLE}")
 
 include_directories(include)
 include_directories(source)

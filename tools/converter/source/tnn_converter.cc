@@ -27,6 +27,10 @@
 #include "utils/model_config.h"
 #include "utils/convert_raw_buffer.h"
 
+#ifdef TNN_CONVERTER_TORCH
+#include "torch/torch_converter.h"
+#endif
+
 namespace TNN_CONVERTER {
 int Run(int argc, char* argv[]) {
     ParseCommandLine(argc, argv);
@@ -51,6 +55,12 @@ int Run(int argc, char* argv[]) {
         Onnx2Tnn onnx_2_tnn(model_config.model_path_);
         status = onnx_2_tnn.Converter2Tnn(net_structure, net_resource);
     }
+#ifdef TNN_CONVERTER_TORCH
+    else if (model_config.model_type_ == MODEL_TYPE_TORCH) {
+        Torch2Tnn torch_2_tnn(model_config.model_path_);
+        status = torch_2_tnn.Convert2Tnn(net_structure, net_resource);
+    }
+#endif
     if (status != TNN_NS::TNN_CONVERT_OK) {
         LOGE("Converter: converter %s failed!\n", FLAGS_mp.c_str());
         return status;

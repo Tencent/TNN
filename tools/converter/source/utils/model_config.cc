@@ -29,6 +29,8 @@ ModelConfig::ModelConfig(std::string model_type, std::string model_path, std::st
         model_type_ = MODEL_TYPE_TF_LITE;
     } else if (model_type == "ONNX") {
         model_type_ = MODEL_TYPE_ONNX;
+    } else if (model_type == "TORCH") {
+        model_type_ = MODEL_TYPE_TORCH;
     }
     model_path_ = model_path;
     output_dir_ = output_dir;
