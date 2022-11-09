@@ -52,6 +52,9 @@ static const std::string kNetOptimizerConvertInt8Layers =
 static const std::string kNetOptimizerDynamicRangeDequant =
     "net_optimizer_dynamic_range_dequant";
 
+static const std::string kNetOptimizerConvertMatMulToConv =
+    "net_optimizer_convert_matmul_to_conv";
+
 }
 
 #endif // TNN_SOURCE_TNN_OPTIMIZER_OPTIMIZER_CONST_H_
