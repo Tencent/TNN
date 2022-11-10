@@ -852,7 +852,22 @@ namespace TNN_NS {
 
 
     Status Graph::renameTensor(const std::string old_name, const std::string new_name) {
-        // TODO check if new_name alread exists first.
+        // check params first.
+        if (tensor_map.count(new_name) > 0 ) {
+            ERRORV("new tensor name %s alreads exists", msg, new_name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        if (tensor_map.count(old_name) == 0 ) {
+            ERRORV("old tensor name %s not exists", msg, old_name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        if (tnn_resource) {
+            if (tnn_resource->constant_map.count(new_name) > 0) {
+                ERRORV("const_map alreads has a key of name %s", msg, new_name.c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
+            }
+        }
+
         for(auto &n : placeholders) {
             updateVector(n->info->inputs, old_name, new_name);
             updateVector(n->info->outputs, old_name, new_name);
@@ -882,12 +897,10 @@ namespace TNN_NS {
         }
         if (tnn_resource) {
             auto &const_map = tnn_resource->constant_map;
-            if (const_map.count(new_name) > 0) {
-                ERRORV("const_map alreads has a key of name %s", msg, new_name.c_str());
-                return Status(TNNERR_COMMON_ERROR, msg);
+            if (const_map.count(old_name) > 0) {
+                const_map[new_name] = const_map.at(old_name);
+                const_map.erase(old_name);
             }
-            const_map[new_name] = const_map.at(old_name);
-            const_map.erase(old_name);
         }
 
         updateVector(output_order, old_name, new_name);
