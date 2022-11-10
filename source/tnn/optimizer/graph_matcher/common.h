@@ -37,6 +37,8 @@
         }                                                       \
     } while (0)
 
+#define NAMES(...) __VA_ARGS__
+
 #define CREATE_NODE(var_name, g, LAYER_TYPE, ins, outs)         \
     auto var_name = std::shared_ptr<Node>(nullptr);             \
     do {                                                        \

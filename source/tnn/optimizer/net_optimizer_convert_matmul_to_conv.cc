@@ -196,10 +196,9 @@ namespace optimizer {
             conv_param->dialations     = {1, 1};
             conv_param->bias           = 1;
 
-            auto conv_resource                = std::make_shared<ConvLayerResource>();
-            conv_resource->filter_handle      = *matmul_buffer;
-            conv_resource->bias_handle        = *add_buffer;
-            resource->resource_map[conv_name] = std::dynamic_pointer_cast<LayerResource>(conv_resource);
+            RETURN_VALUE_ON_NEQ(new_conv_node->createResource<ConvLayerResource>(), TNN_OK, nullptr);
+            new_conv_node->resource<ConvLayerResource>()->filter_handle      = *matmul_buffer;
+            new_conv_node->resource<ConvLayerResource>()->bias_handle        = *add_buffer;
 
             // create Permute
             const std::string permute_out_name = "permute_out";
@@ -228,32 +227,18 @@ namespace optimizer {
             concat_constant_buffer->SetBufferDims({1});
             concat_constant_buffer->SetDataType(DATA_TYPE_INT32);
             const std::string concat_constant_name       = name_prefix + "constant_dim";
-            resource->constant_map[concat_constant_name] = concat_constant_buffer;
-
-            CREATE_NODE(new_concat_const_node, g, LAYER_CONST, {}, {concat_constant_name});
+            RETURN_VALUE_ON_NEQ(g->createConst(concat_constant_name, concat_constant_buffer), TNN_OK, nullptr);
 
             // create Concat
             const std::string concat_shape_name = "concat_shape";
-            status = g->createNode(LAYER_CONCAT, {slice_shape_name, concat_constant_name}, {concat_shape_name});
-            if (status != TNN_OK) {
-                return nullptr;
-            }
-            auto new_concat_shape_node         = g->getNodeByTensorName(concat_shape_name);
-            new_concat_shape_node->info->param = std::make_shared<ConcatLayerParam>();
-            auto concat_shape_param = std::dynamic_pointer_cast<ConcatLayerParam>(new_concat_shape_node->info->param);
-            if (!concat_shape_param) {
-                return nullptr;
-            }
-            concat_shape_param->axis = 0;
+            CREATE_NODE(new_concat_shape_node, g, LAYER_CONCAT,  NAMES({slice_shape_name, concat_constant_name}), {concat_shape_name});
+            RETURN_VALUE_ON_NEQ(new_concat_shape_node->createParam<ConcatLayerParam>(), TNN_OK, nullptr);
+            new_concat_shape_node->param<ConcatLayerParam>()->axis = 0;
 
             // create Reshape
             const std::string reshape_out_name = "reshape_out";
-            status = g->createNode(LAYER_RESHAPE, {permute_out_name, concat_shape_name}, {reshape_out_name});
-            if (status != TNN_OK) {
-                return nullptr;
-            }
-            auto new_reshape_out_node         = g->getNodeByTensorName(reshape_out_name);
-            new_reshape_out_node->info->param = std::make_shared<ReshapeLayerParam>();
+            CREATE_NODE(new_reshape_out_node, g, LAYER_RESHAPE,  NAMES({permute_out_name, concat_shape_name}), {reshape_out_name});
+            RETURN_VALUE_ON_NEQ(new_reshape_out_node->createParam<ReshapeLayerParam>(), TNN_OK, nullptr);
 
             return g;
         };
