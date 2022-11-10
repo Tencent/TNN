@@ -42,7 +42,7 @@
 #define CREATE_NODE(var_name, g, LAYER_TYPE, ins, outs)         \
     auto var_name = std::shared_ptr<Node>(nullptr);             \
     do {                                                        \
-        status = g->createNode(LAYER_TYPE, ins, outs);          \
+        auto status = g->createNode(LAYER_TYPE, ins, outs);     \
         if (status != TNN_OK) {                                 \
             ERROR("create node of type %d failed, msg:%s \n",   \
                  LAYER_TYPE, status.description().c_str());     \
