@@ -262,6 +262,14 @@ namespace TNN_NS {
         // Could be used as pattern for GraphRewriter 
     }
 
+    NetResource * Graph::safeNetResource() {
+        if (!tnn_resource) {
+            own_tnn_resource = true;  
+            tnn_resource = new NetResource();
+        }
+        return tnn_resource;
+    }
+
     std::shared_ptr<Graph> Graph::Copy() const {
         std::vector<std::shared_ptr<Node>> new_nodes;
         std::vector<std::shared_ptr<Edge>> new_edges;
@@ -410,6 +418,7 @@ namespace TNN_NS {
         new_node->info->type = type;
         new_node->info->type_str = layerTypeName(type);
         new_node->info->outputs = out_names;
+        new_node->graph = shared_from_this();
 
         for(auto & in : in_names) {
             auto src = getNodeByTensorName(in);
@@ -424,6 +433,22 @@ namespace TNN_NS {
             tensors.insert(tensors.end(), out_tensors.begin(), out_tensors.end());
             RETURN_ON_FAIL(addNode(new_node, false));
         }
+        return TNN_OK;
+    }
+
+    Status Graph::createConst(const std::string name, std::shared_ptr<RawBuffer> buf) {
+        auto t = std::make_shared<Tensor>(name);
+        t->dims = buf->GetBufferDims();
+        t->data_type = buf->GetDataType();
+        RETURN_ON_FAIL(createNode(LAYER_CONST, {}, {name}, {t}));
+
+        auto tnn_resource = safeNetResource();
+        if (tnn_resource->constant_map.count(name) > 0) {
+            ERRORV("const_map already contains %s", msg, name.c_str());
+            return Status(TNNERR_PARAM_ERR, msg);
+        }
+    
+        tnn_resource->constant_map[name]  = buf;
         return TNN_OK;
     }
 
@@ -827,6 +852,7 @@ namespace TNN_NS {
 
 
     Status Graph::renameTensor(const std::string old_name, const std::string new_name) {
+        // TODO check if new_name alread exists first.
         for(auto &n : placeholders) {
             updateVector(n->info->inputs, old_name, new_name);
             updateVector(n->info->outputs, old_name, new_name);
@@ -854,6 +880,15 @@ namespace TNN_NS {
             updateSet(tnn_structure->blobs, old_name, new_name);
             updateSet(tnn_structure->outputs, old_name, new_name);
         }
+        if (tnn_resource) {
+            auto &const_map = tnn_resource->constant_map;
+            if (const_map.count(new_name) > 0) {
+                ERRORV("const_map alreads has a key of name %s", msg, new_name.c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
+            }
+            const_map[new_name] = const_map.at(old_name);
+            const_map.erase(old_name);
+        }
 
         updateVector(output_order, old_name, new_name);
 
@@ -871,22 +906,6 @@ namespace TNN_NS {
         std::set<std::string> tensor_names;
         for(auto & p : tensor_map) tensor_names.insert(p.first);
         for(auto &name : tensor_names) renameTensor(name, name_prefix + name);
-
-        // update name in constant map
-        for (auto &n : nodes) {
-            if (n->info->type == LAYER_CONST && n->info->outputs.size() == 1) {
-                const auto &output_name = n->info->outputs.at(0);
-                if (output_name.find(name_prefix) == output_name.npos) {
-                    continue;
-                }
-                const auto constant_name = output_name.substr(name_prefix.size());
-                auto &constant_map       = g->tnn_resource->constant_map;
-                if (constant_map.find(constant_name) != constant_map.end()) {
-                    constant_map[output_name] = constant_map[constant_name];
-                    constant_map.erase(constant_name);
-                }
-            }
-        }
 
         std::map<std::string, std::string> in_mapping;
         for(size_t i=0;i<anchor->inputs().size();i++) {
@@ -1043,6 +1062,23 @@ namespace TNN_NS {
                 }
             }
             g->tnn_structure->layers = new_layers;
+        }
+
+        if (g->tnn_resource && tnn_resource && g->tnn_resource != tnn_resource) {
+            for(auto p : tnn_resource->resource_map) {
+                if (g->tnn_resource->resource_map.count(p.first) > 0) {
+                    ERRORV("the graph alread has a layer_resource with name %s", msg, p.first.c_str()) ;
+                    throw std::runtime_error(msg);
+                }
+                g->tnn_resource->resource_map[p.first] = p.second;
+            }
+            for(auto p : tnn_resource->constant_map) {
+                if (g->tnn_resource->constant_map.count(p.first) > 0) {
+                    ERRORV("the graph alread has a const with name %s", msg, p.first.c_str()) ;
+                    throw std::runtime_error(msg);
+                }
+                g->tnn_resource->constant_map[p.first] = p.second;
+            }
         }
 
     }
