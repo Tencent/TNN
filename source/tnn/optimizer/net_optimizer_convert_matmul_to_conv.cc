@@ -176,8 +176,8 @@ namespace optimizer {
             // create Permute
             const std::string permute_in0_name = "permute_in0";
             CREATE_NODE(new_permute_in0_node, g, LAYER_PERMUTE, {reshape_in0_name}, {permute_in0_name});
-            RETURN_VALUE_ON_NEQ(new_reshape_in0_node->createParam<PermuteLayerParam>(), TNN_OK, nullptr);
-            new_reshape_in0_node->param<PermuteLayerParam>()->orders = {0, 2, 1, 3};
+            RETURN_VALUE_ON_NEQ(new_permute_in0_node->createParam<PermuteLayerParam>(), TNN_OK, nullptr);
+            new_permute_in0_node->param<PermuteLayerParam>()->orders = {0, 2, 1, 3};
 
             // create Convolution
             // generate conv weight
