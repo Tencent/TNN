@@ -50,7 +50,7 @@ static TNN_NS::RawBuffer CreateFilterScale(const at::Tensor &filter) {
 static TNN_NS::RawBuffer CreateFilterZp(const at::Tensor &filter) {
     TNN_NS::RawBuffer filter_zp_handle;
     if (filter.qscheme() == c10::kPerChannelAffine || filter.qscheme() == c10::kPerChannelSymmetric) {
-        at::Tensor q_zp_tensor = filter.q_per_channel_scales();
+        at::Tensor q_zp_tensor = filter.q_per_channel_zero_points();
         filter_zp_handle       = CreateRawBufferFromTensor(q_zp_tensor);
         filter_zp_handle.SetBufferDims({filter_zp_handle.GetDataCount()});
     } else if (filter.qscheme() == c10::kPerTensorAffine || filter.qscheme() == c10::kPerTensorSymmetric) {
@@ -67,11 +67,11 @@ static TNN_NS::RawBuffer CreateFilterZp(const at::Tensor &filter) {
 static TNN_NS::RawBuffer FuseInputScaleToFilterScale(TNN_NS::RawBuffer &input_scale, TNN_NS::RawBuffer &filter_scale) {
     TNN_NS::RawBuffer fused_file_scale(filter_scale);
 
-    float *filter_scale_ptr       = filter_scale.force_to<float *>();
-    const int filter_count        = filter_scale.GetDataCount();
-    float *input_scale_ptr        = input_scale.force_to<float *>();
-    const int input_scale_count   = input_scale.GetDataCount();
-    float *fused_filter_scale_ptr = fused_file_scale.force_to<float *>();
+    const auto *filter_scale_ptr = filter_scale.force_to<float *>();
+    const int filter_count       = filter_scale.GetDataCount();
+    const auto *input_scale_ptr  = input_scale.force_to<float *>();
+    const int input_scale_count  = input_scale.GetDataCount();
+    auto *fused_filter_scale_ptr = fused_file_scale.force_to<float *>();
 
     for (int i = 0; i < filter_count; ++i) {
         int input_scale_idx       = input_scale_count == 1 ? 0 : i;
@@ -166,7 +166,6 @@ TNN_NS::Status TorchQuantizedConv2dConverter::exec(tnn::NetStructure &net_struct
     }
     std::string input_blob_scale_name = input_name + BLOB_SCALE_SUFFIX;
 
-
     // parse resource
     auto &resource_map   = net_resource.resource_map;
     auto *layer_resource = new TNN_NS::ConvLayerResource;
@@ -183,6 +182,8 @@ TNN_NS::Status TorchQuantizedConv2dConverter::exec(tnn::NetStructure &net_struct
     layer_resource->scale_handle  = CreateFilterScale(filter);
     layer_resource->scale_handle =
         FuseInputScaleToFilterScale(input_blob_scale->scale_handle, layer_resource->scale_handle);
+    auto filter_zp_handle             = CreateFilterZp(filter);
+    layer_resource->zero_point_handle = ConvertRawBuffFromIntToInt8(filter_zp_handle);
 
     if (bias.has_value()) {
         // quantized float -> int32_t
@@ -198,7 +199,8 @@ TNN_NS::Status TorchQuantizedConv2dConverter::exec(tnn::NetStructure &net_struct
         auto output_blob_scale_resource               = new TNN_NS::IntScaleResource;
         output_blob_scale_resource->name              = output_blob_cale_name;
         output_blob_scale_resource->scale_handle      = CreateRawBufferFromValue(inputs[2]);
-        output_blob_scale_resource->zero_point_handle = CreateRawBufferFromValue(inputs[3]);
+        TNN_NS::RawBuffer output_zero_point_handel    = CreateRawBufferFromValue(inputs[3]);
+        output_blob_scale_resource->zero_point_handle = ConvertRawBuffFromIntToInt8(output_zero_point_handel);
         net_resource.resource_map[output_blob_cale_name] =
             std::shared_ptr<TNN_NS::LayerResource>(output_blob_scale_resource);
     }

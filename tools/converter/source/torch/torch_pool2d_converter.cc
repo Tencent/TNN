@@ -21,13 +21,6 @@ namespace TNN_CONVERTER {
 DECLARE_TORCH_OP_CONVERTER(Pool);
 
 std::string TorchPoolConverter::TNNOpType(const torch::jit::Node *node, bool quantized_model) {
-    std::string type = node->kind().toQualString();
-    if (quantized_model) {
-        return "QuantizedPooling";
-    } else {
-        LOGE("TorchPoolConverter does not support type %s\n", type.c_str());
-        return "";
-    }
     return "Pooling";
 }
 

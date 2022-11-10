@@ -112,6 +112,13 @@ TNN_NS::RawBuffer CreateRawBufferFromTensor(const at::Tensor &tensor) {
         auto buffer     = TNN_NS::RawBuffer(bytes_size, reinterpret_cast<char *>(float_vec.data()), shape);
         buffer.SetDataType(tnn::DATA_TYPE_FLOAT);
         return buffer;
+    } else if (torch_type == at::ScalarType::Long) {
+        auto vec        = GetValue<int64_t>(tensor, shape);
+        auto bytes_size = size * TNN_NS::DataTypeUtils::GetBytesSize(TNN_NS::DATA_TYPE_INT32);
+        auto res_vec    = std::vector<int>(vec.begin(), vec.end());
+        auto buffer     = TNN_NS::RawBuffer(bytes_size, reinterpret_cast<char *>(res_vec.data()), shape);
+        buffer.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        return buffer;
     } else {
         LOGE("CreateRawBufferFromTensor does not support torch type: %hhd\n", torch_type);
         return TNN_NS::RawBuffer();
@@ -219,6 +226,29 @@ std::vector<torch::jit::Value *> GetEffectiveInputValues(const torch::jit::Node 
         ret.push_back(GetEffectiveInputValue(node, i));
     }
     return ret;
+}
+
+TNN_NS::RawBuffer ConvertRawBuffFromIntToInt8(TNN_NS::RawBuffer &src_buffer) {
+    const auto src_buffer_data_type = src_buffer.GetDataType();
+    if (src_buffer_data_type == TNN_NS::DATA_TYPE_INT8) {
+        return TNN_NS::RawBuffer(src_buffer);
+    }
+    if (src_buffer_data_type != TNN_NS::DATA_TYPE_INT32) {
+        LOGE("Only support raw buffer type is int32_t, but get type %d\n", src_buffer_data_type);
+        ASSERT(0);
+        return TNN_NS::RawBuffer();
+    }
+    const auto *src_buffer_ptr   = src_buffer.force_to<int32_t *>();
+    const auto &dims             = src_buffer.GetBufferDims();
+    const int count              = src_buffer.GetDataCount();
+    const int buffer_byte_size   = count * sizeof(int8_t);
+    TNN_NS::RawBuffer dst_buffer = TNN_NS::RawBuffer(buffer_byte_size, dims);
+    dst_buffer.SetDataType(TNN_NS::DATA_TYPE_INT8);
+    auto *dst_buffer_ptr = dst_buffer.force_to<int8_t *>();
+    for (int i = 0; i < count; ++i) {
+        dst_buffer_ptr[i] = (int8_t)src_buffer_ptr[i];
+    }
+    return dst_buffer;
 }
 
 }  // namespace TNN_CONVERTER

@@ -48,25 +48,28 @@ TNN_NS::Status TorchQuantizeConverter::exec(tnn::NetStructure &net_structure, tn
     param->type      = cur_layer->type_str;
     param->name      = cur_layer->name;
     param->quantized = false;
-#if 1
-    // parse resource
+
+    // create output blob scale
     std::string output_blob_scale_name = outptu_name + BLOB_SCALE_SUFFIX;
-    auto &resource_map          = net_resource.resource_map;
-    if (resource_map.find(output_blob_scale_name) != resource_map.end()) {
-        return TNN_NS::TNN_CONVERT_OK;
+    auto &resource_map                 = net_resource.resource_map;
+    if (resource_map.find(output_blob_scale_name) == resource_map.end()) {
+        auto *output_blob_scale                            = new TNN_NS::IntScaleResource;
+        output_blob_scale->name                            = output_blob_scale_name;
+        output_blob_scale->scale_handle                    = CreateRawBufferFromValue(node->input(1));
+        TNN_NS::RawBuffer zero_point_handle                = CreateRawBufferFromValue(node->input(2));
+        output_blob_scale->zero_point_handle               = ConvertRawBuffFromIntToInt8(zero_point_handle);
+        net_resource.resource_map[output_blob_scale->name] = std::shared_ptr<TNN_NS::LayerResource>(output_blob_scale);
     }
-    auto *output_blob_scale                            = new TNN_NS::IntScaleResource;
-    output_blob_scale->name                            = output_blob_scale_name;
-    output_blob_scale->scale_handle                    = CreateRawBufferFromValue(node->input(1));
-    output_blob_scale->zero_point_handle               = CreateRawBufferFromValue(node->input(2));
-    net_resource.resource_map[output_blob_scale->name] = std::shared_ptr<TNN_NS::LayerResource>(output_blob_scale);
-#endif
     // create extra input blob scale, because EliminateUnusefulNode pass
-    auto *layer_resource                            = new TNN_NS::IntScaleResource;
-    layer_resource->name                            = input_name + BLOB_SCALE_SUFFIX;
-    layer_resource->scale_handle                    = CreateRawBufferFromValue(node->input(1));
-    layer_resource->zero_point_handle               = CreateRawBufferFromValue(node->input(2));
-    net_resource.resource_map[layer_resource->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
+    std::string input_blob_scale_name = input_name + BLOB_SCALE_SUFFIX;
+    if (resource_map.find(input_blob_scale_name) == resource_map.end()) {
+        auto *input_blob_scale                            = new TNN_NS::IntScaleResource;
+        input_blob_scale->name                            = input_blob_scale_name;
+        input_blob_scale->scale_handle                    = CreateRawBufferFromValue(node->input(1));
+        TNN_NS::RawBuffer input_zero_point_handle         = CreateRawBufferFromValue(node->input(2));
+        input_blob_scale->zero_point_handle               = ConvertRawBuffFromIntToInt8(input_zero_point_handle);
+        net_resource.resource_map[input_blob_scale->name] = std::shared_ptr<TNN_NS::LayerResource>(input_blob_scale);
+    }
 
     return TNN_NS::TNN_CONVERT_OK;
 }

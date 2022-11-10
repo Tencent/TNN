@@ -45,9 +45,6 @@ TNN_NS::Status TorchBinaryConverter::exec(tnn::NetStructure &net_structure, tnn:
     auto layer_type     = TNN_NS::GlobalConvertLayerType(type_name);
     cur_layer->type     = layer_type;
     cur_layer->type_str = type_name;
-
-    cur_layer->inputs.push_back(node->input(0)->debugName());
-    cur_layer->outputs.push_back(node->output(0)->debugName());
     net_structure.layers.push_back(cur_layer);
     // parse param
     auto param             = new TNN_NS::MultidirBroadcastLayerParam;
@@ -65,6 +62,7 @@ TNN_NS::Status TorchBinaryConverter::exec(tnn::NetStructure &net_structure, tnn:
         cur_layer->inputs.push_back(inputs[input_index]->debugName());
 
         auto layer_resource                             = new TNN_NS::EltwiseLayerResource();
+        layer_resource->name                            = cur_layer->name;
         layer_resource->element_handle                  = CreateRawBufferFromValue(inputs[weight_input_index]);
         layer_resource->element_shape                   = layer_resource->element_handle.GetBufferDims();
         net_resource.resource_map[layer_resource->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
@@ -77,6 +75,7 @@ TNN_NS::Status TorchBinaryConverter::exec(tnn::NetStructure &net_structure, tnn:
             }
         }
     }
+    cur_layer->outputs.push_back(node->output(0)->debugName());
     return TNN_NS::TNN_CONVERT_OK;
 }
 
