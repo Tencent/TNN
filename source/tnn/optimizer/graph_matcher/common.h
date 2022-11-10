@@ -48,7 +48,7 @@
                  LAYER_TYPE, status.description().c_str());     \
             return nullptr;                                     \
         }                                                       \
-        auto var_name = g->getNodeByTensorName(                 \
+        var_name = g->getNodeByTensorName(                      \
                             std::vector<std::string>(outs)[0]); \
     } while (0)
 
