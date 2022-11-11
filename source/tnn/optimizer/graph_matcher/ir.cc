@@ -215,6 +215,7 @@ namespace TNN_NS {
 
             for (auto layer : tnn_structure->layers) {
                 auto node = std::make_shared<Node>(layer);
+                node->graph = shared_from_this();
                 nodes.push_back(node);
                 for (auto out : layer->outputs) {
                     if (tensor_2_node.find(out) != tensor_2_node.end()) {
@@ -327,6 +328,7 @@ namespace TNN_NS {
             return tensor_2_node.at(tensor_name);
         }
         auto input = std::make_shared<Node>(tensor_name);
+        input->graph = shared_from_this();
         placeholders.push_back(input);
         // create Tensor
         RAISE_ON_ERROR(createDefaultTensor(tensor_name));

@@ -235,7 +235,7 @@ namespace TNN_NS {
     template<typename T>
     Status Node::createResource() {
         if (graph.expired()) {
-            ERRORV("node %s already has a param", msg, name().c_str());
+            ERRORV("node %s's graph ptr is null ", msg, name().c_str());
             return Status(TNNERR_PARAM_ERR, msg);
         }
         auto tnn_resource = graph.lock()->safeNetResource();
@@ -251,7 +251,7 @@ namespace TNN_NS {
     template<typename T>
     std::shared_ptr<T> Node::resource() {
         if (graph.expired()) {
-            ERRORV("node %s already has a param", msg, name().c_str());
+            ERRORV("node %s's graph ptr is null ", msg, name().c_str());
             throw std::runtime_error(msg);
         }
         auto tnn_resource = graph.lock()->safeNetResource();
