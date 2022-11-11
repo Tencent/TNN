@@ -60,6 +60,8 @@ TNN_NS::Status TorchSliceConverter::exec(tnn::NetStructure &net_structure, tnn::
     const auto &axis = inputs[1];
     if (toIValue(axis)) {
         param->axes.push_back(Int64ToInt32(GetValue<int64_t>(axis)));
+        TNN_NS::RawBuffer const_buf                 = CreateRawBufferFromValue(axis);
+        net_resource.constant_map[axis->debugName()] = std::make_shared<TNN_NS::RawBuffer>(const_buf);
     }
     const auto &start = inputs[2];
     if (toIValue(start)) {
@@ -70,13 +72,14 @@ TNN_NS::Status TorchSliceConverter::exec(tnn::NetStructure &net_structure, tnn::
     const auto &end = inputs[3];
     if (toIValue(end)) {
         param->ends.push_back(Int64ToInt32(GetValue<int64_t>(end)));
-        param->begins.push_back(Int64ToInt32(GetValue<int64_t>(end)));
         TNN_NS::RawBuffer const_buf                 = CreateRawBufferFromValue(end);
         net_resource.constant_map[end->debugName()] = std::make_shared<TNN_NS::RawBuffer>(const_buf);
     }
     const auto &step = inputs[4];
     if (toIValue(step)) {
         param->strides.push_back(Int64ToInt32(GetValue<int64_t>(step)));
+        TNN_NS::RawBuffer const_buf                 = CreateRawBufferFromValue(step);
+        net_resource.constant_map[step->debugName()] = std::make_shared<TNN_NS::RawBuffer>(const_buf);
     }
     // Tensor = aten::slice(%x.2, %3, %4, %14, %6)
     cur_layer->inputs.push_back(inputs[0]->debugName());

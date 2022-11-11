@@ -187,6 +187,7 @@ TNN_NS::Status TorchQuantizedConv2dConverter::exec(tnn::NetStructure &net_struct
 
     if (bias.has_value()) {
         // quantized float -> int32_t
+        param->bias                 = 1;
         layer_resource->bias_handle = CreateRawBufferFromTensor(bias.value());
         if (layer_resource->bias_handle.GetDataType() == tnn::DATA_TYPE_FLOAT) {
             layer_resource->bias_handle = QuantizedBias(layer_resource->bias_handle, layer_resource->scale_handle);
