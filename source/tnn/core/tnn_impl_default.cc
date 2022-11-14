@@ -99,6 +99,7 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
         }
         return instance;
     } catch (std::bad_alloc &e) {
+        status = Status(TNNERR_OUTOFMEMORY);
         return nullptr;
     }
 }
@@ -128,6 +129,7 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
         }
         return instance;
     } catch (std::bad_alloc &e) {
+        status = Status(TNNERR_OUTOFMEMORY);
         return nullptr;
     }
 }
