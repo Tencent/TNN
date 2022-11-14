@@ -30,6 +30,7 @@
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/core/layer_type.h"
 #include "tnn/optimizer/graph_matcher/common.h"
+#include "tnn/optimizer/graph_matcher/logger.h"
 
 namespace TNN_NS {
 
@@ -82,10 +83,41 @@ namespace TNN_NS {
 
         Status sanityCheck();
 
+        template<typename T>
+        Status createParam() {
+            if (info->param) {
+                ERRORV("node %s already has a param", msg, name().c_str());
+                return Status(TNNERR_PARAM_ERR, msg);
+            }
+            info->param = std::make_shared<T>();
+            return TNN_OK;
+        }
+
+        template<typename T>
+        std::shared_ptr<T> param() {
+            if (!info->param) {
+                ERRORV("node %s's param is nullptr", msg, name().c_str());
+                throw std::runtime_error(msg);
+            }
+            auto p = std::dynamic_pointer_cast<T>(info->param);
+            if (!p) {
+                ERRORV("node %s's param type does not match", msg, name().c_str());
+                throw std::runtime_error(msg);
+            }
+            return p;
+        }
+
+        template<typename T>
+        Status createResource();
+
+        template<typename T>
+        std::shared_ptr<T> resource();
+
         std::shared_ptr<LayerInfo> info;
         std::vector<Edge*> output_edges;
         std::vector<Edge*> input_edges;
 
+        std::weak_ptr<Graph> graph;
     };
 
     typedef std::function<std::shared_ptr<Graph>(std::shared_ptr<AnchorGraph>)> graph_generator;
@@ -102,6 +134,13 @@ namespace TNN_NS {
               : nodes(_nodes), placeholders(_placeholders), edges(_edges), tensors(_tensors) 
         {
             RAISE_ON_ERROR(createUnspecifiedTensors());
+        }
+
+        virtual ~Graph() {
+            if (own_tnn_resource && tnn_resource) {
+                delete tnn_resource;
+                tnn_resource = nullptr;
+            };
         }
 
         std::shared_ptr<Graph> Copy() const;
@@ -124,6 +163,8 @@ namespace TNN_NS {
         // create node of specified type, Node name is set to the first output tensor_name, will also handle the tensors by addNode function if out_tensors not specified.
         Status createNode(const LayerType &type, const std::vector<std::string> &in_names, const std::vector<std::string> &out_names, 
                             const std::vector<std::shared_ptr<Tensor>> out_tensors = {});
+
+        Status createConst(const std::string name, std::shared_ptr<RawBuffer> buf);
 
         const std::vector<std::weak_ptr<const Node>> allNodes() const;
 
@@ -149,6 +190,8 @@ namespace TNN_NS {
 
         virtual Status setInputsOrder(std::vector<std::string> tensor_names);
         virtual Status setOutputsOrder(std::vector<std::string> tensor_names);
+
+        NetResource * safeNetResource();
 
     protected:
 
@@ -180,6 +223,7 @@ namespace TNN_NS {
 
         NetStructure * tnn_structure = nullptr;
         NetResource * tnn_resource = nullptr;
+        bool own_tnn_resource = false;
     
     private:
         int rewrite_count = 0;
@@ -187,6 +231,41 @@ namespace TNN_NS {
         friend class AnchorGraph;
         friend Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * registry);
     };
+
+    template<typename T>
+    Status Node::createResource() {
+        if (graph.expired()) {
+            ERRORV("node %s's graph ptr is null ", msg, name().c_str());
+            return Status(TNNERR_PARAM_ERR, msg);
+        }
+        auto tnn_resource = graph.lock()->safeNetResource();
+        if (tnn_resource->resource_map.find(name()) != tnn_resource->resource_map.end()) {
+            ERRORV("resource_map already has a key of name: %s", msg, name().c_str());
+            return Status(TNNERR_PARAM_ERR, msg);
+        }
+        auto layer_resource = std::make_shared<T>();
+        tnn_resource->resource_map[name()] = std::dynamic_pointer_cast<LayerResource>(layer_resource);
+        return TNN_OK;
+    }
+
+    template<typename T>
+    std::shared_ptr<T> Node::resource() {
+        if (graph.expired()) {
+            ERRORV("node %s's graph ptr is null ", msg, name().c_str());
+            throw std::runtime_error(msg);
+        }
+        auto tnn_resource = graph.lock()->safeNetResource();
+        if (tnn_resource->resource_map.count(name()) == 0) {
+            ERRORV("resource_map does not contain  %s", msg, name().c_str());
+            throw std::runtime_error(msg);
+        }
+        auto layer_resource = std::dynamic_pointer_cast<T>(tnn_resource->resource_map.at(name()));
+        if (!layer_resource) {
+            ERRORV("node %s's resource type does not match", msg, name().c_str());
+            throw std::runtime_error(msg);
+        }
+        return layer_resource;
+    }
 
 }
 

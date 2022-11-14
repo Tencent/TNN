@@ -68,7 +68,7 @@ namespace optimizer {
         }
 
         std::shared_ptr<Graph> graph = std::make_shared<Graph>();
-        RETURN_IF_FAIL(graph->fromInterpreted(structure, resource));
+        RETURN_ON_FAIL(graph->fromInterpreted(structure, resource));
 
         std::vector<std::string> text_graph_pattern = {
             "Convolution@conv",
@@ -131,7 +131,7 @@ namespace optimizer {
             return g;
         };
 
-        RETURN_IF_FAIL(graph->rewrite(pattern, gen));
+        RETURN_ON_FAIL(graph->rewrite(pattern, gen));
 
         return TNN_OK;
     }

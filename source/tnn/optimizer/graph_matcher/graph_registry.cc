@@ -46,7 +46,7 @@ Status GraphRegistry::registerTokenizer(Tokenizer * ptr) {
     consumers.push_back(ptr);
     // DEBUG("Register tokenizer : %p, now has:%lu", ptr, consumers.size());
     for(auto &pair : graphs) {
-        RETURN_IF_FAIL(CheckToken(pair.first, ptr));
+        RETURN_ON_FAIL(CheckToken(pair.first, ptr));
         ptr->onNewToken(pair.first, TK_GRAPH_FUNCTION);
     }
     return TNN_OK;
@@ -74,7 +74,7 @@ Status GraphRegistry::registerGraph(const std::string name, std::shared_ptr<cons
 
     graphs[name] = graph;
     for(auto p : consumers) {
-        RETURN_IF_FAIL(CheckToken(name, p));
+        RETURN_ON_FAIL(CheckToken(name, p));
         p->onNewToken(name, TK_GRAPH_FUNCTION);
     }
 

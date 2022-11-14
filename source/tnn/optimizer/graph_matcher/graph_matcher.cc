@@ -222,11 +222,11 @@ void AnchorGraph::formalize(Graph *g) {
 
 Status AnchorGraph::sanityCheck() {
     for(auto &n : placeholders) {
-        RETURN_IF_FAIL(n->sanityCheck());
+        RETURN_ON_FAIL(n->sanityCheck());
     }
 
     for(auto &n : nodes) {
-        RETURN_IF_FAIL(n->sanityCheck());
+        RETURN_ON_FAIL(n->sanityCheck());
     }
     return TNN_OK;
 };
