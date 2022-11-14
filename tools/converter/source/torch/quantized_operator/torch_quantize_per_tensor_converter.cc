@@ -57,7 +57,7 @@ TNN_NS::Status TorchQuantizeConverter::exec(tnn::NetStructure &net_structure, tn
         output_blob_scale->name                            = output_blob_scale_name;
         output_blob_scale->scale_handle                    = CreateRawBufferFromValue(node->input(1));
         TNN_NS::RawBuffer zero_point_handle                = CreateRawBufferFromValue(node->input(2));
-        output_blob_scale->zero_point_handle               = ConvertRawBuffFromIntToInt8(zero_point_handle);
+        output_blob_scale->zero_point_handle               = ConvertRawBufferToZero(zero_point_handle);
         net_resource.resource_map[output_blob_scale->name] = std::shared_ptr<TNN_NS::LayerResource>(output_blob_scale);
     }
     // create extra input blob scale, because EliminateUnusefulNode pass
@@ -67,7 +67,7 @@ TNN_NS::Status TorchQuantizeConverter::exec(tnn::NetStructure &net_structure, tn
         input_blob_scale->name                            = input_blob_scale_name;
         input_blob_scale->scale_handle                    = CreateRawBufferFromValue(node->input(1));
         TNN_NS::RawBuffer input_zero_point_handle         = CreateRawBufferFromValue(node->input(2));
-        input_blob_scale->zero_point_handle               = ConvertRawBuffFromIntToInt8(input_zero_point_handle);
+        input_blob_scale->zero_point_handle               = ConvertRawBufferToZero(input_zero_point_handle);
         net_resource.resource_map[input_blob_scale->name] = std::shared_ptr<TNN_NS::LayerResource>(input_blob_scale);
     }
 

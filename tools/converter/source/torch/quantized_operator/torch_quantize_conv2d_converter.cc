@@ -92,7 +92,7 @@ static TNN_NS::RawBuffer QuantizedBias(TNN_NS::RawBuffer &bias_handle, TNN_NS::R
 
     for (int i = 0; i < bias_count; ++i) {
         int filter_scale_index     = filter_count == 1 ? 0 : i;
-        quantized_bias_data_ptr[i] = std::nearbyint(bias_data_ptr[i] / filter_data_ptr[filter_scale_index]);
+        quantized_bias_data_ptr[i] = (int)(bias_data_ptr[i] / filter_data_ptr[filter_scale_index]);
     }
     return quantized_bias_handle;
 }
@@ -183,7 +183,7 @@ TNN_NS::Status TorchQuantizedConv2dConverter::exec(tnn::NetStructure &net_struct
     layer_resource->scale_handle =
         FuseInputScaleToFilterScale(input_blob_scale->scale_handle, layer_resource->scale_handle);
     auto filter_zp_handle             = CreateFilterZp(filter);
-    layer_resource->zero_point_handle = ConvertRawBuffFromIntToInt8(filter_zp_handle);
+    layer_resource->zero_point_handle = ConvertRawBufferToZero(filter_zp_handle);
 
     if (bias.has_value()) {
         // quantized float -> int32_t
@@ -201,7 +201,7 @@ TNN_NS::Status TorchQuantizedConv2dConverter::exec(tnn::NetStructure &net_struct
         output_blob_scale_resource->name              = output_blob_cale_name;
         output_blob_scale_resource->scale_handle      = CreateRawBufferFromValue(inputs[2]);
         TNN_NS::RawBuffer output_zero_point_handel    = CreateRawBufferFromValue(inputs[3]);
-        output_blob_scale_resource->zero_point_handle = ConvertRawBuffFromIntToInt8(output_zero_point_handel);
+        output_blob_scale_resource->zero_point_handle = ConvertRawBufferToZero(output_zero_point_handel);
         net_resource.resource_map[output_blob_cale_name] =
             std::shared_ptr<TNN_NS::LayerResource>(output_blob_scale_resource);
     }

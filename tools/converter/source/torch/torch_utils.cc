@@ -228,7 +228,7 @@ std::vector<torch::jit::Value *> GetEffectiveInputValues(const torch::jit::Node 
     return ret;
 }
 
-TNN_NS::RawBuffer ConvertRawBuffFromIntToInt8(TNN_NS::RawBuffer &src_buffer) {
+TNN_NS::RawBuffer ConvertRawBufferToZero(TNN_NS::RawBuffer &src_buffer) {
     const auto src_buffer_data_type = src_buffer.GetDataType();
     if (src_buffer_data_type == TNN_NS::DATA_TYPE_INT8) {
         return TNN_NS::RawBuffer(src_buffer);
@@ -246,9 +246,8 @@ TNN_NS::RawBuffer ConvertRawBuffFromIntToInt8(TNN_NS::RawBuffer &src_buffer) {
     dst_buffer.SetDataType(TNN_NS::DATA_TYPE_INT8);
     auto *dst_buffer_ptr = dst_buffer.force_to<int8_t *>();
     for (int i = 0; i < count; ++i) {
-        dst_buffer_ptr[i] = (int8_t)src_buffer_ptr[i];
+        dst_buffer_ptr[i] = 0;
     }
     return dst_buffer;
 }
-
 }  // namespace TNN_CONVERTER

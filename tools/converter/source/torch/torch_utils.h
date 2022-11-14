@@ -39,7 +39,7 @@ TNN_NS::DimsVector GetDimsFromTensor(const at::Tensor& tensor);
 
 std::vector<torch::jit::Value*> GetEffectiveInputValues(const torch::jit::Node* node);
 
-TNN_NS::RawBuffer ConvertRawBuffFromIntToInt8(TNN_NS::RawBuffer& src_buffer);
+TNN_NS::RawBuffer ConvertRawBufferToZero(TNN_NS::RawBuffer& src_buffer);
 
 template <typename T>
 static inline T GetValue(const torch::jit::Value* value) {
