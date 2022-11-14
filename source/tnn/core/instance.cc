@@ -150,7 +150,7 @@ Status Instance::Reshape(const InputShapesMap &inputs) {
         }
         status = network_->Reshape(inputs);
         return status;
-    } catch (std::exception &e) {
+    } catch (std::bad_alloc &e) {
         return Status(TNNERR_OUTOFMEMORY);
     }
 }
@@ -171,7 +171,7 @@ Status Instance::Forward() {
     try {
         output_mats_convert_status_.clear();
         return network_->Forward();
-    } catch (std::exception &e) {
+    } catch (std::bad_alloc &e) {
         return Status(TNNERR_OUTOFMEMORY);
     }
 }
@@ -181,7 +181,7 @@ Status Instance::ForwardWithCallback(BlobStatisticCallback before, BlobStatistic
     try {
         output_mats_convert_status_.clear();
         return network_->ForwardWithCallback(before, after);
-    } catch (std::exception &e) {
+    } catch (std::bad_alloc &e) {
         return Status(TNNERR_OUTOFMEMORY);
     }
 }
@@ -198,7 +198,7 @@ Status Instance::ForwardAsync(Callback call_back) {
     try {
         output_mats_convert_status_.clear();
         return (Status)network_->ForwardAsync(call_back);
-    } catch (std::exception &e) {
+    } catch (std::bad_alloc &e) {
         return Status(TNNERR_OUTOFMEMORY);
     }
 }
