@@ -37,6 +37,21 @@
         }                                                       \
     } while (0)
 
+#define NAMES(...) __VA_ARGS__
+
+#define CREATE_NODE(var_name, g, LAYER_TYPE, ins, outs)         \
+    auto var_name = std::shared_ptr<Node>(nullptr);             \
+    do {                                                        \
+        auto status = g->createNode(LAYER_TYPE, ins, outs);     \
+        if (status != TNN_OK) {                                 \
+            ERROR("create node of type %d failed, msg:%s \n",   \
+                 LAYER_TYPE, status.description().c_str());     \
+            return nullptr;                                     \
+        }                                                       \
+        var_name = g->getNodeByTensorName(                      \
+                            std::vector<std::string>(outs)[0]); \
+    } while (0)
+
 namespace TNN_NS {
 
 Status validateSetAndVector(std::set<std::string>, std::vector<std::string>);
