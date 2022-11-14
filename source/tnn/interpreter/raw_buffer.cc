@@ -78,11 +78,14 @@ DimsVector RawBuffer::GetBufferDims() {
 }
 
 void* aligned_malloc(size_t bytes_size, size_t alignment) {
-    void* origin_ptr;
-    void** align_ptr;
+    void* origin_ptr = nullptr;
+    void** align_ptr = nullptr;
     int offset = alignment - 1 + sizeof(void*);
 
     origin_ptr = (void*)malloc(bytes_size + offset);
+    if (!origin_ptr) {
+        throw std::bad_alloc();
+    }
     align_ptr = (void**)(((size_t)(origin_ptr) + offset) & ~(alignment - 1));
     align_ptr[-1] = origin_ptr;
     return align_ptr;

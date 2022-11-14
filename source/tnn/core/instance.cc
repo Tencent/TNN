@@ -141,14 +141,18 @@ Status Instance::SetForwardMemory(void *memory) {
 }
 
 Status Instance::Reshape(const InputShapesMap &inputs) {
-    Status status = TNN_OK;
-    if (const_folder_) {
-        auto folder = dynamic_cast<ConstFolder*>(const_folder_.get());
-        status = folder->Reshape(inputs);
-        RETURN_ON_NEQ(status, TNN_OK);
+    try {
+        Status status = TNN_OK;
+        if (const_folder_) {
+            auto folder = dynamic_cast<ConstFolder*>(const_folder_.get());
+            status = folder->Reshape(inputs);
+            RETURN_ON_NEQ(status, TNN_OK);
+        }
+        status = network_->Reshape(inputs);
+        return status;
+    } catch (std::exception &e) {
+        return Status(TNNERR_OUTOFMEMORY);
     }
-    status = network_->Reshape(inputs);
-    return status;
 }
 
 Status Instance::GetCommandQueue(void **command_queue) {
@@ -164,14 +168,22 @@ AbstractNetwork *Instance::GetNetwork() {
 }
 
 Status Instance::Forward() {
-    output_mats_convert_status_.clear();
-    return network_->Forward();
+    try {
+        output_mats_convert_status_.clear();
+        return network_->Forward();
+    } catch (std::exception &e) {
+        return Status(TNNERR_OUTOFMEMORY);
+    }
 }
 
 #ifdef FORWARD_CALLBACK_ENABLE
 Status Instance::ForwardWithCallback(BlobStatisticCallback before, BlobStatisticCallback after) {
-    output_mats_convert_status_.clear();
-    return network_->ForwardWithCallback(before, after);
+    try {
+        output_mats_convert_status_.clear();
+        return network_->ForwardWithCallback(before, after);
+    } catch (std::exception &e) {
+        return Status(TNNERR_OUTOFMEMORY);
+    }
 }
 #endif  // end of FORWARD_CALLBACK_ENABLE
 
@@ -183,8 +195,12 @@ std::shared_ptr<AbstractModelInterpreter> Instance::GetInterpreter() {
 #endif  // end of GET_INTERP_ENABLE
 
 Status Instance::ForwardAsync(Callback call_back) {
-    output_mats_convert_status_.clear();
-    return (Status)network_->ForwardAsync(call_back);
+    try {
+        output_mats_convert_status_.clear();
+        return (Status)network_->ForwardAsync(call_back);
+    } catch (std::exception &e) {
+        return Status(TNNERR_OUTOFMEMORY);
+    }
 }
 
 Status Instance::GetAllInputBlobs(BlobMap &blobs) {

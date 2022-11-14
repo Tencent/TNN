@@ -28,17 +28,21 @@ TNNImplDefault::TNNImplDefault() {}
 TNNImplDefault::~TNNImplDefault() {}
 
 Status TNNImplDefault::Init(ModelConfig& config) {
-    auto status = TNNImpl::Init(config);
-    if (status != TNN_OK) {
-        return status;
-    }
+    try {
+        auto status = TNNImpl::Init(config);
+        if (status != TNN_OK) {
+            return status;
+        }
 
-    auto interpreter = CreateModelInterpreter(config.model_type);
-    if (!interpreter) {
-        return Status(TNNERR_NET_ERR, "interpreter is nil");
+        auto interpreter = CreateModelInterpreter(config.model_type);
+        if (!interpreter) {
+            return Status(TNNERR_NET_ERR, "interpreter is nil");
+        }
+        interpreter_ = std::shared_ptr<AbstractModelInterpreter>(interpreter);
+        return interpreter_->Interpret(config.params);
+    } catch (std::bad_alloc &e) {
+        return Status(TNNERR_OUTOFMEMORY);
     }
-    interpreter_ = std::shared_ptr<AbstractModelInterpreter>(interpreter);
-    return interpreter_->Interpret(config.params);
 }
 
 Status TNNImplDefault::DeInit() {
@@ -72,52 +76,60 @@ Status TNNImplDefault::GetModelInputShapesMap(InputShapesMap& shapes_map) {
 
 std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, Status& status,
                                                      InputShapesMap inputs_shape) {
-    if (!interpreter_) {
-        status = Status(TNNERR_NET_ERR, "interpreter is nil");
-        return nullptr;
-    }
-#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
-    //todo: refactor later
-    if(net_config.device_type == DEVICE_CUDA) {
-        status = AddAllLayersOutput();
-        if(status != TNN_OK) {
+    try {
+        if (!interpreter_) {
+            status = Status(TNNERR_NET_ERR, "interpreter is nil");
             return nullptr;
         }
-    }
+#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
+        //todo: refactor later
+        if(net_config.device_type == DEVICE_CUDA) {
+            status = AddAllLayersOutput();
+            if(status != TNN_OK) {
+                return nullptr;
+            }
+        }
 #endif
 
-    auto instance = std::make_shared<Instance>(net_config, model_config_);
-    status        = instance->Init(interpreter_, inputs_shape);
+        auto instance = std::make_shared<Instance>(net_config, model_config_);
+        status        = instance->Init(interpreter_, inputs_shape);
 
-    if (status != TNN_OK) {
+        if (status != TNN_OK) {
+            return nullptr;
+        }
+        return instance;
+    } catch (std::bad_alloc &e) {
         return nullptr;
     }
-    return instance;
 }
 
 std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, Status& status,
                                                      InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
-    if (!interpreter_) {
-        status = Status(TNNERR_NET_ERR, "interpreter is nil");
-        return nullptr;
-    }
-#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
-    //todo: refactor later
-    if(net_config.device_type == DEVICE_CUDA) {
-        status = AddAllLayersOutput();
-        if(status != TNN_OK) {
+    try {
+        if (!interpreter_) {
+            status = Status(TNNERR_NET_ERR, "interpreter is nil");
             return nullptr;
         }
-    }
+#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
+        //todo: refactor later
+        if(net_config.device_type == DEVICE_CUDA) {
+            status = AddAllLayersOutput();
+            if(status != TNN_OK) {
+                return nullptr;
+            }
+        }
 #endif
 
-    auto instance = std::make_shared<Instance>(net_config, model_config_);
-    status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape);
+        auto instance = std::make_shared<Instance>(net_config, model_config_);
+        status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape);
 
-    if (status != TNN_OK) {
+        if (status != TNN_OK) {
+            return nullptr;
+        }
+        return instance;
+    } catch (std::bad_alloc &e) {
         return nullptr;
     }
-    return instance;
 }
 
 Status TNNImplDefault::AddAllLayersOutput() {
