@@ -227,7 +227,7 @@ cd <path_to_tnn>/scripts
 ./build_macos.sh
 ```
 
-## VIII. Compile(Jetson Nano)
+## IX. Compile(Jetson Nano)
 ### 1. Environment requirements
 #### Dependencies
   - Jetpack 4.6 or above
