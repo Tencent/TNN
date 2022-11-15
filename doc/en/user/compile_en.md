@@ -227,6 +227,55 @@ cd <path_to_tnn>/scripts
 ./build_macos.sh
 ```
 
+## VIII. Compile(Jetson Nano)
+### 1. Environment requirements
+#### Dependencies
+  - Jetpack 4.6 or above
+
+### 2. Compilation Steps
+1）create a build directory
+```
+cd <path_to_tnn>
+mkdir build
+cd build
+```
+2) set environment.
+```
+export CUDACXX=/usr/local/cuda/bin/nvcc
+export CUDNN_ROOT_DIR=/usr/lib/aarch64-linux-gnu
+export CUBLAS_ROOT_DIR=/usr/local/cuda/lib64
+export TENSORRT_ROOT_DIR=/usr/lib/aarch64-linux-gnu
+```
+3a）execute cmake ***without TensorRT***
+```
+cmake -D CMAKE_BUILD_TYPE=Release \
+      -D TNN_JETSON_NANO_ENABLE=ON \
+      -D TNN_TENSORRT_ENABLE=OFF \
+      -D TNN_TEST_ENABLE=ON \
+      -D TNN_QUANTIZATION_ENABLE=ON \
+      -D TNN_BENCHMARK_MODE=OFF \
+      -D TNN_BUILD_SHARED=ON \
+      -D TNN_ONNX2TNN_ENABLE=ON \
+      -D TNN_TNN2MEM_ENABLE=ON \
+      -D TNN_CONVERTER_ENABLE=ON ..
+make -j4
+```
+3b）execute cmake ***with TensorRT***
+```
+PARALLEL_LEVEL=4 cmake -D CMAKE_BUILD_TYPE=Release \
+      -D TNN_JETSON_NANO_ENABLE=ON \
+      -D TNN_TENSORRT_ENABLE=ON \
+      -D TNN_TEST_ENABLE=ON \
+      -D TNN_QUANTIZATION_ENABLE=ON \
+      -D TNN_BENCHMARK_MODE=OFF \
+      -D TNN_BUILD_SHARED=ON \
+      -D TNN_ONNX2TNN_ENABLE=ON \
+      -D TNN_TNN2MEM_ENABLE=ON \
+      -D TNN_CONVERTER_ENABLE=ON \
+      -G Ninja ..
+ninja
+```
+
 ## Description for build options 
 
 |Option|Default|Description|
