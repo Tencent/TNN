@@ -22,6 +22,9 @@ namespace TNN_NS {
 static const std::string kNetOptimizerFuseConvPost =
     "net_optimizer_fuse_conv_post";
 
+static const std::string kNetOptimizerFuseConvActivation =
+    "net_optimizer_fuse_conv_activation";
+
 static const std::string kNetOptimizerFuseConvAdd =
     "net_optimizer_fuse_conv_add";
 
@@ -48,6 +51,9 @@ static const std::string kNetOptimizerConvertInt8Layers =
 
 static const std::string kNetOptimizerDynamicRangeDequant =
     "net_optimizer_dynamic_range_dequant";
+
+static const std::string kNetOptimizerConvertMatMulToConv =
+    "net_optimizer_convert_matmul_to_conv";
 
 }
 

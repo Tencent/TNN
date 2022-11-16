@@ -35,14 +35,14 @@ Status X86SplitVLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         slice_size = 1;
     }
     const int slice_input = input_dims[axis];
-    auto input_data       = static_cast<float *>(input_blob->GetHandle().base);
+    auto input_data       = handle_ptr<float *>(input_blob->GetHandle());
 
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         for (size_t b = 0; b < batch; b++) {
             int slice_input_offset = 0;
             for (size_t i = 0; i < outputs.size(); i++) {
                 auto output_blob = outputs[i];
-                auto output_data = static_cast<float *>(output_blob->GetHandle().base);
+                auto output_data = handle_ptr<float *>(output_blob->GetHandle());
                 const int slice  = output_blob->GetBlobDesc().dims[axis];
 
                 auto input_data_ptr  = input_data + b * slice_input * slice_size + slice_input_offset * slice_size;

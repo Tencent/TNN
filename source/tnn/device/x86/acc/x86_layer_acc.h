@@ -24,6 +24,7 @@
 #include "tnn/device/x86/acc/compute/jit/utils/cpu_isa.h"
 
 namespace TNN_NS {
+using namespace x86;
 
 // @brief x86 layer acc
 class X86LayerAcc : public AbstractLayerAcc {

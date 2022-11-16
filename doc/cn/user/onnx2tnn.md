@@ -135,7 +135,7 @@ python3 onnx2tnn.py model.onnx -version=v1.0 -optimize=1 -half=0 -o out_dir/ -in
 模型版本号，便于后续算法进行跟踪
 
 -optimize
-1（默认，开启）: 用于对模型进行无损融合优化，，如BN+Scale等f融合进Conv层；
+1（默认，开启）: 用于对模型进行无损融合优化，如BN+Scale等f融合进Conv层；
 0 ：如果融合报错可以尝试设为此值
 
 -half

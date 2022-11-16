@@ -22,6 +22,7 @@
 #include "tnn/interpreter/layer_resource_generator.h"
 
 namespace TNN_NS {
+using namespace x86;
 
 Status X86InnerProductLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                      const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -103,7 +104,7 @@ Status X86InnerProductLayerAcc::allocateBufferWeight(const std::vector<Blob *> &
                 size_t weight_count = ROUND_UP(output_dims[1], oc_rup) * input_stride;
                 int data_byte_size = DataTypeUtils::GetBytesSize(res->weight_handle.GetDataType());
 
-                RawBuffer temp_buffer(weight_count * data_byte_size);
+                RawBuffer temp_buffer(weight_count * data_byte_size, oc_rup * 4);
                 float *dst = temp_buffer.force_to<float *>();
 
                 if (arch_ == avx2) {
@@ -241,8 +242,8 @@ Status X86InnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
             X86VecAddFunc = X86_VectorAdd<Float8, 8>;
         }
 
-        float *input_data  = static_cast<float*>(input_blob->GetHandle().base);
-        float *output_data = static_cast<float*>(output_blob->GetHandle().base);
+        float *input_data  = handle_ptr<float*>(input_blob->GetHandle());
+        float *output_data = handle_ptr<float*>(output_blob->GetHandle());
         float *weight_data = buffer_weight_.force_to<float *>();
         float *bias_data   = buffer_bias_.force_to<float *>();
 
@@ -271,8 +272,8 @@ Status X86InnerProductLayerAcc::DoForward(const std::vector<Blob *> &inputs, con
             }
         }
     } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT8) {
-        int8_t *input_data   = static_cast<int8_t *>(input_blob->GetHandle().base);
-        int8_t *output_data  = static_cast<int8_t *>(output_blob->GetHandle().base);
+        int8_t *input_data   = handle_ptr<int8_t *>(input_blob->GetHandle());
+        int8_t *output_data  = handle_ptr<int8_t *>(output_blob->GetHandle());
         int8_t *weight_data  = buffer_weight_.force_to<int8_t *>();
         int32_t *bias_data   = buffer_bias_.force_to<int32_t *>();
         float *scale_data    = buffer_scale_.force_to<float *>();

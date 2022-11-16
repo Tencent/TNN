@@ -183,7 +183,7 @@ cd <path_to_tnn>/scripts
 Openvino can only be compiled to 64-bit version. More problems refer to [FAQ](openvino_en.md)
 
 ## VII. Compile(CUDA Windows) 
-### 1. Enviroment requirements
+### 1. Environment requirements
 #### Dependencies
   - Visual Studio (version 2015 or higher)
   - cmake (vsrsion 3.11 or higher; Or use build-in cmake in Visual Studio)

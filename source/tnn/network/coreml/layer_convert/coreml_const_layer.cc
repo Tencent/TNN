@@ -67,55 +67,9 @@ Status CoreMLConstLayer::BuildLayerParam() {
     
     //weight value
     auto data_type = raw_buffer_.GetDataType() ;
-    weight_param_ = std::make_shared<CoreML__Specification__WeightParams>();
+    RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&raw_buffer_,
+                                         weight_param_, raw_buffer_fp32_), TNN_OK);
     coreml_layer_->loadconstantnd->data = weight_param_.get();
-    core_ml__specification__weight_params__init(coreml_layer_->loadconstantnd->data);
-    
-    //TODO: to chcek data type
-    switch (data_type) {
-        case DATA_TYPE_FLOAT:
-            {
-                coreml_layer_->loadconstantnd->data->n_floatvalue = element_size;
-                coreml_layer_->loadconstantnd->data->floatvalue = raw_buffer_.force_to<float *>();
-            }
-            break;
-        case DATA_TYPE_INT32:
-            {
-                //CoreML only support FP32, so we need convert int32 to fp32
-                cvt_raw_buffer_ = RawBuffer(4*element_size, element_dims);
-                cvt_raw_buffer_.SetDataType(DATA_TYPE_FLOAT);
-                auto int32_data = raw_buffer_.force_to<int32_t*>();
-                auto float_data = cvt_raw_buffer_.force_to<float*>();
-                for (int i=0; i<element_size; i++) {
-                    float_data[i] = int32_data[i];
-                }
-                coreml_layer_->loadconstantnd->data->n_floatvalue = element_size;
-                coreml_layer_->loadconstantnd->data->floatvalue = cvt_raw_buffer_.force_to<float *>();
-            }
-            break;
-        case DATA_TYPE_HALF:
-            {
-#if TNN_COREML_FULL_PRECISION
-                cvt_raw_buffer_ = RawBuffer(4*element_size, element_dims);
-                cvt_raw_buffer_.SetDataType(DATA_TYPE_FLOAT);
-                auto fp16_data = raw_buffer_.force_to<void*>();
-                auto float_data = cvt_raw_buffer_.force_to<float*>();
-                RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)fp16_data, (float *)float_data, element_size),TNN_OK);
-                coreml_layer_->loadconstantnd->data->n_floatvalue = element_size;
-                coreml_layer_->loadconstantnd->data->floatvalue = cvt_raw_buffer_.force_to<float *>();
-#else
-                coreml_layer_->loadconstantnd->data->float16value.len = raw_buffer_.GetBytesSize();
-                coreml_layer_->loadconstantnd->data->float16value.data = raw_buffer_.force_to<uint8_t *>();
-#endif
-            }
-            break;
-        default:
-            {
-                LOGE("CoreMLConstLayer dont support data type (%d)\n", data_type);
-                return Status(TNNERR_PARAM_ERR, "CoreMLConstLayer dont support data type");
-            }
-            break;
-    }
     
     return TNN_OK;
 }

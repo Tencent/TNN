@@ -285,6 +285,9 @@ file(GLOB_RECURSE SRC "source/tnn/core/*.h"
                       "source/tnn/memory_manager/*.h"
                       "source/tnn/memory_manager/*.cc")
 
+string(LENGTH ${CMAKE_SOURCE_DIR} CMAKE_SOURCE_DIR_LEN)
+add_definitions(-D_SOURCE_DIR_LEN=${CMAKE_SOURCE_DIR_LEN})
+
 if(TNN_SYMBOL_HIDE AND UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
 endif()
@@ -292,6 +295,7 @@ endif()
 if(SYSTEM.Linux AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm" AND ANDROID_API_LEVAL)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_C99_MATH_TR1")
     add_definitions(-D__ANDROID_API__=${ANDROID_API_LEVAL})
+    add_definitions( -mfloat-abi=softfp )
 endif()
 
 if(SYSTEM.Windows AND TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
@@ -315,9 +319,6 @@ if(TNN_ARM_ENABLE)
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
 
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
-        if(SYSTEM.Linux)
-            add_definitions( -mfloat-abi=softfp )
-        endif()
         add_definitions( -mfpu=neon )
     endif()
     add_subdirectory(source/tnn/device/arm)
@@ -467,4 +468,9 @@ endif()
 
 if(TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE)
     add_subdirectory(tools/dynamic_range_quantization)
+endif()
+
+if (MSVC)
+    target_compile_options(TNN PUBLIC "/Zc:__cplusplus")
+    target_compile_features(TNN PUBLIC cxx_std_11)
 endif()

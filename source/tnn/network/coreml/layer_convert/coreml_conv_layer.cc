@@ -28,8 +28,8 @@ DECLARE_COREML_LAYER_WITH_FUNC_DATA(Conv, LAYER_CONVOLUTION,
                                     std::vector<std::shared_ptr<CoreML__Specification__BorderAmounts__EdgeSizes> > borderamounts_arr_;
                                     std::shared_ptr<CoreML__Specification__WeightParams> weight_param_;
                                     std::shared_ptr<CoreML__Specification__WeightParams> bias_param_;
-                                    std::shared_ptr<float> weight_fp32_ptr_;
-                                    std::shared_ptr<float> bias_fp32_ptr_;
+                                    std::shared_ptr<RawBuffer> rawbuffer_fp32_weight_;
+                                    std::shared_ptr<RawBuffer> rawbuffer_fp32_bias_;
                                     int activation_type_ = ActivationType_None;
                                     std::shared_ptr<LayerInfo> activation_layer_info_;);
 
@@ -89,65 +89,15 @@ Status CoreMLConvLayer::BuildLayerParam() {
     coreml_layer_->convolution->kernelsize[0] = kernel_y;
     coreml_layer_->convolution->kernelsize[1] = kernel_x;
 
-    weight_param_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
+    RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(conv_res->filter_handle),
+                                         weight_param_, rawbuffer_fp32_weight_), TNN_OK);
     coreml_layer_->convolution->weights = weight_param_.get();
-        core_ml__specification__weight_params__init(coreml_layer_->convolution->weights);
-    switch (weight_type) {
-        case DATA_TYPE_FLOAT:
-            coreml_layer_->convolution->weights->n_floatvalue = weight_size;
-            coreml_layer_->convolution->weights->floatvalue = conv_res->filter_handle.force_to<float *>();
-            break;
-        case DATA_TYPE_HALF:
-            {
-#if TNN_COREML_FULL_PRECISION
-                void *weight_data_ptr = conv_res->filter_handle.force_to<void *>();
-                coreml_layer_->convolution->weights->n_floatvalue = weight_size;
-                weight_fp32_ptr_ = std::shared_ptr<float>(new float [weight_size], [](float* p) { delete[] p; });
-                auto weight_fp32_ptr = weight_fp32_ptr_.get();
-                RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)weight_data_ptr, (float *)weight_fp32_ptr, weight_size),TNN_OK);
-                coreml_layer_->convolution->weights->floatvalue = weight_fp32_ptr;
-#else
-                coreml_layer_->convolution->weights->float16value.len = conv_res->filter_handle.GetBytesSize();
-                coreml_layer_->convolution->weights->float16value.data = conv_res->filter_handle.force_to<uint8_t *>();
-#endif
-            }
-            break;
-        default:
-            LOGE("CoreMLConvLayer dont support data type (%d)\n", weight_type);
-            return Status(TNNERR_MODEL_ERR, "CoreMLConvLayer dont support this weight data type");
-            break;
-    }
     
-    if (bias_size) {
+    if (bias_size > 0) {
         coreml_layer_->convolution->hasbias = true;
-        bias_param_ = std::shared_ptr<CoreML__Specification__WeightParams>(new CoreML__Specification__WeightParams);
+        RETURN_ON_NEQ(RawBuffer2CoreMLWeight(&(conv_res->bias_handle),
+                                             bias_param_, rawbuffer_fp32_bias_), TNN_OK);
         coreml_layer_->convolution->bias = bias_param_.get();
-        core_ml__specification__weight_params__init(coreml_layer_->convolution->bias);
-        switch (bias_type) {
-            case DATA_TYPE_FLOAT:
-                coreml_layer_->convolution->bias->n_floatvalue = bias_size;
-                coreml_layer_->convolution->bias->floatvalue = conv_res->bias_handle.force_to<float *>();
-                break;
-            case DATA_TYPE_HALF:
-                {
-#if TNN_COREML_FULL_PRECISION
-                    void *bias_data_ptr = conv_res->bias_handle.force_to<void *>();
-                    coreml_layer_->convolution->bias->n_floatvalue = bias_size;
-                    bias_fp32_ptr_ = std::shared_ptr<float>(new float [bias_size], [](float* p) { delete[] p; });
-                    auto bias_fp32_ptr = bias_fp32_ptr_.get();
-                    RETURN_ON_NEQ(ConvertFromHalfToFloat((void *)bias_data_ptr, (float *)bias_fp32_ptr, bias_size),TNN_OK);
-                    coreml_layer_->convolution->bias->floatvalue = bias_fp32_ptr;
-#else
-                    coreml_layer_->convolution->bias->float16value.len = conv_res->bias_handle.GetBytesSize();
-                    coreml_layer_->convolution->bias->float16value.data = conv_res->bias_handle.force_to<uint8_t *>();
-#endif
-                }
-                break;
-            default:
-                LOGE("CoreMLConvLayer dont support data type (%d)\n", bias_type);
-                return Status(TNNERR_MODEL_ERR, "CoreMLConvLayer dont support this bias data type");
-                break;
-        }
     }
     
     if (pad_type == -1) { // default padding following the proto setting
@@ -204,6 +154,7 @@ Status CoreMLConvLayer::BuildActivationLayer() {
     auto conv_param = dynamic_cast<ConvLayerParam *>(param);
     if (activation_type_ == ActivationType_ReLU) {
         auto relu_layer = CreateCoreMLBaseLayer(LAYER_RELU);
+        relu_layer->SetNetResource(net_resource_);
         activation_layer_info_ = std::shared_ptr<LayerInfo>(new LayerInfo);
         {
             activation_layer_info_->type = LAYER_RELU;
@@ -212,7 +163,7 @@ Status CoreMLConvLayer::BuildActivationLayer() {
             activation_layer_info_->outputs = layer_info_->outputs;
         }
         RETURN_ON_NEQ(relu_layer->Init(activation_layer_info_.get(), nullptr), TNN_OK);
-        coreml_layer_after_ = relu_layer;
+        coreml_layers_after_ = {relu_layer};
     } else if (activation_type_ == ActivationType_ReLU6) {
         auto relu6_layer = CreateCoreMLBaseLayer(LAYER_RELU6);
         relu6_layer->SetNetResource(net_resource_);
@@ -228,7 +179,7 @@ Status CoreMLConvLayer::BuildActivationLayer() {
         net_resource_->blob_shapes_map[activation_layer_info_->outputs[0]] = net_resource_->blob_shapes_map[layer_info_->outputs[0]];
         
         RETURN_ON_NEQ(relu6_layer->Init(activation_layer_info_.get(), nullptr), TNN_OK);
-        coreml_layer_after_ = relu6_layer;
+        coreml_layers_after_ = {relu6_layer};
     } else if (activation_type_ != ActivationType_None) {
         LOGE("CoreMLConvLayer dont support activation type (%d)\n", activation_type_);
         return Status(TNNERR_MODEL_ERR, "CoreMLConvLayer dont support this activation type");

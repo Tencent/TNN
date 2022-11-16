@@ -115,6 +115,11 @@ Status CudaLayerNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     auto layer_param = dynamic_cast<LayerNormLayerParam *>(param_);
     auto dims_input = input_blob->GetBlobDesc().dims;
     const int reduce_dim_size = layer_param->reduce_dims_size;
+
+    if (layer_param->reduce_dims_size != scale_blob->GetBlobDesc().dims.size()) {
+        return Status(TNNERR_PARAM_ERR, "LayerNormLayer has invalid dims for input blob of scale or bias");
+    }
+
     const int channel_dim_size = (int)dims_input.size() - reduce_dim_size;
 
     const int channels = DimsVectorUtils::Count(dims_input, 0, channel_dim_size);

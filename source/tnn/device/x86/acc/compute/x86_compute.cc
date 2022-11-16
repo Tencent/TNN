@@ -434,6 +434,81 @@ template Status X86_FMA<Float8, 8>(float *input_data, float *output_data, float 
 template Status X86_FMA<Float4, 4>(float *input_data, float *output_data, float *scale_data, float *bias_data,
                bool shared_channel, bool has_bias, DimsVector output_dim);
 
+template<class T, int pack>
+Status X86_GroupNorm_FMA(
+    float *input_data, float *output_data,
+    float *scale_data, float *bias_data,
+    int group, float epsilon,
+    int batch_time_group, int channels_per_group, int channel_area, int group_area)
+{
+    const int tail_channel_area = channel_area - channel_area % pack;
+    const int tail_group_area   = group_area   - group_area   % pack;
+
+    for (int b = 0; b < batch_time_group; b++) {
+        double mean_x = 0;
+        double variance = 1;
+        
+        // get mean and variance
+        {
+            T sum_x_pack(0.f);
+            T sum_x2_pack(0.f);
+            T src;
+            for (int hw = 0; hw < tail_group_area; hw += pack) {
+                src         = T::loadu(input_data + hw);
+                sum_x_pack  = T::add(src, sum_x_pack);
+                T::mla(sum_x2_pack, src, src);
+            }
+            double sum_x = 0., sum_x2 = 0.;
+            // for (int i = 0; i < pack; i++) {
+            //     sum_x   += sum_x_pack.value[i];
+            //     sum_x2  += sum_x2_pack.value[i];
+            // }
+            sum_x  = T::reduce_add(sum_x_pack);
+            sum_x2 = T::reduce_add(sum_x2_pack);
+            for (int hw = tail_group_area; hw < group_area; hw++) {
+                sum_x   += input_data[hw];
+                sum_x2  += input_data[hw] * input_data[hw];
+            }
+            mean_x  = sum_x / group_area;
+            auto mean_x2 = sum_x2 / group_area;
+
+            variance = mean_x2 - mean_x * mean_x;
+            variance = 1.0f / sqrt(variance + epsilon);
+        }
+
+        int output_channel = (b % group) * channels_per_group;
+        for (int c = 0; c < channels_per_group; ++c, ++output_channel) {
+            float k = scale_data[output_channel];
+            float bias = bias_data == NULL ? 0.0f : bias_data[output_channel];
+            bias -= mean_x * variance * k;
+            k = k * variance;
+            T k_pack(k);
+            T bias_pack(bias);
+            T temp;
+            for (int hw = 0; hw < tail_channel_area; hw += pack, output_data += pack, input_data += pack) {
+                temp = T::loadu(input_data);
+                T::mla_123(temp, k_pack, bias_pack);
+                T::saveu(output_data, temp);
+            }
+            for (int hw = tail_channel_area; hw < channel_area; hw++, output_data++, input_data++) {
+                *output_data = (float)((*input_data) * k + bias);
+            }
+        }
+    }
+
+    return TNN_OK;
+}
+
+template Status X86_GroupNorm_FMA<Float4, 4>(float *input_data, float *output_data,
+    float *scale_data, float *bias_data,
+    int group, float epsilon,
+    int batch_time_group, int channels_per_group, int channel_area, int group_area);
+
+template Status X86_GroupNorm_FMA<Float8, 8>(float *input_data, float *output_data,
+    float *scale_data, float *bias_data,
+    int group, float epsilon,
+    int batch_time_group, int channels_per_group, int channel_area, int group_area);
+
 template<X86ReduceOpType type>
 float reduce_iter_op(const float acc, const float v) {
     return acc + v;

@@ -34,12 +34,12 @@ Status X86GatherNDLayerAcc::DoForward(const std::vector<Blob *> &inputs, const s
     }
     
     auto input_data_dims = (*(inputs.begin()))->GetBlobDesc().dims;
-    auto input_data_ptr = (char*)(*(inputs.begin()))->GetHandle().base + (*(inputs.begin()))->GetHandle().bytes_offset;
-    auto output_data_ptr = (char*)(*(outputs.begin()))->GetHandle().base + (*(outputs.begin()))->GetHandle().bytes_offset;
+    auto input_data_ptr = handle_ptr<char*>((*(inputs.begin()))->GetHandle());
+    auto output_data_ptr = handle_ptr<char*>((*(outputs.begin()))->GetHandle());
     auto input_stride = DimsFunctionUtils::StrideOfShape(input_data_dims);
     
     auto indices_dims = (*(inputs.rbegin()))->GetBlobDesc().dims;
-    int *indices_data_ptr = (int *)(*(inputs.rbegin()))->GetHandle().base;
+    int *indices_data_ptr = handle_ptr<int*>((*(inputs.rbegin()))->GetHandle());
 
     if (indices_dims[indices_dims.size()-1] != input_data_dims.size()) {
         return Status(TNNERR_PARAM_ERR, "GatherNDLayerParam has invalid param indices_dims");

@@ -53,3 +53,7 @@ endif()
 if(TNN_UNIT_TEST_ENABLE)
     add_subdirectory(unit_test)
 endif()
+
+if(TNN_MATCHER_TEST_ENABLE)
+    add_subdirectory(matcher_test)
+endif()

@@ -22,9 +22,9 @@ DECLARE_X86_ACC(Cast, LAYER_CAST);
 
 Status X86CastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     const auto param = dynamic_cast<CastLayerParam*>(param_);
-    void *input_data = inputs[0]->GetHandle().base;
+    void *input_data = handle_ptr<void*>(inputs[0]->GetHandle());
     auto input_data_type = inputs[0]->GetBlobDesc().data_type;
-    void *output_data = outputs[0]->GetHandle().base;
+    void *output_data = handle_ptr<void*>(outputs[0]->GetHandle());
     auto output_data_type = outputs[0]->GetBlobDesc().data_type;
     
     const int ele_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);

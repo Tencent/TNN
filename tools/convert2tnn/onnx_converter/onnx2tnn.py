@@ -113,7 +113,9 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         command = command + " -input_shape " + input_names
     logging.debug("The onnx2tnn command:" + command + "\n")
 
-    work_dir = "../onnx2tnn/onnx-converter/"
+    current_file_dir = os.path.dirname(__file__)
+
+    work_dir = current_file_dir + "/../../onnx2tnn/onnx-converter/"
     result = cmd.run(command, work_dir=work_dir)
 
     if result == 0:
