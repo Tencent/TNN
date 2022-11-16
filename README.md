@@ -44,9 +44,9 @@ Detailed hands-on tutorials can be found here [How to Create a TNN Model](doc/en
    For these platforms, TNN provides convenient one-click scripts to compile. For detailed steps, please refer to [How to Compile TNN](doc/en/user/compile_en.md).
 
 3. The final step is to use the compiled TNN engine for inference. You can make program calls to TNN inside your application. We provide a rich and detailed demo as a reference to help you complete.
-    * [Run an iOS Demo](doc/en/user/demo_en.md)
-    * [Run an Android Demo](doc/en/user/demo_en.md)
-    * [Run an Linux/Windows Demo](doc/en/user/demo_en.md)
+    * [Run an iOS Demo](doc/en/user/demo_en.md#i-introduction-to-ios-demo)
+    * [Run an Android Demo](doc/en/user/demo_en.md#ii-introduction-to-android-demo)
+    * [Run an Linux/Windows Demo](doc/en/user/demo_en.md#iii-introduction-to-linuxmacwindowsarmlinuxcudalinux-demo)
 
 ## Technical Solutions
 
