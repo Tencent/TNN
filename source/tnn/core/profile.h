@@ -76,6 +76,9 @@ public:
     // @brief This function shows the detailed timing for each layer in the model.
     virtual std::string GetProfilingDataInfo();
 
+    // @brief This function shows the detailed timing for each layer(sort by cost time) in the model.
+    virtual std::string GetProfilingDataTable(const std::string& title);
+
 protected:
     /*
      * This function shows an overview of the timings in the model.
