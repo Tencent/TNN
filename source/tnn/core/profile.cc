@@ -108,20 +108,11 @@ std::vector<std::shared_ptr<ProfilingData>> ProfileResult::GetData() {
     return profiling_data_;
 }
 
-/*
-format print profile info
-*/
-std::string ProfileResult::GetProfilingDataInfo() {
-    // show the time cost of each layer
-    std::string title                     = "Profiling Data";
+std::string ProfileResult::GetProfilingDataTable(const std::string& title) {
     const std::vector<std::string> header = {"name",         "Op Type", "Kernel(ms)", "Input Dims", "Output Dims",
                                              "Filter(OIHW)", "Group", "Stride",  "Pad",        "Dilation"};
-
     std::vector<std::vector<std::string>> data;
-
-    double kernel_time_sum = 0;
-
-    for (auto p : profiling_data_) {
+    for (const auto& p : profiling_data_) {
         std::vector<std::string> tuple;
         tuple.reserve(16);
 
@@ -135,19 +126,36 @@ std::string ProfileResult::GetProfilingDataInfo() {
         tuple.push_back(VectorToString(p->stride_shape));
         tuple.push_back(VectorToString(p->pad_shape));
         tuple.push_back(VectorToString(p->dilation_shape));
-
         data.emplace_back(tuple);
+    }
+    std::string detailed_string = StringFormatter::Table(title, header, data);
+    return detailed_string;
+}
+/*
+format print profile info
+*/
+std::string ProfileResult::GetProfilingDataInfo() {
+    std::string title        = "Profiling Data";
+    std::string profile_data = GetProfilingDataTable(title);
 
+    std::string sort_title = "Profiling Data Sort by Cost time";
+    // descending sort profiling data by cost time
+    auto compare = [](const std::shared_ptr<ProfilingData>& d1, const std::shared_ptr<ProfilingData>& d2) {
+        return d1->kernel_time > d2->kernel_time;
+    };
+    std::sort(profiling_data_.begin(), profiling_data_.end(), compare);
+    std::string sort_profile_data = GetProfilingDataTable(sort_title);
+
+    std::string summary_string = GetProfilingDataSummary(true);
+
+    double kernel_time_sum = 0;
+    for (const auto& p : profiling_data_) {
         kernel_time_sum += p->kernel_time / p->count;
     }
-
-    std::string detailed_string = StringFormatter::Table(title, header, data);
-    std::string summary_string  = GetProfilingDataSummary(true);
-
     std::ostringstream ostr;
     ostr << "kernel runtime total: " << kernel_time_sum << " ms\n\n";
 
-    return detailed_string + summary_string + ostr.str();
+    return profile_data + sort_profile_data + summary_string + ostr.str();
 }
 
 std::string ProfileResult::GetProfilingDataSummary(bool do_average) {
