@@ -31,10 +31,10 @@ std::vector<std::string> OnnxOpConverter::GetAllInputNames(NodeProto &node, Onnx
 
 std::vector<std::string> OnnxOpConverter::GetValidInputNames(NodeProto &node, OnnxNetInfo &net_info) {
     std::vector<std::string> inputs;
-    
+
     int input_size  = node.input_size();
     bool has_another_variable_input = false;
-    
+
     for (int j = 1; j < (int)node.input_size(); j++) {
         const std::string &input_name = node.input(j);
         if (input_name.length() > 0 &&
@@ -43,10 +43,10 @@ std::vector<std::string> OnnxOpConverter::GetValidInputNames(NodeProto &node, On
             break;
         }
     }
-    
+
     bool all_inputs_const = (!has_another_variable_input) &&
     net_info.weights_map.find(node.input(0)) != net_info.weights_map.end();
-    
+
     for (int j = 0; j < (int)node.input_size(); j++) {
         const auto input_name = node.input(j);
         if (input_name.length() <= 0) {
@@ -54,7 +54,7 @@ std::vector<std::string> OnnxOpConverter::GetValidInputNames(NodeProto &node, On
         } else {
             //if all inputs are const, it is a const layer which is only excuted on NAIVE
             if (all_inputs_const) {
-                
+
             } else {
                 if (HasLayerResource(node, net_info)) {
                     if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
@@ -63,26 +63,29 @@ std::vector<std::string> OnnxOpConverter::GetValidInputNames(NodeProto &node, On
                     }
                 } else {
                     if (j == 0 && node.input_size() == 1) {
-                        
+
                     } else {
-                        if (!has_another_variable_input && net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
+                        std::string node_name = node.name();
+                        if (!has_another_variable_input
+                                && net_info.weights_map.find(input_name) != net_info.weights_map.end()
+                                && node_name.find("GridSample") == std::string::npos) {
                             continue;
                         }
                     }
                 }
             }
         }
-        
+
         inputs.push_back(input_name);
     }
-    
+
     return inputs;
 }
 
 std::vector<std::string> OnnxOpConverter::GetValidOutputNames(NodeProto &node, OnnxNetInfo &net_info) {
     std::vector<std::string> outputs;
     int output_size = node.output_size();
-    
+
     for (int j = 0; j < output_size; j++) {
         const auto output_name = node.output(j);
         outputs.push_back(output_name);
@@ -103,10 +106,10 @@ string OnnxOpConverter::TNNLayerProto(NodeProto &node,
     }
     proto_layer << name << " ";
     ProcessConstantNode(node, net_info);
-    
+
     auto inputs = GetValidInputNames(node, net_info);
     auto outputs = GetValidOutputNames(node, net_info);
-    
+
     proto_layer << inputs.size() << " " << outputs.size() << " ";
 
     for (auto iter : inputs) {
@@ -155,10 +158,10 @@ int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
 //            assert(0);
 //            break;
 //        }
-        
+
         auto tensor_data_type = tensor.data_type();
         DLog("tersor (%s) data type: %d item_size: %d\n", tensor.name().c_str(), tensor_data_type, item_size);
-        
+
         auto dims = GetDimsFromTensor(tensor);
         if (dims.empty() && item_size !=1) {
             DLog("dims size is invalid\n");
@@ -215,13 +218,13 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
         //    TensorProto_DataType_COMPLEX64 = 14,
         //    TensorProto_DataType_COMPLEX128 = 15,
         //    TensorProto_DataType_BFLOAT16 = 16
-        
+
         if (!raw_data && data_count > 0) {
             DLog("invalid data or size\n");
             assert(0);
             break;
         }
-        
+
         if (src_data_type == onnx::TensorProto_DataType_FLOAT ||
             src_data_type == onnx::TensorProto_DataType_DOUBLE) {//float double
             //double to float
@@ -233,7 +236,7 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                     float_data[ii] = double_data[ii];
                 }
             }
-            
+
             if (dst_data_type == DATA_TYPE_AUTO ||
                 dst_data_type == DATA_TYPE_FLOAT) {
                 writer->PutRaw(data_count * sizeof(float), (char *)float_data, dims,DATA_TYPE_FLOAT);
