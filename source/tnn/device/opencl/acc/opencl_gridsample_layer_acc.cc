@@ -48,7 +48,14 @@ Status OpenCLGridsampleLayerAcc::Init(Context *context, LayerParam *param, Layer
     // create kernel
     std::string kernel_name;
     if (gridsample_param->mode == 2) {  // bilinear
-        kernel_name = "BilinearGridSample";
+        if (gridsample_param->align_corners == 0) {  // corner align
+            kernel_name = "BilinearGridSampleCornerAlign";
+        } else if (gridsample_param->align_corners == 1) {  // center align
+            kernel_name = "BilinearGridSampleCenterAlign";
+        } else {                                                                                                                              +  56             LOGE("Not support Gridsample align_corners type: %d\n", gridsample_param->align_corners);
+            LOGE("Not support Gridsample align_corners type: %d\n", gridsample_param->align_corners);
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid align_corners type");
+        }
     } else {
         LOGE("Not support Gridsample type: %d\n", gridsample_param->mode);
         return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "invalid upsample mode");
