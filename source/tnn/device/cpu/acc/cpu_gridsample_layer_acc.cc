@@ -32,7 +32,7 @@ static inline bool within_bounds_2d(int h, int w, int H, int W) {
 
 Status CpuGridSampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<GridSampleLayerParam *>(param_);
-    if (layer_param->mode != 2 || layer_param->pad_type != 0 || layer_param->align_corners != 0) {
+    if (layer_param->mode != 2 || layer_param->pad_type != 0 || (layer_param->align_corners != 0 && layer_param->align_corners != 1)) {
         return Status(TNNERR_PARAM_ERR, "CpuGridSampleLayerAcc dont support some mode or pade type or align_corners");
     }
     auto input_dims  = inputs[0]->GetBlobDesc().dims;
@@ -70,8 +70,14 @@ Status CpuGridSampleLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
                 float x            = grid_position[0];
                 float y            = grid_position[1];
                 // unnormalize
-                float ix = (x + 1) * input_width * 0.5 - 0.5;
-                float iy = (y + 1) * input_height * 0.5 - 0.5;
+                float ix, iy;
+                if (0 == layer_param->align_corners) {
+                    ix = (x + 1) * input_width * 0.5 - 0.5;
+                    iy = (y + 1) * input_height * 0.5 - 0.5;
+                } else {
+                    ix = (x + 1) * 0.5 * (input_width - 1.0);
+                    iy = (y + 1) * 0.5 * (input_height - 1.0);
+                }
                 // get corner pixel values from (x, y)
                 // for 4d, we use north-east-south-west
                 int ix_nw = static_cast<int>(std::floor(ix));
