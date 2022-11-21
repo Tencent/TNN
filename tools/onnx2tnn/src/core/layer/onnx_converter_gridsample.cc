@@ -45,6 +45,7 @@ string OnnxOpConverterGridSample::TNNLayerParam(NodeProto &node,
 
     auto align_corners = get_node_attr_i(node, "align_corners", 0);
     if (0 == align_corners || 1 == align_corners) {
+        // 0:false, 1:true
         layer_param << (0 == align_corners ? "0 " : "1 ");
     } else {
         LOGE("GridSample dont support align_corners\n");
