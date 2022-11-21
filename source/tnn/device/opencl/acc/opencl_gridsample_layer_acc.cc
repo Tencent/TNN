@@ -80,7 +80,7 @@ Status OpenCLGridsampleLayerAcc::Reshape(const std::vector<Blob *> &inputs, cons
         LOGE("Error: layer param is null\n");
         return Status(TNNERR_MODEL_ERR, "Error: layer param is null");
     }
-    if (gridsample_param->mode != 2 || gridsample_param->pad_type != 0 || gridsample_param->align_corners != 0) {
+    if (gridsample_param->mode != 2 || gridsample_param->pad_type != 0 || (gridsample_param->align_corners != 0 && gridsample_param->align_corners != 1)) {
         return Status(TNNERR_PARAM_ERR,
                       "OpenclGridSampleLayerAcc dont support some mode or pade type or align_corners");
     }
