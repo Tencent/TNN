@@ -163,6 +163,50 @@ REGISTER_ARM_LAYOUT(LAYER_STRIDED_SLICE, DATA_FORMAT_NC4HW4)
 
 DECLARE_ARM_ACC(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
 
+static Status FastSliceForHW(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
+                             StrideSliceV2LayerParam *param) {
+    Blob *input_blob        = inputs[0];
+    Blob *output_blob       = outputs[0];
+    auto dims_input         = input_blob->GetBlobDesc().dims;
+    auto dims_output        = output_blob->GetBlobDesc().dims;
+    auto begin              = param->begins[0];
+    auto end                = param->ends[0];
+    auto axis               = param->axes[0];
+    auto *input_ptr         = reinterpret_cast<char *>(GetBlobHandlePtr(input_blob->GetHandle()));
+    auto *output_ptr        = reinterpret_cast<char *>(GetBlobHandlePtr(output_blob->GetHandle()));
+    const int batch         = DimsFunctionUtils::GetDim(dims_input, 0);
+    const int channel       = DimsFunctionUtils::GetDim(dims_input, 1);
+    const int original_axis = DimsFunctionUtils::GetDim(dims_input, axis);
+    const int slice_axis    = DimsFunctionUtils::GetDim(dims_output, axis);
+    const int step          = DimsVectorUtils::Count(dims_input, axis + 1);
+    int channel_stride      = 0;
+    int byte_size           = 0;
+    const auto data_type    = output_blob->GetBlobDesc().data_type;
+    if (data_type == DATA_TYPE_FLOAT) {
+        channel_stride = 4;
+        byte_size      = sizeof(float);
+    } else if (data_type == DATA_TYPE_HALF) {
+        channel_stride = 8;
+        byte_size      = sizeof(fp16_t);
+
+    } else {
+        LOGE("ArmStrideSliceV2LayerAcc does not support data type: %d", data_type);
+        return {TNNERR_UNSUPPORT_NET, "ArmStrideSliceV2LayerAcc does not support data type\n"};
+    }
+    int channel_up = UP_DIV(channel, channel_stride);
+    // end may be max int value;
+    int step_size = step * channel_stride;
+    for (int b = 0; b < batch; ++b) {
+        for (int c = 0; c < channel_up; ++c) {
+            int input_offset  = (b * channel_up * original_axis + c * original_axis + begin) * step_size;
+            int output_offset = (b * channel_up * slice_axis + c * slice_axis) * step_size;
+            memcpy(output_ptr + output_offset * byte_size, input_ptr + input_offset * byte_size,
+                   (end - begin) * step_size * byte_size);
+        }
+    }
+    return TNN_OK;
+}
+
 Status ArmStrideSliceV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<StrideSliceV2LayerParam *>(param_);
     if (!layer_param) {
@@ -183,10 +227,10 @@ Status ArmStrideSliceV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, co
     auto ends    = layer_param->ends;
     auto strides = layer_param->strides;
     auto axes    = layer_param->axes;
-
-    Status status = TNN_OK;
-    DimsFunctionUtils::StrideSlice(dims_input, begins, ends, strides, axes, &status);
-    RETURN_ON_NEQ(status, TNN_OK);
+    // optimize case: axes.size = 1
+    if (axes.size() == 1 && (axes[0] > 1) && strides[0] == 1) {
+        return FastSliceForHW(inputs, outputs, layer_param);
+    }
 
     std::vector<int> rectified_begins(dim_size, 0);
     std::vector<int> rectified_ends(dim_size, 0);
