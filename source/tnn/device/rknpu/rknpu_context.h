@@ -31,6 +31,10 @@ public:
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void** command_queue) override;
 
+    // @brief set tnn command queue
+    // @param command_queue device command queue for forward
+    virtual Status SetCommandQueue(void* command_queue);
+
     // @brief before instance forward
     virtual Status OnInstanceForwardBegin() override;
 

@@ -69,13 +69,32 @@ ILayer* PadTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noex
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
     std::vector<int> pads = paramlist->pads;
+
+    // IPaddingLayer only support 4d Tensor
+    // If Input is CHW (supported by pytorch) instead of NCHW,
+    // Unsqueeze input tensor to [1, C, H, W]
+    ILayer* layer;
+    int input_nbDims = input_tensor->getDimensions().nbDims;
+    if (input_nbDims == 3) {
+        layer = addUnsqueeze(network, *input_tensor, {0});
+        layer->setName((layer_name_+"_chw_to_nchw").c_str());
+        input_tensor = layer->getOutput(0);
+    }
+
     // use IPaddingLayer
-    IPaddingLayer* pad_layer;
     Dims pre_padding = ConvertToTRTDims({pads[2], pads[0]});
     Dims post_padding = ConvertToTRTDims({pads[3], pads[1]});
-    pad_layer = network->addPaddingNd(*input_tensor, pre_padding, post_padding);
+    layer = network->addPaddingNd(*input_tensor, pre_padding, post_padding);
+    input_tensor = layer->getOutput(0);
 
-    return pad_layer;
+    // If Input is CHW (supported by pytorch) instead of NCHW,
+    // Squeeze result tensor back to [C, H, W]
+    if (input_nbDims == 3) {
+        layer = addSqueeze(network, *input_tensor, {0});
+        layer->setName((layer_name_+"_nchw_to_chw").c_str());
+    }
+
+    return layer;
 }
 
 DimsExprs PadTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
@@ -86,9 +105,12 @@ DimsExprs PadTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer
     auto pads1 = exprBuilder.constant(param->pads[2] + param->pads[3]);
     auto pads2 = exprBuilder.constant(param->pads[4] + param->pads[5]);
 
-    output.d[3] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[3], *pads0);
-    output.d[2] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[2], *pads1);
-    output.d[1] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[1], *pads2);
+    int nbDims = inputs[0].nbDims;
+    // Support NCHW(nbDims==4) or CHW(nbDims==3)
+    output.d[nbDims-1] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[nbDims-1], *pads0);
+    output.d[nbDims-2] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[nbDims-2], *pads1);
+    output.d[nbDims-3] = exprBuilder.operation(DimensionOperation::kSUM, *output.d[nbDims-3], *pads2);
+
     return output;
 }
 

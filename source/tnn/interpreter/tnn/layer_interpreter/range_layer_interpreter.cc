@@ -20,6 +20,23 @@ DECLARE_LAYER_INTERPRETER(Range, LAYER_RANGE);
 
 Status RangeLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_index, LayerParam** param) {
     auto layer_param = CreateLayerParam<RangeLayerParam>(param);
+    int index = start_index;
+
+    if (index+7>layer_cfg_arr.size()) {
+        LOGE("Range TNN Interpreter: Range requires at least 7 layer param.");
+        return Status(TNNERR_PARAM_ERR, "RangeLayerInterpreter param is invalid");
+    }
+
+    int dtype_value = std::atoi(layer_cfg_arr[index++].c_str());
+    layer_param->data_type   = (DataType)dtype_value;
+    layer_param->start.i     = std::atoi(layer_cfg_arr[index++].c_str());
+    layer_param->limit.i     = std::atoi(layer_cfg_arr[index++].c_str());
+    layer_param->delta.i     = std::atoi(layer_cfg_arr[index++].c_str());
+    
+    layer_param->start_index = std::atoi(layer_cfg_arr[index++].c_str());
+    layer_param->limit_index = std::atoi(layer_cfg_arr[index++].c_str());
+    layer_param->delta_index = std::atoi(layer_cfg_arr[index++].c_str());
+ 
     return TNN_OK;
 }
 
@@ -27,7 +44,19 @@ Status RangeLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
     return TNN_OK;
 }
 
-Status RangeLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status RangeLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
+    CAST_OR_RET_ERROR(layer_param, RangeLayerParam, "invalid layer param to save", param);
+    
+    output_stream << layer_param->data_type << " ";
+
+    output_stream << layer_param->start.i << " ";
+    output_stream << layer_param->limit.i << " ";
+    output_stream << layer_param->delta.i << " ";
+
+    output_stream << layer_param->start_index << " ";
+    output_stream << layer_param->limit_index << " ";
+    output_stream << layer_param->delta_index << " ";
+    
     return TNN_OK;
 }
 

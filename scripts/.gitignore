@@ -14,4 +14,8 @@ cuda_linux_release
 build_cuda_msvc
 cuda_msvc_release
 build_linux_native
+build_tnntorch_linux
+tnntorch_linux_release
+build_tnntorch_linux_debug
+tnntorch_linux_debug
 build_win

@@ -12,13 +12,13 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/device/cuda/acc/cuda_mat_mul_layer_acc.h"
 #include "tnn/utils/dims_utils.h"
 #include "tnn/utils/data_type_utils.h"
+#include <cublas_v2.h>
+
 
 namespace TNN_NS {
-
-DECLARE_CUDA_ACC(MatMul, LAYER_MATMUL);
 
 #define BLOCK_DIM 16
 
@@ -171,6 +171,44 @@ __global__ void matmul_batched_gemv_kernel_fp16(const __half* data1, const float
 
 Status CudaMatMulLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+
+    auto matmul_param = dynamic_cast<MatMulLayerParam *>(param);
+    auto matmul_resource  = dynamic_cast<MatMulLayerResource *>(resource);
+
+    DataType compute_type = inputs[0]->GetBlobDesc().data_type;
+
+    if (matmul_param && matmul_resource) {
+        auto buf = (matmul_resource->weight);
+        weight_shape_ = buf.GetBufferDims();
+        if (buf.GetDataCount() > 0 && matmul_param->weight_position != -1) {
+
+            CreateTempBuf(buf.GetDataCount() * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT));
+            CreateTempBuf(buf.GetDataCount() * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF));
+
+            if (buf.GetDataType() == DATA_TYPE_FLOAT) {
+                CUDA_CHECK(cudaMemcpy(tempbufs_[0].ptr, 
+                                        buf.force_to<void*>(), 
+                                        buf.GetDataCount() * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT), 
+                                        cudaMemcpyHostToDevice));
+                auto half_buf = ConvertFloatToHalf(buf);
+                CUDA_CHECK(cudaMemcpy(tempbufs_[1].ptr, 
+                                        half_buf.force_to<void*>(), 
+                                        half_buf.GetDataCount() * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF), 
+                                        cudaMemcpyHostToDevice));
+            } else if (buf.GetDataType() == DATA_TYPE_HALF) {
+                auto ptr = GetFloatFromRawBuffer(buf);
+                CUDA_CHECK(cudaMemcpy(tempbufs_[0].ptr, 
+                                        ptr.get(), 
+                                        buf.GetDataCount() * DataTypeUtils::GetBytesSize(DATA_TYPE_FLOAT), 
+                                        cudaMemcpyHostToDevice));
+                CUDA_CHECK(cudaMemcpy(tempbufs_[1].ptr, 
+                                        buf.force_to<void*>(), 
+                                        buf.GetDataCount() * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF), 
+                                        cudaMemcpyHostToDevice));
+            }
+        }
+    }
+
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
@@ -178,7 +216,49 @@ Status CudaMatMulLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
     return TNN_OK;
 }
 
+Status CudaMatMulLayerAcc::ForwardWithWeights(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+
+    auto input_dims = inputs[0]->GetBlobDesc().dims;
+    void* input_data = inputs[0]->GetHandle().base;
+    void* output_data = outputs[0]->GetHandle().base;
+
+    int M = weight_shape_[weight_shape_.size() - 1];
+    int K = input_dims[input_dims.size() - 1];
+    int N = input_dims[input_dims.size() - 2];
+    for (int i=0;i<input_dims.size() -2;i++) {
+        N *= input_dims[i];
+    }
+
+    DataType compute_type = inputs[0]->GetBlobDesc().data_type;
+
+    if (compute_type == DATA_TYPE_HALF) {
+        __half alpha = __float2half(1.0f);
+        __half beta  = __float2half(0.0f);
+
+        typedef __half ptr_type;
+
+        CUBLAS_CHECK(cublasHgemm(context_->GetCublasHandle(), 
+                                 CUBLAS_OP_N, CUBLAS_OP_N,
+                                 M, N, K, &alpha, (ptr_type*)tempbufs_[1].ptr, M, (ptr_type*)input_data, K,
+                                 &beta, (ptr_type*)output_data, M));
+    } else if (compute_type == DATA_TYPE_FLOAT) {
+        float alpha = 1.0;
+        float beta  = 0.0;
+        typedef float ptr_type;
+
+        CUBLAS_CHECK(cublasSgemm(context_->GetCublasHandle(), 
+                                 CUBLAS_OP_N, CUBLAS_OP_N,
+                                 M, N, K, &alpha, (ptr_type*)tempbufs_[0].ptr, M, (ptr_type*)input_data, K,
+                                 &beta, (ptr_type*)output_data, M));
+    }
+
+    return TNN_OK;
+}
+
 Status CudaMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (inputs.size() == 1 ) {
+        return ForwardWithWeights(inputs, outputs);
+    }
     Blob* input_blob1 = inputs[0];
     Blob* input_blob2 = inputs[1];
     Blob* output_blob = outputs[0];
@@ -190,61 +270,124 @@ Status CudaMatMulLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
         return Status(TNNERR_MODEL_ERR, "Error: layer acc don't support datatype");
     }
 
+    int M = input_dims2[input_dims2.size() - 1];
     int K = input_dims1[input_dims1.size() - 1];
     int N = input_dims1[input_dims1.size() - 2];
-
-    int size[3];
-    int stride_a[3];
-    int stride_b[3];
-
-    int i = 0;
-    for (; i < input_dims1.size() - 2; i++) {
-        size[i] = std::max(input_dims1[i], input_dims2[i]);
-        stride_a[i] = input_dims1[i] == 1 ? 0 : 1;
-        stride_b[i] = input_dims2[i] == 1 ? 0 : 1;
-    }
-
-    for (; i < 3; i++) {
-        size[i] = 1;
-        stride_a[i] = 0;
-        stride_b[i] = 0;
-    }
-
+    
     void* input_data1 = input_blob1->GetHandle().base;
     void* input_data2 = input_blob2->GetHandle().base;
     void* output_data = output_blob->GetHandle().base;
+        
+    int in1_batch = 1;
+    int in2_batch = 1;
+    for (int i=0; i<input_dims1.size()-2; i++) {
+        in1_batch *= input_dims1[i];
+    }
+    for (int i=0; i<input_dims2.size()-2; i++) {
+        in2_batch *= input_dims2[i];
+    }
+ 
+    if (M == 1) {
+        // GEMV case with M==1
+        int size[3];
+        int stride_a[3];
+        int stride_b[3];
 
-    dim3 dimGrid(K/BLOCK_DIM, N/BLOCK_DIM, size[0]*stride_a[0]+size[1]*stride_a[1]+size[2]*stride_a[2]);
-    dim3 dimBlock(BLOCK_DIM, BLOCK_DIM, 1);
+        int i = 0;
+        for (; i < input_dims1.size() - 2; i++) {
+            size[i] = std::max(input_dims1[i], input_dims2[i]);
+            stride_a[i] = input_dims1[i] == 1 ? 0 : 1;
+            stride_b[i] = input_dims2[i] == 1 ? 0 : 1;
+        }
 
-    int type_size = DataTypeUtils::GetBytesSize(input_blob1->GetBlobDesc().data_type);
-    int cur_workspace_size = (size[0]*stride_a[0]+size[1]*stride_a[1]+size[2]*stride_a[2]) * K * N * type_size;
+        for (; i < 3; i++) {
+            size[i] = 1;
+            stride_a[i] = 0;
+            stride_b[i] = 0;
+        }
 
-    context_->SetWorkspaceSize(cur_workspace_size);
-    if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_FLOAT) {
-        matmul_transpose_kernel<<<dimGrid, dimBlock, 0, context_->GetStream()>>>((float*)context_->GetWorkspace(),
-        (float*)input_data1, K, N);
-    } else if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_HALF) {
-        matmul_transpose_kernel<<<dimGrid, dimBlock, 0, context_->GetStream()>>>((__half*)context_->GetWorkspace(),
-        (__half*)input_data1, K, N);
+        if (stride_a[0] == 0 && stride_a[1] == 0 && stride_a[2] == 0) {
+            stride_a[2] = 1;
+        }
+        if (stride_b[0] == 0 && stride_b[1] == 0 && stride_b[2] == 0) {
+            stride_b[2] = 1;
+        }
+
+        dim3 dimGrid(K/BLOCK_DIM, N/BLOCK_DIM, size[0]*stride_a[0]+size[1]*stride_a[1]+size[2]*stride_a[2]);
+        dim3 dimBlock(BLOCK_DIM, BLOCK_DIM, 1);
+
+        int type_size = DataTypeUtils::GetBytesSize(input_blob1->GetBlobDesc().data_type);
+        int cur_workspace_size = (size[0]*stride_a[0]+size[1]*stride_a[1]+size[2]*stride_a[2]) * K * N * type_size;
+
+        context_->SetWorkspaceSize(cur_workspace_size);
+        if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_FLOAT) {
+            matmul_transpose_kernel<<<dimGrid, dimBlock, 0, context_->GetStream()>>>((float*)context_->GetWorkspace(),
+            (float*)input_data1, K, N);
+        } else if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_HALF) {
+            matmul_transpose_kernel<<<dimGrid, dimBlock, 0, context_->GetStream()>>>((__half*)context_->GetWorkspace(),
+            (__half*)input_data1, K, N);
+        }
+
+        dim3 grid;
+        grid.x = size[0] * size[1] * size[2];
+        grid.y = (N + TNN_CUDA_NUM_THREADS - 1) / TNN_CUDA_NUM_THREADS;
+        grid.z = (K + TNN_CUDA_NUM_THREADS - 1) / TNN_CUDA_NUM_THREADS;
+
+        CUDA_CHECK(cudaMemsetAsync(output_data, 0, size[0] * size[1] * size[2] * N * type_size, context_->GetStream()));
+
+        if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_FLOAT) {
+            matmul_batched_gemv_kernel<<<grid, TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+                (float*)context_->GetWorkspace(), (float*)input_data2, (float*)output_data, stride_a[0], stride_a[1],
+                stride_a[2], stride_b[0], stride_b[1], stride_b[2], size[1], size[2], N, K);
+        } else if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_HALF) {
+            matmul_batched_gemv_kernel_fp16<<<grid, TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
+                (__half*)context_->GetWorkspace(), (float*)input_data2, (__half*)output_data, stride_a[0], stride_a[1],
+                stride_a[2], stride_b[0], stride_b[1], stride_b[2], size[1], size[2], N, K);
+        } else {
+            LOGE("Error: CUDA MatMul acc with Unsupported Data Type.\n");
+            return Status(TNNERR_MODEL_ERR, "Error: CUDA MatMul acc with Unsupported Data Type.");
+        }
+    } else if (in1_batch==in2_batch) {
+        // input_0.batch == input_1.batch, 
+        // Batched-GEMM without unsqueeze, expand etc. 
+        if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_FLOAT) {
+            float alpha = 1.0;
+            float beta  = 0.0;
+            if (in1_batch==1) {
+                CUBLAS_CHECK(cublasSgemm(context_->GetCublasHandle(), 
+                             CUBLAS_OP_N, CUBLAS_OP_N,
+                             M, N, K, &alpha, (float*)input_data2, M, (float*)input_data1, K,
+                             &beta, (float*)output_data, M));
+            } else {
+                CUBLAS_CHECK(cublasSgemmStridedBatched(context_->GetCublasHandle(), 
+                             CUBLAS_OP_N, CUBLAS_OP_N,
+                             M, N, K, &alpha, (float*)input_data2, M, K*M, (float*)input_data1, K, N*K,
+                             &beta, (float*)output_data, M, N*M, in1_batch));
+            }
+        } else if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_HALF) {
+            __half alpha = __half(1.f);
+            __half beta  = __half(0.f);
+            if (in1_batch==1) {
+                CUBLAS_CHECK(cublasHgemm(context_->GetCublasHandle(), 
+                             CUBLAS_OP_N, CUBLAS_OP_N,
+                             M, N, K, &alpha, (__half*)input_data2, M, (__half*)input_data1, K,
+                             &beta, (__half*)output_data, M));
+            } else {
+                CUBLAS_CHECK(cublasHgemmStridedBatched(context_->GetCublasHandle(), 
+                             CUBLAS_OP_N, CUBLAS_OP_N,
+                             M, N, K, &alpha, (__half*)input_data2, M, K*M, (__half*)input_data1, K, N*K,
+                             &beta, (__half*)output_data, M, N*M, in1_batch));
+            }
+        } else {
+            LOGE("Error: CUDA MatMul acc with Unsupported Data Type.\n");
+            return Status(TNNERR_MODEL_ERR, "Error: CUDA MatMul acc with Unsupported Data Type.");
+        }
+    } else {
+        // TODO: LOGE
+        LOGE("Error: This MatMul is Not Supported by TNN cuda ACC.\n");
+        return Status(TNNERR_MODEL_ERR, "Error: This MatMul is Not Supported by TNN cuda ACC.");
     }
 
-    dim3 grid;
-    grid.x = size[0] * size[1] * size[2];
-    grid.y = (N + TNN_CUDA_NUM_THREADS - 1) / TNN_CUDA_NUM_THREADS;
-    grid.z = (K + TNN_CUDA_NUM_THREADS - 1) / TNN_CUDA_NUM_THREADS;
-
-    CUDA_CHECK(cudaMemsetAsync(output_data, 0, size[0] * size[1] * size[2] * N * type_size, context_->GetStream()));
-
-    if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_FLOAT) {
-        matmul_batched_gemv_kernel<<<grid, TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-            (float*)context_->GetWorkspace(), (float*)input_data2, (float*)output_data, stride_a[0], stride_a[1],
-            stride_a[2], stride_b[0], stride_b[1], stride_b[2], size[1], size[2], N, K);
-    } else if (input_blob1->GetBlobDesc().data_type == DataType::DATA_TYPE_HALF) {
-        matmul_batched_gemv_kernel_fp16<<<grid, TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
-            (__half*)context_->GetWorkspace(), (float*)input_data2, (__half*)output_data, stride_a[0], stride_a[1],
-            stride_a[2], stride_b[0], stride_b[1], stride_b[2], size[1], size[2], N, K);
-    }
     return TNN_OK;
 }
 

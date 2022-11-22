@@ -15,6 +15,7 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_CUDA_CUDA_CONTEXT_H_
 #define TNN_SOURCE_TNN_DEVICE_CUDA_CUDA_CONTEXT_H_
 
+#include <map>
 #include <string>
 #include <vector>
 #include <cuda_runtime.h>
@@ -23,6 +24,7 @@
 #include <cublas_v2.h>
 
 #include "tnn/core/context.h"
+#include "tnn/interpreter/raw_buffer.h"
 
 namespace TNN_NS {
 
@@ -41,6 +43,10 @@ public:
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void** command_queue) override;
 
+    // @brief set tnn command queue
+    // @param command_queue device command queue for forward
+    virtual Status SetCommandQueue(void* command_queue) override;
+
     // @brief share tnn command queue to another context
     virtual Status ShareCommandQueue(Context* context);
 
@@ -56,13 +62,25 @@ public:
     // @brief get cuda stream
     cudaStream_t& GetStream();
 
+    // @brief get cudnn stream
+    cudnnHandle_t& GetCudnnHandle();
+
+    // @brief get cublas stream
+    cublasHandle_t& GetCublasHandle();
+
     // @brief get workspace
     void* GetWorkspace();
 
     // @brief get worksapce size
     void SetWorkspaceSize(int size);
 
-public:
+    // @brief set quant resource
+    Status AddQuantResource(std::string name, std::shared_ptr<RawBuffer>);
+
+    // @brief get quant resource
+    std::shared_ptr<RawBuffer> GetQuantResource(std::string name);
+
+private:
     cudnnHandle_t cudnn_handle_;
     cublasHandle_t cublas_handle_;
     cudaStream_t stream_;
@@ -70,6 +88,12 @@ public:
     int workspace_size_ = 0;
     int device_id_ = 0;
     bool own_stream_ = false;
+    //TODO: share between in same thread(create instance and instance forward may in different threads).
+    //lazy create
+    bool own_cudnn_handle_ = false;
+    bool own_cublas_handle_ = false;
+
+    std::map<std::string, std::shared_ptr<RawBuffer>> quant_extra_res_;
 };
 
 }  //  namespace TNN_NS;

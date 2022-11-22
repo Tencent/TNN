@@ -50,7 +50,7 @@ Status RoiPoolingLayerInterpreter::InterpretResource(Deserializer& deserializer,
     return TNN_OK;
 }
 
-Status RoiPoolingLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status RoiPoolingLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     RoiPoolingLayerParam* layer_param = dynamic_cast<RoiPoolingLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

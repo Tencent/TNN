@@ -26,11 +26,13 @@ inline __device__ unsigned char fp32_to_u8_sat(float in) {
     return (unsigned char)(x);
 }
 
-__global__ void scale_bias_kernel(int size, const float* src, float* dst, float* scale, float* bias, int hw, int channels) {
+template<typename I, typename O>
+__global__ void scale_bias_kernel(int size, const I* src, O* dst, float* scale, float* bias,
+        int hw, int channels) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < size) {
         int c = tid / hw % channels;
-        dst[tid] = src[tid] * scale[c] + bias[c];
+        dst[tid] = convert_float_value<O>(get_float_value<I>(src[tid]) * scale[c] + bias[c]);
     }
 }
 
@@ -133,8 +135,10 @@ void BlobToBGR(int batch, int CHW, int HW, const float *src, unsigned char *dst,
     dim3 grid;
     grid.x = (HW + ELEMENT_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELEMENT_PER_THREAD * THREAD_PER_BLOCK);
     grid.y = batch;
-    blob_to_bgr_kernel<<<grid, THREAD_PER_BLOCK, 0, stream>>>(
-        CHW, HW, src, dst, channels, scale, bias, reverse_channel);
+    if (batch > 0 && HW > 0 && CHW > 0) {
+        blob_to_bgr_kernel<<<grid, THREAD_PER_BLOCK, 0, stream>>>(
+            CHW, HW, src, dst, channels, scale, bias, reverse_channel);
+    }
 }
 
 void BlobToGray(int count, const float *src, unsigned char *dst, cudaStream_t stream, float scale, float bias) {
@@ -147,20 +151,40 @@ void BGRToBlob(int batch, int CHW, int HW, const unsigned char *src, float *dst,
     dim3 grid;
     grid.x = (HW + ELEMENT_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELEMENT_PER_THREAD * THREAD_PER_BLOCK);
     grid.y = batch;
-    bgr_to_blob_kernel<<<grid, THREAD_PER_BLOCK, 0, stream>>>(
-        CHW, HW, src, dst, channels, scale, bias, reverse_channel);
+    if (batch > 0 && HW > 0 && CHW > 0) {
+        bgr_to_blob_kernel<<<grid, THREAD_PER_BLOCK, 0, stream>>>(
+            CHW, HW, src, dst, channels, scale, bias, reverse_channel);
+    }
 }
 
 void GrayToBlob(int count, const unsigned char *src, float *dst, cudaStream_t stream, float scale, float bias) {
     const int BLOCK_NUM = (count + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
-    gray_to_blob_kernel<<<BLOCK_NUM, THREAD_PER_BLOCK, 0, stream>>>(count, src, dst, scale, bias);
+    if (count > 0 && BLOCK_NUM > 0) {
+        gray_to_blob_kernel<<<BLOCK_NUM, THREAD_PER_BLOCK, 0, stream>>>(count, src, dst, scale, bias);
+    }
 }
 
-void ScaleBias(const float* src, float* dst, cudaStream_t stream, float* scale, float* bias, int batch, int channels, int hw) {
+template <typename I, typename O>
+void ScaleBias(const I* src, O* dst, cudaStream_t stream, float* scale, float* bias, int batch,
+        int channels, int hw) {
     int count = batch * channels * hw;
     int grid = (count + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
-    scale_bias_kernel<<<grid, THREAD_PER_BLOCK, 0, stream>>>(count, src, dst, scale, bias, hw, channels); 
+    if (count > 0 && grid > 0) {
+        scale_bias_kernel<I, O><<<grid, THREAD_PER_BLOCK, 0, stream>>>(count, src, dst, scale, bias, hw, channels); 
+    }
 }
+
+template void ScaleBias<float, float>(const float* src, float* dst, cudaStream_t stream, float* scale,
+    float* bias, int batch, int channels, int hw);
+
+template void ScaleBias<__half, float>(const __half* src, float* dst, cudaStream_t stream, float* scale,
+    float* bias, int batch, int channels, int hw);
+
+template void ScaleBias<float, __half>(const float* src, __half* dst, cudaStream_t stream, float* scale,
+    float* bias, int batch, int channels, int hw);
+
+template void ScaleBias<__half, __half>(const __half* src, __half* dst, cudaStream_t stream, float* scale,
+    float* bias, int batch, int channels, int hw);
 
 }  //  namespace TNN_NS
 

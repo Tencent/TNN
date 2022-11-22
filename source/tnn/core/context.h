@@ -38,6 +38,10 @@ public:
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void** command_queue) = 0;
 
+    // @brief set tnn command queue
+    // @param command_queue device command queue for forward
+    virtual Status SetCommandQueue(void* command_queue) = 0;
+
     // @brief share tnn command queue to another context
     virtual Status ShareCommandQueue(Context* context);
     

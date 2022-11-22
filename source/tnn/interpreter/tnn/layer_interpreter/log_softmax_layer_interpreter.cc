@@ -37,7 +37,7 @@ Status LogSoftmaxLayerInterpreter::InterpretResource(Deserializer& deserializer,
     return TNN_OK;
 }
 
-Status LogSoftmaxLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status LogSoftmaxLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     LogSoftmaxLayerParam* layer_param = dynamic_cast<LogSoftmaxLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

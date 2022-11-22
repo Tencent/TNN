@@ -49,7 +49,8 @@ Status CudaMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     } else if (src.GetDeviceType() == DEVICE_CUDA && dst.GetDeviceType() == DEVICE_NAIVE) {
         cudaMemcpy(dst.GetData(), src.GetData(), size_in_bytes, cudaMemcpyDeviceToHost);
     } else if (src.GetDeviceType() == DEVICE_CUDA && dst.GetDeviceType() == DEVICE_CUDA) {
-        cudaMemcpy(dst.GetData(), src.GetData(), size_in_bytes, cudaMemcpyDeviceToDevice);
+        cudaStream_t stream = static_cast<cudaStream_t>(command_queue);
+        cudaMemcpyAsync(dst.GetData(), src.GetData(), size_in_bytes, cudaMemcpyDeviceToDevice, stream);
     } else {
         memcpy(dst.GetData(), src.GetData(), size_in_bytes);
     }
@@ -75,10 +76,10 @@ Status CudaMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* 
         int channel = src.GetChannel();
         if (param.type == INTERP_TYPE_LINEAR) {
             ResizeBilinear((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetWidth(),
-                src.GetHeight(), dst_width, dst_height, channel);
+                src.GetHeight(), dst_width, dst_height, channel, command_queue);
         } else if(param.type == INTERP_TYPE_NEAREST) {
             ResizeNearest((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetWidth(),
-                src.GetHeight(), dst_width, dst_height, channel);
+                src.GetHeight(), dst_width, dst_height, channel, command_queue);
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
@@ -101,7 +102,7 @@ Status CudaMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comm
         uint8_t* src_ptr = (uint8_t*)src.GetData();
         uint8_t* dst_ptr = (uint8_t*)dst.GetData();
         CropRGB(src_ptr, dst_ptr, src.GetBatch(), channel, src.GetWidth(), src.GetHeight(), dst.GetWidth(),
-            dst.GetHeight(), param.width, param.height, param.top_left_x, param.top_left_y);
+            dst.GetHeight(), param.width, param.height, param.top_left_x, param.top_left_y, command_queue);
     } else if (src.GetMatType() == NNV21 || src.GetMatType() == NNV12) {
         if (param.top_left_x % 2 || param.top_left_y % 2 || param.width % 2 || param.height % 2) {
             return Status(TNNERR_PARAM_ERR, "corp param can not be odd");
@@ -109,7 +110,7 @@ Status CudaMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* comm
         uint8_t* src_ptr = (uint8_t*)src.GetData();
         uint8_t* dst_ptr = (uint8_t*)dst.GetData();
         CropYUV(src_ptr, dst_ptr, src.GetBatch(), src.GetWidth(), src.GetHeight(), dst.GetWidth(),
-            dst.GetHeight(), param.width, param.height, param.top_left_x, param.top_left_y);
+            dst.GetHeight(), param.width, param.height, param.top_left_x, param.top_left_y, command_queue);
     } else {
         return Status(TNNERR_PARAM_ERR, "convert type not support yet");
     }
@@ -141,7 +142,7 @@ Status CudaMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param
             uint8_t* src_ptr = (uint8_t*)src.GetData();
             uint8_t* dst_ptr = (uint8_t*)dst.GetData();
             WarpAffineNearest(src_ptr, src.GetBatch(), channel, src.GetWidth(), src.GetHeight(), dst_ptr, dst.GetWidth(),
-                dst.GetHeight(), param.transform, param.border_val, param.border_type);
+                dst.GetHeight(), param.transform, param.border_val, param.border_type, command_queue);
         } else {
             return Status(TNNERR_PARAM_ERR, "convert type not support yet");
         }
@@ -158,17 +159,17 @@ Status CudaMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType typ
         return ret;
 
     if (type == COLOR_CONVERT_NV12TOBGR) {
-        YUVToGRBA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetHeight(), src.GetWidth(), 3, true);
+        YUVToGRBA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetHeight(), src.GetWidth(), 3, true, command_queue);
     } else if (type == COLOR_CONVERT_NV21TOBGR) {
-        YUVToGRBA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetHeight(), src.GetWidth(), 3, false);
+        YUVToGRBA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetHeight(), src.GetWidth(), 3, false, command_queue);
     } else if (type == COLOR_CONVERT_NV12TOBGRA) {
-        YUVToGRBA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetHeight(), src.GetWidth(), 4, true);
+        YUVToGRBA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetHeight(), src.GetWidth(), 4, true, command_queue);
     } else if (type == COLOR_CONVERT_NV21TOBGRA) {
-        YUVToGRBA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetHeight(), src.GetWidth(), 4, false);
+        YUVToGRBA((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetHeight(), src.GetWidth(), 4, false, command_queue);
     } else if (type == COLOR_CONVERT_BGRTOGRAY) {
-        BGRAToGRAY((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetHeight(), src.GetWidth(), 3);
+        BGRAToGRAY((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetHeight(), src.GetWidth(), 3, command_queue);
     } else if (type == COLOR_CONVERT_BGRATOGRAY) {
-        BGRAToGRAY((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetHeight(), src.GetWidth(), 4);
+        BGRAToGRAY((uint8_t*)src.GetData(), (uint8_t*)dst.GetData(), src.GetBatch(), src.GetHeight(), src.GetWidth(), 4, command_queue);
     } else {
         return Status(TNNERR_PARAM_ERR, "color conversion type not support yet");
     }
@@ -188,13 +189,13 @@ Status CudaMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderPar
 
     if (src.GetMatType() == NGRAY) {
         CudaCopyMakeBorder(src_ptr, dst_ptr, src.GetBatch(), src.GetWidth(), src.GetHeight(), dst.GetWidth(),
-            dst.GetHeight(), 1, param.top, param.bottom, param.left, param.right, uint8_t(param.border_val));
+            dst.GetHeight(), 1, param.top, param.bottom, param.left, param.right, uint8_t(param.border_val), command_queue);
     } else if (src.GetMatType() == N8UC3) {
         CudaCopyMakeBorder(src_ptr, dst_ptr, src.GetBatch(), src.GetWidth(), src.GetHeight(), dst.GetWidth(),
-            dst.GetHeight(), 3, param.top, param.bottom, param.left, param.right, uint8_t(param.border_val));
+            dst.GetHeight(), 3, param.top, param.bottom, param.left, param.right, uint8_t(param.border_val), command_queue);
     } else if (src.GetMatType() == N8UC4) {
         CudaCopyMakeBorder(src_ptr, dst_ptr, src.GetBatch(), src.GetWidth(), src.GetHeight(), dst.GetWidth(),
-            dst.GetHeight(), 4, param.top, param.bottom, param.left, param.right, uint8_t(param.border_val));
+            dst.GetHeight(), 4, param.top, param.bottom, param.left, param.right, uint8_t(param.border_val), command_queue);
     } else {
         return Status(TNNERR_PARAM_ERR, "CopyMakeBorder mat type not support yet");
     }

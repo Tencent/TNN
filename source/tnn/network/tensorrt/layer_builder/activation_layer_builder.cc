@@ -26,7 +26,6 @@ ILayer* ActivationTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
-    bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetInt8Mode();
 
     ILayer* last_layer;
     IActivationLayer* activation_layer = network->addActivation(*input_tensor, m_type);
@@ -43,13 +42,6 @@ ILayer* ActivationTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
             activation_layer->setAlpha(*scope);
         }
         last_layer = activation_layer;
-    }
-
-    if (int8) {
-        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
-            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        return AddInt8OutputQDQLayers(network, last_layer->getOutput(0), output_foreign_tensor,
-            output_scale_value, 1 / output_scale_value);
     }
 
     return last_layer;

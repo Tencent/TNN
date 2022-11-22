@@ -22,20 +22,20 @@
 
 namespace TNN_NS {
 
-void ResizeBilinear(const uint8_t* src, uint8_t* dst, int batch, int src_w, int src_h, int dst_w, int dst_h, int channel);
-void ResizeNearest(const uint8_t* src, uint8_t* dst, int batch, int src_w, int src_h, int w, int h, int channel);
+void ResizeBilinear(const uint8_t* src, uint8_t* dst, int batch, int src_w, int src_h, int dst_w, int dst_h, int channel, void* stream);
+void ResizeNearest(const uint8_t* src, uint8_t* dst, int batch, int src_w, int src_h, int w, int h, int channel, void* stream);
 void CropRGB(const uint8_t* src, uint8_t* dst, int batch, int channel, int src_width, int src_height, int dst_width,
-        int dst_height, int width, int height, int top_left_x, int top_left_y);
+        int dst_height, int width, int height, int top_left_x, int top_left_y, void* stream);
 void CropYUV(const uint8_t* src, uint8_t* dst, int batch, int src_width, int src_height, int dst_width, int dst_height,
-        int width, int height, int top_left_x, int top_left_y);
-void YUVToGRBA(const uint8_t* src, uint8_t* dst, int batch, int h, int w, int channel, bool is_nv12);
-void BGRAToGRAY(const uint8_t* src, uint8_t* dst, int batch, int h, int w, int channel);
+        int width, int height, int top_left_x, int top_left_y, void* stream);
+void YUVToGRBA(const uint8_t* src, uint8_t* dst, int batch, int h, int w, int channel, bool is_nv12, void* stream);
+void BGRAToGRAY(const uint8_t* src, uint8_t* dst, int batch, int h, int w, int channel, void* stream);
 void CudaCopyMakeBorder(const uint8_t* src, uint8_t* dst, int batch, int src_width, int src_height, int dst_width,
-        int dst_height, int channel, int top, int bottom, int left, int right, uint8_t pad_val);
+        int dst_height, int channel, int top, int bottom, int left, int right, uint8_t pad_val, void* stream);
 void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-        const float (*transform)[3], const float border_val, BorderType border_type = BORDER_TYPE_CONSTANT, void* stream = nullptr);
+        const float (*transform)[3], const float border_val, BorderType border_type, void* stream);
 void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-        const float (*transform)[3], const float border_val, BorderType border_type = BORDER_TYPE_CONSTANT);
+        const float (*transform)[3], const float border_val, BorderType border_type, void* stream);
 
 }  // namespace TNN_NS
 

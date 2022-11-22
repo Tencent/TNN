@@ -52,6 +52,15 @@ static const std::string kNetOptimizerConvertInt8Layers =
 static const std::string kNetOptimizerDynamicRangeDequant =
     "net_optimizer_dynamic_range_dequant";
 
+static const std::string kNetOptimizerQDQ = 
+    "net_optimizer_qdq";
+
+static const std::string kNetOptimizerContextMarker =
+    "net_optimizer_context_marker";
+
+static const std::string kNetOptimizerRemoveInplaceOps =
+    "net_optimizer_remove_inplace_ops";
+
 static const std::string kNetOptimizerConvertMatMulToConv =
     "net_optimizer_convert_matmul_to_conv";
 

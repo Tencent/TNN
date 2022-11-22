@@ -20,8 +20,13 @@ DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(HardSwish, LAYER_HARDSWISH);
 
 bool HardSwishTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
-        && inOut[pos].type == inOut[0].type);
+    // return ((inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
+    //     && inOut[pos].type == inOut[0].type);
+    bool cond_type = inOut[pos].type == nvinfer1::DataType::kINT8;
+    bool cond_format = inOut[pos].format == nvinfer1::TensorFormat::kCHW4 || inOut[pos].format == nvinfer1::TensorFormat::kCHW32;
+    bool cond_io = inOut[pos].format == inOut[0].format;
+    bool cond = cond_type && cond_format && cond_io;
+    return cond;
 }
 
 Status HardSwishTRTPluginLayerBuilder::Reshape() {
@@ -38,7 +43,26 @@ nvinfer1::DataType HardSwishTRTPluginLayerBuilder::getOutputDataType(int index, 
 }
 
 ILayer* HardSwishTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    auto paramlist             = dynamic_cast<HardSwishLayerParam*>(param_);
+
+    if (paramlist->quantized) {
+        return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    } else {
+        auto input_foreign_tensor  = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+        auto input_foreign_tensor1 = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+        if (input_blobs_.size() != 1)
+            input_foreign_tensor1 = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
+        auto tensor  = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
+        auto tensor1 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor1)->GetTensor();
+        auto layer   = network->addActivation(*tensor1, nvinfer1::ActivationType::kHARD_SIGMOID);
+        layer->setAlpha(paramlist->alpha);
+        layer->setBeta(paramlist->beta);
+
+        tensor1     = layer->getOutput(0);
+        auto layer1 = network->addElementWise(*tensor, *tensor1, nvinfer1::ElementWiseOperation::kPROD);
+        layer1->setName(layer_name_.c_str());
+        return layer1;
+    }
 }
 
 DimsExprs HardSwishTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,

@@ -97,6 +97,33 @@ Status Pooling3DLayer::InferOutputShape(bool ignore_error) {
     int width_out  = 0;
     int depth_out  = 0;
 
+    if (pool_param->is_adaptive_pool) {
+        const int output_blobs_size = output_blobs_.size();
+        const auto output_shape     = pool_param->output_shape;
+        for (int i = 0; i < output_blobs_size; i++) {
+            output_blobs_[i]->GetBlobDesc().dims = {num, channels, output_shape[2], output_shape[1], output_shape[0]};
+        }
+        pool_param->pads = {0, 0, 0, 0, 0, 0};
+        pool_param->kernels = {width, height, depth};
+        pool_param->strides = {1, 1, 1};
+        pool_param->pool_type = 1;
+        if (output_shape[0] == 1 && output_shape[1] == 1) {
+            pool_param->is_global_pool   = true;
+            DimsVector output_dims;
+            output_dims.push_back(num);
+            output_dims.push_back(channels);
+            output_dims.push_back(1);
+            output_dims.push_back(1);
+            output_dims.push_back(1);
+            for (int i = 0; i < output_blobs_.size(); ++i) {
+                output_blobs_[i]->GetBlobDesc().dims = output_dims;
+            }
+            return TNN_OK;
+        } else {
+            return TNN_OK;
+        }
+    }
+
     // default padding following the proto setting
     if (pool_param->pad_type == -1) {
         int pad_w = pool_param->pads[0];

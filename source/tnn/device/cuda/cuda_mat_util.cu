@@ -442,7 +442,7 @@ __global__ void warp_affine_nearest_kernel(const uint8_t* src, uint8_t* dst, con
     }
 }
 
-void ResizeBilinear(const uint8_t* src, uint8_t* dst, int batch, int src_w, int src_h, int dst_w, int dst_h, int channel) {
+void ResizeBilinear(const uint8_t* src, uint8_t* dst, int batch, int src_w, int src_h, int dst_w, int dst_h, int channel, void* stream) {
     const int ELE_PER_THREAD = 4;
     const int THREAD_PER_BLOCK = 128;
     dim3 grid;
@@ -451,11 +451,11 @@ void ResizeBilinear(const uint8_t* src, uint8_t* dst, int batch, int src_w, int 
     grid.y = batch;
     float scale_x = (float)src_w / dst_w;
     float scale_y = (float)src_h / dst_h;
-    resize_bilinear_kernel<ELE_PER_THREAD><<<grid, THREAD_PER_BLOCK>>>(dst, size_dst, dst_h, dst_w, src, src_h,
+    resize_bilinear_kernel<ELE_PER_THREAD><<<grid, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(dst, size_dst, dst_h, dst_w, src, src_h,
         src_w, src_h * src_w * channel, channel, scale_x, scale_y);
 }
 
-void ResizeNearest(const uint8_t* src, uint8_t* dst, int batch, int src_w, int src_h, int dst_w, int dst_h, int channel) {
+void ResizeNearest(const uint8_t* src, uint8_t* dst, int batch, int src_w, int src_h, int dst_w, int dst_h, int channel, void* stream) {
     const int ELE_PER_THREAD = 4;
     const int THREAD_PER_BLOCK = 128;
     dim3 grid;
@@ -464,7 +464,7 @@ void ResizeNearest(const uint8_t* src, uint8_t* dst, int batch, int src_w, int s
     grid.y = batch;
     float scale_x = (float)src_w / dst_w;
     float scale_y = (float)src_h / dst_h;
-    resize_nearest_kernel<ELE_PER_THREAD><<<grid, THREAD_PER_BLOCK>>>(dst, size_dst, dst_h, dst_w, src, src_h,
+    resize_nearest_kernel<ELE_PER_THREAD><<<grid, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(dst, size_dst, dst_h, dst_w, src, src_h,
         src_w, src_h * src_w * channel, channel, scale_x, scale_y);
 }
 
@@ -539,7 +539,7 @@ void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, i
 }
 
 void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-        const float (*transform)[3], const float border_val, BorderType border_type) {
+        const float (*transform)[3], const float border_val, BorderType border_type, void* stream) {
     double m[6];
     WarpAffineMatrixInverse(transform, m);
     double *tm_gpu;
@@ -552,36 +552,36 @@ void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, in
     griddim.x = (size_dst + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
     griddim.y = batch;
     if (border_type == BORDER_TYPE_CONSTANT) {
-        warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_CONSTANT><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
+        warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_CONSTANT><<<griddim, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_h, src_w,
             channel, dst_h, dst_w, tm_gpu, border_val);
     } else if (border_type == BORDER_TYPE_TRANSPARENT) {
-        warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_TRANSPARENT><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
+        warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_TRANSPARENT><<<griddim, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_h, src_w,
             channel, dst_h, dst_w, tm_gpu, border_val);
     }
     CUDA_CHECK(cudaFree(tm_gpu));
 }
 
 void CropRGB(const uint8_t* src, uint8_t* dst, int batch, int channel, int src_width, int src_height, int dst_width, int dst_height,
-        int width, int height, int top_left_x, int top_left_y) {
+        int width, int height, int top_left_x, int top_left_y, void* stream) {
     int THREAD_PER_BLOCK = 128;
     dim3 grid;
     grid.x = (width * height * channel + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
     grid.y = batch;
-    crop_rgb_kernel<<<grid, THREAD_PER_BLOCK>>>(src, dst, channel, src_width, src_height, dst_width, dst_height,
+    crop_rgb_kernel<<<grid, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, channel, src_width, src_height, dst_width, dst_height,
         width, height, top_left_x, top_left_y);
 }
 
 void CropYUV(const uint8_t* src, uint8_t* dst, int batch, int src_width, int src_height, int dst_width, int dst_height,
-        int width, int height, int top_left_x, int top_left_y) {
+        int width, int height, int top_left_x, int top_left_y, void* stream) {
     int THREAD_PER_BLOCK = 128;
     dim3 grid;
     grid.x = (width * height + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
     grid.y = batch;
-    crop_yuv_kernel<<<grid, THREAD_PER_BLOCK>>>(src, dst, src_width, src_height, dst_width, dst_height, width,
+    crop_yuv_kernel<<<grid, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_width, src_height, dst_width, dst_height, width,
         height, top_left_x, top_left_y);
 }
 
-void YUVToGRBA(const uint8_t* src, uint8_t* dst, int batch, int h, int w, int channel, bool is_nv12) {
+void YUVToGRBA(const uint8_t* src, uint8_t* dst, int batch, int h, int w, int channel, bool is_nv12, void* stream) {
     dim3 block, grid;
     int BLOCKX = 32;
     int BLOCKY = 8;
@@ -590,10 +590,10 @@ void YUVToGRBA(const uint8_t* src, uint8_t* dst, int batch, int h, int w, int ch
     grid.x = (w + BLOCKX - 1) / BLOCKX;
     grid.y = (h + BLOCKY - 1) / BLOCKY;
     grid.z = batch;
-    yuv_to_rgba_kernel<<<grid, block>>>(src, dst, h, w, w * h, channel, is_nv12);
+    yuv_to_rgba_kernel<<<grid, block, 0, (CUstream_st*)stream>>>(src, dst, h, w, w * h, channel, is_nv12);
 }
 
-void BGRAToGRAY(const uint8_t* src, uint8_t* dst, int batch, int h, int w, int channel) {
+void BGRAToGRAY(const uint8_t* src, uint8_t* dst, int batch, int h, int w, int channel, void* stream) {
     dim3 block, grid;
     int BLOCKX = 32;
     int BLOCKY = 8;
@@ -602,16 +602,16 @@ void BGRAToGRAY(const uint8_t* src, uint8_t* dst, int batch, int h, int w, int c
     grid.x = (w + BLOCKX - 1) / BLOCKX;
     grid.y = (h + BLOCKY - 1) / BLOCKY;
     grid.z = batch;
-    bgra_to_gray_kernel<<<grid, block>>>(src, dst, h, w, w * h, channel);
+    bgra_to_gray_kernel<<<grid, block, 0, (CUstream_st*)stream>>>(src, dst, h, w, w * h, channel);
 }
 
 void CudaCopyMakeBorder(const uint8_t* src, uint8_t* dst, int batch, int src_width, int src_height, int dst_width,
-        int dst_height, int channel, int top, int bottom, int left, int right, uint8_t pad_val) {
+        int dst_height, int channel, int top, int bottom, int left, int right, uint8_t pad_val, void* stream) {
     int THREAD_PER_BLOCK = 128;
     dim3 grid;
     grid.x = (src_width * src_height * channel + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
     grid.y = batch;
-    copy_make_border_kernel<<<grid, THREAD_PER_BLOCK>>>(src, dst, src_height, src_width * channel, dst_height, dst_width * channel, top, bottom,
+    copy_make_border_kernel<<<grid, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_height, src_width * channel, dst_height, dst_width * channel, top, bottom,
         left * channel, right * channel, pad_val);
 }
 

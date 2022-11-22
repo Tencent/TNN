@@ -46,7 +46,7 @@ Status MinLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerR
     return TNN_OK;
 }
 
-Status MinLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status MinLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam*>(param);
     output_stream << layer_param->weight_input_index << " ";
     return TNN_OK;

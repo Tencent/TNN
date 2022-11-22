@@ -106,7 +106,21 @@ Status CudaInstanceNormLayerAcc::Init(Context *context, LayerParam *param, Layer
         LOGE("Error: InstanceNormLayerResource is nil\n");
         return Status(TNNERR_MODEL_ERR, "Error: InstanceNormLayerResource is nil");
     }
-
+    if (res->scale_handle.GetDataCount() == 0) {
+        auto dims = inputs[0]->GetBlobDesc().dims;
+        int size = DimsVectorUtils::Count(dims);
+        auto scale      = std::shared_ptr<float>(new float[size], [](float *p) { delete[] p; });
+        auto bias       = std::shared_ptr<float>(new float[size], [](float *p) { delete[] p; });
+        auto *scale_ptr = scale.get();
+        auto *bias_ptr = bias.get();
+        for (int i = 0; i < size; i++) {
+            scale_ptr[i] = 1.0;
+            bias_ptr[i] = 0;
+        }
+        int byte_size = size * sizeof(float);
+        res->scale_handle = RawBuffer(byte_size, reinterpret_cast<char *>(scale_ptr), dims);
+        res->bias_handle = RawBuffer(byte_size, reinterpret_cast<char *>(bias_ptr), dims);
+    }
     float *k_data = res->scale_handle.force_to<float *>();
     int k_size = res->scale_handle.GetBytesSize();
     float *b_data = res->bias_handle.force_to<float *>();

@@ -21,6 +21,12 @@ DECLARE_TENSORRT_LAYER_BUILDER(Floor, LAYER_FLOOR);
 ILayer* FloorTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+
+    if (tensor->getType()==nvinfer1::DataType::kINT32) {
+        ILayer* identity_layer = network->addIdentity(*tensor);
+        return identity_layer;
+    }
+
     IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kFLOOR);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());

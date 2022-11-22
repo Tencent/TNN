@@ -33,7 +33,8 @@ nvinfer1::Dims unsqueeze_trt_dims(const nvinfer1::Dims &input_dims, int unsqueez
 
 bool MatMulTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    if (pos == 1) {
+    if (pos == 1 && inOut[pos].dims.d[inOut[pos].dims.nbDims-1]==1) {
+        // GEMV + reduce sum case, input 1 should be fp32 to keep precision.
         return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
     } else {
         return (inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF) &&
@@ -110,15 +111,42 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
                                                    : MatrixOperation::kNONE;
     };
 
+    if (input_tensors.size() == 1 && dims_a.nbDims == 3) {
+        if (paramlist->extra_config.find("ffn") != paramlist->extra_config.end()) {
+            LOGD("Layer %s of Dims <%d,%d,%d>, weigth:<%d,%d,%d> goto plugin\n", 
+                    layer_name_.c_str(), dims_a.d[0], dims_a.d[1],dims_a.d[2], dims_b.d[0], dims_b.d[1],dims_b.d[2]);
+            return TensorRTPluginLayerBuilder::AddToNetwork(network); 
+        }
+    }
+
     MatrixOperation opA = getMatrixOp(matrix_a);
     MatrixOperation opB = getMatrixOp(matrix_b);
 
-    if (opA == MatrixOperation::kNONE && opB == MatrixOperation::kNONE && dims_b.d[dims_b.nbDims - 1] == 1 &&
+    // CASEs when Custom Plugin MatMul OP is prefered:
+    // case 1: N=1, TRT GEMV with reduce sum, TRT default batched-gemv is slow,
+    //         besides, fp16 GEMV has reduce sum OP, reduce should be calculated under fp32.
+    // case 2: Batched-GEMM, without unsqueeze, TRT 7,8 may trigger "Unable to find CUBLAS algo" ERROR,
+    //         in some corner cases.
+    //         Calling Plugin CUBLAS GEMM may hurt performace, so we put a very strict prerequisite.
+    //         Ideally, Batched-GEMM plugin should only be called by Models with Transformer Kernels.
+    // Update: Disable custom plugin for case 2 above for Myelin optimization to speed-up network.
+    if (opA == MatrixOperation::kNONE && opB == MatrixOperation::kNONE &&
             input_tensors.size() == 2 &&
             input_tensors[0]->getDimensions().nbDims == input_tensors[1]->getDimensions().nbDims) {
-        return TensorRTPluginLayerBuilder::AddToNetwork(network);
+        bool batch_eq = true;
+        bool mnk_unknown = true;
+        int in0_batch = 1;
+        for (int i=0; i<input_tensors[0]->getDimensions().nbDims-2; i++) {
+            // dim==-1 would be treated as dim>1 here.
+            batch_eq &= (input_tensors[0]->getDimensions().d[i]==input_tensors[1]->getDimensions().d[i]); 
+            in0_batch *= input_tensors[0]->getDimensions().d[i]==-1 ? 2 : input_tensors[0]->getDimensions().d[1];
+        }
+        mnk_unknown &= input_tensors[0]->getDimensions().nbDims==4;
+        if (dims_b.d[dims_b.nbDims - 1] == 1 ||
+            (batch_eq && in0_batch>1 && mnk_unknown)) {
+            return TensorRTPluginLayerBuilder::AddToNetwork(network); 
+        }
     }
-
     IMatrixMultiplyLayer* layer = network->addMatrixMultiply(*matrix_a, opA, *matrix_b, opB);
 
     if (layer != nullptr) {
@@ -132,10 +160,18 @@ DimsExprs MatMulTRTPluginLayerBuilder::getOutputDimensions(int index, const nvin
         int nbInput, nvinfer1::IExprBuilder& exprBuilder) noexcept {
     DimsExprs output(inputs[0]);
     int size = inputs[0].nbDims;
-    output.d[size - 1] = inputs[1].d[size - 1];
-    output.d[size - 2] = inputs[0].d[size - 2];
-    for (int i = size - 3; i >= 0; i--) {
-        output.d[i] = exprBuilder.operation(DimensionOperation::kMAX, *inputs[0].d[i], *inputs[1].d[i]);
+
+    if (nbInput == 1) {
+        auto resource  = dynamic_cast<MatMulLayerResource *>(resource_);
+        auto buf = resource->weight;
+        DimsVector buf_dims = buf.GetBufferDims();
+        output.d[size - 1] = exprBuilder.constant(*buf_dims.rbegin());
+    } else {
+        output.d[size - 1] = inputs[1].d[size - 1];
+        output.d[size - 2] = inputs[0].d[size - 2];
+        for (int i = size - 3; i >= 0; i--) {
+            output.d[i] = exprBuilder.operation(DimensionOperation::kMAX, *inputs[0].d[i], *inputs[1].d[i]);
+        }
     }
     return output;
 }

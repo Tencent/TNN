@@ -173,15 +173,20 @@ Status CpuPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vec
 
     auto input_dims  = input_blob->GetBlobDesc().dims;
     auto output_dims = output_blob->GetBlobDesc().dims;
+    if (input_dims.size()!=3 && input_dims.size()!=4) {
+        LOGE("Error: unsupported PAD input format, should be NCHW or CHW.\n");
+        return Status(TNNERR_LAYER_ERR, "Error: unsupported PAD input format, should be NCHW or CHW.");
+    }
 
-    int batch                   = output_dims[0];
-    int channels                = output_dims[0] * output_dims[1];
-    int output_channel          = output_dims[1];
-    int output_height           = output_dims[2];
-    int output_width            = output_dims[3];
-    int input_channel           = input_dims[1];
-    int input_height            = input_dims[2];
-    int input_width             = input_dims[3];
+    // Support HCHW and CHW.
+    int batch                   = output_dims.size()==4 ? output_dims[0] : 1;
+    int channels                = output_dims.size()==4 ? output_dims[0] * output_dims[1] : output_dims[0];
+    int output_channel          = output_dims.size()==4 ? output_dims[1] : output_dims[0];
+    int output_height           = output_dims.size()==4 ? output_dims[2] : output_dims[1];
+    int output_width            = output_dims.size()==4 ? output_dims[3] : output_dims[2];
+    int input_channel           = input_dims.size()==4 ? input_dims[1] : input_dims[0];
+    int input_height            = input_dims.size()==4 ? input_dims[2] : input_dims[1];
+    int input_width             = input_dims.size()==4 ? input_dims[3] : input_dims[2];
     int data_byte_size          = DataTypeUtils::GetBytesSize(input_blob->GetBlobDesc().data_type);
     const int input_width_bytes = input_width * data_byte_size;
 

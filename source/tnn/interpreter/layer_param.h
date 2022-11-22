@@ -135,7 +135,6 @@ struct ConvLayerParam : public LayerParam {
     int bias            = 0;
     int activation_type = ActivationType_None;
     int fusion_type     = FusionType_None;
-
     PARAM_COPY(ConvLayerParam)
 };
 
@@ -210,6 +209,13 @@ struct RangeLayerParam : public LayerParam {
     RangeData delta = {1};
     // RangeData delta = { .i = 1};
 
+    // Added for TNN-Torch, in TNN-torch,
+    // num of inputs of aten::arange may vary from 0-3, in which cases,
+    // order of inputs is not certain.
+    int start_index = -1;
+    int limit_index = -1;
+    int delta_index = -1;
+
     PARAM_COPY(RangeLayerParam)
 };
 
@@ -238,6 +244,20 @@ struct NormalizeLayerParam : public LayerParam {
     PARAM_COPY(NormalizeLayerParam)
 };
 
+struct NormLayerParam : public LayerParam {
+    int dim      = 1;
+    bool keepdim = 1;
+    int p         = 2;
+
+    PARAM_COPY(NormLayerParam)
+};
+
+struct ClampminLayerParam : public LayerParam {
+    float min = 1e-12f;
+
+    PARAM_COPY(ClampminLayerParam)
+};
+
 struct ReshapeLayerParam : public LayerParam {
     // reshape_type:
     // onnx caffe reshape(nchw): 0
@@ -254,6 +274,13 @@ struct PermuteLayerParam : public LayerParam {
     std::vector<int> orders;
 
     PARAM_COPY(PermuteLayerParam)
+};
+
+struct PermuteV2LayerParam : public PermuteLayerParam {
+    int dim0 = 0;
+    int dim1 = 0;
+
+    PARAM_COPY(PermuteV2LayerParam)
 };
 
 struct CastLayerParam : public LayerParam {
@@ -323,6 +350,14 @@ struct ReduceMaxLayerParam : public ReduceLayerParam {
     PARAM_COPY(ReduceMaxLayerParam)
 };
 
+struct CumsumLayerParam : public LayerParam {
+    int axis = 0;
+    bool exclusive = false;
+    bool reverse = false;
+
+    PARAM_COPY(CumsumLayerParam)
+};
+
 struct InnerProductLayerParam : public LayerParam {
     int num_output = 0;
     int has_bias   = 0;
@@ -383,6 +418,12 @@ struct StrideSliceV2LayerParam : public LayerParam {
     std::vector<int> axes;
     std::vector<int> strides;
 
+    // Add for TNN-Torch
+    // Torch aten::slice converted StridedSliceV2 may have 2 inputs, 
+    // The second of which is not begins but ends.
+    int begins_index = -1;
+    int ends_index = -1;
+
     PARAM_COPY(StrideSliceV2LayerParam)
 };
 
@@ -441,6 +482,12 @@ struct HardSigmoidLayerParam : public LayerParam {
     float beta  = 0.0f;
 
     PARAM_COPY(HardSigmoidLayerParam)
+};
+
+struct LeakyReluLayerParam : public LayerParam {
+    float alpha = 0.01f;
+
+    PARAM_COPY(LeakyReluLayerParam)
 };
 
 typedef enum {
@@ -603,6 +650,11 @@ struct GatherLayerParam : public LayerParam {
     PARAM_COPY(GatherLayerParam)
 };
 
+struct GatherElementsLayerParam : public LayerParam {
+    int axis = 0;
+    PARAM_COPY(GatherElementsLayerParam)
+};
+
 struct GatherNDLayerParam : public LayerParam {
     int batch_dims = 0;
     PARAM_COPY(GatherNDLayerParam)
@@ -621,6 +673,13 @@ struct ExpandLayerParam : public LayerParam {
     std::vector<int> shape;
 
     PARAM_COPY(ExpandLayerParam)
+};
+
+struct RollLayerParam : public LayerParam {
+    std::vector<int> shifts;
+    std::vector<int> dims;
+
+    PARAM_COPY(RollLayerParam)
 };
 
 struct MatMulLayerParam : public LayerParam {
@@ -647,6 +706,13 @@ struct FlattenLayerParam : public LayerParam {
     int axis = 1;
 
     PARAM_COPY(FlattenLayerParam)
+};
+
+struct FlattenTorchLayerParam : public LayerParam {
+    int start_dim = 0;
+    int end_dim = -1;
+
+    PARAM_COPY(FlattenTorchLayerParam)
 };
 
 struct EinsumLayerParam : public LayerParam {
@@ -696,6 +762,34 @@ struct LogSoftmaxLayerParam : public LayerParam {
     int axis = 1;
 
     PARAM_COPY(LogSoftmaxLayerParam)
+};
+
+struct SplitTorchLayerParam : public SplitVLayerParam {
+    int split_size          = 0;
+
+    PARAM_COPY(SplitTorchLayerParam)
+};
+
+struct QuantizeLayerParam : public LayerParam {
+    int64_t axis            = 0;
+
+    PARAM_COPY(QuantizeLayerParam)
+};
+struct LinspaceLayerParam : public LayerParam {
+    DataType data_type = DATA_TYPE_FLOAT;
+    RangeData start    = {0};
+    RangeData end    = {0};
+
+    RangeData steps = {1};
+
+    // Added for TNN-Torch, in TNN-torch,
+    // num of inputs of aten::linspace may vary from 0-3, in which cases,
+    // order of inputs is not certain.
+    int start_index = -1;
+    int end_index = -1;
+    int steps_index = -1;
+
+    PARAM_COPY(LinspaceLayerParam)
 };
 
 };  // namespace TNN_NS

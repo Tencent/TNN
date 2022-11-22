@@ -30,6 +30,26 @@ Status ConvLayer::InferOutputShape(bool ignore_error) {
     Blob* input_blob           = input_blobs_[0];
     Blob* output_blob          = output_blobs_[0];
     ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param_);
+    int group = conv_param->group;
+    const int pad_type = conv_param->pad_type;
+
+    if (group == 0) {
+        LOGE_IF(!ignore_error, "Error: ConvLayer Error: invalid group param\n");
+        return Status(TNNERR_INVALID_GROUP, "ConvLayer Error: invalid group param");
+    }
+
+    if(input_blobs_.size() > 1) {
+        auto dims = input_blobs_[1]->GetBlobDesc().dims;
+        conv_param->kernels[0] = dims[3];
+        conv_param->kernels[1] = dims[2];
+        if (pad_type == 3) {
+            conv_param->output_channel = dims[1] * group;
+            conv_param->input_channel = dims[0] / group ;
+        } else {
+            conv_param->output_channel = dims[0];
+            conv_param->input_channel = dims[1];
+        }
+    }
     CHECK_PARAM_NULL(conv_param);
 
     int num    = input_blob->GetBlobDesc().dims[0];
@@ -51,7 +71,6 @@ Status ConvLayer::InferOutputShape(bool ignore_error) {
     int height_out = 0;
     int width_out  = 0;
 
-    const int pad_type = conv_param->pad_type;
 
     int kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
     int kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
@@ -109,11 +128,6 @@ Status ConvLayer::InferOutputShape(bool ignore_error) {
         return Status(TNNERR_PARAM_ERR, "Error: ConvLayer dont support pad type");
     }
 
-    int group = conv_param->group;
-    if (group == 0) {
-        LOGE_IF(!ignore_error, "Error: ConvLayer Error: invalid group param\n");
-        return Status(TNNERR_INVALID_GROUP, "ConvLayer Error: invalid group param");
-    }
 
     if (height_out <= 0 || width_out <= 0) {
         LOGE_IF(!ignore_error, "Error: invalid deconv param, height_out(%d) or width_out(%d) is less than zero\n", height_out, width_out);

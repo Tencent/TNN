@@ -14,6 +14,9 @@
 
 #include "tnn/interpreter/tnn/model_packer.h"
 
+#include <sstream>
+#include <streambuf>
+
 #include "tnn/interpreter/tnn/layer_interpreter/abstract_layer_interpreter.h"
 #include "tnn/interpreter/tnn/model_interpreter.h"
 #include "tnn/interpreter/tnn/objseri.h"
@@ -77,6 +80,172 @@ Status ModelPacker::PackProto(std::string file_path) {
         write_stream.close();
         LOGE("invalid proto file name! (%s)\n", file_path.c_str());
         return Status(TNNERR_PACK_MODEL, "proto file cannot be written");
+    }
+
+    std::string proto_s;
+    ret = GetProtoSeriString(proto_s);
+    if (ret != TNN_OK) {
+        return Status(TNNERR_PACK_MODEL, "get proto serialized string failed");
+    }
+
+    write_stream << proto_s;
+
+    write_stream.close();
+
+    return TNN_OK;
+}
+
+Status ModelPacker::PackModel(std::string file_path) {
+    Status ret                = TNN_OK;
+    NetResource *net_resource = GetNetResource();
+    NetStructure *net_struct  = GetNetStructure();
+    std::ofstream write_stream;
+    write_stream.open(file_path, std::ios::binary);
+    if (!write_stream || !write_stream.is_open() || !write_stream.good()) {
+        write_stream.close();
+        LOGE("invalid model file name! (%s)\n", file_path.c_str());
+        return Status(TNNERR_PACK_MODEL, "model file cannot be written");
+    }
+
+    std::string model_s;
+    ret = GetModelSeriString(model_s);
+    if (ret != TNN_OK) {
+        return Status(TNNERR_PACK_MODEL, "get model serialized string failed");
+    }
+
+    write_stream << model_s;
+
+    write_stream.close();
+
+    return TNN_OK;
+}
+
+Status ModelPacker::GetSerialization(std::string &seri_proto, std::string &seri_model) {
+    Status ret = TNN_OK;
+    ret = GetProtoSeriString(seri_proto);
+    if (ret != TNN_OK) {
+        return Status(TNNERR_PACK_MODEL, "get proto serialized string failed");
+    }
+
+    ret = GetModelSeriString(seri_model);
+    if (ret != TNN_OK) {
+        return Status(TNNERR_PACK_MODEL, "get model serialized string failed");
+    }
+
+    return TNN_OK;
+}
+
+Status ModelPacker::PackLayers(std::shared_ptr<Serializer> &serializer, bool save_resource, int &resource_count) {
+    resource_count = 0;
+
+    NetResource *net_resource = GetNetResource();
+    NetStructure *net_struct  = GetNetStructure();
+
+    auto &layer_interpreter_map = ModelInterpreter::GetLayerInterpreterMap();
+    auto layers                 = net_struct->layers;
+    auto resource_map           = net_resource->resource_map;
+
+    std::set<std::string> blob_scale_set;
+    Status result;
+    for (const auto &layer_info : layers) {
+        // save input blobs scale
+        std::string layer_name = layer_info->name;
+        if (layer_info->param->quantized) {
+            for (auto &input_name : layer_info->inputs) {
+                auto blob_scale_name = input_name + BLOB_SCALE_SUFFIX;
+                if (blob_scale_set.find(blob_scale_name) != blob_scale_set.end()) {
+                    continue;
+                }
+                if (resource_map.find(blob_scale_name) == resource_map.end() ||
+                    resource_map.find(blob_scale_name)->second == nullptr) {
+                    continue;
+                }
+                if (save_resource) {
+                    result = PackResource(resource_map, blob_scale_name, serializer);
+                    if (result != TNN_OK) {
+                        return result;
+                    }
+                }
+                resource_count++;
+                blob_scale_set.insert(blob_scale_name);
+            }
+        }
+        // save layer resource
+        if (resource_map.find(layer_name) != resource_map.end() && resource_map.find(layer_name)->second != nullptr) {
+            if (save_resource) {
+                result = PackResource(resource_map, layer_name, serializer);
+                if (result != TNN_OK) {
+                    return result;
+                }
+            }
+            resource_count++;
+        }
+        // save output blob scale
+        if (layer_info->param->quantized) {
+            for (auto &output_name : layer_info->outputs) {
+                auto blob_scale_name = output_name + BLOB_SCALE_SUFFIX;
+                if (blob_scale_set.find(blob_scale_name) != blob_scale_set.end()) {
+                    continue;
+                }
+                if (resource_map.find(blob_scale_name) == resource_map.end() ||
+                    resource_map.find(blob_scale_name)->second == nullptr) {
+                    continue;
+                }
+                if (save_resource) {
+                    result = PackResource(resource_map, blob_scale_name, serializer);
+                    if (result != TNN_OK) {
+                        return result;
+                    }
+                }
+                resource_count++;
+                blob_scale_set.insert(blob_scale_name);
+            }
+        }
+    }
+    return TNN_OK;
+}
+
+Status ModelPacker::PackResource(std::map<std::string, std::shared_ptr<LayerResource>> &resource_map,
+                                 std::string &layer_name, std::shared_ptr<Serializer> &serializer) {
+    // quantized
+    auto &layer_interpreter_map = ModelInterpreter::GetLayerInterpreterMap();
+    auto iter                   = resource_map.find(layer_name);
+    auto layer_info             = FindLayerInfo(layer_name);
+    layer_header ly_header;
+    ly_header.name_                = iter->first;
+    ly_header.type_                = layer_info->type;
+    ly_header.type_str_            = layer_info->type_str;
+    static int resource_pack_count = 0;
+    ly_header.serialize(*serializer);
+    LayerResource *layer_resource = iter->second.get();
+    auto layer_interpreter        = layer_interpreter_map[layer_info->type];
+    if (layer_interpreter != nullptr) {
+        Status result = layer_interpreter->SaveResource(*serializer, layer_info->param.get(), layer_resource);
+        if (result != TNN_OK) {
+            LOGE(
+                "Error: layer interpreter save resource failed (name:%s "
+                "type_from_str:%s type:%d)\n",
+                ly_header.name_.c_str(), ly_header.type_str_.c_str(), ly_header.type_);
+            return Status(TNNERR_PACK_MODEL, "model content is invalid");
+        }
+    } else {
+        LOGE(
+            "Error: layer interpreter is null (name:%s "
+            "type_from_str:%s type:%d)\n",
+            ly_header.name_.c_str(), ly_header.type_str_.c_str(), ly_header.type_);
+        return Status(TNNERR_PACK_MODEL, "unsupport layer resource type");
+    }
+    return TNN_OK;
+}
+
+Status ModelPacker::GetProtoSeriString(std::string &seri_proto) {
+    Status ret              = TNN_OK;
+    NetStructure *net_struc = GetNetStructure();
+
+    std::stringbuf s_buf;
+    std::ostream write_stream(&s_buf);
+    if (!write_stream || !write_stream.good()) {
+        return Status(TNNERR_PACK_MODEL, "proto stream cannot be written");
     }
 
     // 1st line: "1 <blob_size> 1 <magic_num> ,"
@@ -183,20 +352,19 @@ Status ModelPacker::PackProto(std::string file_path) {
         write_stream << ",\"" << std::endl;
     }
 
-    write_stream.close();
+    seri_proto = s_buf.str();
 
     return TNN_OK;
 }
 
-Status ModelPacker::PackModel(std::string file_path) {
+Status ModelPacker::GetModelSeriString(std::string &seri_model) {
     NetResource *net_resource = GetNetResource();
     NetStructure *net_struct  = GetNetStructure();
-    std::ofstream write_stream;
-    write_stream.open(file_path, std::ios::binary);
-    if (!write_stream || !write_stream.is_open() || !write_stream.good()) {
-        write_stream.close();
-        LOGE("invalid model file name! (%s)\n", file_path.c_str());
-        return Status(TNNERR_PACK_MODEL, "model file cannot be written");
+
+    std::stringbuf s_buf;
+    std::ostream write_stream(&s_buf);
+    if (!write_stream || !write_stream.good()) {
+        return Status(TNNERR_PACK_MODEL, "model stream cannot be written");
     }
     auto magic_number = GetMagicNumber();
     if (magic_number > 0) {
@@ -210,7 +378,6 @@ Status ModelPacker::PackModel(std::string file_path) {
     auto serializer    = GetSerializer(write_stream);
     auto ret           = PackLayers(serializer, false, resource_count);
     if (ret != TNN_OK) {
-        write_stream.close();
         return ret;
     }
 
@@ -222,7 +389,6 @@ Status ModelPacker::PackModel(std::string file_path) {
 
     ret = PackLayers(serializer, true, resource_count);
     if (ret != TNN_OK) {
-        write_stream.close();
         return ret;
     }
     
@@ -239,114 +405,8 @@ Status ModelPacker::PackModel(std::string file_path) {
         }
     }
     
-    write_stream.close();
-    if (ret != TNN_OK) {
-        return ret;
-    }
+    seri_model = s_buf.str();
 
-    return TNN_OK;
-}
-
-Status ModelPacker::PackLayers(std::shared_ptr<Serializer> &serializer, bool save_resource, int &resource_count) {
-    resource_count = 0;
-
-    NetResource *net_resource = GetNetResource();
-    NetStructure *net_struct  = GetNetStructure();
-
-    auto &layer_interpreter_map = ModelInterpreter::GetLayerInterpreterMap();
-    auto layers                 = net_struct->layers;
-    auto resource_map           = net_resource->resource_map;
-
-    std::set<std::string> blob_scale_set;
-    Status result;
-    for (const auto &layer_info : layers) {
-        // save input blobs scale
-        std::string layer_name = layer_info->name;
-        if (layer_info->param->quantized) {
-            for (auto &input_name : layer_info->inputs) {
-                auto blob_scale_name = input_name + BLOB_SCALE_SUFFIX;
-                if (blob_scale_set.find(blob_scale_name) != blob_scale_set.end()) {
-                    continue;
-                }
-                if (resource_map.find(blob_scale_name) == resource_map.end() ||
-                    resource_map.find(blob_scale_name)->second == nullptr) {
-                    continue;
-                }
-                if (save_resource) {
-                    result = PackResource(resource_map, blob_scale_name, serializer);
-                    if (result != TNN_OK) {
-                        return result;
-                    }
-                }
-                resource_count++;
-                blob_scale_set.insert(blob_scale_name);
-            }
-        }
-        // save layer resource
-        if (resource_map.find(layer_name) != resource_map.end() && resource_map.find(layer_name)->second != nullptr) {
-            if (save_resource) {
-                result = PackResource(resource_map, layer_name, serializer);
-                if (result != TNN_OK) {
-                    return result;
-                }
-            }
-            resource_count++;
-        }
-        // save output blob scale
-        if (layer_info->param->quantized) {
-            for (auto &output_name : layer_info->outputs) {
-                auto blob_scale_name = output_name + BLOB_SCALE_SUFFIX;
-                if (blob_scale_set.find(blob_scale_name) != blob_scale_set.end()) {
-                    continue;
-                }
-                if (resource_map.find(blob_scale_name) == resource_map.end() ||
-                    resource_map.find(blob_scale_name)->second == nullptr) {
-                    continue;
-                }
-                if (save_resource) {
-                    result = PackResource(resource_map, blob_scale_name, serializer);
-                    if (result != TNN_OK) {
-                        return result;
-                    }
-                }
-                resource_count++;
-                blob_scale_set.insert(blob_scale_name);
-            }
-        }
-    }
-    return TNN_OK;
-}
-
-Status ModelPacker::PackResource(std::map<std::string, std::shared_ptr<LayerResource>> &resource_map,
-                                 std::string &layer_name, std::shared_ptr<Serializer> &serializer) {
-    // quantized
-    auto &layer_interpreter_map = ModelInterpreter::GetLayerInterpreterMap();
-    auto iter                   = resource_map.find(layer_name);
-    auto layer_info             = FindLayerInfo(layer_name);
-    layer_header ly_header;
-    ly_header.name_                = iter->first;
-    ly_header.type_                = layer_info->type;
-    ly_header.type_str_            = layer_info->type_str;
-    static int resource_pack_count = 0;
-    ly_header.serialize(*serializer);
-    LayerResource *layer_resource = iter->second.get();
-    auto layer_interpreter        = layer_interpreter_map[layer_info->type];
-    if (layer_interpreter != nullptr) {
-        Status result = layer_interpreter->SaveResource(*serializer, layer_info->param.get(), layer_resource);
-        if (result != TNN_OK) {
-            LOGE(
-                "Error: layer interpreter save resource failed (name:%s "
-                "type_from_str:%s type:%d)\n",
-                ly_header.name_.c_str(), ly_header.type_str_.c_str(), ly_header.type_);
-            return Status(TNNERR_PACK_MODEL, "model content is invalid");
-        }
-    } else {
-        LOGE(
-            "Error: layer interpreter is null (name:%s "
-            "type_from_str:%s type:%d)\n",
-            ly_header.name_.c_str(), ly_header.type_str_.c_str(), ly_header.type_);
-        return Status(TNNERR_PACK_MODEL, "unsupport layer resource type");
-    }
     return TNN_OK;
 }
 

@@ -30,7 +30,7 @@ Status ConcatLayerInterpreter::InterpretResource(Deserializer& deserializer, Lay
     return TNN_OK;
 }
 
-Status ConcatLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ConcatLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, ConcatLayerParam, "invalid concat param to save", param);
     output_stream << layer_param->axis << " ";
     return TNN_OK;

@@ -81,6 +81,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"QuantizedPooling", LAYER_POOLING},
     // 50
     {"Dequantize", LAYER_DEQUANTIZE},
+    {"Quantize", LAYER_QUANTIZE},
     {"QuantizedReshapeTensorflow", LAYER_RESHAPE},
     {"ConvolutionDepthwise", LAYER_CONVOLUTION_DEPTHWISE},
     {"QuantizedBiasAdd", LAYER_BIAS_ADD},
@@ -224,6 +225,15 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"NonMaxSuppression", LAYER_NON_MAX_SUPPRESSION},
     {"TopK", LAYER_TOPK},
     {"Scatter", LAYER_SCATTER},
+    {"Norm", LAYER_NORM},
+    {"Clampmin", LAYER_CLAMPMIN},
+    {"Expandas", LAYER_EXPANDAS},
+    {"Or", LAYER_OR},
+    {"Xor", LAYER_XOR},
+    {"Roll", LAYER_ROLL},
+    {"Cumsum", LAYER_CUMSUM},
+    {"Mod", LAYER_MOD},
+    {"Linspace", LAYER_LINSPACE},
     // LAYER_INT8_RANGE
     // LAYER_TRT_ENGINE
 
@@ -252,8 +262,14 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"CbamFusedPooling", LAYER_CBAM_FUSED_POOLING},
     {"Softsign", LAYER_SOFTSIGN},
     {"LogSoftmax", LAYER_LOGSOFTMAX},
+    {"SplitTorch", LAYER_SPLITTORCH},
+    {"PermuteV2", LAYER_PERMUTEV2},
+    {"Clone", LAYER_CLONE},
+    {"ReshapeTorch", LAYER_RESHAPETORCH},
+    {"FlattenTorch", LAYER_FLATTENTORCH},
     {"QuantizedReshape", LAYER_RESHAPE},
     {"QuantizedPermute", LAYER_PERMUTE},
+    {"GatherElements", LAYER_GATHERELEMENTS},
     {"Swish", LAYER_SWISH},
 
     // dynamic range quantization layer
@@ -265,6 +281,11 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     // TNN Graph Matcher related LAYER_TYPES
     {"Dummy", LAYER_DUMMY_TYPE},
     {"AnyType", LAYER_ANY_TYPE},
+
+    {"InplaceCopy", LAYER_INPLACE_COPY},
+    {"InplaceSliceCopy", LAYER_INPLACE_SLICE_COPY},
+
+    {"DeConvolution1D", LAYER_DECONVOLUTION_1D}
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str) {

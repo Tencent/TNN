@@ -21,9 +21,28 @@ DECLARE_TENSORRT_LAYER_BUILDER(Abs, LAYER_ABS);
 ILayer* AbsTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-    IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kABS);
+
+    ILayer* layer;    
+    nvinfer1::DataType in_dtype = tensor->getType();
+    // TRT8 unary ABS does not suppport INT32
+    // Convert to FLOAT first and then back to INT32 AFTER ABS 
+    if (in_dtype==nvinfer1::DataType::kINT8 || in_dtype==nvinfer1::DataType::kINT32) {
+        ILayer* cast_layer = network->addIdentity(*tensor);
+        cast_layer->setName((layer_name_+"_int2fp").c_str());
+        cast_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
+        tensor = cast_layer->getOutput(0);
+    }
+
+    layer = network->addUnary(*tensor, UnaryOperation::kABS);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
+    }
+
+    if (in_dtype==nvinfer1::DataType::kINT8 || in_dtype==nvinfer1::DataType::kINT32) {
+        layer = network->addIdentity(*tensor);
+        layer->setName((layer_name_+"_fp2int").c_str());
+        layer->setOutputType(0, in_dtype);
+        tensor = layer->getOutput(0);
     }
 
     return layer;

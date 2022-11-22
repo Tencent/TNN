@@ -39,7 +39,7 @@ Status GatherLayerInterpreter::InterpretResource(Deserializer& deserializer, Lay
     return TNN_OK;
 }
 
-Status GatherLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status GatherLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<GatherLayerParam*>(param);
     if (layer_param == nullptr) {
         LOGE("invalid layer param to save\n");

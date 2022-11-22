@@ -123,13 +123,13 @@ __device__ static void reduce(const T* input, AccType* output, const int count, 
 
 template<typename T>
 __device__ void fuse_param_and_affine(const T *input, T *output, const float *gamma, const float *beta,
-                                      const int c_per_g, const int hw, const float eps,
+                                      int g, const int c_per_g, const int hw, const float eps,
                                       typename GNAccType<T>::type sum1, typename GNAccType<T>::type sum2) {
     using AccType = typename GNAccType<T>::type;
     extern __shared__ char _sm[];
     AccType* scale = reinterpret_cast<AccType*>(_sm);
     AccType* bias = scale + c_per_g;
-    const int c_off = c_per_g * blockIdx.x;
+    const int c_off = c_per_g * blockIdx.x % (c_per_g * g);
     for (int i = threadIdx.x; i < c_per_g; i += blockDim.x) {
         AccType mean = sum1 / (c_per_g * hw) ;
         AccType var = sum2 / (c_per_g * hw) - mean * mean;
@@ -151,7 +151,7 @@ __device__ void fuse_param_and_affine(const T *input, T *output, const float *ga
 
 template<int THREAD_PER_BLOCK, typename T>
 __global__ void group_norm_1pass(const T *input, T *output, const float *gamma, const float *beta,
-                                 const int c_per_g, const int hw, const float eps) {
+                                 int g, const int c_per_g, const int hw, const float eps) {
     // 1 group per block, used when c_per_g * hw <= 4096
     // assert (c == g * c_per_g)
     using AccType = typename GNAccType<T>::type;
@@ -161,7 +161,7 @@ __global__ void group_norm_1pass(const T *input, T *output, const float *gamma, 
     reduce<THREAD_PER_BLOCK, T, Tuple2<AccType>, idn_sqr<AccType> >(
         input + blockIdx.x * hw * c_per_g, sums, c_per_g * hw);
 
-    fuse_param_and_affine<T>(input, output, gamma, beta, c_per_g, hw, eps, sums[0].v1, sums[0].v2);
+    fuse_param_and_affine<T>(input, output, gamma, beta, g, c_per_g, hw, eps, sums[0].v1, sums[0].v2);
 }
 
 template<typename T>
@@ -171,7 +171,7 @@ static Status group_norm_v2(const T *input, T* output, const float *gamma, const
     using AccType = typename GNAccType<T>::type;
     static std::map<int, void(*)(
         const T*, T*, const float *, const float *,
-        const int, const int, const float)> group_norm_1pass_funcs = {
+        int, const int, const int, const float)> group_norm_1pass_funcs = {
         {32,  group_norm_1pass<32, T>},
         {64,  group_norm_1pass<64, T>},
         {128, group_norm_1pass<128, T>},
@@ -183,7 +183,7 @@ static Status group_norm_v2(const T *input, T* output, const float *gamma, const
     auto grid = n * g;
     {
         group_norm_1pass_funcs[block]<<<grid, block, 2 * c_per_g * sizeof(AccType), s>>>(
-            input, output, gamma, beta, c_per_g, hw, eps);
+            input, output, gamma, beta, g, c_per_g, hw, eps);
         auto err = cudaGetLastError();
         if (err != cudaSuccess)
             return Status(TNNERR_CUDA_TENSORRT_ERROR, "GN Plugin 1pass failed: " + std::to_string(err));
@@ -211,8 +211,8 @@ Status CudaGroupNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     auto input_dims = inputs[0]->GetBlobDesc().dims;
     if (dtype == DATA_TYPE_FLOAT) {
         float* input_data = static_cast<float*>(input_blob->GetHandle().base);
-        float* scale_data = static_cast<float*>(scale_blob->GetHandle().base);
-        float* bias_data  = static_cast<float*>(bias_blob->GetHandle().base);
+        float* scale_data = static_cast<float*>(scale_blob->GetHandle().base + scale_blob->GetHandle().bytes_offset);
+        float* bias_data  = static_cast<float*>(bias_blob->GetHandle().base + bias_blob->GetHandle().bytes_offset);
         float* output_data = static_cast<float*>(output_blob->GetHandle().base);
         int channels_per_group = input_dims[1] / params->group;
 
@@ -221,8 +221,8 @@ Status CudaGroupNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
                                     input_dims[2], input_dims[3], params->eps, context_->GetStream());
     } else if (dtype == DATA_TYPE_HALF) {
         __half* input_data = static_cast<__half*>(input_blob->GetHandle().base);
-        float* scale_data = static_cast<float*>(scale_blob->GetHandle().base);
-        float* bias_data  = static_cast<float*>(bias_blob->GetHandle().base);
+        float* scale_data = static_cast<float*>(scale_blob->GetHandle().base + scale_blob->GetHandle().bytes_offset);
+        float* bias_data  = static_cast<float*>(bias_blob->GetHandle().base + bias_blob->GetHandle().bytes_offset);
         __half* output_data = static_cast<__half*>(output_blob->GetHandle().base);
         int channels_per_group = input_dims[1] / params->group;
 

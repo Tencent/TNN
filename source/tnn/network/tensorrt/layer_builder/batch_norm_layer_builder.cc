@@ -28,12 +28,13 @@ ILayer* BatchNormTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
 
-    Weights power { nvinfer1::DataType::kFLOAT, nullptr, 0 };
     Weights shift;
     shift = ConvertToWeights(&(resource->bias_handle));
 
     Weights scale;
     scale = ConvertToWeights(&(resource->scale_handle));
+
+    Weights power { scale.type, nullptr, 0 };
 
     int dims_size = tensor->getDimensions().nbDims;
     // unsqueeze 

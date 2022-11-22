@@ -33,31 +33,43 @@ Status CpuStrideSliceV2LayerAcc::InferRuntimeOutputShape(const std::vector<Blob 
     CHECK_PARAM_NULL(layer_param);
     
     if (inputs.size() >= 2) {
-        if (inputs[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
-            return Status(TNNERR_PARAM_ERR, "stride slice input(begins) has invalid data type");
+        if (inputs.size() >= 3) {
+            layer_param->begins_index = 1;
+            layer_param->ends_index = 2;
+        } else {
+            if (layer_param->begins_index==-1 && layer_param->ends_index==-1) {
+                // 2 inputs, the second input not specified, set to begins by default.
+                layer_param->begins_index = 1;
+            }
         }
-        auto dim_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
-        auto dim_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
-        DimsVector dims;
-        for (int i=0; i<dim_count; i++) {
-            dims.push_back(dim_data[i]);
-        }
-        layer_param->begins = dims;
-    }
-    
-    if (inputs.size() >= 3) {
-        if (inputs[2]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
-            return Status(TNNERR_PARAM_ERR, "stride slice input(ends) has invalid data type");
-        }
-        auto input_dims = inputs[2]->GetBlobDesc().dims;
         
-        auto dim_count = DimsVectorUtils::Count(inputs[2]->GetBlobDesc().dims);
-        auto dim_data = (int *)((char *)inputs[2]->GetHandle().base + inputs[2]->GetHandle().bytes_offset);
-        DimsVector dims;
-        for (int i=0; i<dim_count; i++) {
-            dims.push_back(dim_data[i]);
+        if (layer_param->begins_index != -1) {
+            int begins_index = layer_param->begins_index;
+            if (inputs[begins_index]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+                return Status(TNNERR_PARAM_ERR, "stride slice input(begins) has invalid data type");
+            }
+            auto dim_count = DimsVectorUtils::Count(inputs[begins_index]->GetBlobDesc().dims);
+            auto dim_data = (int *)((char *)inputs[begins_index]->GetHandle().base + inputs[begins_index]->GetHandle().bytes_offset);
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+            layer_param->begins = dims;
         }
-        layer_param->ends = dims;
+
+        if (layer_param->ends_index != -1) {
+            int ends_index = layer_param->ends_index;
+            if (inputs[ends_index]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+                return Status(TNNERR_PARAM_ERR, "stride slice input(ends) has invalid data type");
+            }
+            auto dim_count = DimsVectorUtils::Count(inputs[ends_index]->GetBlobDesc().dims);
+            auto dim_data = (int *)((char *)inputs[ends_index]->GetHandle().base + inputs[ends_index]->GetHandle().bytes_offset);
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+            layer_param->ends = dims;
+        }
     }
     
     auto input_dims = inputs[0]->GetBlobDesc().dims;

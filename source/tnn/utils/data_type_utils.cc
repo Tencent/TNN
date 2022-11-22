@@ -52,6 +52,8 @@ std::string DataTypeUtils::GetDataTypeString(DataType data_type) {
         return "int64";
     } else if (data_type == DATA_TYPE_INT32) {
         return "int32";
+    } else if (data_type == DATA_TYPE_INT64) {
+        return "int64";
     } else {
         return "";
     }

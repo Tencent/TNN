@@ -19,6 +19,7 @@
 
 #include "tnn/core/common.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -56,6 +57,8 @@ ModelType ConvertModelType(std::string model_type) {
         return MODEL_TYPE_NCNN;
     } else if ("RKCACHE" == model_type) {
         return MODEL_TYPE_RKCACHE;
+    } else if ("TS" == model_type) {
+        return MODEL_TYPE_TORCHSCRIPT;
     } else {
         return MODEL_TYPE_TNN;
     }
@@ -74,8 +77,10 @@ NetworkType ConvertNetworkType(std::string network_type) {
         return NETWORK_TYPE_RK_NPU;
     } else if ("TRT" == network_type) {
         return NETWORK_TYPE_TENSORRT;
+    } else if ("TORCH" == network_type) {
+        return NETWORK_TYPE_TNNTORCH;
     } else {
-        return NETWORK_TYPE_DEFAULT;
+        return NETWORK_TYPE_AUTO;
     }
 }
 

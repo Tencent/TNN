@@ -1,5 +1,8 @@
 #!/bin/bash
 
+TNNTORCH="OFF"
+PYBIND_ENABLE="ON"
+
 if [ -z $TNN_ROOT_PATH ]
 then
     TNN_ROOT_PATH=$(cd `dirname $0`; pwd)/..
@@ -22,9 +25,12 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_X86_ENABLE=OFF \
     -DTNN_CUDA_ENABLE=ON \
     -DTNN_TENSORRT_ENABLE=ON \
+    -DTNN_TNNTORCH_ENABLE=${TNNTORCH} \
     -DTNN_BENCHMARK_MODE=OFF \
+    -DTNN_GLIBCXX_USE_CXX11_ABI_ENABLE=OFF \
     -DTNN_BUILD_SHARED=ON \
-    -DTNN_CONVERTER_ENABLE=OFF 
+    -DTNN_CONVERTER_ENABLE=OFF \
+    -DTNN_PYBIND_ENABLE=${PYBIND_ENABLE}
 
 echo "Building TNN ..."
 make -j32
@@ -40,5 +46,10 @@ mkdir ${TNN_INSTALL_DIR}/bin
 cp -r ${TNN_ROOT_PATH}/include ${TNN_INSTALL_DIR}/
 cp libTNN.so* ${TNN_INSTALL_DIR}/lib
 cp test/TNNTest ${TNN_INSTALL_DIR}/bin
+
+if [ "$PYBIND_ENABLE" = "ON" ]; then
+    cp -d _pytnn.*.so ${TNN_INSTALL_DIR}/lib/
+    cp ${TNN_ROOT_PATH}/source/pytnn/*.py ${TNN_INSTALL_DIR}/lib/
+fi
 
 echo "Done"

@@ -60,7 +60,7 @@ Status DefaultNetwork::SetCpuNumThreads(int num_threads) {
  * Those object is initialized in this function.
  */
 Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder) {
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type, bool enable_const_folder) {
     config_                                      = net_config;
     Status ret                                   = TNN_OK;
     DefaultModelInterpreter *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
@@ -89,7 +89,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
     context_->SetPrecision(net_config.precision);
     context_->SetEnableTuneKernel(net_config.enable_tune_kernel);
 
-    if(!net_config.cache_path.empty()) {
+    if(!net_config.cache_path.empty() && net_config.cache_path.compare(CACHE_MEMORY_TAG) != 0) {
         auto params_md5 = default_interpreter->GetParamsMd5();
         if (params_md5.size() < 1) {
             return Status(TNNERR_PARAM_ERR, "model params md5 missing");
@@ -426,7 +426,7 @@ Status DefaultNetwork::UpdateBlobPrecision(std::shared_ptr<LayerInfo> layer_info
     return TNN_OK;
 }
 
-Status DefaultNetwork::GetForwardMemorySize(int &memory_size) {
+Status DefaultNetwork::GetForwardMemorySize(size_t &memory_size) {
     memory_size = blob_manager_->GetAllBlobMemorySize();
     return TNN_OK;
 }
@@ -537,6 +537,13 @@ Status DefaultNetwork::GetCommandQueue(void **command_queue) {
         return TNNERR_DEVICE_CONTEXT_CREATE;
     }
     return context_->GetCommandQueue(command_queue);
+}
+
+Status DefaultNetwork::SetCommandQueue(void *command_queue) {
+    if (context_ == NULL) {
+        return TNNERR_DEVICE_CONTEXT_CREATE;
+    }
+    return context_->SetCommandQueue(command_queue);
 }
 
 Status DefaultNetwork::ShareCommandQueue(AbstractNetwork *network) {
