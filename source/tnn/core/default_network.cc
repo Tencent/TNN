@@ -201,7 +201,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             dynamic_cast<ReformatLayerParam *>(layer_info->param.get())->dst_format : input_fmt;
 
 #ifdef GENERATE_RESOURCE
-        if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+        if (runtime_model_ == RUNTIME_MODE_NORMAL || runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
             LayerType type       = layer_info->type;
             BaseLayer *cur_layer = CreateLayer(type);
             if (cur_layer == NULL) {
