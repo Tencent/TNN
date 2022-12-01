@@ -71,11 +71,11 @@ static void ExecInputGrad(int batch, int oc, int ic, float *input_grad, float *o
 template <int acc_bias>
 static void ExecBiasGrad(int batch, int oc, float *bias_grad, float *output_grad) {
     if (batch == 1 && !acc_bias) {
-        memcpy(bias_grad, output_grad, batch * oc * sizeof(float));
+        memcpy(bias_grad, output_grad, oc * sizeof(float));
         return;
     }
     if (!acc_bias) {
-        memset(bias_grad, 0, batch * oc * sizeof(float));
+        memset(bias_grad, 0, oc * sizeof(float));
     }
     Float4 ug;
     for (int b = 0; b < batch; ++b) {
