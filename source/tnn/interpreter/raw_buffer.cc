@@ -73,7 +73,7 @@ void RawBuffer::SetBufferDims(DimsVector dims) {
     this->dims_ = dims;
 }
 
-DimsVector RawBuffer::GetBufferDims() {
+DimsVector RawBuffer::GetBufferDims() const {
     return this->dims_;
 }
 
@@ -152,15 +152,15 @@ void RawBuffer::SetDataType(DataType data_type) {
     data_type_ = data_type;
 }
 
-DataType RawBuffer::GetDataType() {
+DataType RawBuffer::GetDataType() const {
     return data_type_;
 }
 
-int RawBuffer::GetBytesSize() {
+int RawBuffer::GetBytesSize() const {
     return bytes_size_;
 }
 
-int RawBuffer::GetDataCount() {
+int RawBuffer::GetDataCount() const {
     int elem_size = DataTypeUtils::GetBytesSize(data_type_);
     return elem_size > 0 ? bytes_size_ / elem_size : 0;
 }
@@ -210,7 +210,7 @@ RawBuffer ConvertHalfToBFP16(RawBuffer &buf) {
     }
 }
 
-std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer) {
+std::shared_ptr<float> GetFloatFromRawBuffer(const RawBuffer &raw_buffer) {
     int element_size = 0;
     DataType type    = raw_buffer.GetDataType();
     int bytes        = raw_buffer.GetBytesSize();
