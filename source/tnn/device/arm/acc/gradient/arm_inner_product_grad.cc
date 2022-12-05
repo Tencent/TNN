@@ -43,9 +43,9 @@ static void ExecWeightGrad(int batch, int oc, int ic, float *weight_grad, float 
                 Float4::save(w_ptr + j, ug * x0 + Float4::load(w_ptr + j));
             }
             int remain = ic % 4;
-            w_ptr += ic << 2 >> 2;
+            w_ptr += ic >> 2 << 2;
             for (int j = 0; j < remain; ++j) {
-                w_ptr[j] += i_ptr[j + (ic << 2 >> 2)] * o_ptr[i];
+                w_ptr[j] += i_ptr[j + (ic >> 2 << 2)] * o_ptr[i];
             }
         }
     }
@@ -87,8 +87,8 @@ static void ExecBiasGrad(int batch, int oc, float *bias_grad, float *output_grad
             Float4::save(dst_ptr + n, ug + Float4::load(dst_ptr + n));
         }
         int remain = oc % 4;
-        dst_ptr += oc << 2 >> 2;
-        src_ptr += oc << 2 >> 2;
+        dst_ptr += oc >> 2 << 2;
+        src_ptr += oc >> 2 << 2;
         for (int n = 0; n < remain; ++n) {
             dst_ptr[n] += src_ptr[n];
         }
@@ -195,3 +195,4 @@ REGISTER_ARM_GRAD_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NCHW)
 REGISTER_ARM_GRAD_LAYOUT(LAYER_INNER_PRODUCT, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS
+

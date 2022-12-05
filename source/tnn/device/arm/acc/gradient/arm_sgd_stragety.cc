@@ -40,8 +40,8 @@ Status ArmSGDSolverStrategy::ExecUpdate(Blob *grad, RawBuffer *resource, SolverP
         Float4::save(resource_ptr + n, Float4::load(resource_ptr + n) - g);
     }
     int remain = count % 4;
-    grad_ptr += count << 2 >> 2;
-    resource_ptr += count << 2 >> 2;
+    grad_ptr += count >> 2 << 2;
+    resource_ptr += count >> 2 << 2;
     for (int n = 0; n < remain; ++n) {
         resource_ptr[n] -= grad_ptr[n] * learning_rate;
     }
