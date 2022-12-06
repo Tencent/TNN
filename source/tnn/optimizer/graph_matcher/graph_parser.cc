@@ -241,7 +241,16 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * regist
         return n;
     };
 
-    size_t ssa_cnt = 0;
+    std::map<std::string, size_t> ssa_cnt_map;
+    auto get_ssa_cnt = [&](const std::string name) -> size_t {
+        if (ssa_cnt_map.count(name) > 0) {
+            size_t cnt = ssa_cnt_map.at(name);
+            ssa_cnt_map[name] = cnt + 1;
+            return cnt + 1;
+        }
+        ssa_cnt_map[name] = 0;
+        return 0;
+    };
     auto createFunction = [&](const SSANode& node) -> void {
         if (!registry) {
             ERRORV("GraphRegistry is nullptr.", msg);
@@ -262,7 +271,7 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * regist
         }
 
         std::shared_ptr<Graph> sub_graph = g->Copy();
-        std::string name_prefix = node.source.text() + std::string("_") + std::to_string(ssa_cnt++) + std::string("_");
+        std::string name_prefix = node.source.text() + std::string("_") + std::to_string(get_ssa_cnt(node.source.text())) + std::string("_");
         for(auto &t: sub_graph->tensors) { 
             // DEBUG("rename subgraph tensor from %s to %s", t->name.c_str(), (name_prefix+t->name).c_str());
             sub_graph->renameTensor(t->name, name_prefix + t->name);
@@ -350,6 +359,10 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * regist
     }
 
     *graph = Graph(nodes, placeholders, edges, tensors);
+    RAISE_ON_ERROR(graph->reBuildTensorIndex());
+    for(auto v : return_values) {
+        RAISE_ON_ERROR(graph->markOutput(v.identifier));
+    }
     RAISE_ON_ERROR(graph->reBuildTensorIndex());
     RAISE_ON_ERROR(graph->setInputsOrder(input_order));
     RAISE_ON_ERROR(graph->setOutputsOrder(output_order));

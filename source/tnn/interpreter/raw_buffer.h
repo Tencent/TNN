@@ -45,15 +45,20 @@ public:
 
 
 
-    DataType GetDataType();
-    int GetBytesSize();
-    int GetDataCount();
-    DimsVector GetBufferDims();
+    DataType GetDataType() const;
+    int GetBytesSize() const;
+    int GetDataCount() const;
+    DimsVector GetBufferDims() const;
 
     void Permute(size_t outter, size_t inner);
 
     template <typename T>
     T force_to() {
+        return reinterpret_cast<T>(buff_ ? buff_.get() : nullptr);
+    }
+
+    template <typename T>
+    const T force_to() const {
         return reinterpret_cast<T>(buff_ ? buff_.get() : nullptr);
     }
 
@@ -68,7 +73,7 @@ RawBuffer ConvertFloatToFP16(RawBuffer &buf);
 RawBuffer ConvertHalfHandle(RawBuffer &buf);
 RawBuffer ConvertFloatToBFP16(RawBuffer &buf);
 RawBuffer ConvertHalfToBFP16(RawBuffer &buf);
-std::shared_ptr<float> GetFloatFromRawBuffer(RawBuffer &raw_buffer);
+std::shared_ptr<float> GetFloatFromRawBuffer(const RawBuffer &raw_buffer);
 
 }  // namespace TNN_NS
 
