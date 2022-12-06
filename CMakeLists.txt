@@ -238,6 +238,7 @@ endif()
 if(TNN_JETSON_NANO_ENABLE)
     set(TNN_CUDA_ENABLE ON)
     set(TNN_OPENMP_ENABLE ON)
+    set(TNN_TENSORRT_ENABLE ON)
 endif()
 
 message(STATUS ">>>>>>>>>>>>>")
