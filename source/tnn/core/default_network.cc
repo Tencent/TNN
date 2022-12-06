@@ -608,9 +608,8 @@ Status DefaultNetwork::Forward() {
         auto layer = layers_[cnt];
         std::vector<Blob *> inputs  = layer->GetInputBlobs();
         std::vector<Blob *> outputs = layer->GetOutputBlobs();
-
         {
-            
+
 #if DUMP_INPUT_BLOB
             if (runtime_model_ == RUNTIME_MODE_NORMAL || runtime_model_ == RUNTIME_MODE_BACKWARD) {
                 // InputBlob data in dumped into files in NCHW_FLOAT format as default

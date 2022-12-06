@@ -37,10 +37,10 @@ namespace optimizer {
 
     private:
         Status InsertLossLayer(NetStructure* net_structure);
-        std::shared_ptr<LayerInfo> GetTargetLayer(NetStructure* net_structure);
+        std::vector<std::shared_ptr<LayerInfo>> GetTargetLayers(NetStructure *net_structure);
         std::shared_ptr<LayerInfo> GetOrCreateProbability(std::shared_ptr<LayerInfo> last_layer);
         std::shared_ptr<LayerInfo> CreateCrossEntropy(const std::string& name);
-        std::shared_ptr<LayerInfo> CreateReduceMean(const std::string& name);
+        std::shared_ptr<LayerInfo> CreateReduceMean(const std::string& name, int ndims);
 
         Status InsertGradientLayers(NetStructure* net_structure, NetResource* net_resource);
         Status GetNeedGradLayers(NetStructure* net_structure, std::set<std::string>& need_grad_layers);
@@ -49,9 +49,9 @@ namespace optimizer {
         Status InsertGradientUpdateLayer(NetStructure* net_structure);
         std::shared_ptr<LayerInfo> CreateSolver(const std::string& name);
 
-        TrainConfig train_config;
+        TrainConfig train_config_;
 
-        std::string loss_blob_;
+        std::vector<std::string> loss_blobs_;
         std::vector<std::string> resource_grads_;
     };
 
