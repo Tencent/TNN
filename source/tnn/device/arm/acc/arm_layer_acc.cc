@@ -212,8 +212,8 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool 
         if (const_resource->find(name) != const_resource->end()) {
             continue;
         }
-        if (only_reload_shape_differ_blob && const_resource_flag &&
-            const_resource_flag->find(name) == const_resource_flag->end()) {
+        if (only_reload_shape_differ_blob &&
+            !(const_resource_flag && const_resource_flag->find(name) == const_resource_flag->end())) {
             continue;
         }
 
@@ -254,9 +254,16 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool 
             status = RawBuffer2Blob(&buffer_cvt, blob);
         } else {
             // the const blob has the same dtype and format as other input blob of the layer
-            status = RawBuffer2ArmBlob(&buffer_cvt, blob, arm_default_desc);
+            arm_default_desc.dims = buffer_cvt.GetBufferDims();
+            status                = RawBuffer2ArmBlob(&buffer_cvt, blob, arm_default_desc);
         }
         RETURN_ON_NEQ(status, TNN_OK);
+
+        BlobDesc blob_desc = blob->GetBlobDesc();
+        if (blob_desc.name.empty()) {
+            blob_desc.name = iter->GetBlobDesc().name;
+            blob->SetBlobDesc(blob_desc);
+        }
 
         blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
 

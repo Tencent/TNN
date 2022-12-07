@@ -155,7 +155,7 @@ std::vector<const Node *> AnchorGraph::allStructualMatchedNodes(const Node * pat
 }
 
 void AnchorGraph::formalize(Graph *g) {
-    // copy subgraph related nodes, edges.
+    // copy subgraph related nodes, edges, const_map, layer_resource.
     // Note that :
     //     1.the AnchorGraph do not store matched placeholders, but create fake ones for the inEdges.
     //     2.here we do not modify the original Graph, Nodes and Edges.
@@ -222,11 +222,11 @@ void AnchorGraph::formalize(Graph *g) {
 
 Status AnchorGraph::sanityCheck() {
     for(auto &n : placeholders) {
-        RETURN_IF_FAIL(n->sanityCheck());
+        RETURN_ON_FAIL(n->sanityCheck());
     }
 
     for(auto &n : nodes) {
-        RETURN_IF_FAIL(n->sanityCheck());
+        RETURN_ON_FAIL(n->sanityCheck());
     }
     return TNN_OK;
 };

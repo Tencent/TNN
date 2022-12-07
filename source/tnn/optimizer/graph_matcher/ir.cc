@@ -88,7 +88,7 @@ namespace TNN_NS {
     }
 
     Status Node::addInput(Edge * e) {
-        RETURN_IF_FAIL(addInputEdge(e));
+        RETURN_ON_FAIL(addInputEdge(e));
         info->inputs.push_back(e->tensor_name);
         return TNN_OK;
     }
@@ -209,12 +209,13 @@ namespace TNN_NS {
                     auto t = std::make_shared<Tensor>(p.first);
                     t->dims = p.second->GetBufferDims();
                     t->data_type = p.second->GetDataType();
-                    RETURN_IF_FAIL(createNode(LAYER_CONST, {}, {p.first}, {t}));
+                    RETURN_ON_FAIL(createNode(LAYER_CONST, {}, {p.first}, {t}));
                 }
             }
 
             for (auto layer : tnn_structure->layers) {
                 auto node = std::make_shared<Node>(layer);
+                node->graph = shared_from_this();
                 nodes.push_back(node);
                 for (auto out : layer->outputs) {
                     if (tensor_2_node.find(out) != tensor_2_node.end()) {
@@ -230,14 +231,14 @@ namespace TNN_NS {
                         return Status(TNNERR_PARAM_ERR, msg);
                     }
                     auto e = std::make_shared<Edge>(n.get(), node.get(), in);
-                    RETURN_IF_FAIL(n->addOutputEdge(e.get()));
-                    RETURN_IF_FAIL(node->addInputEdge(e.get()));
+                    RETURN_ON_FAIL(n->addOutputEdge(e.get()));
+                    RETURN_ON_FAIL(node->addInputEdge(e.get()));
                     edges.push_back(e);
                 }
             }
 
-            RETURN_IF_FAIL(createUnspecifiedTensors());
-            RETURN_IF_FAIL(reBuildTensorIndex());
+            RETURN_ON_FAIL(createUnspecifiedTensors());
+            RETURN_ON_FAIL(reBuildTensorIndex());
 
             for (auto name : tnn_structure->outputs) {
                 auto n = getNodeByTensorName(name);
@@ -245,6 +246,7 @@ namespace TNN_NS {
                     ERRORV("Found unknown blob [%s] in netstructure->outputs", msg, name.c_str());
                     return Status(TNNERR_PARAM_ERR, msg);
                 }
+                RETURN_ON_FAIL(markOutput(name));
             }
         } catch (const std::runtime_error& error) {
             ERROR("%s", error.what());
@@ -259,6 +261,14 @@ namespace TNN_NS {
     Graph::Graph(std::string proto_str) {
         // TODO impl, parse a subgraph from prototext, 
         // Could be used as pattern for GraphRewriter 
+    }
+
+    NetResource * Graph::safeNetResource() {
+        if (!tnn_resource) {
+            own_tnn_resource = true;  
+            tnn_resource = new NetResource();
+        }
+        return tnn_resource;
     }
 
     std::shared_ptr<Graph> Graph::Copy() const {
@@ -318,6 +328,7 @@ namespace TNN_NS {
             return tensor_2_node.at(tensor_name);
         }
         auto input = std::make_shared<Node>(tensor_name);
+        input->graph = shared_from_this();
         placeholders.push_back(input);
         // create Tensor
         RAISE_ON_ERROR(createDefaultTensor(tensor_name));
@@ -361,7 +372,7 @@ namespace TNN_NS {
         nodes.push_back(n);
         if (create_tensors) {
             for(auto out_name : n->info->outputs) {
-                RETURN_IF_FAIL(createDefaultTensor(out_name));
+                RETURN_ON_FAIL(createDefaultTensor(out_name));
             }
         }
         RETURN_ON_NEQ(buildNodeTensorIndex(n), TNN_OK);
@@ -409,6 +420,7 @@ namespace TNN_NS {
         new_node->info->type = type;
         new_node->info->type_str = layerTypeName(type);
         new_node->info->outputs = out_names;
+        new_node->graph = shared_from_this();
 
         for(auto & in : in_names) {
             auto src = getNodeByTensorName(in);
@@ -418,11 +430,38 @@ namespace TNN_NS {
             edges.push_back(e);
         }
         if (out_tensors.size() == 0) {
-            RETURN_IF_FAIL(addNode(new_node));
+            RETURN_ON_FAIL(addNode(new_node));
         } else {
             tensors.insert(tensors.end(), out_tensors.begin(), out_tensors.end());
-            RETURN_IF_FAIL(addNode(new_node, false));
+            RETURN_ON_FAIL(addNode(new_node, false));
         }
+        return TNN_OK;
+    }
+
+    Status Graph::createConst(const std::string name, std::shared_ptr<RawBuffer> buf) {
+        auto t = std::make_shared<Tensor>(name);
+        t->dims = buf->GetBufferDims();
+        t->data_type = buf->GetDataType();
+        RETURN_ON_FAIL(createNode(LAYER_CONST, {}, {name}, {t}));
+
+        auto tnn_resource = safeNetResource();
+        if (tnn_resource->constant_map.count(name) > 0) {
+            ERRORV("const_map already contains %s", msg, name.c_str());
+            return Status(TNNERR_PARAM_ERR, msg);
+        }
+    
+        tnn_resource->constant_map[name]  = buf;
+        return TNN_OK;
+    }
+
+    Status Graph::fetchConst(const std::string name, std::shared_ptr<RawBuffer> &buf) {
+        auto tnn_resource = safeNetResource();
+        if (tnn_resource->constant_map.count(name) == 0) {
+            ERRORV("const_map does not contain %s", msg, name.c_str());
+            return Status(TNNERR_PARAM_ERR, msg);
+        }
+
+        buf = tnn_resource->constant_map[name];
         return TNN_OK;
     }
 
@@ -481,15 +520,15 @@ namespace TNN_NS {
 
         // skip AnchorGraph 
         if (dynamic_cast<AnchorGraph*>(this) == nullptr) {
-            RETURN_IF_FAIL(topologicalSort());
+            RETURN_ON_FAIL(topologicalSort());
         }
 
         for(auto &n : placeholders) {
-            RETURN_IF_FAIL(buildNodeTensorIndex(n));
+            RETURN_ON_FAIL(buildNodeTensorIndex(n));
         }
 
         for(auto &n : nodes) {
-            RETURN_IF_FAIL(buildNodeTensorIndex(n));
+            RETURN_ON_FAIL(buildNodeTensorIndex(n));
         }
         return sanityCheck();
     }
@@ -499,7 +538,7 @@ namespace TNN_NS {
             for(auto out_name : n->info->outputs) {
                 auto t = getTensorByName(out_name);
                 if (!t) {
-                    RETURN_IF_FAIL(createDefaultTensor(out_name));
+                    RETURN_ON_FAIL(createDefaultTensor(out_name));
                 }
             }
         }
@@ -507,7 +546,7 @@ namespace TNN_NS {
             for(auto out_name : n->info->outputs) {
                 auto t = getTensorByName(out_name);
                 if (!t) {
-                    RETURN_IF_FAIL(createDefaultTensor(out_name));
+                    RETURN_ON_FAIL(createDefaultTensor(out_name));
                 }
             }
         }
@@ -515,11 +554,11 @@ namespace TNN_NS {
     }
     Status Graph::sanityCheck() {
         for(auto &n : placeholders) {
-            RETURN_IF_FAIL(n->sanityCheck());
+            RETURN_ON_FAIL(n->sanityCheck());
         }
 
         for(auto &n : nodes) {
-            RETURN_IF_FAIL(n->sanityCheck());
+            RETURN_ON_FAIL(n->sanityCheck());
 
             size_t total = 0;
             for(auto &name : n->info->outputs) {
@@ -537,9 +576,9 @@ namespace TNN_NS {
         AnchorGraph* anchor_ptr = dynamic_cast<AnchorGraph*>(this);
         bool connected;
         if (anchor_ptr != nullptr) {
-            RETURN_IF_FAIL(IsConnectedGraph(anchor_ptr, connected));
+            RETURN_ON_FAIL(IsConnectedGraph(anchor_ptr, connected));
         } else {
-            RETURN_IF_FAIL(IsConnectedGraph(this, connected));
+            RETURN_ON_FAIL(IsConnectedGraph(this, connected));
         }
         if (!connected) {
             ERRORV("the graph is not connected.", msg);
@@ -585,8 +624,10 @@ namespace TNN_NS {
         for(auto &n : nodes) {
             RAISE_ON_ERROR(n->sanityCheck());
             if (n->output_edges.size() == 0) {
-                for(auto &name : n->info->outputs)
+                for(auto &name : n->info->outputs) {
                     names.insert(name);
+                    DEBUG("graph output : %s", name.c_str());
+                }
             }
         }
         if (output_order.size() == 0) {
@@ -826,6 +867,22 @@ namespace TNN_NS {
 
 
     Status Graph::renameTensor(const std::string old_name, const std::string new_name) {
+        // check params first.
+        if (tensor_map.count(new_name) > 0 ) {
+            ERRORV("new tensor name %s alreads exists", msg, new_name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        if (tensor_map.count(old_name) == 0 ) {
+            ERRORV("old tensor name %s not exists", msg, old_name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        if (tnn_resource) {
+            if (tnn_resource->constant_map.count(new_name) > 0) {
+                ERRORV("const_map alreads has a key of name %s", msg, new_name.c_str());
+                return Status(TNNERR_COMMON_ERROR, msg);
+            }
+        }
+
         for(auto &n : placeholders) {
             updateVector(n->info->inputs, old_name, new_name);
             updateVector(n->info->outputs, old_name, new_name);
@@ -852,6 +909,13 @@ namespace TNN_NS {
         if (tnn_structure) {
             updateSet(tnn_structure->blobs, old_name, new_name);
             updateSet(tnn_structure->outputs, old_name, new_name);
+        }
+        if (tnn_resource) {
+            auto &const_map = tnn_resource->constant_map;
+            if (const_map.count(old_name) > 0) {
+                const_map[new_name] = const_map.at(old_name);
+                const_map.erase(old_name);
+            }
         }
 
         updateVector(output_order, old_name, new_name);
@@ -885,6 +949,7 @@ namespace TNN_NS {
         std::map<std::string, std::string> graph_output_names;
         for(auto v: g->outputs()) {
             if (out_mapping.count(v->name) > 0) {
+                // old name -> new name
                 graph_output_names[out_mapping.at(v->name)] = v->name;
             }
         }
@@ -1025,6 +1090,23 @@ namespace TNN_NS {
                 }
             }
             g->tnn_structure->layers = new_layers;
+        }
+
+        if (g->tnn_resource && tnn_resource && g->tnn_resource != tnn_resource) {
+            for(auto p : tnn_resource->resource_map) {
+                if (g->tnn_resource->resource_map.count(p.first) > 0) {
+                    ERRORV("the graph alread has a layer_resource with name %s", msg, p.first.c_str()) ;
+                    throw std::runtime_error(msg);
+                }
+                g->tnn_resource->resource_map[p.first] = p.second;
+            }
+            for(auto p : tnn_resource->constant_map) {
+                if (g->tnn_resource->constant_map.count(p.first) > 0) {
+                    ERRORV("the graph alread has a const with name %s", msg, p.first.c_str()) ;
+                    throw std::runtime_error(msg);
+                }
+                g->tnn_resource->constant_map[p.first] = p.second;
+            }
         }
 
     }
