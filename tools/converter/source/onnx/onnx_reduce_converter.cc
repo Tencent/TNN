@@ -41,10 +41,13 @@ TNN_NS::Status OnnxReduceConverter::exec(TNN_NS::NetStructure &net_structure, TN
     param->quantized           = false;
     param->axis                = GetAttributeIntVector(node, "axes");
     param->keep_dims           = GetAttributeInt(node, "keep_dims", 1);
-
+    cur_layer->inputs.resize(1);
+    cur_layer->inputs[0] = node.input(0);
     return TNN_NS::TNN_CONVERT_OK;
 }
 
+
 REGISTER_CONVERTER(Reduce, ReduceMean);
+REGISTER_CONVERTER(Reduce, ReduceSum);
 
 }  // namespace TNN_CONVERTER
