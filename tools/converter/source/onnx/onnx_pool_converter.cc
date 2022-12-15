@@ -143,7 +143,7 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
                     param->pads.push_back(0);
                     param->pads.push_back(0);
                     param->pads.push_back(0);
-                    aram->pads.push_back(0);
+                    param->pads.push_back(0);
                 }
             } else {
                 LOGE("OnnxPooling unsupport this type!\n");
