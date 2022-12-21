@@ -166,14 +166,14 @@ Status CpuMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
                                    dst_ptr, dst.GetWidth(), dst.GetHeight(),
                                    param.transform, param.border_val, param.border_type);
             }
-        } else if (param.interp_type == INTERP_TYPE_NEAREST && param.border_type == BORDER_TYPE_CONSTANT) {
+        } else if (param.interp_type == INTERP_TYPE_NEAREST && (param.border_type == BORDER_TYPE_CONSTANT || param.border_type == BORDER_TYPE_REPLICATE)) {
             for (int batch = 0; batch < src.GetDims()[0]; batch++)
             {
                 uint8_t* src_ptr = (uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel;
                 uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel;
                 WarpAffineNearest(src_ptr, src.GetWidth(), src.GetHeight(), channel,
                                   dst_ptr, dst.GetWidth(), dst.GetHeight(),
-                                  param.transform, param.border_val);
+                                  param.transform, param.border_val, param.border_type);
             }
         } else {
             return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");
