@@ -35,7 +35,7 @@ void CudaCopyMakeBorder(const uint8_t* src, uint8_t* dst, int batch, int src_wid
 void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
         const float (*transform)[3], const float border_val, BorderType border_type = BORDER_TYPE_CONSTANT, void* stream = nullptr);
 void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-        const float (*transform)[3], const float border_val, BorderType border_type = BORDER_TYPE_CONSTANT);
+        const float (*transform)[3], const float border_val, BorderType border_type = BORDER_TYPE_CONSTANT, void* stream = nullptr);
 
 }  // namespace TNN_NS
 
