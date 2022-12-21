@@ -124,7 +124,7 @@ Status CudaMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param
         return ret;
 
     if (param.interp_type == INTERP_TYPE_LINEAR && 
-    (param.border_type == BORDER_TYPE_CONSTANT || param.border_type == BORDER_TYPE_TRANSPARENT)) {
+    (param.border_type == BORDER_TYPE_CONSTANT || param.border_type == BORDER_TYPE_TRANSPARENT || param.border_type == BORDER_TYPE_REPLICATE)) {
         if (src.GetMatType() == NGRAY || src.GetMatType() == N8UC3 || src.GetMatType() == N8UC4) {
             int channel = src.GetMatType() == NGRAY ? 1 : (src.GetMatType() == N8UC3 ? 3 : 4);
             uint8_t* src_ptr = (uint8_t*)src.GetData();
