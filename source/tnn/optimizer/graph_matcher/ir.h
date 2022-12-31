@@ -107,6 +107,20 @@ namespace TNN_NS {
             return p;
         }
 
+        Node * input(size_t id) {
+            auto e = input_edges[id];
+            if (!e) {
+                ERRORV("node %s's input_edegs[%lu] is nullptr", msg, name().c_str(), id);
+                throw std::runtime_error(msg);
+            }
+            auto n = e->src;
+            if (!n) {
+                ERRORV("node %s's input_edegs[%lu]->src is nullptr", msg, name().c_str(), id);
+                throw std::runtime_error(msg);
+            }
+            return n;
+        }
+
         template<typename T>
         Status createResource();
 
@@ -165,6 +179,8 @@ namespace TNN_NS {
                             const std::vector<std::shared_ptr<Tensor>> out_tensors = {});
 
         Status createConst(const std::string name, std::shared_ptr<RawBuffer> buf);
+
+        Status fetchConst(const std::string name, std::shared_ptr<RawBuffer> &buf);
 
         const std::vector<std::weak_ptr<const Node>> allNodes() const;
 

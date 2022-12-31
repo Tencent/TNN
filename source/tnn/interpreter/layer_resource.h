@@ -30,7 +30,7 @@ typedef std::map<std::string, std::shared_ptr<RawBuffer> > ConstantResource;
 typedef std::map<std::string, int > ConstantResourceFlag;
 
 // used to name scale obtained after dynamic range quantization constant weights
-const std::string DynamicRangeQuantScaleSuffix = "_dynamic_range_quant_scale";
+#define DynamicRangeQuantScaleSuffix std::string("_dynamic_range_quant_scale")
 
 struct LayerResource {
     std::string name = "";

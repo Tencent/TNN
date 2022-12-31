@@ -343,6 +343,9 @@ __global__ void warp_affine_bilinear_kernel(const uint8_t* src, uint8_t* dst, co
         int new_w_real[2] = { new_w_int, new_w_int + 1 };
         int new_h_real[2] = { new_h_int, new_h_int + 1 };
 
+        // cropped hw when out of border
+        int h_crop, w_crop;
+
         unsigned char val[2][2];
         #pragma unroll
         for(int wi = 0; wi < 2; wi++) {
@@ -359,6 +362,13 @@ __global__ void warp_affine_bilinear_kernel(const uint8_t* src, uint8_t* dst, co
                             break;
                         case BORDER_TYPE_TRANSPARENT:
                             val[hi][wi] = dst[hwc_id];
+                            break;
+                        case BORDER_TYPE_REPLICATE:
+                            h_crop = new_h_real[hi] < 0 ? 0 : new_h_real[hi];
+                            h_crop = h_crop >= H ? (H - 1) : h_crop;
+                            w_crop = new_w_real[wi] < 0 ? 0 : new_w_real[wi];
+                            w_crop = w_crop >= W ? (W - 1) : w_crop;
+                            val[hi][wi] = src[(h_crop * W + w_crop) * C + c];
                             break;
                         default:
                             val[hi][wi] = 0;
@@ -410,6 +420,9 @@ __global__ void warp_affine_nearest_kernel(const uint8_t* src, uint8_t* dst, con
         int new_w_real[2] = { new_w_int, new_w_int + 1 };
         int new_h_real[2] = { new_h_int, new_h_int + 1 };
 
+        // cropped hw when out of border
+        int h_crop, w_crop;
+
         unsigned char  val[2][2];
         #pragma unroll 
         for(int wi = 0; wi < 2; wi++) {
@@ -425,6 +438,13 @@ __global__ void warp_affine_nearest_kernel(const uint8_t* src, uint8_t* dst, con
                             break;
                         case BORDER_TYPE_TRANSPARENT:
                             val[hi][wi] = dst[hwc_id];
+                            break;
+                        case BORDER_TYPE_REPLICATE:
+                            h_crop = new_h_real[hi] < 0 ? 0 : new_h_real[hi];
+                            h_crop = h_crop >= H ? (H - 1) : h_crop;
+                            w_crop = new_w_real[wi] < 0 ? 0 : new_w_real[wi];
+                            w_crop = w_crop >= W ? (W - 1) : w_crop;
+                            val[hi][wi] = src[(h_crop * W + w_crop) * C + c];
                             break;
                         default:
                             val[hi][wi] = 0;
@@ -533,13 +553,16 @@ void WarpAffineBilinear(const uint8_t* src, int batch, int channel, int src_w, i
     } else if (border_type == BORDER_TYPE_TRANSPARENT) {
         warp_affine_bilinear_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_TRANSPARENT><<<griddim, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_h, src_w,
             channel, dst_h, dst_w, table_gpu, tm_gpu, border_val);
+    } else if (border_type == BORDER_TYPE_REPLICATE) {
+        warp_affine_bilinear_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_REPLICATE><<<griddim, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_h, src_w,
+            channel, dst_h, dst_w, table_gpu, tm_gpu, border_val);
     }
     CUDA_CHECK(cudaFree(tm_gpu));
     CUDA_CHECK(cudaFree(table_gpu));
 }
 
 void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
-        const float (*transform)[3], const float border_val, BorderType border_type) {
+        const float (*transform)[3], const float border_val, BorderType border_type, void* stream) {
     double m[6];
     WarpAffineMatrixInverse(transform, m);
     double *tm_gpu;
@@ -552,10 +575,13 @@ void WarpAffineNearest(const uint8_t* src, int batch, int channel, int src_w, in
     griddim.x = (size_dst + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
     griddim.y = batch;
     if (border_type == BORDER_TYPE_CONSTANT) {
-        warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_CONSTANT><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
+        warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_CONSTANT><<<griddim, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_h, src_w,
             channel, dst_h, dst_w, tm_gpu, border_val);
     } else if (border_type == BORDER_TYPE_TRANSPARENT) {
-        warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_TRANSPARENT><<<griddim, THREAD_PER_BLOCK>>>(src, dst, src_h, src_w,
+        warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_TRANSPARENT><<<griddim, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_h, src_w,
+            channel, dst_h, dst_w, tm_gpu, border_val);
+    } else if (border_type == BORDER_TYPE_REPLICATE) {
+        warp_affine_nearest_kernel<ELE_PER_THREAD, THREAD_PER_BLOCK, BORDER_TYPE_REPLICATE><<<griddim, THREAD_PER_BLOCK, 0, (CUstream_st*)stream>>>(src, dst, src_h, src_w,
             channel, dst_h, dst_w, tm_gpu, border_val);
     }
     CUDA_CHECK(cudaFree(tm_gpu));

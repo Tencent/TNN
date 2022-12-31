@@ -157,23 +157,23 @@ Status CpuMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param,
     if (src.GetMatType() == NGRAY || src.GetMatType() == N8UC3 || src.GetMatType() == N8UC4) {
         auto mat_type = src.GetMatType();
         int channel = mat_type == NGRAY? 1 : (mat_type == N8UC3? 3 : 4);
-        if (param.interp_type == INTERP_TYPE_LINEAR && param.border_type == BORDER_TYPE_CONSTANT) {
+        if (param.interp_type == INTERP_TYPE_LINEAR && (param.border_type == BORDER_TYPE_CONSTANT || param.border_type == BORDER_TYPE_REPLICATE)) {
             for (int batch = 0; batch < src.GetDims()[0]; batch++)
             {
                 uint8_t* src_ptr = (uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel;
                 uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel;
                 WarpAffineBilinear(src_ptr, src.GetWidth(), src.GetHeight(), channel,
                                    dst_ptr, dst.GetWidth(), dst.GetHeight(),
-                                   param.transform, param.border_val);
+                                   param.transform, param.border_val, param.border_type);
             }
-        } else if (param.interp_type == INTERP_TYPE_NEAREST && param.border_type == BORDER_TYPE_CONSTANT) {
+        } else if (param.interp_type == INTERP_TYPE_NEAREST && (param.border_type == BORDER_TYPE_CONSTANT || param.border_type == BORDER_TYPE_REPLICATE)) {
             for (int batch = 0; batch < src.GetDims()[0]; batch++)
             {
                 uint8_t* src_ptr = (uint8_t*)src.GetData() + batch * src.GetWidth() * src.GetHeight() * channel;
                 uint8_t* dst_ptr = (uint8_t*)dst.GetData() + batch * dst.GetWidth() * dst.GetHeight() * channel;
                 WarpAffineNearest(src_ptr, src.GetWidth(), src.GetHeight(), channel,
                                   dst_ptr, dst.GetWidth(), dst.GetHeight(),
-                                  param.transform, param.border_val);
+                                  param.transform, param.border_val, param.border_type);
             }
         } else {
             return Status(TNNERR_PARAM_ERR, "warpaffine type not support yet");

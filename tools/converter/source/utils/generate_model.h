@@ -20,9 +20,6 @@
 
 namespace TNN_CONVERTER {
 
-const std::string PROTO_SUFFIX = ".tnnproto";
-const std::string MODEL_SUFFIX = ".tnnmodel";
-
 std::string GetFileName(std::string& file_path);
 
 TNN_NS::Status GenerateModel(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource,
