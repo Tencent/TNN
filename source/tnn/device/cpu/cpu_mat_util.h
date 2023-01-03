@@ -20,17 +20,18 @@
 
 #include "tnn/core/blob.h"
 #include "tnn/core/macro.h"
+#include "tnn/utils/mat_utils.h"
 
 namespace TNN_NS {
 
 #define GET_OFFSET_PTR(ptr, offset) (reinterpret_cast<int8_t*>(ptr) + offset)
 
 void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
-                        const float (*transform)[3], const float border_val = 0.0);
+                        const float (*transform)[3], const float border_val = 0.0, BorderType border_type = BORDER_TYPE_CONSTANT);
 void WarpAffineBilinearYUV(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                            const float (*transform)[3], const float border_val = 0.0);
 void WarpAffineNearest(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
-                       const float (*transform)[3], const float border_val = 0.0);
+                       const float (*transform)[3], const float border_val = 0.0, BorderType border_type = BORDER_TYPE_CONSTANT);
 void WarpAffineNearestYUV(const uint8_t* src, int batch, int src_w, int src_h, uint8_t* dst, int dst_w, int dst_h,
                           const float (*transform)[3], const float border_val = 0.0);
 void ResizeBilinear(const uint8_t* src, int src_w, int src_h, uint8_t* dst, int w, int h, int channel);

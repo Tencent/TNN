@@ -114,3 +114,16 @@ __kernel void ArgBufferToBuffer(GLOBAL_SIZE_2_DIMS __global const float *input_p
     FLOAT4 value_out = (FLOAT4)((FLOAT)(value.x), (FLOAT)(value.y), (FLOAT)(value.z), (FLOAT)(value.w));
     vstore4(value_out, 0, output_ptr + buffer_4_offset);
 }
+
+__kernel void BufferToBuffer(GLOBAL_SIZE_1_DIMS __global const float *input_ptr,
+                                __global FLOAT* output_ptr,
+                                __private const int src_offset,
+                                __private const int dst_offset) {
+    int index = get_global_id(0);
+    DEAL_NON_UNIFORM_DIM1(index);
+
+    const int in_index = index + src_offset;
+    const int out_index = index + dst_offset;
+
+    output_ptr[out_index] = input_ptr[in_index];
+}

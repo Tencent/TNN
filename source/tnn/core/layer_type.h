@@ -16,6 +16,8 @@
 #define TNN_SOURCE_TNN_CORE_LAYER_TYPE_H_
 
 #include <string>
+#include <map>
+
 #include "tnn/core/macro.h"
 
 namespace TNN_NS {
@@ -225,7 +227,8 @@ enum LayerType {
     LAYER_LESS                                              = 334,
     LAYER_NON_MAX_SUPPRESSION                               = 335,
     LAYER_SCATTER                                           = 336,
-    LAYER_SWISH                                             = 337,
+    LAYER_SWISH                                             = 401,
+    LAYER_GLU                                               = 402,
 
     LAYER_BLOB_SCALE                                        = 600,
 
@@ -233,10 +236,16 @@ enum LayerType {
     LAYER_TRT_ENGINE                                        = 701,
 
     LAYER_CBAM_FUSED_REDUCE                                 = 800,
-    LAYER_CBAM_FUSED_POOLING                                = 801
+    LAYER_CBAM_FUSED_POOLING                                = 801,
+
+    // TNN Graph Matcher related LAYER_TYPES
+    LAYER_DUMMY_TYPE                                        = 1000,
+    LAYER_ANY_TYPE                                          = 1001,
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str);
+
+const std::map<std::string, LayerType> &GetGlobalLayerTypeMap();
 
 }  // namespace TNN_NS
 

@@ -13,9 +13,8 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/acc/compute/pad_function.h"
 #include "tnn/utils/data_type_utils.h"
-#include "tnn/utils/dims_utils.h"
-#include "tnn/utils/pad_utils.h"
 
 namespace TNN_NS {
 using namespace arm;

@@ -698,6 +698,12 @@ struct LogSoftmaxLayerParam : public LayerParam {
     PARAM_COPY(LogSoftmaxLayerParam)
 };
 
+struct GLULayerParam : public LayerParam {
+    int axis = -1;
+
+    PARAM_COPY(GLULayerParam);
+};
+
 };  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_INTERPRETER_LAYER_PARAM_H

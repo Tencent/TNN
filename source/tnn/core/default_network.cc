@@ -113,18 +113,6 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
         RETURN_ON_NEQ(ret, TNN_OK);
     }
 
-    /*
-     * decode dynamic quantization model for const folder.
-     * coreml can not support this optimize
-     */
-    if (runtime_model_ == RUNTIME_MODE_CONST_FOLD && net_config.network_type != NETWORK_TYPE_COREML) {
-        std::unique_lock<std::mutex> lck(optimize_mtx_);
-        auto optimizer = optimizer::NetOptimizerManager::GetNetOptimizerByName("net_optimizer_dynamic_range_dequant");
-        if (optimizer) {
-            RETURN_ON_NEQ(optimizer->Optimize(net_structure, net_resource), TNN_OK);
-        }
-    }
-
     blob_manager_ = new BlobManager(device_);
 
     ret = blob_manager_->Init(net_config, net_structure, max_inputs_shape, GetNetResourceDataType(net_resource));
@@ -213,7 +201,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
             dynamic_cast<ReformatLayerParam *>(layer_info->param.get())->dst_format : input_fmt;
 
 #ifdef GENERATE_RESOURCE
-        if (runtime_model_ == RUNTIME_MODE_NORMAL) {
+        if (runtime_model_ == RUNTIME_MODE_NORMAL || runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
             LayerType type       = layer_info->type;
             BaseLayer *cur_layer = CreateLayer(type);
             if (cur_layer == NULL) {

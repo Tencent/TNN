@@ -32,6 +32,9 @@ namespace optimizer {
     }
 
     bool NetOptimizerDynamicRangeDequant::IsSupported(const NetworkConfig &net_config) {
+        if (net_config.network_type == NETWORK_TYPE_COREML) {
+            return false;
+        }
         return true;
     }
 
