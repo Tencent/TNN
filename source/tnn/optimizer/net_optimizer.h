@@ -35,6 +35,8 @@ namespace optimizer {
         virtual Status Optimize(NetStructure *structure, NetResource *resource) = 0;
     };
 
+    using NetOptimizerPtr = std::shared_ptr<NetOptimizer>;
+
 }  // namespace optimizer
 
 }  // namespace TNN_NS
