@@ -35,6 +35,7 @@ set(TNN_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(TNN_HUAWEI_NPU_ENABLE OFF CACHE BOOL "" FORCE)
 set(TNN_CPU_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_OPENCV_ENABLE OFF CACHE BOOL "" FORCE)
+set(SHARING_MEM_WITH_OPENGL OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(${TNN_ROOT}/ ../build)
 
@@ -97,13 +98,29 @@ find_library( # Sets the name of the path variable.
 # can link multiple libraries, such as libraries you define in the
 # build script, prebuilt third-party libraries, or system libraries.
 
-target_link_libraries( # Specifies the target library.
-                        tnn_wrapper
-                        -ljnigraphics
-                        -Wl,--whole-archive TNN -Wl,--no-whole-archive
-                       # Links the target library to the log library
-                       # included in the NDK.
-                       ${log-lib})
+if(SHARING_MEM_WITH_OPENGL)
+    add_definitions(-DSHARING_MEM_WITH_OPENGL)
+    add_definitions(-DEGL_EGLEXT_PROTOTYPES)
+    add_definitions(-DGL_GLEXT_PROTOTYPES)
+    target_link_libraries( # Specifies the target library.
+                            tnn_wrapper
+                            -ljnigraphics
+                            -Wl,--whole-archive TNN -Wl,--no-whole-archive
+                            -lEGL
+                            -lGLESv2
+                            -lGLESv3
+                            # Links the target library to the log library
+                            # included in the NDK.
+                            ${log-lib})
+else()
+    target_link_libraries( # Specifies the target library.
+                            tnn_wrapper
+                            -ljnigraphics
+                            -Wl,--whole-archive TNN -Wl,--no-whole-archive
+                            # Links the target library to the log library
+                            # included in the NDK.
+                            ${log-lib})
+endif()
 
 if(TNN_OPENCV_ENABLE)
     target_link_libraries(tnn_wrapper opencv)
