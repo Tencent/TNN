@@ -24,6 +24,7 @@
 		3620404B26E8D52000935711 /* exclusive_file.cc in Sources */ = {isa = PBXBuildFile; fileRef = 3620404926E8D51F00935711 /* exclusive_file.cc */; };
 		3620404E26E8D53F00935711 /* log_softmax_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 3620404C26E8D53F00935711 /* log_softmax_layer_interpreter.cc */; };
 		3620404F26E8D53F00935711 /* scatter_elements_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 3620404D26E8D53F00935711 /* scatter_elements_layer_interpreter.cc */; };
+		364E9CB4296462E000E9729C /* graph_matcher in Resources */ = {isa = PBXBuildFile; fileRef = 364E9CB3296462E000E9729C /* graph_matcher */; };
 		368754A1289A4C4D00060829 /* pad_function.cc in Sources */ = {isa = PBXBuildFile; fileRef = 3687549F289A4C4D00060829 /* pad_function.cc */; };
 		368754A2289A4C4D00060829 /* pad_function.h in Headers */ = {isa = PBXBuildFile; fileRef = 368754A0289A4C4D00060829 /* pad_function.h */; };
 		4E187CFA267202BF00804FDF /* roialign_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4E187CF0267202BE00804FDF /* roialign_layer_interpreter.cc */; };
@@ -1163,6 +1164,7 @@
 		3620404926E8D51F00935711 /* exclusive_file.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = exclusive_file.cc; sourceTree = "<group>"; };
 		3620404C26E8D53F00935711 /* log_softmax_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = log_softmax_layer_interpreter.cc; sourceTree = "<group>"; };
 		3620404D26E8D53F00935711 /* scatter_elements_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = scatter_elements_layer_interpreter.cc; sourceTree = "<group>"; };
+		364E9CB3296462E000E9729C /* graph_matcher */ = {isa = PBXFileReference; lastKnownFileType = folder; path = graph_matcher; sourceTree = "<group>"; };
 		3687549F289A4C4D00060829 /* pad_function.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pad_function.cc; sourceTree = "<group>"; };
 		368754A0289A4C4D00060829 /* pad_function.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pad_function.h; sourceTree = "<group>"; };
 		4E187CF0267202BE00804FDF /* roialign_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = roialign_layer_interpreter.cc; path = tnn/layer_interpreter/roialign_layer_interpreter.cc; sourceTree = "<group>"; };
@@ -2370,6 +2372,7 @@
 		9D32F95D24557EE7002DCDAB /* optimizer */ = {
 			isa = PBXGroup;
 			children = (
+				364E9CB3296462E000E9729C /* graph_matcher */,
 				36112B5C2964529800C39F65 /* net_optimizer_convert_matmul_to_conv.cc */,
 				36112B592964529800C39F65 /* net_optimizer_convert_matmul_to_conv.h */,
 				36112B5A2964529800C39F65 /* net_optimizer_fuse_conv_activation.cc */,
@@ -4114,6 +4117,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				364E9CB4296462E000E9729C /* graph_matcher in Resources */,
 				9DAD95622886B22300170339 /* CMakeLists.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
