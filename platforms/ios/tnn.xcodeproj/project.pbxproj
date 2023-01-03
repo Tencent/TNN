@@ -7,6 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		36112B552964526200C39F65 /* glu_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36112B542964526200C39F65 /* glu_layer_interpreter.cc */; };
+		36112B572964527A00C39F65 /* glu_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36112B562964527A00C39F65 /* glu_layer.cc */; };
+		36112B5D2964529900C39F65 /* net_optimizer_fuse_conv_activation.h in Headers */ = {isa = PBXBuildFile; fileRef = 36112B582964529800C39F65 /* net_optimizer_fuse_conv_activation.h */; };
+		36112B5E2964529900C39F65 /* net_optimizer_convert_matmul_to_conv.h in Headers */ = {isa = PBXBuildFile; fileRef = 36112B592964529800C39F65 /* net_optimizer_convert_matmul_to_conv.h */; };
+		36112B5F2964529900C39F65 /* net_optimizer_fuse_conv_activation.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36112B5A2964529800C39F65 /* net_optimizer_fuse_conv_activation.cc */; };
+		36112B602964529900C39F65 /* optimizer_const.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36112B5B2964529800C39F65 /* optimizer_const.cc */; };
+		36112B612964529900C39F65 /* net_optimizer_convert_matmul_to_conv.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36112B5C2964529800C39F65 /* net_optimizer_convert_matmul_to_conv.cc */; };
+		36112B63296453F500C39F65 /* cpu_glu_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36112B62296453F500C39F65 /* cpu_glu_layer_acc.cc */; };
+		36112B662964556100C39F65 /* arm_glu_layer_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = 36112B642964556100C39F65 /* arm_glu_layer_acc.h */; };
+		36112B672964556100C39F65 /* arm_glu_layer_acc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36112B652964556100C39F65 /* arm_glu_layer_acc.cc */; };
+		36112B692964557A00C39F65 /* arm_glu_fp16_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36112B682964557A00C39F65 /* arm_glu_fp16_layer.cc */; };
 		3620404626E8D51000935711 /* log_softmax_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 3620404426E8D51000935711 /* log_softmax_layer.cc */; };
 		3620404726E8D51000935711 /* scatter_elements_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 3620404526E8D51000935711 /* scatter_elements_layer.cc */; };
 		3620404A26E8D52000935711 /* exclusive_file.h in Headers */ = {isa = PBXBuildFile; fileRef = 3620404826E8D51F00935711 /* exclusive_file.h */; };
@@ -1135,6 +1146,17 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		36112B542964526200C39F65 /* glu_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = glu_layer_interpreter.cc; sourceTree = "<group>"; };
+		36112B562964527A00C39F65 /* glu_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = glu_layer.cc; sourceTree = "<group>"; };
+		36112B582964529800C39F65 /* net_optimizer_fuse_conv_activation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_optimizer_fuse_conv_activation.h; sourceTree = "<group>"; };
+		36112B592964529800C39F65 /* net_optimizer_convert_matmul_to_conv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_optimizer_convert_matmul_to_conv.h; sourceTree = "<group>"; };
+		36112B5A2964529800C39F65 /* net_optimizer_fuse_conv_activation.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_fuse_conv_activation.cc; sourceTree = "<group>"; };
+		36112B5B2964529800C39F65 /* optimizer_const.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = optimizer_const.cc; sourceTree = "<group>"; };
+		36112B5C2964529800C39F65 /* net_optimizer_convert_matmul_to_conv.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_convert_matmul_to_conv.cc; sourceTree = "<group>"; };
+		36112B62296453F500C39F65 /* cpu_glu_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cpu_glu_layer_acc.cc; sourceTree = "<group>"; };
+		36112B642964556100C39F65 /* arm_glu_layer_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm_glu_layer_acc.h; sourceTree = "<group>"; };
+		36112B652964556100C39F65 /* arm_glu_layer_acc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_glu_layer_acc.cc; sourceTree = "<group>"; };
+		36112B682964557A00C39F65 /* arm_glu_fp16_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_glu_fp16_layer.cc; sourceTree = "<group>"; };
 		3620404426E8D51000935711 /* log_softmax_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = log_softmax_layer.cc; sourceTree = "<group>"; };
 		3620404526E8D51000935711 /* scatter_elements_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = scatter_elements_layer.cc; sourceTree = "<group>"; };
 		3620404826E8D51F00935711 /* exclusive_file.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = exclusive_file.h; sourceTree = "<group>"; };
@@ -2348,6 +2370,11 @@
 		9D32F95D24557EE7002DCDAB /* optimizer */ = {
 			isa = PBXGroup;
 			children = (
+				36112B5C2964529800C39F65 /* net_optimizer_convert_matmul_to_conv.cc */,
+				36112B592964529800C39F65 /* net_optimizer_convert_matmul_to_conv.h */,
+				36112B5A2964529800C39F65 /* net_optimizer_fuse_conv_activation.cc */,
+				36112B582964529800C39F65 /* net_optimizer_fuse_conv_activation.h */,
+				36112B5B2964529800C39F65 /* optimizer_const.cc */,
 				9DAD94422886B1B800170339 /* net_optimizer_dynamic_range_dequant.cc */,
 				9DAD94412886B1B800170339 /* net_optimizer_dynamic_range_dequant.h */,
 				EC12EC7E25E67549007ADDE4 /* net_optimizer_cbam_fused_pooling.cc */,
@@ -2484,105 +2511,89 @@
 		9D32F9A324557EE7002DCDAB /* layer */ = {
 			isa = PBXGroup;
 			children = (
-				9DAD94452886B1D400170339 /* scatter_layer.cc */,
-				9DAD941D2886926600170339 /* and_layer.cc */,
-				9DAD94212886926600170339 /* greater_layer.cc */,
-				9DAD941E2886926600170339 /* less_layer.cc */,
-				9DAD941B2886926600170339 /* non_max_suppression_layer.cc */,
-				9DAD941F2886926600170339 /* not_layer.cc */,
-				9DAD941C2886926600170339 /* pooling_1d_layer.cc */,
-				9DAD94202886926600170339 /* swish_layer.cc */,
-				3620404426E8D51000935711 /* log_softmax_layer.cc */,
-				3620404526E8D51000935711 /* scatter_elements_layer.cc */,
-				4E187D0C267202D800804FDF /* conv1d_layer.cc */,
-				4E187D11267202D800804FDF /* einsum_layer.cc */,
-				4E187D07267202D800804FDF /* equal_layer.cc */,
-				4E187D0A267202D800804FDF /* gelu_layer.cc */,
-				4E187D0B267202D800804FDF /* gridsample_layer.cc */,
-				4E187D09267202D800804FDF /* group_norm_layer.cc */,
-				4E187D0F267202D800804FDF /* inverse_layer.cc */,
-				4E187D06267202D800804FDF /* layer_norm_layer.cc */,
-				4E187D08267202D800804FDF /* onehot_layer.cc */,
-				4E187D12267202D800804FDF /* roialign_layer.cc */,
-				4E187D0E267202D800804FDF /* softsign_layer.cc */,
-				4E187D0D267202D800804FDF /* tile_layer.cc */,
-				4E187D10267202D800804FDF /* topk_layer.cc */,
-				4E187D05267202D800804FDF /* where_layer.cc */,
-				ECCDCF0825E0F97400D7D297 /* bias_add_layer.cc */,
-				ECCDCF1225E0F97400D7D297 /* bitshift_layer.cc */,
-				ECCDCF0B25E0F97400D7D297 /* cast_layer.cc */,
-				ECCDCF1125E0F97400D7D297 /* cbam_fused_pooling_layer.cc */,
-				ECCDCF0F25E0F97400D7D297 /* cbam_fused_reduce_layer.cc */,
-				ECCDCF0925E0F97400D7D297 /* constantofshape_layer.cc */,
-				ECCDCF0425E0F97400D7D297 /* erf_layer.cc */,
-				ECCDCF0125E0F97300D7D297 /* expand_layer.cc */,
-				ECCDCF1025E0F97400D7D297 /* gather_layer.cc */,
-				ECCDCF0A25E0F97400D7D297 /* gathernd_layer.cc */,
-				ECCDCF0625E0F97400D7D297 /* histogram_layer.cc */,
-				ECCDCF0325E0F97400D7D297 /* lstm_layer.cc */,
-				ECCDCF0725E0F97400D7D297 /* mat_mul_layer.cc */,
-				ECCDCF0D25E0F97400D7D297 /* nonzero_layer.cc */,
-				ECCDCF1425E0F97500D7D297 /* padv2_layer.cc */,
-				ECCDCF0C25E0F97400D7D297 /* range_layer.cc */,
-				ECCDCF0225E0F97300D7D297 /* scatter_nd_layer.cc */,
-				ECCDCF1325E0F97400D7D297 /* shape_layer.cc */,
-				ECCDCF0525E0F97400D7D297 /* size_layer.cc */,
-				ECCDCF1525E0F97500D7D297 /* squeeze_layer.cc */,
-				ECCDCF0E25E0F97400D7D297 /* stride_slice_v2_layer.cc */,
-				ECCDCF1625E0F97500D7D297 /* unsqueeze_layer.cc */,
-				ECD945B5254ADD8400BF9214 /* pixel_shuffle_layer.cc */,
-				EC0BE14D25144BB8009BD69A /* arg_max_or_min_layer.cc */,
-				EC0BE14925144BB8009BD69A /* ceil_layer.cc */,
-				EC0BE14C25144BB8009BD69A /* detection_post_process_layer.cc */,
-				EC0BE14825144BB7009BD69A /* reduce_l1_layer.cc */,
-				EC0BE14E25144BB8009BD69A /* rsqrt_layer.cc */,
-				EC0BE14A25144BB8009BD69A /* signed_mul_layer.cc */,
-				EC0BE14B25144BB8009BD69A /* squared_difference_layer.cc */,
 				9D32F9CE24557EE7002DCDAB /* abs_layer.cc */,
 				9D32F9C824557EE7002DCDAB /* acos_layer.cc */,
 				9D32F9AC24557EE7002DCDAB /* add_layer.cc */,
+				9DAD941D2886926600170339 /* and_layer.cc */,
+				EC0BE14D25144BB8009BD69A /* arg_max_or_min_layer.cc */,
 				9D32F9E524557EE7002DCDAB /* asin_layer.cc */,
 				9D32F9B824557EE7002DCDAB /* atan_layer.cc */,
 				9D32F9D524557EE7002DCDAB /* base_layer.cc */,
 				9D32F9AE24557EE7002DCDAB /* base_layer.h */,
 				9D32F9E724557EE7002DCDAB /* batch_norm_layer.cc */,
+				ECCDCF0825E0F97400D7D297 /* bias_add_layer.cc */,
+				ECCDCF1225E0F97400D7D297 /* bitshift_layer.cc */,
+				ECCDCF0B25E0F97400D7D297 /* cast_layer.cc */,
+				ECCDCF1125E0F97400D7D297 /* cbam_fused_pooling_layer.cc */,
+				ECCDCF0F25E0F97400D7D297 /* cbam_fused_reduce_layer.cc */,
+				EC0BE14925144BB8009BD69A /* ceil_layer.cc */,
 				9D32F9C924557EE7002DCDAB /* clip_layer.cc */,
 				9D32F9D324557EE7002DCDAB /* concat_layer.cc */,
+				ECCDCF0925E0F97400D7D297 /* constantofshape_layer.cc */,
 				9D32F9C224557EE7002DCDAB /* conv_layer.cc */,
+				4E187D0C267202D800804FDF /* conv1d_layer.cc */,
 				9D32F9C324557EE7002DCDAB /* conv3d_layer.cc */,
 				9D32F9E324557EE7002DCDAB /* cos_layer.cc */,
 				9D32F9E824557EE7002DCDAB /* deconv_layer.cc */,
 				9D32F9BD24557EE7002DCDAB /* detection_output_layer.cc */,
+				EC0BE14C25144BB8009BD69A /* detection_post_process_layer.cc */,
 				9D32F9B624557EE7002DCDAB /* div_layer.cc */,
+				4E187D11267202D800804FDF /* einsum_layer.cc */,
 				9D32F9B524557EE7002DCDAB /* elementwise_layer.cc */,
 				9D32F9BA24557EE7002DCDAB /* elementwise_layer.h */,
 				9D32F9DC24557EE7002DCDAB /* elu_layer.cc */,
+				4E187D07267202D800804FDF /* equal_layer.cc */,
+				ECCDCF0425E0F97400D7D297 /* erf_layer.cc */,
 				9D32F9AD24557EE7002DCDAB /* exp_layer.cc */,
+				ECCDCF0125E0F97300D7D297 /* expand_layer.cc */,
 				9D32F9B224557EE7002DCDAB /* flatten_layer.cc */,
 				9D32F9BC24557EE7002DCDAB /* floor_layer.cc */,
+				ECCDCF1025E0F97400D7D297 /* gather_layer.cc */,
+				ECCDCF0A25E0F97400D7D297 /* gathernd_layer.cc */,
+				4E187D0A267202D800804FDF /* gelu_layer.cc */,
+				36112B562964527A00C39F65 /* glu_layer.cc */,
+				9DAD94212886926600170339 /* greater_layer.cc */,
+				4E187D0B267202D800804FDF /* gridsample_layer.cc */,
+				4E187D09267202D800804FDF /* group_norm_layer.cc */,
 				9D32F9EF24557EE8002DCDAB /* hard_sigmoid_layer.cc */,
 				9D32F9DF24557EE7002DCDAB /* hard_swish_layer.cc */,
 				9D32F9D724557EE7002DCDAB /* hdrguide_layer.cc */,
+				ECCDCF0625E0F97400D7D297 /* histogram_layer.cc */,
 				9D32F9B724557EE7002DCDAB /* inner_product_layer.cc */,
 				9D32F9BF24557EE7002DCDAB /* instance_norm_layer.cc */,
+				4E187D0F267202D800804FDF /* inverse_layer.cc */,
+				4E187D06267202D800804FDF /* layer_norm_layer.cc */,
+				9DAD941E2886926600170339 /* less_layer.cc */,
 				9D32F9DD24557EE7002DCDAB /* log_layer.cc */,
 				9D32F9EB24557EE8002DCDAB /* log_sigmoid_layer.cc */,
+				3620404426E8D51000935711 /* log_softmax_layer.cc */,
 				9D32F9EC24557EE8002DCDAB /* lrn_layer.cc */,
+				ECCDCF0325E0F97400D7D297 /* lstm_layer.cc */,
+				ECCDCF0725E0F97400D7D297 /* mat_mul_layer.cc */,
 				9D32F9F024557EE8002DCDAB /* max_layer.cc */,
 				9D32F9CF24557EE7002DCDAB /* min_layer.cc */,
 				9D32F9D424557EE7002DCDAB /* mul_layer.cc */,
 				9D32F9E224557EE7002DCDAB /* multidir_broadcast_layer.cc */,
 				9D32F9CA24557EE7002DCDAB /* multidir_broadcast_layer.h */,
 				9D32F9C624557EE7002DCDAB /* neg_layer.cc */,
+				9DAD941B2886926600170339 /* non_max_suppression_layer.cc */,
+				ECCDCF0D25E0F97400D7D297 /* nonzero_layer.cc */,
 				9D32F9DA24557EE7002DCDAB /* normalize_layer.cc */,
+				9DAD941F2886926600170339 /* not_layer.cc */,
+				4E187D08267202D800804FDF /* onehot_layer.cc */,
 				9D32F9CD24557EE7002DCDAB /* pad_layer.cc */,
+				ECCDCF1425E0F97500D7D297 /* padv2_layer.cc */,
 				9D32F9ED24557EE8002DCDAB /* permute_layer.cc */,
+				ECD945B5254ADD8400BF9214 /* pixel_shuffle_layer.cc */,
+				9DAD941C2886926600170339 /* pooling_1d_layer.cc */,
 				9D32F9B324557EE7002DCDAB /* pooling_3d_layer.cc */,
 				9D32F9DB24557EE7002DCDAB /* pooling_layer.cc */,
 				9D32F9A524557EE7002DCDAB /* pow_layer.cc */,
 				9D32F9C524557EE7002DCDAB /* prelu_layer.cc */,
 				9D32F9C124557EE7002DCDAB /* prior_box_layer.cc */,
+				ECCDCF0C25E0F97400D7D297 /* range_layer.cc */,
 				9D32F9BB24557EE7002DCDAB /* reciprocal_layer.cc */,
+				EC0BE14825144BB7009BD69A /* reduce_l1_layer.cc */,
 				9D32F9D924557EE7002DCDAB /* reduce_l2_layer.cc */,
 				9D32F9E124557EE7002DCDAB /* reduce_layer.cc */,
 				9D32F9B024557EE7002DCDAB /* reduce_layer.h */,
@@ -2600,22 +2611,39 @@
 				9D32F9E624557EE7002DCDAB /* reorg_layer.cc */,
 				9D32F9B424557EE7002DCDAB /* reshape_layer.cc */,
 				9D32F9D624557EE7002DCDAB /* roi_pooling_layer.cc */,
+				4E187D12267202D800804FDF /* roialign_layer.cc */,
+				EC0BE14E25144BB8009BD69A /* rsqrt_layer.cc */,
 				9D32F9DE24557EE7002DCDAB /* scale_layer.cc */,
+				3620404526E8D51000935711 /* scatter_elements_layer.cc */,
+				9DAD94452886B1D400170339 /* scatter_layer.cc */,
+				ECCDCF0225E0F97300D7D297 /* scatter_nd_layer.cc */,
 				9D32F9C024557EE7002DCDAB /* selu_layer.cc */,
+				ECCDCF1325E0F97400D7D297 /* shape_layer.cc */,
 				9D32F9AF24557EE7002DCDAB /* shuffle_layer.cc */,
 				9D32F9A424557EE7002DCDAB /* sigmoid_layer.cc */,
 				9D32F9A724557EE7002DCDAB /* sign_layer.cc */,
+				EC0BE14A25144BB8009BD69A /* signed_mul_layer.cc */,
 				9D32F9D124557EE7002DCDAB /* sin_layer.cc */,
+				ECCDCF0525E0F97400D7D297 /* size_layer.cc */,
 				9D32F9C724557EE7002DCDAB /* softmax_layer.cc */,
 				9D32F9A824557EE7002DCDAB /* softplus_layer.cc */,
+				4E187D0E267202D800804FDF /* softsign_layer.cc */,
 				9D32F9EA24557EE8002DCDAB /* split_layer.cc */,
 				9D32F9BE24557EE7002DCDAB /* splitv_layer.cc */,
 				9D32F9B124557EE7002DCDAB /* sqrt_layer.cc */,
+				EC0BE14B25144BB8009BD69A /* squared_difference_layer.cc */,
+				ECCDCF1525E0F97500D7D297 /* squeeze_layer.cc */,
 				9D32F9E924557EE7002DCDAB /* stride_slice_layer.cc */,
+				ECCDCF0E25E0F97400D7D297 /* stride_slice_v2_layer.cc */,
 				9D32F9B924557EE7002DCDAB /* sub_layer.cc */,
+				9DAD94202886926600170339 /* swish_layer.cc */,
 				9D32F9A924557EE7002DCDAB /* tan_layer.cc */,
 				9D32F9A624557EE7002DCDAB /* tanh_layer.cc */,
+				4E187D0D267202D800804FDF /* tile_layer.cc */,
+				4E187D10267202D800804FDF /* topk_layer.cc */,
+				ECCDCF1625E0F97500D7D297 /* unsqueeze_layer.cc */,
 				9D32F9E024557EE7002DCDAB /* upsample_layer.cc */,
+				4E187D05267202D800804FDF /* where_layer.cc */,
 			);
 			path = layer;
 			sourceTree = "<group>";
@@ -2654,32 +2682,32 @@
 		9D32FBFA24557EEB002DCDAB /* interpreter */ = {
 			isa = PBXGroup;
 			children = (
+				9D32FC3C24557EEB002DCDAB /* abstract_model_interpreter.cc */,
+				9D32FC3924557EEB002DCDAB /* abstract_model_interpreter.h */,
 				4E187CF5267202BF00804FDF /* const_layer_interpreter.cc */,
 				4E187CF1267202BE00804FDF /* conv_1d_layer_interpreter.cc */,
+				9D32FBFE24557EEB002DCDAB /* default_model_interpreter.cc */,
+				9D32FBFB24557EEB002DCDAB /* default_model_interpreter.h */,
+				9D32FC3824557EEB002DCDAB /* default_model_packer.cc */,
+				9D32FC3524557EEB002DCDAB /* default_model_packer.h */,
 				4E187CF9267202BF00804FDF /* einsum_layer_interpreter.cc */,
 				4E187CF3267202BF00804FDF /* gridsample_layer_interpreter.cc */,
+				9D32FBFD24557EEB002DCDAB /* layer_param.h */,
+				9D32FBFC24557EEB002DCDAB /* layer_resource_generator.cc */,
+				9D32FC6324557EEB002DCDAB /* layer_resource_generator.h */,
+				9D32FC3624557EEB002DCDAB /* layer_resource.h */,
+				9D32FC3D24557EEB002DCDAB /* ncnn */,
+				9D32FBFF24557EEB002DCDAB /* net_resource.cc */,
+				9D32FC3724557EEB002DCDAB /* net_resource.h */,
+				9D32FC3A24557EEB002DCDAB /* net_structure.cc */,
+				9D32FC6224557EEB002DCDAB /* net_structure.h */,
 				4E187CF7267202BF00804FDF /* onehot_layer_interpreter.cc */,
+				9D32FC3B24557EEB002DCDAB /* raw_buffer.cc */,
+				9D32FC3424557EEB002DCDAB /* raw_buffer.h */,
 				4E187CF0267202BE00804FDF /* roialign_layer_interpreter.cc */,
 				4E187CF8267202BF00804FDF /* tile_layer_interpreter.cc */,
-				4E187CF2267202BF00804FDF /* topk_layer_interpreter.cc */,
-				9D32FBFB24557EEB002DCDAB /* default_model_interpreter.h */,
-				9D32FBFC24557EEB002DCDAB /* layer_resource_generator.cc */,
-				9D32FBFD24557EEB002DCDAB /* layer_param.h */,
-				9D32FBFE24557EEB002DCDAB /* default_model_interpreter.cc */,
-				9D32FBFF24557EEB002DCDAB /* net_resource.cc */,
 				9D32FC0024557EEB002DCDAB /* tnn */,
-				9D32FC3424557EEB002DCDAB /* raw_buffer.h */,
-				9D32FC3524557EEB002DCDAB /* default_model_packer.h */,
-				9D32FC3624557EEB002DCDAB /* layer_resource.h */,
-				9D32FC3724557EEB002DCDAB /* net_resource.h */,
-				9D32FC3824557EEB002DCDAB /* default_model_packer.cc */,
-				9D32FC3924557EEB002DCDAB /* abstract_model_interpreter.h */,
-				9D32FC3A24557EEB002DCDAB /* net_structure.cc */,
-				9D32FC3B24557EEB002DCDAB /* raw_buffer.cc */,
-				9D32FC3C24557EEB002DCDAB /* abstract_model_interpreter.cc */,
-				9D32FC3D24557EEB002DCDAB /* ncnn */,
-				9D32FC6224557EEB002DCDAB /* net_structure.h */,
-				9D32FC6324557EEB002DCDAB /* layer_resource_generator.h */,
+				4E187CF2267202BF00804FDF /* topk_layer_interpreter.cc */,
 			);
 			path = interpreter;
 			sourceTree = "<group>";
@@ -2700,6 +2728,7 @@
 		9D32FC0624557EEB002DCDAB /* layer_interpreter */ = {
 			isa = PBXGroup;
 			children = (
+				36112B542964526200C39F65 /* glu_layer_interpreter.cc */,
 				9DAD99122886D8E100170339 /* group_norm_layer_interpreter.cc */,
 				9DAD990E2886D8A100170339 /* pooling_1d_layer_interpreter.cc */,
 				9DAD990F2886D8A100170339 /* scatter_layer_interpreter.cc */,
@@ -2895,6 +2924,8 @@
 		9DAD944F2886B22300170339 /* acc */ = {
 			isa = PBXGroup;
 			children = (
+				36112B652964556100C39F65 /* arm_glu_layer_acc.cc */,
+				36112B642964556100C39F65 /* arm_glu_layer_acc.h */,
 				9DAD95062886B22300170339 /* arm_abs_layer_acc.cc */,
 				9DAD95412886B22300170339 /* arm_add_layer_acc.cc */,
 				9DAD94C82886B22300170339 /* arm_add_layer_acc.h */,
@@ -3014,6 +3045,7 @@
 		9DAD945F2886B22300170339 /* compute_arm82 */ = {
 			isa = PBXGroup;
 			children = (
+				36112B682964557A00C39F65 /* arm_glu_fp16_layer.cc */,
 				9DAD94602886B22300170339 /* arm_inner_product_fp16_layer.cc */,
 				9DAD94612886B22300170339 /* compute_sdot_int8.cc */,
 				9DAD94622886B22300170339 /* arm_conv_fp16_layer_depthwise.cc */,
@@ -3212,6 +3244,7 @@
 		9DAD96442886B37100170339 /* acc */ = {
 			isa = PBXGroup;
 			children = (
+				36112B62296453F500C39F65 /* cpu_glu_layer_acc.cc */,
 				9DAD96452886B37100170339 /* cpu_cast_layer_acc.cc */,
 				9DAD96462886B37100170339 /* cpu_stride_slice_layer_acc.cc */,
 				9DAD96472886B37100170339 /* cpu_reciprocal_layer_acc.cc */,
@@ -3623,12 +3656,12 @@
 		9DDA70A5241F9E9400F17A1C /* tnn */ = {
 			isa = PBXGroup;
 			children = (
-				DE14B3E4275C87C600379D4F /* network */,
 				9D32FC6424557EEB002DCDAB /* core */,
 				9D32F9F224557EE8002DCDAB /* device */,
 				9D32FBFA24557EEB002DCDAB /* interpreter */,
 				9D32F9A324557EE7002DCDAB /* layer */,
 				9D32F96824557EE7002DCDAB /* memory_manager */,
+				DE14B3E4275C87C600379D4F /* network */,
 				9D32F95D24557EE7002DCDAB /* optimizer */,
 				9D32F98824557EE7002DCDAB /* utils */,
 			);
@@ -3868,6 +3901,7 @@
 				9DAD961A2886B22400170339 /* arm_conv_fp16_layer_c3.h in Headers */,
 				9DAD95DB2886B22400170339 /* binary_function.h in Headers */,
 				9D32FF3D24557EED002DCDAB /* abstract_model_interpreter.h in Headers */,
+				36112B5E2964529900C39F65 /* net_optimizer_convert_matmul_to_conv.h in Headers */,
 				9DAD97202886B37200170339 /* cpu_reduce_layer_acc.h in Headers */,
 				9DDA7090241F99E700F17A1C /* version.h in Headers */,
 				9DAD960C2886B22400170339 /* arm_expand_layer_acc.h in Headers */,
@@ -3922,6 +3956,7 @@
 				9DAD96222886B22400170339 /* arm_conv_fp16_layer_common.h in Headers */,
 				9DAD96032886B22400170339 /* Float4.h in Headers */,
 				9DAD98F22886B3A700170339 /* metal_conv_layer_depthwise.h in Headers */,
+				36112B662964556100C39F65 /* arm_glu_layer_acc.h in Headers */,
 				E44D947A26048C32003FE4A3 /* cpu_info.h in Headers */,
 				9D32FF4B24557EED002DCDAB /* ncnn_model_interpreter.h in Headers */,
 				9DAD95612886B22300170339 /* compute_sdot_int8.h in Headers */,
@@ -3950,6 +3985,7 @@
 				9DAD95982886B22400170339 /* arm_binary_layer_acc.h in Headers */,
 				E44D947C26048C32003FE4A3 /* data_flag_utils.h in Headers */,
 				DE14B5A1275C87C700379D4F /* coreml_model.h in Headers */,
+				36112B5D2964529900C39F65 /* net_optimizer_fuse_conv_activation.h in Headers */,
 				EC12EC8025E67549007ADDE4 /* net_optimizer_cbam_fused_pooling.h in Headers */,
 				9DAD954C2886B22300170339 /* arm_relu_layer_acc.h in Headers */,
 				6178F34D2590AA8C00B4B153 /* md5.h in Headers */,
@@ -4164,6 +4200,7 @@
 				9DAD95A12886B22400170339 /* arm_mat_mul_layer_acc.cc in Sources */,
 				9D32FF6B24557EED002DCDAB /* blob.cc in Sources */,
 				9D32FCC124557EEC002DCDAB /* pow_layer.cc in Sources */,
+				36112B552964526200C39F65 /* glu_layer_interpreter.cc in Sources */,
 				9D32FF5E24557EED002DCDAB /* interp_layer_interpreter.cc in Sources */,
 				9DAD95852886B22400170339 /* CONV_DW_3X3S1_INT8_SDOT_SLIDEW.S in Sources */,
 				9DAD985F2886B3A600170339 /* metal_tanh_layer_acc.mm in Sources */,
@@ -4364,6 +4401,7 @@
 				9DAD984D2886B3A600170339 /* metal_sigmoid_layer_acc.mm in Sources */,
 				9DAD96DA2886B37100170339 /* cpu_mat_converter.cc in Sources */,
 				9DAD970E2886B37200170339 /* cpu_sin_layer_acc.cc in Sources */,
+				36112B612964529900C39F65 /* net_optimizer_convert_matmul_to_conv.cc in Sources */,
 				9D32FF1024557EED002DCDAB /* detection_output_interpreter.cc in Sources */,
 				9DAD98FB2886B3A700170339 /* metal_inner_product_layer_acc.metal in Sources */,
 				9DAD957A2886B22400170339 /* arm_sigmoid_fp16_layer.cc in Sources */,
@@ -4412,6 +4450,7 @@
 				9D32FF5B24557EED002DCDAB /* reshape_layer_interpreter.cc in Sources */,
 				9D32FF5624557EED002DCDAB /* hard_swish_layer_interpreter.cc in Sources */,
 				9DAD98C22886B3A700170339 /* metal_concat_layer_acc.mm in Sources */,
+				36112B63296453F500C39F65 /* cpu_glu_layer_acc.cc in Sources */,
 				9D32FCDF24557EEC002DCDAB /* conv3d_layer.cc in Sources */,
 				9DAD98ED2886B3A700170339 /* metal_conv_layer_common.mm in Sources */,
 				9D32FC8524557EEC002DCDAB /* net_optimizer_remove_layers.cc in Sources */,
@@ -4626,6 +4665,7 @@
 				9DAD96F12886B37200170339 /* cpu_reduce_l1_layer_acc.cc in Sources */,
 				9DAD962E2886B22400170339 /* arm_conv_layer_group.cc in Sources */,
 				9DAD94172886429A00170339 /* coreml_group_norm_layer.cc in Sources */,
+				36112B5F2964529900C39F65 /* net_optimizer_fuse_conv_activation.cc in Sources */,
 				9DD1FCF1247CEA1500800139 /* arm_device.cc in Sources */,
 				EC0BE16225144BE4009BD69A /* signed_mul_layer_interpreter.cc in Sources */,
 				9DAD98B82886B3A700170339 /* metal_softmax_layer_acc.mm in Sources */,
@@ -4654,6 +4694,7 @@
 				9D32FCE924557EEC002DCDAB /* pad_layer.cc in Sources */,
 				9DAD95EF2886B22400170339 /* arm_exp_layer_acc.cc in Sources */,
 				9DAD944B2886B1E800170339 /* and_layer_interpreter.cc in Sources */,
+				36112B672964556100C39F65 /* arm_glu_layer_acc.cc in Sources */,
 				9D32FD0224557EEC002DCDAB /* reorg_layer.cc in Sources */,
 				9D32FCF124557EEC002DCDAB /* base_layer.cc in Sources */,
 				9D32FF2924557EED002DCDAB /* mul_layer_interpreter.cc in Sources */,
@@ -4688,6 +4729,7 @@
 				9DAD95BD2886B22400170339 /* arm_layer_norm_layer_acc.cc in Sources */,
 				EC8BDE1325E3B1600085CCC2 /* data_flag_utils.cc in Sources */,
 				9DAD95E82886B22400170339 /* CONV_FLOAT_O4.S in Sources */,
+				36112B602964529900C39F65 /* optimizer_const.cc in Sources */,
 				9DAD95C52886B22400170339 /* winograd_function.cc in Sources */,
 				DEC606742775DF6C00F6AA07 /* coreml_reduce_mean_layer.cc in Sources */,
 				9DAD95DE2886B22400170339 /* CONV_DW_5x5_BFP16_SLIDEW.S in Sources */,
@@ -4834,6 +4876,7 @@
 				9DAD95CC2886B22400170339 /* CONV_FLOAT_SLIDEW_C3.S in Sources */,
 				9DAD98AC2886B3A700170339 /* metal_shuffle_layer_acc.metal in Sources */,
 				9DAD98E02886B3A700170339 /* metal_reshape_layer_acc.metal in Sources */,
+				36112B572964527A00C39F65 /* glu_layer.cc in Sources */,
 				9D32FCDE24557EEC002DCDAB /* conv_layer.cc in Sources */,
 				9DAD98CE2886B3A700170339 /* metal_exp_layer_acc.metal in Sources */,
 				9DAD988E2886B3A700170339 /* metal_hard_sigmoid_layer_acc.metal in Sources */,
@@ -4897,6 +4940,7 @@
 				9D32FF5524557EED002DCDAB /* binary_op_interpreter.cc in Sources */,
 				9D32FF7824557EED002DCDAB /* instance.cc in Sources */,
 				9DAD974A2886B37200170339 /* cpu_padv2_layer_acc.cc in Sources */,
+				36112B692964557A00C39F65 /* arm_glu_fp16_layer.cc in Sources */,
 				9D32FF3C24557EED002DCDAB /* default_model_packer.cc in Sources */,
 				9DAD98CF2886B3A700170339 /* metal_max_layer_acc.mm in Sources */,
 				9DAD97152886B37200170339 /* cpu_unsqueeze_layer_acc.cc in Sources */,
