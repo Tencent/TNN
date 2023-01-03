@@ -83,13 +83,13 @@ bool BlobConverterTest::TestFilterCheck(const DataType& blob_data_type, const De
     return false;
 }
 
-bool BlobConverterTest::OpenCLMatTest(Mat& cpu_mat_in, MatConvertParam& from_mat_param, MatConvertParam& to_mat_param,
+int BlobConverterTest::OpenCLMatTest(Mat& cpu_mat_in, MatConvertParam& from_mat_param, MatConvertParam& to_mat_param,
                                       const DimsVector& dims, const int in_size, const int out_size, MatType mat_type,
                                       const int mat_channel, const int channel, BlobConverter& device_converter,
                                       void* device_command_queue, void* mat_out_ref_data) {
     DeviceType dev  = ConvertDeviceType(FLAGS_dt);
-    bool cmp_result = 0;
-    if (dev == DEVICE_OPENCL && mat_type == N8UC4) {
+    int cmp_result = 0;
+    if (dev == DEVICE_OPENCL && (mat_type == N8UC4 || mat_type == NGRAY)) {
         void* dev_mat_out_dev_data = nullptr;
         void* dev_mat_out_data     = nullptr;
         dev_mat_out_dev_data       = malloc(out_size * sizeof(uint8_t));
@@ -100,18 +100,20 @@ bool BlobConverterTest::OpenCLMatTest(Mat& cpu_mat_in, MatConvertParam& from_mat
 
 #define FREE_AND_RETURN()                                                                                              \
     FREE();                                                                                                            \
-    return false;
+    return -1;
 
         Mat device_mat_in(dev, mat_type, dims);
         Status ret;
         ret = MatUtils::Copy(cpu_mat_in, device_mat_in, device_command_queue);
         if (ret != TNN_OK) {
-            LOGE("copy cpu mat to device failed, mat type: %d\n", mat_type);
+            LOGE("copy cpu mat to device failed, mat type: %d, msg:%s\n", mat_type,
+                 ret.description().c_str());
             FREE_AND_RETURN();
         }
         ret = device_converter.ConvertFromMat(device_mat_in, from_mat_param, device_command_queue);
         if (ret != TNN_OK) {
-            LOGE("device converter convert mat to blob failed, mat type: %d\n", mat_type);
+            LOGE("device converter convert mat to blob failed, mat type: %d, msg:%s\n", mat_type,
+                 ret.description().c_str());
             FREE_AND_RETURN();
         }
 
@@ -121,12 +123,14 @@ bool BlobConverterTest::OpenCLMatTest(Mat& cpu_mat_in, MatConvertParam& from_mat
 
         ret = device_converter.ConvertToMat(device_mat_out, to_mat_param, device_command_queue);
         if (ret != TNN_OK) {
-            LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
+            LOGE("device converter convert blob to mat failed, mat type: %d, msg:%s\n", mat_type,
+                 ret.description().c_str());
             FREE_AND_RETURN();
         }
         ret = MatUtils::Copy(device_mat_out, dev_mat_out_dev, device_command_queue);
         if (ret != TNN_OK) {
-            LOGE("copy device mat to cpu failed, mat type: %d\n", mat_type);
+            LOGE("copy device mat to cpu failed, mat type: %d, msg:%s\n", mat_type,
+                 ret.description().c_str());
             FREE_AND_RETURN();
         }
         cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(dev_mat_out_dev_data),
@@ -134,7 +138,8 @@ bool BlobConverterTest::OpenCLMatTest(Mat& cpu_mat_in, MatConvertParam& from_mat
 
         ret = device_converter.ConvertToMat(dev_mat_out, to_mat_param, device_command_queue);
         if (ret != TNN_OK) {
-            LOGE("device converter convert blob to mat failed, mat type: %d\n", mat_type);
+            LOGE("device converter convert blob to mat failed, mat type: %d, msg:%s\n", mat_type,
+                 ret.description().c_str());
             FREE_AND_RETURN();
         }
         cmp_result |= CompareData(static_cast<uint8_t*>(mat_out_ref_data), static_cast<uint8_t*>(dev_mat_out_data),

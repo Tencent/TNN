@@ -180,12 +180,13 @@ void ObjectDetectorNanodet::DecodeDetectionResult(Mat *cls_mat, Mat *dis_mat, co
             float center_y = (y + 0.5f) * stride;
             float dis[4] = {0.f, 0.f, 0.f, 0.f};
             for(int i=0; i<4; ++i) {
-                float dis_activated[reg_max + 1];
+                float *dis_activated = new float[reg_max + 1];
                 fast_softmax<float>(box_dis + i*(reg_max+1), dis_activated, reg_max+1);
                 for(int j=0; j<reg_max+1; ++j) {
                     dis[i] += j * dis_activated[j];
                 }
                 dis[i] *= stride;
+                delete dis_activated;
             }
             ObjectInfo info;
             info.image_height = input_img_height;

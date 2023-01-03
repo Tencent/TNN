@@ -222,5 +222,17 @@
             android:text="@string/tnn_reading_comprehension_btn_name"
             android:textColor="@color/white"
             android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/image_classify_opengl_btn"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/button_bg"
+            android:gravity="center"
+            android:textSize="16sp"
+            android:text="@string/tnn_ic_ogl_image_btn_name"
+            android:textColor="@color/white"/>
     </LinearLayout>
 </ScrollView>
