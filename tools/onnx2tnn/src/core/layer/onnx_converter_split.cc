@@ -28,7 +28,23 @@ string OnnxOpConverterSplit::TNNLayerParam(NodeProto &node,
     ostringstream layer_param;
 
     int64_t axis                = get_node_attr_i(node, "axis", 1);
-    std::vector<int64_t> splits = get_node_attr_ai(node, "split");
+
+    std::vector<int64_t> splits;
+    if (net_info.opset < 13) {
+        splits = get_node_attr_ai(node, "split");
+    } else {
+        if (node.input_size() > 1) {
+            const std::string &split_name = node.input(1);
+            if (net_info.weights_map.find(split_name) != net_info.weights_map.end()) {
+                const auto &split_tensor = net_info.weights_map[split_name];
+                auto split_data          = (const int64_t *)get_tensor_proto_data(split_tensor);
+                int data_size            = get_tensor_proto_data_size(split_tensor);
+                for (int i = 0; i < data_size; ++i) {
+                    splits.push_back(split_data[i]);
+                }
+            }
+        }
+    }
 
     layer_param << axis << " " << splits.size() << " ";
     for (int64_t iter : splits) {

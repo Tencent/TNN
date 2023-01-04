@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cstring>
 #include <float.h>
+#include <iomanip>
 
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
@@ -864,7 +865,8 @@ TNN_NS::Status TNNSDKSample::Predict(std::shared_ptr<TNNSDKInput> input, std::sh
         }
 
         // step 3. get output mat
-        auto input_device_type = input->GetMat()->GetDeviceType();
+        auto input_device_type = input->GetMat()->GetDeviceType() != DEVICE_OPENCL ?
+            input->GetMat()->GetDeviceType() : DEVICE_NAIVE;
         output = CreateSDKOutput();
         auto output_names = GetOutputNames();
         if (output_names.size() == 1) {
