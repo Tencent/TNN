@@ -25,6 +25,7 @@ import com.tencent.tnn.demo.StreamObjectDetectorNanodet.StreamObjectDetectNanode
 import com.tencent.tnn.demo.StreamPoseDetectLandmark.StreamPoseDetectLandmarkActivity;
 import com.tencent.tnn.demo.StreamSkeletonDetector.StreamSkeletonDetectActivity;
 import com.tencent.tnn.demo.StreamOCRDetector.StreamOCRDetectActivity;
+import com.tencent.tnn.demo.ImageClassifyOpenGLDetector.ImageClassifyOpenGLDetectActivity;
 
 
 public class MainActivity extends Activity {
@@ -259,6 +260,19 @@ public class MainActivity extends Activity {
                     Intent intent = new Intent();
                     Activity activity = MainActivity.this;
                     intent.setClass(activity, ReadingComprehensionActivity.class);
+                    activity.startActivity(intent);
+                }
+            }
+        });
+
+        findViewById(R.id.image_classify_opengl_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!isShowedActivity) {
+                    isShowedActivity = true;
+                    Intent intent = new Intent();
+                    Activity activity = MainActivity.this;
+                    intent.setClass(activity, ImageClassifyOpenGLDetectActivity.class);
                     activity.startActivity(intent);
                 }
             }

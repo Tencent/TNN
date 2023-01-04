@@ -38,7 +38,7 @@ protected:
     bool TestFilterCheck(const DataType& blob_data_type, const DeviceType& dev,
                          const MatType& mat_type, const int batch, const int channel,
                          const int input_size, const bool reverse_channel);
-    bool OpenCLMatTest(Mat& cpu_mat_in,
+    int OpenCLMatTest(Mat& cpu_mat_in,
                        MatConvertParam& from_mat_param, MatConvertParam& to_mat_param,
                        const DimsVector& dims, const int in_size, const int out_size,
                        MatType mat_type, const int mat_channel, const int channel,

@@ -36,14 +36,13 @@ namespace optimizer {
         virtual Status Optimize(NetStructure* structure, NetResource* resource);
 
         void AdjustLayer(std::vector<std::shared_ptr<LayerInfo>>& layers_orig, NetStructure* structure,
-                         std::shared_ptr<LayerInfo>& cur_layer, std::shared_ptr<LayerInfo>& new_layer,
-                         std::vector<std::string>& reformat_outs, const std::string& reformat_name_suffix,
+                         NetResource* resource, std::shared_ptr<LayerInfo>& cur_layer,
+                         std::shared_ptr<LayerInfo>& new_layer, std::vector<std::string>& cur_layer_outputs,
                          const int index, const int count);
         std::shared_ptr<LayerInfo> CreateReformat(std::string name, bool src_quantized);
 
     private:
         AbstractDevice* device_;
-
     };
 
 }  // namespace optimizer

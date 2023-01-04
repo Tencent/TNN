@@ -227,7 +227,8 @@ enum LayerType {
     LAYER_LESS                                              = 334,
     LAYER_NON_MAX_SUPPRESSION                               = 335,
     LAYER_SCATTER                                           = 336,
-    LAYER_SWISH                                             = 337,
+    LAYER_SWISH                                             = 401,
+    LAYER_GLU                                               = 402,
 
     LAYER_BLOB_SCALE                                        = 600,
 

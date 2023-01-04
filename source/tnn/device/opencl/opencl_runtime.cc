@@ -25,7 +25,11 @@
 #endif
 
 #ifdef SHARING_MEM_WITH_OPENGL
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <EGL/egl.h>
+#endif
 #endif
 
 namespace TNN_NS {
@@ -142,9 +146,15 @@ Status OpenCLRuntime::Init() {
 #if defined(SHARING_MEM_WITH_OPENGL) && (CL_HPP_TARGET_OPENCL_VERSION >= 120)
         // create context from glcontext
         LOGI("Create special opencl context to share with OpenGL\n");
+#if _WIN32
+        LOGI("wglGetCurrentContext(): 0x%x\n", wglGetCurrentContext());
+        cl_context_properties context_prop[] = {CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
+                                                CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(), 0};
+#else
         LOGI("eglGetCurrentContext(): 0x%x\n", eglGetCurrentContext());
         cl_context_properties context_prop[] = {CL_GL_CONTEXT_KHR, (cl_context_properties)eglGetCurrentContext(),
                                                 CL_EGL_DISPLAY_KHR, (cl_context_properties)eglGetCurrentDisplay(), 0};
+#endif
         context_ = std::shared_ptr<cl::Context>(new cl::Context(*device_, context_prop, nullptr, nullptr, &err));
 
         if (err != CL_SUCCESS) {
@@ -459,7 +469,16 @@ Status OpenCLRuntime::SearchGpuDevice(std::shared_ptr<cl::Device>& device) {
     // choose GPU
     DevicePacket device_packet_to_use;
     GpuType gpu_type;
-    if (gpu_map.count(NVIDIA_GPU) > 0) {
+    bool gpu_selected = false;
+    #ifdef TNN_OPENCL_PREFER_GPU_TYPE
+    if (gpu_map.count(TNN_OPENCL_PREFER_GPU_TYPE) > 0) {
+        gpu_type             = TNN_OPENCL_PREFER_GPU_TYPE;
+        device_packet_to_use = gpu_map[TNN_OPENCL_PREFER_GPU_TYPE].front();
+        gpu_selected = true;
+        LOGE("opencl runtime set prefer gpu type: %d\n", TNN_OPENCL_PREFER_GPU_TYPE);
+    }
+    #endif
+    if (!gpu_selected && gpu_map.count(NVIDIA_GPU) > 0) {
         device_packet_to_use = gpu_map[NVIDIA_GPU].front();
     } else if (gpu_map.count(INTEL_GPU) > 0) {
         device_packet_to_use = gpu_map[INTEL_GPU].front();
