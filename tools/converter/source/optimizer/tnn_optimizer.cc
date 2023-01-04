@@ -24,6 +24,7 @@ TNN_NS::Status TnnOptimizer::PreOptimize(TNN_NS::NetStructure& net_structure, TN
     std::vector<std::string> pre_optimize_pass = {
         "EliminateUnusefulNode",
         "FuseShuffleChannel",
+        "FuseGLU"
     };
     for (const auto& pass_name : pre_optimize_pass) {
         auto pass = TnnOptimizePassManager::get()->search(pass_name);
