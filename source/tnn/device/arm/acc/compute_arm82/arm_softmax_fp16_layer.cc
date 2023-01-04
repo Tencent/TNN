@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <math.h>
 #include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/acc/arm_softmax_layer_acc.h"
 
@@ -40,7 +41,7 @@ static void SoftmaxChannelFuncFp16Tile8(fp16_t *dst, fp16_t *src, int channel) {
         Half8::save(dst + c, Half8::exp(Half8::load(src + c) - max_v));
     }
     for (; c < channel; ++c) {
-        dst[c] = std::expf(src[c] - max);
+        dst[c] = expf(src[c] - max);
     }
     // sum
     c           = 0;
@@ -87,7 +88,7 @@ static void SoftmaxChannelFuncFp16Tile4(fp16_t *dst, fp16_t *src, int channel) {
         Half4::save(dst + c, Half4::exp(Half4::load(src + c) - max_v));
     }
     for (; c < channel; ++c) {
-        dst[c] = std::expf(src[c] - max);
+        dst[c] = expf(src[c] - max);
     }
     // sum
     c           = 0;

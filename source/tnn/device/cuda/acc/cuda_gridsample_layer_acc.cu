@@ -36,8 +36,8 @@ __global__ void gridsample_kernel(const float* input_data, const float* grid_dat
         float iy = (grid_ptr[2*index+1] + 1) * input_height * 0.5 - 0.5;
         // get corner pixel values from (x, y)
         // for 4d, we use north-east-south-west
-        int ix_nw = static_cast<int>(std::floor(ix));
-        int iy_nw = static_cast<int>(std::floor(iy));
+        int ix_nw = static_cast<int>(std::floorf(ix));
+        int iy_nw = static_cast<int>(std::floorf(iy));
 
         int ix_ne = ix_nw + 1;
         int iy_ne = iy_nw;
