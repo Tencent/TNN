@@ -454,6 +454,17 @@ namespace TNN_NS {
         return TNN_OK;
     }
 
+    Status Graph::fetchConst(const std::string name, std::shared_ptr<RawBuffer> &buf) {
+        auto tnn_resource = safeNetResource();
+        if (tnn_resource->constant_map.count(name) == 0) {
+            ERRORV("const_map does not contain %s", msg, name.c_str());
+            return Status(TNNERR_PARAM_ERR, msg);
+        }
+
+        buf = tnn_resource->constant_map[name];
+        return TNN_OK;
+    }
+
     Status Graph::markOutput(const std::string &tensor_name) {
         if (tensor_map.find(tensor_name) == tensor_map.end()) {
             ERRORV("specified tensor [%s] not found.", msg, tensor_name.c_str());
@@ -613,8 +624,10 @@ namespace TNN_NS {
         for(auto &n : nodes) {
             RAISE_ON_ERROR(n->sanityCheck());
             if (n->output_edges.size() == 0) {
-                for(auto &name : n->info->outputs)
+                for(auto &name : n->info->outputs) {
                     names.insert(name);
+                    DEBUG("graph output : %s", name.c_str());
+                }
             }
         }
         if (output_order.size() == 0) {

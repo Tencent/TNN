@@ -43,12 +43,12 @@ Status StrideSliceV2Layer::InferOutputShape(bool ignore_error) {
 
     auto input_dims = input_blob->GetBlobDesc().dims;
 
-    auto begins = layer_param->begins;
-    auto ends = layer_param->ends;
-    auto axes = layer_param->axes;
-    auto strides = layer_param->strides;
+    auto& begins = layer_param->begins;
+    auto& ends = layer_param->ends;
+    auto& axes = layer_param->axes;
+    auto& strides = layer_param->strides;
 
-    //[begin end)
+    // prepare process begin and ends
     auto output_dims = DimsFunctionUtils::StrideSlice(input_dims, begins, ends, strides, axes, &status);
     //support empty blob for yolov5 Slice_507, only in device cpu
     if (status != TNN_OK && !(output_dims.size() == input_dims.size() &&  runtime_model_ == RUNTIME_MODE_CONST_FOLD)) {

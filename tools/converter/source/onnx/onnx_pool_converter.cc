@@ -71,13 +71,13 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
             param->kernels.push_back(kernel_shape[0]);
             param->kernels.push_back(kernel_shape[0]);
         } else if (kernel_shape.size() == 2) {
-            param->kernels.push_back(kernel_shape[0]);
             param->kernels.push_back(kernel_shape[1]);
+            param->kernels.push_back(kernel_shape[0]);
         } else if (kernel_shape.size() == 3) {
             is3d = true;
-            param->kernels.push_back(kernel_shape[0]);
-            param->kernels.push_back(kernel_shape[1]);
             param->kernels.push_back(kernel_shape[2]);
+            param->kernels.push_back(kernel_shape[1]);
+            param->kernels.push_back(kernel_shape[0]);
         }
         param->kernels_params = param->kernels;
 
@@ -85,12 +85,12 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
             param->strides.push_back(strides[0]);
             param->strides.push_back(strides[0]);
         } else if (strides.size() == 2) {
-            param->strides.push_back(strides[0]);
             param->strides.push_back(strides[1]);
+            param->strides.push_back(strides[0]);
         } else if (strides.size() == 3) {
-            param->strides.push_back(strides[0]);
-            param->strides.push_back(strides[1]);
             param->strides.push_back(strides[2]);
+            param->strides.push_back(strides[1]);
+            param->strides.push_back(strides[0]);
         }
 
         if (pads.size() == 1) {
@@ -140,6 +140,8 @@ TNN_NS::Status OnnxPoolingConverter::exec(TNN_NS::NetStructure &net_structure, T
                     param->pads.push_back(0);
                     param->pads.push_back(0);
                 } else {
+                    param->pads.push_back(0);
+                    param->pads.push_back(0);
                     param->pads.push_back(0);
                     param->pads.push_back(0);
                 }

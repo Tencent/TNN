@@ -255,6 +255,7 @@ static std::map<std::string, LayerType> global_layer_type_map = {
     {"QuantizedReshape", LAYER_RESHAPE},
     {"QuantizedPermute", LAYER_PERMUTE},
     {"Swish", LAYER_SWISH},
+    {"GLU", LAYER_GLU},
 
     // dynamic range quantization layer
     {"DynamicRangeQuantizedConvolution", LAYER_CONVOLUTION},

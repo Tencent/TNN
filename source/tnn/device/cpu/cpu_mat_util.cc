@@ -181,7 +181,7 @@ bool CheckDataIsOnBoundary(const int new_x_loc, const int new_y_loc, const int s
 
 static void CalculateBilinearOutput(const uint8_t* src, const uint8_t* src2, uint8_t* dst,
                                     int* adelta, int* bdelta, int src_h, int src_w, int channel,
-                                    int x, int y, int dst_loc_base, float* _tab, int border_val) {
+                                    int x, int y, int dst_loc_base, float* _tab, int border_val, BorderType border_type) {
     int new_x       = adelta[2 * x] + bdelta[2 * y] + 16;
     int new_y       = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
     int new_x_loc   = new_x >> 10;
@@ -219,7 +219,7 @@ static void CalculateBilinearOutput(const uint8_t* src, const uint8_t* src2, uin
             dst[dst_loc + c] = SATURATE_CAST_UCHAR((val_xy + (1 << 14)) >> 15);
         }
     }
-    else if (CheckDataIsOnBoundary(new_x_loc, new_y_loc, src_w, src_h)) {
+    else if (CheckDataIsOnBoundary(new_x_loc, new_y_loc, src_w, src_h) && border_type == BORDER_TYPE_CONSTANT) {
         int dsc_loc = dst_loc_base + x * channel;
 
         int mask0 = new_x_loc >= 0 && new_y_loc >= 0;
@@ -235,11 +235,37 @@ static void CalculateBilinearOutput(const uint8_t* src, const uint8_t* src2, uin
             val_xy += bilinearWeight[3] * (mask3 ? src2[src_loc + channel + c] : border_val);
             dst[dsc_loc + c] = SATURATE_CAST_UCHAR((val_xy + (1 << 14)) >> 15);
         }
+    } else if (border_type == BORDER_TYPE_REPLICATE) {
+        int dsc_loc = dst_loc_base + x * channel;
+
+        // input hw
+        int new_w_real[2] = { new_x_loc, new_x_loc + 1 };
+        int new_h_real[2] = { new_y_loc, new_y_loc + 1 };
+
+        // cropped hw when out of border
+        int h_crop, w_crop;
+
+        for (int c = 0; c < channel; ++c) {
+            int val_xy = 0;
+            int idx = 0;
+            #pragma unroll
+            for(int hi = 0; hi < 2; hi++) {
+                #pragma unroll
+                for(int wi = 0; wi < 2; wi++) {
+                    h_crop = new_h_real[hi] < 0 ? 0 : new_h_real[hi];
+                    h_crop = h_crop >= src_h ? (src_h - 1) : h_crop;
+                    w_crop = new_w_real[wi] < 0 ? 0 : new_w_real[wi];
+                    w_crop = w_crop >= src_w ? (src_w - 1) : w_crop;
+                    val_xy += bilinearWeight[idx++] * src[(h_crop * src_w + w_crop) * channel + c];
+                }
+            }
+            dst[dsc_loc + c] = SATURATE_CAST_UCHAR((val_xy + (1 << 14)) >> 15);
+        }
     }
 }
 
 void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
-                         const float (*transform)[3], const float border_val)
+                         const float (*transform)[3], const float border_val, BorderType border_type)
 {
     // Init
     uint8_t border_ival = (uint8_t)border_val;
@@ -278,7 +304,7 @@ void WarpAffineBilinear(const uint8_t* src, int src_w, int src_h, int channel, u
 
         for (int x = 0; x < dst_w; ++x) {
             CalculateBilinearOutput(src, src2, dst, adelta, bdelta, src_h, src_w, channel, x, y,
-                                    dst_loc_base, _tab, (int)border_ival);
+                                    dst_loc_base, _tab, (int)border_ival, border_type);
         }
     }
 
@@ -312,7 +338,7 @@ void WarpAffineBilinearYUV(const uint8_t* src, int batch, int src_w, int src_h, 
 
 static void CalculateNearestOutput(const uint8_t* src, const uint8_t* src2, uint8_t* dst,
                                    int* adelta, int* bdelta, int src_h, int src_w, int channel,
-                                   int x, int y, int dst_loc_base, int border_val) {
+                                   int x, int y, int dst_loc_base, int border_val, BorderType border_type) {
     int new_x       = adelta[2 * x] + bdelta[2 * y] + 16;
     int new_y       = adelta[2 * x + 1] + bdelta[2 * y + 1] + 16;
     int new_x_loc   = new_x >> 10;
@@ -342,7 +368,7 @@ static void CalculateNearestOutput(const uint8_t* src, const uint8_t* src2, uint
             dst[dst_loc + c] = val_xy;
         }
     }
-    else if (CheckDataIsOnBoundary(new_x_loc, new_y_loc, src_w, src_h)) {
+    else if (CheckDataIsOnBoundary(new_x_loc, new_y_loc, src_w, src_h) && border_type == BORDER_TYPE_CONSTANT) {
         int dsc_loc = dst_loc_base + x * channel;
 
         int mask0 = new_x_loc >= 0 && new_y_loc >= 0;
@@ -365,11 +391,44 @@ static void CalculateNearestOutput(const uint8_t* src, const uint8_t* src2, uint
 
             dst[dsc_loc + c] = val_xy;
         }
+    } else if (border_type == BORDER_TYPE_REPLICATE) {
+        int dsc_loc = dst_loc_base + x * channel;
+
+        // input hw
+        int new_w_real[2] = { new_x_loc, new_x_loc + 1 };
+        int new_h_real[2] = { new_y_loc, new_y_loc + 1 };
+
+        // cropped hw when out of border
+        int h_crop, w_crop;
+
+        for (int c = 0; c < channel; ++c) {
+            int val[2][2];
+            #pragma unroll
+            for(int hi = 0; hi < 2; hi++) {
+                #pragma unroll
+                for(int wi = 0; wi < 2; wi++) {
+                    h_crop = new_h_real[hi] < 0 ? 0 : new_h_real[hi];
+                    h_crop = h_crop >= src_h ? (src_h - 1) : h_crop;
+                    w_crop = new_w_real[wi] < 0 ? 0 : new_w_real[wi];
+                    w_crop = w_crop >= src_w ? (src_w - 1) : w_crop;
+                    val[hi][wi] = src[(h_crop * src_w + w_crop) * channel + c];
+                }
+            }
+
+            int val_xy = 0;
+            if (coeffs_y < (1<<4)) {
+                val_xy = (coeffs_x < (1<<4)) ? val[0][0] : val[0][1];
+            } else {
+                val_xy = (coeffs_x < (1<<4)) ? val[1][0] : val[1][1];
+            }
+
+            dst[dsc_loc + c] = val_xy;
+        }
     }
 }
 
 void WarpAffineNearest(const uint8_t* src, int src_w, int src_h, int channel, uint8_t* dst, int dst_w, int dst_h,
-                       const float (*transform)[3], const float border_val)
+                       const float (*transform)[3], const float border_val, BorderType border_type)
 {
     // Init
     uint8_t border_ival = (uint8_t)border_val;
@@ -402,7 +461,7 @@ void WarpAffineNearest(const uint8_t* src, int src_w, int src_h, int channel, ui
 
         for (int x = 0; x < dst_w; ++x) {
             CalculateNearestOutput(src, src2, dst, adelta, bdelta, src_h, src_w, channel, x, y,
-                                   dst_loc_base, (int)border_ival);
+                                   dst_loc_base, (int)border_ival, border_type);
         }
     }
 
