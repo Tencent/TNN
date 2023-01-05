@@ -27,16 +27,16 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, StrideSliceV2LayerTest,
                          ::testing::Combine(testing::Values(1, 2),
                                             // channel
                                             testing::Values(3, 4, 7, 8, 15),
-                                            // height
+                                            // dim
                                             testing::Values(3, 6),
-                                            // width
-                                            testing::Values(3, 7),
+                                            // dims count
+                                            testing::Values(2, 3, 4, 5),
                                             // start
                                             testing::Values(0, 1),
                                             // end
-                                            testing::Values(3, 4, 5, 8, 15),
+                                            testing::Values(3, INT_MAX),
                                             // axis
-                                            testing::Values(1, 2, 3),
+                                            testing::Values(1, 2, 3, 4),
                                             // step
                                             testing::Values(1, 2), testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
@@ -44,17 +44,22 @@ TEST_P(StrideSliceV2LayerTest, StrideSliceV2Layer) {
     // get param
     int batch          = std::get<0>(GetParam());
     int channel        = std::get<1>(GetParam());
-    int height         = std::get<2>(GetParam());
-    int width          = std::get<3>(GetParam());
+    int dim            = std::get<2>(GetParam());
+    int dims_count     = std::get<3>(GetParam());
     int start          = std::get<4>(GetParam());
     int end            = std::get<5>(GetParam());
     int axis           = std::get<6>(GetParam());
     int step           = std::get<7>(GetParam());
     DataType data_type = std::get<8>(GetParam());
-
+    if (axis >= dims_count) {
+        GTEST_SKIP();
+    }
     DeviceType dev        = ConvertDeviceType(FLAGS_dt);
     Precision precision   = SetPrecision(dev, data_type);
-    DimsVector input_dims = {batch, channel, height, width};
+    DimsVector input_dims = {batch, channel};
+    for (int i = 2; i < dims_count; ++i) {
+        input_dims.push_back(dim);
+    }
     // param
     std::shared_ptr<StrideSliceV2LayerParam> param(new StrideSliceV2LayerParam());
     param->name    = "StrideSliceV2";
