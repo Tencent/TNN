@@ -114,8 +114,8 @@ Status X86PReluLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         const float *slope_data = layer_res->slope_handle.force_to<float *>();
 
-        float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+        float *input_data  = handle_ptr<float *>(input_blob->GetHandle());
+        float *output_data = handle_ptr<float *>(output_blob->GetHandle());
         calc(input_data, output_data, slope_data, output_blob->GetBlobDesc().dims, layer_param->channel_shared);
     } else {
         return Status(TNNERR_DEVICE_ACC_DATA_FORMAT_NOT_SUPPORT, "Error: this data type not supported in prelu layer");

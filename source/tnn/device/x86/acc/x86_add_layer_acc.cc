@@ -76,9 +76,9 @@ Status X86AddLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
         if (inputs.size() > 2) {
             return Status(TNNERR_UNSUPPORT_NET, "INPUT > 2 NOT IMPLEMENT FOR INT8");
         }
-        auto output_ptr   = reinterpret_cast<int8_t *>(outputs[0]->GetHandle().base);
-        auto input0_ptr   = reinterpret_cast<int8_t *>(inputs[0]->GetHandle().base);
-        auto input1_ptr   = reinterpret_cast<int8_t *>(inputs[1]->GetHandle().base);
+        auto output_ptr   = handle_ptr<int8_t *>(outputs[0]->GetHandle());
+        auto input0_ptr   = handle_ptr<int8_t *>(inputs[0]->GetHandle());
+        auto input1_ptr   = handle_ptr<int8_t *>(inputs[1]->GetHandle());
         auto output_scale = output_int_scale_.force_to<float *>();
         auto input0_scale = input0_int_scale_.force_to<float *>();
         auto input1_scale = input1_int_scale_.force_to<float *>();

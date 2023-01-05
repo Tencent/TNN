@@ -20,6 +20,7 @@ OPTION_DUMP_OUTPUT=""
 OPTION_CHECK_BATCH=
 OPTION_CHECK_OUTPUT=
 SET_PRECISION=
+REFERENCE_PATH=""
 OPTION_REFERENCE_FILE=""
 
 function usage() {
@@ -133,6 +134,13 @@ function run_android() {
             echo "push input file"
             $ADB push ${INPUT_PATH} ${ANDROID_DATA_DIR}/input.txt
         fi
+        # push reference file
+        if [ -n "$REFERENCE_PATH" ]
+        then
+            echo "push reference file"
+            $ADB push ${REFERENCE_PATH} ${ANDROID_DATA_DIR}/reference.txt
+            OPTION_REFERENCE_FILE=" -f ${ANDROID_DATA_DIR}/reference.txt "
+        fi
         TEST_MODEL_PATH=${TEST_PROTO_PATH/proto/model}
         $ADB push ${TEST_PROTO_PATH} ${ANDROID_DATA_DIR}/test.tnnproto
         $ADB push ${TEST_MODEL_PATH} ${ANDROID_DATA_DIR}/test.tnnmodel
@@ -213,7 +221,7 @@ while [ "$1" != "" ]; do
             ;;
         -f)
             shift
-            OPTION_REFERENCE_FILE=" -f $1"
+            REFERENCE_PATH="$1"
             shift
             ;;
         -do)

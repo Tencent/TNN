@@ -26,6 +26,7 @@
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
+using namespace arm;
 
 /*
 add bias

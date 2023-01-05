@@ -166,7 +166,7 @@ class BaseRunner:
             if data_type == 0:
                 self.input_data[name] = np.random.rand(*shape).astype(np.float32)
                 np.savetxt(data_file, self.input_data[name].reshape(-1), fmt="%0.6f")
-            elif data_type == 3:
+            elif data_type == 2 or data_type == 3:
                 # range [low, high)
                 self.input_data[name] = np.random.randint(low=0, high=2, size=shape).astype(np.int64)
                 np.savetxt(data_file, self.input_data[name].reshape(-1), fmt="%i")

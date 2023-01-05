@@ -21,8 +21,8 @@ namespace TNN_NS {
 DECLARE_X86_ACC(Squeeze, LAYER_SQUEEZE);
 
 Status X86SqueezeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    void *input_data  = inputs[0]->GetHandle().base;
-    void *output_data = outputs[0]->GetHandle().base;
+    void *input_data  = handle_ptr<void*>(inputs[0]->GetHandle());
+    void *output_data = handle_ptr<void*>(outputs[0]->GetHandle());
     auto input_dims   = outputs[0]->GetBlobDesc().dims;
     auto count        = DimsVectorUtils::Count(input_dims);
     auto ele_size     = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);

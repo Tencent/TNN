@@ -28,6 +28,8 @@
 #include <ngraph/ngraph.hpp>
 #include <ngraph/opsets/opset.hpp>
 
+#include "tnn/network/openvino/utils.h"
+
 #ifndef TNN_DEVICE_OPENVINO_CUSTOM_OPENVINO_IMPLEMENTAIO_
 #define TNN_DEVICE_OPENVINO_CUSTOM_OPENVINO_IMPLEMENTAIO_
 
@@ -45,24 +47,25 @@ public:
     void validate_and_infer_types() override {
         for (size_t i = 0; i < input_blobs_.size(); i++) {
             auto input_desc = input_blobs_[i]->GetBlobDesc();
-            auto dims0 = input_desc.dims;
+            auto dims = input_desc.dims;
             auto input_shape = get_input_shape(i);
             
-            dims0.resize(input_shape.size());
+            dims.resize(input_shape.size());
             for (size_t j = 0; j < input_shape.size(); j++) {
-                dims0[j] = input_shape[j];
+                dims[j] = input_shape[j];
             }
-            input_desc.dims = dims0;
+            input_desc.dims = dims;
             input_blobs_[i]->SetBlobDesc(input_desc);
         }
         base_layer_->Reshape();
         for (size_t i = 0; i < output_blobs_.size(); i++) {
-            auto dims0 = output_blobs_[i]->GetBlobDesc().dims;
-            ngraph::Shape output_shape(dims0.size());       
-            for (size_t j = 0; j < dims0.size(); j++) {
-                output_shape[j] = dims0[j];
+            auto desc = output_blobs_[i]->GetBlobDesc();
+            auto dims = desc.dims;
+            ngraph::Shape output_shape(dims.size());       
+            for (size_t j = 0; j < dims.size(); j++) {
+                output_shape[j] = dims[j];
             }
-            set_output_type(i, get_input_element_type(0), ngraph::PartialShape(output_shape));
+            set_output_type(i, ConvertToOVDataType(desc.data_type), ngraph::PartialShape(output_shape));
         }
     };
 
@@ -95,8 +98,13 @@ public:
         InferenceEngine::LayerConfig layerConfig;
         layerConfig.dynBatchSupport = true;
 
-        auto node = GetNode();
+        auto node = dynamic_cast<CustomOpenvinoOp*>(GetNode().get());
+        if (node == nullptr) {
+            return InferenceEngine::GENERAL_ERROR;
+        }
         for (size_t i = 0; i < node_->inputs().size(); i++) {
+            auto ov_type   = node->get_input_element_type(i);
+            auto precision = ConvertOVTypeToPrecision(ov_type);
             InferenceEngine::DataConfig cfg;
             cfg.constant = false;
             cfg.inPlace  = -1;
@@ -110,11 +118,13 @@ public:
             for (size_t j = 0; j < shape.size(); j++) {
                 order.push_back(j);
             }
-            cfg.desc = InferenceEngine::TensorDesc(InferenceEngine::Precision::FP32, shape, {shape, order});
+            cfg.desc = InferenceEngine::TensorDesc(precision, shape, {shape, order});
             layerConfig.inConfs.push_back(cfg);
         }
 
         for (size_t i = 0; i < node_->outputs().size(); i++) {
+            auto ov_type   = node->get_output_element_type(i);
+            auto precision = ConvertOVTypeToPrecision(ov_type);
             InferenceEngine::DataConfig cfg;
             cfg.constant = false;
             cfg.inPlace  = -1;
@@ -128,7 +138,7 @@ public:
             for (size_t j = 0; j < shape.size(); j++) {
                 order.push_back(j);
             }
-            cfg.desc = InferenceEngine::TensorDesc(InferenceEngine::Precision::FP32, shape, {shape, order});
+            cfg.desc = InferenceEngine::TensorDesc(precision, shape, {shape, order});
             layerConfig.outConfs.push_back(cfg);
         }
 
@@ -258,7 +268,7 @@ public:
 
     // @brief register ngraph::Op
     template <typename T>
-    static Status RegisterCustomOp() {
+    static void RegisterCustomOp() {
         ngraph::OpSet& opset = getCustomOpSet();
         opset.insert<T>();
     }

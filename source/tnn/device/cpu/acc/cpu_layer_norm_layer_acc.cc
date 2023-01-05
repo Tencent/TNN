@@ -19,9 +19,44 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(LayerNorm, LAYER_LAYER_NORM);
+DECLARE_CPU_ACC_WITH_FUNC(LayerNorm, LAYER_LAYER_NORM,
+                          virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                                 const std::vector<Blob *> &outputs););
 
 Status CpuLayerNormLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+Status CpuLayerNormLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                     const std::vector<Blob *> &outputs) {
+    auto *layer_param = dynamic_cast<LayerNormLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+
+    if (inputs.size() < 3) {
+        return Status(TNNERR_PARAM_ERR, "LayerNormLayer has no input blob of scale or bias");
+    }
+
+    auto input_blob = inputs[0];
+    auto scale_blob = inputs[1];
+    auto bias_blob  = inputs[2];
+    auto dims_input = input_blob->GetBlobDesc().dims;
+    auto dims_scale = scale_blob->GetBlobDesc().dims;
+    auto dims_bias  = bias_blob->GetBlobDesc().dims;
+
+    if (!DimsVectorUtils::Equal(dims_scale, dims_bias)) {
+        return Status(TNNERR_PARAM_ERR, "LayerNormLayer has invalid dims for input blob of scale or bias");
+    }
+
+    // enure dims are valid
+    const int dim_offset = (int)dims_input.size() - (int)dims_scale.size();
+    for (int i = 0; i < dims_scale.size(); i++) {
+        if (dim_offset < 0 || dims_input[i + dim_offset] != dims_scale[i] || dims_scale[i] != dims_bias[i]) {
+            return Status(TNNERR_PARAM_ERR, "LayerNormLayer has invalid dims for input blob");
+        }
+    }
+
+    layer_param->reduce_dims_size = dims_scale.size();
+
     return TNN_OK;
 }
 
@@ -36,10 +71,15 @@ Status CpuLayerNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const st
     auto bias_blob  = inputs[2];
     auto output_blob = outputs[0];
     auto dims_input = input_blob->GetBlobDesc().dims;
-    
+
     const int reduce_dim_size = layer_param->reduce_dims_size;
+
+    if (layer_param->reduce_dims_size != scale_blob->GetBlobDesc().dims.size()) {
+        return Status(TNNERR_PARAM_ERR, "LayerNormLayer has invalid dims for input blob of scale or bias");
+    }
+
     const int channel_dim_size = (int)dims_input.size() - reduce_dim_size;
-    
+
     const int channels = DimsVectorUtils::Count(dims_input, 0, channel_dim_size);
     const int channel_area = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, channel_dim_size);
     

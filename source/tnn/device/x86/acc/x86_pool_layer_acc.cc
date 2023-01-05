@@ -26,6 +26,7 @@
 #include "tnn/device/x86/acc/Float4.h"
 
 namespace TNN_NS {
+using namespace x86;
 
 X86PoolLayerAcc::~X86PoolLayerAcc() {}
 
@@ -69,8 +70,8 @@ Status X86PoolLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
 
     auto batch      = dims_output[0];
     auto oc_r4      = ROUND_UP(dims_output[1], 4);
-    auto input_ptr  = static_cast<float *>(input->GetHandle().base);
-    auto output_ptr = static_cast<float *>(output->GetHandle().base);
+    auto input_ptr  = handle_ptr<float *>(input->GetHandle());
+    auto output_ptr = handle_ptr<float *>(output->GetHandle());
 
     auto X86MaxPoolingAcc = X86MaxPooling<Float4, 4>;
     auto X86AvgPoolingAcc = X86AvgPooling<Float4, 4>;

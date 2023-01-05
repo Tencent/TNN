@@ -83,7 +83,7 @@ struct MetalCastParams {
 #define kBroadcastTypeHeightWidth 0x0004
 #define kBroadcastTypeWidth 0x0005
 #define kBroadcastTypeGeneral 0x0006
-
+#define kBroadcastTypeChannelHeight 0x0007
 #define kBroadcastTypeChannelWidth 0x0008
 #define kBroadcastType5DimsHeightWidth 0x0009
 
@@ -306,6 +306,29 @@ struct MetalLayerNormParams {
 
     int channel_area;
     int channels;
+    float eps;
+};
+
+/** GroupNorm Param Struct **/
+struct MetalGroupNormParams {
+    int input_width;
+    int input_height;
+    int input_size;
+    int input_slice;
+
+    int output_width;
+    int output_height;
+    int output_size;
+    int output_slice;
+    int share_channel = 0;
+    int batch;
+
+    int group_area;
+    int channel_area;
+    int channel;
+    int group;
+    int batch_time_group;
+    int channels_per_group;
     float eps;
 };
 

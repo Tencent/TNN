@@ -23,6 +23,8 @@
 #include "tnn/utils/omp_utils.h"
 
 namespace TNN_NS {
+using namespace x86;
+
 bool X86ConvLayerDepthwise::isPrefered(ConvLayerParam *param, const std::vector<Blob *> &inputs,
                                        const std::vector<Blob *> &outputs) {
     if (!param) {
@@ -132,8 +134,8 @@ Status X86ConvLayerDepthwise::DoForward(const std::vector<Blob *> &inputs, const
     float *workspace = reinterpret_cast<float *>(context_->GetSharedWorkSpace(
                                                  (src_pad_size + dst_tmp_size) * max_num_threads));
 
-    const float *src_origin = reinterpret_cast<const float *>(input->GetHandle().base);
-    float *dst_origin = reinterpret_cast<float *>(output->GetHandle().base);
+    const float *src_origin = handle_ptr<const float *>(input->GetHandle());
+    float *dst_origin = handle_ptr<float *>(output->GetHandle());
 
     auto dw_full = DepthwiseConv<ActivationType_None, Float8, 8>;
     if (param->activation_type == ActivationType_ReLU) {

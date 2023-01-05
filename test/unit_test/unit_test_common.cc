@@ -66,7 +66,16 @@ void SetUpEnvironment(AbstractDevice** cpu, AbstractDevice** device,
     ASSERT(*cpu_context != NULL);
 
     // device
-    *device = GetDevice(config.device_type);
+    auto type = config.device_type;
+    if(type == DEVICE_APPLE_NPU) {
+        //use DEVICE_ARM OR DEVICE_X86 according to hardware
+#if defined(__arm__) || defined(__arm64__)
+        type = DEVICE_ARM;
+#else
+        type = DEVICE_X86;
+#endif
+    }
+    *device = GetDevice(type);
     ASSERT(*device != NULL);
 
     *device_context = (*device)->CreateContext(config.device_id);

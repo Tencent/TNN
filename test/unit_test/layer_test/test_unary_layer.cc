@@ -39,6 +39,14 @@ void UnaryLayerTest::RunUnaryTest(std::string type_str) {
         GTEST_SKIP();
     }
 
+        //special for apple npu skip
+    if ((type_str == "Reciprocal" || type_str == "Abs" || type_str == "Acos" || type_str == "Sin"|| type_str == "Log" ||
+         type_str == "Asin" || type_str == "Atan"|| type_str == "Ceil" || type_str == "Cos" || type_str == "Floor" ||
+         type_str == "LogSigmoid" || type_str == "Neg" || type_str == "Tan" || type_str == "Sqrt" || type_str == "Sign")
+        && DEVICE_APPLE_NPU == dev) {
+        GTEST_SKIP();
+    }
+
     // skip dims > 4 for HUAWEI_NPU
     if (dim_count > 4 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();

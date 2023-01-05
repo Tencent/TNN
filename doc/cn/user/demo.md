@@ -19,7 +19,7 @@
    sh download_opencv.sh iOS
    ```
 
-   PS: 如因网络问题脚本无法下载模型或依赖库，请根据脚本中的信息手动创建对应文件夹并自行下载
+   PS: 如因网络问题脚本无法下载模型或依赖库，请根据脚本中的信息手动创建对应文件夹并自行下载。模型也可以阿里云盘下载，https://www.aliyundrive.com/s/MSmarP3zqrb
 
 2. 打开TNNExamples工程
 
@@ -129,7 +129,7 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
 
    PS: 
    
-   如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载.
+   如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载. 模型也可以阿里云盘下载，https://www.aliyundrive.com/s/MSmarP3zqrb
    
     想要使用NPU运行demo需要需首先下载NPU ddk。详情参考: [FAQ](../faq.md): 创建华为NPU编译环境。
 
@@ -217,7 +217,7 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    cd <path_to_tnn>/model
    sh download_model.sh
    ```
-   如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载
+   如因网络问题脚本无法下载模型，请根据脚本中的信息手动创建对应文件夹并自行下载。模型也可以阿里云盘下载，https://www.aliyundrive.com/s/MSmarP3zqrb
 
 #### 2. 编译
 ##### Linux

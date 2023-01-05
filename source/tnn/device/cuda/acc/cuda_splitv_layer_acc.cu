@@ -77,17 +77,19 @@ Status CudaSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 
     int split_begin = 0;
     for(int i= 0; i < split_num; i++) {
-      Blob* output_blob = outputs[i];
-      int split_end = split_begin + slices[i];
-      dim3 griddim;
-      griddim.x = (slices[i] * inner_size + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
-      griddim.y = DimsVectorUtils::Count(dims, 1, axis);
-      griddim.z = DimsVectorUtils::Count(dims, 0, 1);
+      if (slices[i] > 0) {
+        Blob* output_blob = outputs[i];
+        int split_end = split_begin + slices[i];
+        dim3 griddim;
+        griddim.x = (slices[i] * inner_size + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
+        griddim.y = DimsVectorUtils::Count(dims, 1, axis);
+        griddim.z = DimsVectorUtils::Count(dims, 0, min(1, axis));
 
-      float* output_data = static_cast<float*>(output_blob->GetHandle().base);
-      splitv_separate_kernel<THREAD_PER_BLOCK, ELE_PER_THREAD><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>
-          (input_data, output_data, inner_size, in_stride, split_begin, split_end);
-      split_begin = split_end;
+        float* output_data = static_cast<float*>(output_blob->GetHandle().base);
+        splitv_separate_kernel<THREAD_PER_BLOCK, ELE_PER_THREAD><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>
+            (input_data, output_data, inner_size, in_stride, split_begin, split_end);
+        split_begin = split_end;
+      }
     }
 
     return TNN_OK;

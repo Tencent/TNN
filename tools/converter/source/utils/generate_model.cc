@@ -17,6 +17,10 @@
 #include "tnn/interpreter/tnn/model_packer.h"
 namespace TNN_CONVERTER {
 
+
+#define PROTO_SUFFIX std::string(".tnnproto")
+#define MODEL_SUFFIX std::string(".tnnmodel");
+
 std::string GetFileName(std::string& file_path) {
     auto pos_s = file_path.rfind('/');
     auto pos_e = file_path.rfind('.');

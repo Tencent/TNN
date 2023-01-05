@@ -28,39 +28,40 @@ Status CpuGatherNDLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
     auto layer_param = dynamic_cast<GatherNDLayerParam*>(param_);
     CHECK_PARAM_NULL(layer_param);
     int batch_dims = layer_param->batch_dims;
-    
+
     if (batch_dims != 0) {
         return Status(TNNERR_PARAM_ERR, "GatherNDLayerParam has invalid param batch_dims");
     }
-    
+
     auto input_data_dims = (*(inputs.begin()))->GetBlobDesc().dims;
     auto input_data_ptr = (char*)(*(inputs.begin()))->GetHandle().base + (*(inputs.begin()))->GetHandle().bytes_offset;
     auto output_data_ptr = (char*)(*(outputs.begin()))->GetHandle().base + (*(outputs.begin()))->GetHandle().bytes_offset;
     auto input_stride = DimsFunctionUtils::StrideOfShape(input_data_dims);
-    
+
     auto indices_dims = (*(inputs.rbegin()))->GetBlobDesc().dims;
     int *indices_data_ptr = (int *)(*(inputs.rbegin()))->GetHandle().base;
 
-    if (indices_dims[indices_dims.size()-1] != input_data_dims.size()) {
+    if (indices_dims[indices_dims.size() - 1] > input_data_dims.size()) {
         return Status(TNNERR_PARAM_ERR, "GatherNDLayerParam has invalid param indices_dims");
     }
     
     const int slice_index_size = indices_dims[indices_dims.size()-1];
     const int ele_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
-    
+    const int ele_count =
+        DimsVectorUtils::Count(input_data_dims, input_data_dims.size() - indices_dims[indices_dims.size() - 1], -1);
     const int output_slice_count = DimsVectorUtils::Count(indices_dims, 0, (int)indices_dims.size()-1);
     for (int i=0; i<output_slice_count; i++) {
         auto output_index = i;
-        
+
         int *indices_ptr = indices_data_ptr + i * slice_index_size;
-        
+
         int input_index = 0;
         for (int ii=0; ii<slice_index_size; ii++) {
             input_index += indices_ptr[ii] *input_stride[ii];
         }
         memcpy(output_data_ptr + output_index*ele_size,
                input_data_ptr + input_index*ele_size,
-               1 * ele_size);
+               ele_count * ele_size);
     }
     return TNN_OK;
 }

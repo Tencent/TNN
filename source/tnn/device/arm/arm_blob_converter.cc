@@ -26,6 +26,7 @@
 #include "tnn/utils/string_utils_inner.h"
 
 namespace TNN_NS {
+using namespace arm;
 
 ArmBlobConverterAcc::ArmBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob) {}
 ArmBlobConverterAcc::~ArmBlobConverterAcc() {}
