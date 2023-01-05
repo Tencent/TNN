@@ -40,7 +40,18 @@ TNN_NS::Status OnnxSplitConverter::exec(TNN_NS::NetStructure &net_structure, TNN
     param->quantized           = false;
     param->axis                = GetAttributeInt(node, "axis", 1);
     param->slices              = GetAttributeIntVector(node, "split");
-
+    if (node.input().size() > 1) {
+        std::string split_name = node.input(1);
+        const auto split_tensor     = proxy_initializers_map[split_name];
+        std::vector<int> dims = std::vector<int>(split_tensor->dims().begin(), split_tensor->dims().end());
+        int shape_count    = TNN_NS::DimsVectorUtils::Count(dims);
+        void *raw_data_ptr = GetDataFromTensor(*split_tensor, onnx::TensorProto_DataType_INT64);
+        for (int i = 0; i < shape_count; ++i) {
+            param->slices.push_back(*((int64_t *)raw_data_ptr + i));
+        }
+    }
+    cur_layer->inputs.resize(1);
+    cur_layer->inputs[0] = node.input(0);
     return TNN_NS::TNN_CONVERT_OK;
 }
 

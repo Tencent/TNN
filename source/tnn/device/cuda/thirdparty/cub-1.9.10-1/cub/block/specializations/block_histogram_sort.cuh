@@ -56,7 +56,7 @@ template <
     int         BINS,               ///< The number of bins into which histogram samples may fall
     int         BLOCK_DIM_Y,        ///< The thread block length in threads along the Y dimension
     int         BLOCK_DIM_Z,        ///< The thread block length in threads along the Z dimension
-    int         PTX_ARCH>           ///< The PTX compute capability for which to to specialize this collective
+    int         PTX_ARCH>           ///< The PTX compute capability for which to specialize this collective
 struct BlockHistogramSort
 {
     /// Constants

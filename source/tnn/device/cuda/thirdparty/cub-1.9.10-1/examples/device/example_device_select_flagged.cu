@@ -29,7 +29,7 @@
 /******************************************************************************
  * Simple example of DeviceSelect::Flagged().
  *
- * Selects flagged items from from a sequence of int keys using a
+ * Selects flagged items from a sequence of int keys using a
  * corresponding sequence of unsigned char flags.
  *
  * To compile using the command line:

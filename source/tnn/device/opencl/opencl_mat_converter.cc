@@ -26,35 +26,45 @@ Status OpenCLMatConverterAcc::SetExecuteUnit(
         OpenCLExecuteUnit& unit, Mat& src, Mat& dst,
         const bool copy_flag, const std::string& mat_key) {
     Status ret = TNN_OK;
-    if(copy_flag){
-        if(execute_map_.count(mat_key) == 0) {
+    if (copy_flag) {
+        if (execute_map_.count(mat_key) == 0) {
             std::string program_name = "convert_to_mat";
             std::string kernel_name = "";
-            if(N8UC4 == dst.GetMatType()) {
+            if (N8UC4 == dst.GetMatType()) {
                 kernel_name = "CopyToN8UC4";
             } else if (N8UC3 == dst.GetMatType()) {
                 kernel_name = "CopyToN8UC3";
+            } else if (NGRAY == dst.GetMatType()) {
+                program_name = "buffer_to_buffer";
+                kernel_name = "BufferToBuffer";
             }
-            ret = CreateExecuteUnit(unit, program_name, kernel_name);
-            if(ret != TNN_OK) {
-                return ret;
+            if (!kernel_name.empty()) {
+                ret = CreateExecuteUnit(unit, program_name, kernel_name);
+                if (ret != TNN_OK) {
+                    return ret;
+                }
+                execute_map_[mat_key] = unit;
             }
-            execute_map_[mat_key] = unit;
         }
     } else {
-        if(execute_map_.count(mat_key) == 0) {
+        if (execute_map_.count(mat_key) == 0) {
             std::string program_name = "convert_from_mat";
             std::string kernel_name = "";
-            if(N8UC4 == src.GetMatType()) {
+            if (N8UC4 == src.GetMatType()) {
                 kernel_name = "CopyFromN8UC4";
             } else if (N8UC3 == src.GetMatType()) {
                 kernel_name = "CopyFromN8UC3";
+            } else if (NGRAY == dst.GetMatType()) {
+                program_name = "buffer_to_buffer";
+                kernel_name = "BufferToBuffer";
             }
-            ret = CreateExecuteUnit(unit, program_name, kernel_name);
-            if(ret != TNN_OK) {
-                return ret;
+            if (!kernel_name.empty()) {
+                ret = CreateExecuteUnit(unit, program_name, kernel_name);
+                if (ret != TNN_OK) {
+                    return ret;
+                }
+                execute_map_[mat_key] = unit;
             }
-            execute_map_[mat_key] = unit;
         }
     }
 
@@ -72,19 +82,23 @@ Status OpenCLMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
     }
     // buffer_reset
     BlobMemorySizeInfo info;
-    info.data_type = DATA_TYPE_FLOAT;
-    int batch, channel, height, width;
-    batch            = src.GetBatch();
-    channel          = src.GetChannel();
-    height           = src.GetHeight();
-    width            = src.GetWidth();
-    //nchw->nhwc
-    int image_width  = UP_DIV(channel, 4) * width;
-    int image_height = batch * height;
-    info.dims.push_back(image_width);
-    info.dims.push_back(image_height);
+    if (src.GetMatType() != NGRAY) {
+        info.data_type = DATA_TYPE_FLOAT;
+        int batch, channel, height, width;
+        batch            = src.GetBatch();
+        channel          = src.GetChannel();
+        height           = src.GetHeight();
+        width            = src.GetWidth();
+        //nchw->nhwc
+        int image_width  = UP_DIV(channel, 4) * width;
+        int image_height = batch * height;
+        info.dims.push_back(image_width);
+        info.dims.push_back(image_height);
+    } else {
+        info.data_type = DATA_TYPE_INT8;
+        info.dims.push_back(DimsVectorUtils::Count(src.GetDims()));
+    }
 
-    info.data_type   = DATA_TYPE_FLOAT;
     auto opencl_runtime   = OpenCLRuntime::GetInstance();
     buffer_size_          = GetBlobMemoryBytesSize(info);
     cl_int ret_cl            = CL_SUCCESS;
@@ -185,35 +199,66 @@ Status OpenCLMatConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &src, 
     MatType mat_type = src.GetMatType();
     auto dims        = dst.GetDims();
 
-    uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
-
     cl_int cl_ret;
-    if (DEVICE_NAIVE == src.GetDeviceType()) {
-        cl::Image *image = static_cast<cl::Image *>(dst.GetData());
-        cl_ret = unit.ocl_kernel.setArg(idx++, *image);
-        CHECK_CL_SUCCESS(cl_ret);
-        cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
-        CHECK_CL_SUCCESS(cl_ret);
-        //height
-        cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 2));
-        CHECK_CL_SUCCESS(cl_ret);
-        //width
-        cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 3));
-        CHECK_CL_SUCCESS(cl_ret);
-    } else if (DEVICE_OPENCL == src.GetDeviceType()) {
-        cl::Image *mat_image = static_cast<cl::Image *>(src.GetData());
-        cl_ret               = unit.ocl_kernel.setArg(idx++, *mat_image);
-        CHECK_CL_SUCCESS(cl_ret);
-        cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
-        CHECK_CL_SUCCESS(cl_ret);
-        //height
-        cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 2));
-        CHECK_CL_SUCCESS(cl_ret);
-        //width
-        cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 3));
-        CHECK_CL_SUCCESS(cl_ret);
+    // gray mat copy buffer to buffer
+    if (NGRAY == mat_type) {
+        uint32_t idx = SetExecuteUnit1DSizeInfoDefault(unit, dims);
+        if (src.GetDeviceType() != DEVICE_OPENCL) {
+            cl::Buffer *dst_buffer = static_cast<cl::Buffer *>(dst.GetData());
+            cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
+            CHECK_CL_SUCCESS(cl_ret);
+            cl_ret = unit.ocl_kernel.setArg(idx++, *dst_buffer);
+            CHECK_CL_SUCCESS(cl_ret);
+            // src_offset
+            cl_ret = unit.ocl_kernel.setArg(idx++, 0);
+            CHECK_CL_SUCCESS(cl_ret);
+            // dst_offset
+            cl_ret = unit.ocl_kernel.setArg(idx++, 0);
+            CHECK_CL_SUCCESS(cl_ret);
+        } else {
+            cl::Buffer *src_buffer = static_cast<cl::Buffer *>(src.GetData());
+            cl_ret = unit.ocl_kernel.setArg(idx++, *src_buffer);
+            CHECK_CL_SUCCESS(cl_ret);
+            cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
+            CHECK_CL_SUCCESS(cl_ret);
+            // src_offset
+            cl_ret = unit.ocl_kernel.setArg(idx++, 0);
+            CHECK_CL_SUCCESS(cl_ret);
+            // dst_offset
+            cl_ret = unit.ocl_kernel.setArg(idx++, 0);
+            CHECK_CL_SUCCESS(cl_ret);
+        }
+        return TNN_OK;
     } else {
-        return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        uint32_t idx     = SetExecuteUnit2DSizeInfoDefault(unit, dims);
+
+        if (DEVICE_NAIVE == src.GetDeviceType()) {
+            cl::Image *image = static_cast<cl::Image *>(dst.GetData());
+            cl_ret = unit.ocl_kernel.setArg(idx++, *image);
+            CHECK_CL_SUCCESS(cl_ret);
+            cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
+            CHECK_CL_SUCCESS(cl_ret);
+            //height
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 2));
+            CHECK_CL_SUCCESS(cl_ret);
+            //width
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 3));
+            CHECK_CL_SUCCESS(cl_ret);
+        } else if (DEVICE_OPENCL == src.GetDeviceType()) {
+            cl::Image *mat_image = static_cast<cl::Image *>(src.GetData());
+            cl_ret               = unit.ocl_kernel.setArg(idx++, *mat_image);
+            CHECK_CL_SUCCESS(cl_ret);
+            cl_ret = unit.ocl_kernel.setArg(idx++, *buffer_);
+            CHECK_CL_SUCCESS(cl_ret);
+            //height
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 2));
+            CHECK_CL_SUCCESS(cl_ret);
+            //width
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 3));
+            CHECK_CL_SUCCESS(cl_ret);
+        } else {
+            return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        }
     }
     return TNN_OK;
 }

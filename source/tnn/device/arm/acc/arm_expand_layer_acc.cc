@@ -136,6 +136,10 @@ Status ArmExpandLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         const bfp16_t *input_data = reinterpret_cast<const bfp16_t *>(GetBlobHandlePtr(input_blob->GetHandle()));
         bfp16_t *output_data = reinterpret_cast<bfp16_t *>(GetBlobHandlePtr(output_blob->GetHandle()));
         ArmExpand<bfp16_t>(output_dims, input_dims, output_data, input_data);
+    } else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        const int32_t *input_data = reinterpret_cast<const int32_t *>(GetBlobHandlePtr(input_blob->GetHandle()));
+        int32_t *output_data      = reinterpret_cast<int32_t *>(GetBlobHandlePtr(output_blob->GetHandle()));
+        ArmExpand<int32_t>(output_dims, input_dims, output_data, input_data);
     }
 #ifdef TNN_ARM82
     else if (output_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {

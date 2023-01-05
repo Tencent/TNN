@@ -95,6 +95,10 @@ Status ArmDevice::Allocate(void **handle, BlobMemorySizeInfo &size_info) {
     if (handle) {
         int bytes_size = GetBlobMemoryBytesSize(size_info);
         *handle        = armMalloc(bytes_size + NEON_KERNEL_EXTRA_LOAD);
+        if (!(*handle)) {
+            LOGEV("ArmDevice allocate %d bytes failed.", msg, bytes_size);
+            return Status(TNNERR_OUTOFMEMORY, msg);
+        }
     }
     return TNN_OK;
 }

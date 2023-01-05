@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <math.h>
 #include "tnn/device/arm/acc/Half8.h"
 #include "tnn/device/arm/acc/arm_softmax_layer_acc.h"
 
@@ -19,7 +20,7 @@ namespace TNN_NS {
 
 #if TNN_ARM82
 
-static void SoftmaxChannelFuncFp16(fp16_t *dst, fp16_t *src, int channel) {
+static void SoftmaxChannelFuncFp16Tile8(fp16_t *dst, fp16_t *src, int channel) {
     // max
     Half8 max_v = Half8(src[0]);
     fp16_t max  = src[0];
@@ -40,7 +41,7 @@ static void SoftmaxChannelFuncFp16(fp16_t *dst, fp16_t *src, int channel) {
         Half8::save(dst + c, Half8::exp(Half8::load(src + c) - max_v));
     }
     for (; c < channel; ++c) {
-        dst[c] = std::expf(src[c] - max);
+        dst[c] = expf(src[c] - max);
     }
     // sum
     c           = 0;
@@ -60,6 +61,53 @@ static void SoftmaxChannelFuncFp16(fp16_t *dst, fp16_t *src, int channel) {
     fp16_t denominator = (fp16_t)(1.0f / sum);
     for (; c <= channel - 8; c += 8) {
         Half8::save(dst + c, Half8::load(dst + c) * denominator);
+    }
+    for (; c < channel; ++c) {
+        dst[c] *= denominator;
+    }
+}
+
+static void SoftmaxChannelFuncFp16Tile4(fp16_t *dst, fp16_t *src, int channel) {
+    // max
+    Half4 max_v = Half4(src[0]);
+    fp16_t max  = src[0];
+    int c       = 0;
+    for (; c <= channel - 4; c += 4) {
+        max_v = Half4::max(Half4::load(src + c), max_v);
+    }
+    for (; c < channel; ++c) {
+        max = std::max(max, src[c]);
+    }
+    for (int i = 0; i < 4; ++i) {
+        max = std::max(max, max_v[i]);
+    }
+    // exp
+    c     = 0;
+    max_v = Half4(max);
+    for (; c <= channel - 4; c += 4) {
+        Half4::save(dst + c, Half4::exp(Half4::load(src + c) - max_v));
+    }
+    for (; c < channel; ++c) {
+        dst[c] = expf(src[c] - max);
+    }
+    // sum
+    c           = 0;
+    Half4 sum_v = Half4((fp16_t)0.0);
+    fp16_t sum  = (fp16_t)0.0;
+    for (; c <= channel - 4; c += 4) {
+        sum_v = Half4::load(dst + c) + sum_v;
+    }
+    for (; c < channel; ++c) {
+        sum += dst[c];
+    }
+    for (int i = 0; i < 4; ++i) {
+        sum += sum_v[i];
+    }
+    // div
+    c                  = 0;
+    fp16_t denominator = (fp16_t)(1.0f / sum);
+    for (; c <= channel - 4; c += 4) {
+        Half4::save(dst + c, Half4::load(dst + c) * denominator);
     }
     for (; c < channel; ++c) {
         dst[c] *= denominator;
@@ -100,7 +148,13 @@ Status ArmSoftmaxLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std
             for (int y = 0; y < outside; ++y) {
                 auto src_y = input_ptr + y * step_y;
                 auto dst_y = reorder_buffer_ptr + y * step_y;
-                SoftmaxChannelFuncFp16(dst_y, src_y, channel);
+                SoftmaxChannelFuncFp16Tile8(dst_y, src_y, channel);
+            }
+        } else if (1 == inside && channel > 3) {
+            for (int y = 0; y < outside; ++y) {
+                auto src_y = input_ptr + y * step_y;
+                auto dst_y = reorder_buffer_ptr + y * step_y;
+                SoftmaxChannelFuncFp16Tile4(dst_y, src_y, channel);
             }
         } else {
             for (int y = 0; y < outside; y++) {

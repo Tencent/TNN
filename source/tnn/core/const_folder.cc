@@ -57,7 +57,32 @@ Status ConstFolder::Init(NetworkConfig &net_config, ModelConfig &model_config, A
     runtime_blob_pool_ = BlobMemoryPoolFactory::CreateBlobMemoryPool(device);
     
     runtime_model_ = RUNTIME_MODE_CONST_FOLD;
-    
+
+    // Some optimizations need to be done in ConstFolder,
+    // so we moved those optimizations from DefaultNetwork to ConstFolder
+    {
+        auto *default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
+        CHECK_PARAM_NULL(default_interpreter);
+
+        NetStructure *net_structure = default_interpreter->GetNetStructure();
+        NetResource *net_resource   = default_interpreter->GetNetResource();
+
+        std::set<std::string> const_fold_optimizers = {
+            "net_optimizer_dynamic_range_dequant",
+            "net_optimizer_convert_matmul_to_conv",
+        };
+
+        if (runtime_model_ == RUNTIME_MODE_CONST_FOLD && net_config.network_type != NETWORK_TYPE_COREML) {
+            std::unique_lock<std::mutex> lck(optimize_mtx_);
+            for (const auto &iter : const_fold_optimizers) {
+                auto optimizer = optimizer::NetOptimizerManager::GetNetOptimizerByName(iter);
+                if (optimizer && optimizer->IsSupported(net_config)) {
+                    RETURN_ON_NEQ(optimizer->Optimize(net_structure, net_resource), TNN_OK);
+                }
+            }
+        }
+    }
+
     auto ret =DefaultNetwork::Init(config_, model_config, interpreter, min_inputs_shape, max_inputs_shape);
     if(ret != TNN_OK) {
         return ret;
