@@ -168,6 +168,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
         char *model_stream = new char[size + 1];
         deploy_input.read(model_stream, size);
         IRuntime* runtime = createInferRuntime(m_trt_logger);
+        if (m_trt_engine) m_trt_engine->destroy();
         m_trt_engine = runtime->deserializeCudaEngine(model_stream, size);
         delete[] model_stream;
         ret = CreateExecuteContext();

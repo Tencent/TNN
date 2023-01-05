@@ -76,7 +76,7 @@ enum GridMappingStrategy
 
     /**
      * \brief An a "strip mining" access pattern in which the input tiles assigned
-     * to each thread block are separated by a stride equal to the the extent of
+     * to each thread block are separated by a stride equal to the extent of
      * the grid.
      *
      * \par Overview

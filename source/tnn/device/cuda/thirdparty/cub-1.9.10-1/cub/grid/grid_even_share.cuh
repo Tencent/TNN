@@ -123,7 +123,7 @@ public:
      */
     __host__ __device__ __forceinline__ void DispatchInit(
         OffsetT num_items,          ///< Total number of input items
-        int     max_grid_size,      ///< Maximum grid size allowable (actual grid size may be less if not warranted by the the number of input items)
+        int     max_grid_size,      ///< Maximum grid size allowable (actual grid size may be less if not warranted by the number of input items)
         int     tile_items)         ///< Number of data items per input tile
     {
         this->block_offset          = num_items;    // Initialize past-the-end
@@ -185,7 +185,7 @@ public:
     /**
      * \brief Block-initialization, specialized for "strip mining" access
      * pattern in which the input tiles assigned to each thread block are
-     * separated by a stride equal to the the extent of the grid.
+     * separated by a stride equal to the extent of the grid.
      */
     template <
         int TILE_ITEMS,

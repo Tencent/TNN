@@ -667,8 +667,8 @@ struct ReduceByKeyScanTileState<ValueT, KeyT, true>
  ******************************************************************************/
 
 /**
- * Stateful block-scan prefix functor.  Provides the the running prefix for
- * the current tile by using the call-back warp to wait on on
+ * Stateful block-scan prefix functor.  Provides the running prefix for
+ * the current tile by using the call-back warp to wait on
  * aggregates/prefixes from predecessor tiles to become available.
  */
 template <

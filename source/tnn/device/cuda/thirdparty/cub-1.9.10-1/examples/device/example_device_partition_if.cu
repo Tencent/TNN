@@ -29,7 +29,7 @@
 /******************************************************************************
  * Simple example of DevicePartition::If().
  *
- * Partitions items from from a sequence of int keys using a
+ * Partitions items from a sequence of int keys using a
  * section functor (greater-than)
  *
  * To compile using the command line:

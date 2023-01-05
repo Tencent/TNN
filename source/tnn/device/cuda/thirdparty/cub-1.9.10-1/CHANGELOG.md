@@ -579,7 +579,7 @@ CUB 1.3.0 improves how thread blocks are expressed in block- and warp-wide
 - Fix for bug in `cub::WarpScan` (which affected `cub::BlockScan` and
     `cub::DeviceScan`) where incorrect results (e.g., NAN) would often be
     returned when parameterized for floating-point types (fp32, fp64).
-- Workaround for ptxas error when compiling with with -G flag on Linux (for
+- Workaround for ptxas error when compiling with -G flag on Linux (for
     debug instrumentation).
 - Fixes for certain scan scenarios using custom scan operators where code
     compiled for SM1x is run on newer GPUs of higher compute-capability: the

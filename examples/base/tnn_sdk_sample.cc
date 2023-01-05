@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cstring>
 #include <float.h>
+#include <iomanip>
 
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
