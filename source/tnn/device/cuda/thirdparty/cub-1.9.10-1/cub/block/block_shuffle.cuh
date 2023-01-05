@@ -168,7 +168,7 @@ public:
      */
     __device__ __forceinline__ void Offset(
         T   input,                  ///< [in] The input item from the calling thread (<em>thread<sub>i</sub></em>)
-        T&  output,                 ///< [out] The \p input item from the successor (or predecessor) thread <em>thread</em><sub><em>i</em>+<tt>distance</tt></sub> (may be aliased to \p input).  This value is only updated for for <em>thread<sub>i</sub></em> when 0 <= (<em>i</em> + \p distance) < <tt>BLOCK_THREADS-1</tt>
+        T&  output,                 ///< [out] The \p input item from the successor (or predecessor) thread <em>thread</em><sub><em>i</em>+<tt>distance</tt></sub> (may be aliased to \p input).  This value is only updated for <em>thread<sub>i</sub></em> when 0 <= (<em>i</em> + \p distance) < <tt>BLOCK_THREADS-1</tt>
         int distance = 1)           ///< [in] Offset distance (may be negative)
     {
         temp_storage[linear_tid].prev = input;

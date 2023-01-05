@@ -52,7 +52,7 @@ namespace cub {
 template <
     typename    T,                      ///< Data type being scanned
     int         LOGICAL_WARP_THREADS,   ///< Number of threads per logical warp
-    int         PTX_ARCH>               ///< The PTX compute capability for which to to specialize this collective
+    int         PTX_ARCH>               ///< The PTX compute capability for which to specialize this collective
 struct WarpScanShfl
 {
     //---------------------------------------------------------------------
