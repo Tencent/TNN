@@ -707,6 +707,7 @@ Status DefaultNetwork::ForwardWithCallback(BlobStatisticCallback before, BlobSta
 // @brief tnn instance network infer, it will not wait
 // blob dump is not implement in this funciton.
 Status DefaultNetwork::ForwardAsync(Callback call_back) {
+    LOGE_IF((config_.train_config.run_mode == TRAIN_MODE_PREDICT),"ForwardForwardAsync start\n");
     Status result = TNN_OK;
     result        = blob_manager_->CheckBlobMemoryState();
     if (result != TNN_OK) {
@@ -717,10 +718,14 @@ Status DefaultNetwork::ForwardAsync(Callback call_back) {
     auto range = GetLayersExecuteRange();
     for (int cnt = range.first; cnt < range.second; ++cnt) {
         auto layer = layers_[cnt];
+        if (config_.train_config.run_mode == TRAIN_MODE_PREDICT) {
+            LOGE_IF((config_.train_config.run_mode == TRAIN_MODE_PREDICT), "Forward layer: %s\n", layer->GetLayerName().c_str());
+        }
         result = layer->Forward();
         RETURN_ON_NEQ(result, TNN_OK);
     }
     context_->OnInstanceForwardEnd();
+    LOGE_IF((config_.train_config.run_mode == TRAIN_MODE_PREDICT), "ForwardForwardAsync done\n");
     return result;
 }
 
