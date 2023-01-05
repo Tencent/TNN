@@ -373,7 +373,7 @@ enum BlockStoreAlgorithm
      * when \p T = \p int and \p ITEMS_PER_THREAD % 4 == 0.
      *
      * \par Performance Considerations
-     * - The utilization of memory transactions (coalescing) remains high until the the
+     * - The utilization of memory transactions (coalescing) remains high until the
      *   access stride between threads (i.e., the number items per thread) exceeds the
      *   maximum vector store width (typically 4 items or 64B, whichever is lower).
      * - The following conditions will prevent vectorization and writing will fall back to cub::BLOCK_STORE_DIRECT:
