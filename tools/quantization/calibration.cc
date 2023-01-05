@@ -252,7 +252,7 @@ int Calibration::InitFeatureMap() {
                     }
                 }
 
-                // set FC layer input and ouput blob to merge channel
+                // set FC layer input and output blob to merge channel
                 if (layer_type == LAYER_INNER_PRODUCT) {
                     if (feature_map_.find(blob) != feature_map_.end()) {
                         feature_map_[blob]->SetMergeChannel(true);
