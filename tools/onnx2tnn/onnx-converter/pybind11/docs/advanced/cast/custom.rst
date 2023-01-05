@@ -7,7 +7,7 @@ Python C API calls. This is fairly advanced usage and should only be pursued by
 experts who are familiar with the intricacies of Python reference counting.
 
 The following snippets demonstrate how this works for a very simple ``inty``
-type that that should be convertible from Python types that provide a
+type that should be convertible from Python types that provide a
 ``__int__(self)`` method.
 
 .. code-block:: cpp
