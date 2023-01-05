@@ -54,7 +54,7 @@ template <
     int         BLOCK_DIM_X,    ///< The thread block length in threads along the X dimension
     int         BLOCK_DIM_Y,    ///< The thread block length in threads along the Y dimension
     int         BLOCK_DIM_Z,    ///< The thread block length in threads along the Z dimension
-    int         PTX_ARCH>       ///< The PTX compute capability for which to to specialize this collective
+    int         PTX_ARCH>       ///< The PTX compute capability for which to specialize this collective
 struct BlockReduceRakingCommutativeOnly
 {
     /// Constants

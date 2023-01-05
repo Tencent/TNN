@@ -142,13 +142,13 @@ Status ArmSplitVLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 
     const int axis    = layer_param->axis;
     auto input_blob   = inputs[0];
-    bool is_chanel_c4 = false;
+    bool is_channel_c4 = false;
     if (axis == 1) {
-        is_chanel_c4 = true;
+        is_channel_c4 = true;
         for (int i = 0; i < outputs.size() - 1; i++) {
             auto output_dims = outputs[i]->GetBlobDesc().dims;
             if (output_dims[1] % 4) {
-                is_chanel_c4 = false;
+                is_channel_c4 = false;
                 break;
             }
         }
@@ -156,7 +156,7 @@ Status ArmSplitVLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         if (axis == 1) {
-            if (is_chanel_c4) {
+            if (is_channel_c4) {
                 splitv_channel_c4(input_blob, outputs, layer_param);
             } else {
                 splitv_channel(input_blob, outputs, layer_param);
