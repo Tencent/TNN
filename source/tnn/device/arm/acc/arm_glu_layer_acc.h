@@ -15,6 +15,7 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_ARM_ACC_ARM_GLU_LAYER_ACC_H_
 #define TNN_SOURCE_TNN_DEVICE_ARM_ACC_ARM_GLU_LAYER_ACC_H_
 
+#include "tnn/core/macro.h"
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 
 namespace TNN_NS {
