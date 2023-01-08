@@ -31,7 +31,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, SplitVLayerTest,
                                             // output cnt
                                             testing::Values(2, 3),
                                             // dtype
-                                            testing::Values(DATA_TYPE_FLOAT)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(SplitVLayerTest, SplitVLayer) {
     // get param
@@ -43,6 +43,7 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
     int output_count   = std::get<5>(GetParam());
     DataType data_type = std::get<6>(GetParam());
     DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+    auto precision     = SetPrecision(dev, data_type);
 
     if (dim_count > 4 && DEVICE_HUAWEI_NPU == dev) {
         GTEST_SKIP();
@@ -57,7 +58,8 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
     }
 
     std::vector<int> input_dims = {batch, channel};
-    while (input_dims.size() < dim_count) input_dims.push_back(input_size);
+    while (input_dims.size() < dim_count)
+        input_dims.push_back(input_size);
 
     if (axis >= dim_count) {
         GTEST_SKIP();
@@ -67,14 +69,13 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
         GTEST_SKIP();
     }
 
-
     // param
     std::shared_ptr<SplitVLayerParam> param(new SplitVLayerParam());
-    param->name   = "SplitV";
-    param->axis   = axis;
+    param->name = "SplitV";
+    param->axis = axis;
     std::vector<int> slices;
     int sum = 0;
-    for(int i=0; i<output_count; ++i) {
+    for (int i = 0; i < output_count; ++i) {
         if (i != output_count - 1) {
             slices.push_back(input_dims[axis] / output_count);
             sum += input_dims[axis] / output_count;
@@ -85,8 +86,8 @@ TEST_P(SplitVLayerTest, SplitVLayer) {
     param->slices = slices;
 
     // generate interpreter
-    auto interpreter            = GenerateInterpreter("SplitV", {input_dims}, param, nullptr, output_count);
-    Run(interpreter);
+    auto interpreter = GenerateInterpreter("SplitV", {input_dims}, param, nullptr, output_count);
+    Run(interpreter, precision);
 }
 
 }  // namespace TNN_NS
