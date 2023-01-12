@@ -663,7 +663,7 @@ struct Half4 {
             "vmul.f16 %0, %2, d3\n\t"
             :"=w"(dst.value)
             :"0"(dst.value),"w"(value),"r"(lr)
-            :
+            :"d3"
         );
         return dst;
     }
