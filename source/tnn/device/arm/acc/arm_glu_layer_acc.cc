@@ -103,9 +103,13 @@ Status ArmGLULayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
     auto data_type  = input_blob->GetBlobDesc().data_type;
     if (data_type == DATA_TYPE_FLOAT) {
         Exec<float>(inputs, outputs);
-    } else if (data_type == DATA_TYPE_HALF) {
+    }
+#if TNN_ARM82
+    else if (data_type == DATA_TYPE_HALF) {
         ExecFp16(inputs, outputs);
-    } else if (data_type == DATA_TYPE_INT8) {
+    }
+#endif
+    else if (data_type == DATA_TYPE_INT8) {
         LOGE("Error: layer acc don't support datatype: %d\n", input_blob->GetBlobDesc().data_type);
         return Status{TNNERR_MODEL_ERR, "Error: layer acc dont support datatype"};
     } else {

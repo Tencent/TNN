@@ -29,7 +29,7 @@
 /******************************************************************************
  * Simple example of DevicePartition::Flagged().
  *
- * Partition flagged items from from a sequence of int keys using a
+ * Partition flagged items from a sequence of int keys using a
  * corresponding sequence of unsigned char flags.
  *
  * To compile using the command line:

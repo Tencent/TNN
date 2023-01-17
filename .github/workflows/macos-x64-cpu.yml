@@ -23,7 +23,7 @@ jobs:
   macos-clang:
     needs: [setup]
     if: ${{ needs.setup.outputs.CONDITION != '11' }}
-    runs-on: macos-latest
+    runs-on: macos-11
     steps:
     - uses: actions/checkout@v2
     - name: protobuf

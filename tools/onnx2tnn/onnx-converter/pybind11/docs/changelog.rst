@@ -938,7 +938,7 @@ Happy Christmas!
   `#464 <https://github.com/pybind/pybind11/pull/464>`_.
 
 * Added built-in support for ``std::shared_ptr`` holder type. It is no longer
-  necessary to to include a declaration of the form
+  necessary to include a declaration of the form
   ``PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)`` (though continuing to
   do so won't cause an error).
   `#454 <https://github.com/pybind/pybind11/pull/454>`_.

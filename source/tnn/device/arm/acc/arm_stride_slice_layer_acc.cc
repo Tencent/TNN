@@ -24,18 +24,18 @@ DECLARE_ARM_ACC(StrideSlice, LAYER_STRIDED_SLICE);
 
 static Status ExecStrideSlice(Blob *input_blob, Blob *output_blob, const std::vector<int> &begins,
                               const std::vector<int> &ends, const std::vector<int> &strides) {
-    auto dims_input   = input_blob->GetBlobDesc().dims;
-    auto dims_output  = output_blob->GetBlobDesc().dims;
+    auto dims_input  = input_blob->GetBlobDesc().dims;
+    auto dims_output = output_blob->GetBlobDesc().dims;
     int input_slice  = UP_DIV(dims_input[1], 4);
     int output_slice = UP_DIV(dims_output[1], 4);
 
     // support maximum dim 5
     int input_strides[4];
     int output_strides[4];
-    input_strides[0] = DimsVectorUtils::Count(dims_input, 2) * 4 * input_slice;
+    input_strides[0]  = DimsVectorUtils::Count(dims_input, 2) * 4 * input_slice;
     output_strides[0] = DimsVectorUtils::Count(dims_output, 2) * 4 * output_slice;
     for (int i = 1; i < 4; i++) {
-        input_strides[i] = DimsVectorUtils::Count(dims_input, i + 1) * 4;
+        input_strides[i]  = DimsVectorUtils::Count(dims_input, i + 1) * 4;
         output_strides[i] = DimsVectorUtils::Count(dims_output, i + 1) * 4;
     }
 
@@ -48,22 +48,22 @@ static Status ExecStrideSlice(Blob *input_blob, Blob *output_blob, const std::ve
             for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
                 auto input_n  = input_data + n * input_strides[0];
                 auto output_n = output_data + nn * output_strides[0];
-                nc = 0;
+                nc            = 0;
                 for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
                     auto zi = c / 4, ri = c % 4;
                     auto zo = nc / 4, ro = nc % 4;
 
                     auto input_c  = input_n + zi * input_strides[1];
                     auto output_c = output_n + zo * output_strides[1];
-                    nh = 0;
+                    nh            = 0;
                     for (int h = begins[2]; h < ends[2]; h += strides[2], nh++) {
                         auto input_h  = input_c + h * input_strides[2];
                         auto output_h = output_c + nh * output_strides[2];
-                        nw = 0;
+                        nw            = 0;
                         for (int w = begins[3]; w < ends[3]; w += strides[3], nw++) {
                             auto input_w  = input_h + w * input_strides[3];
                             auto output_w = output_h + nw * output_strides[3];
-                            nx = 0;
+                            nx            = 0;
                             for (int x = begins[4]; x < ends[4]; x += strides[4], nx++) {
                                 output_w[nx * 4 + ro] = input_w[x * 4 + ri];
                             }
@@ -75,18 +75,18 @@ static Status ExecStrideSlice(Blob *input_blob, Blob *output_blob, const std::ve
             for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
                 auto input_n  = input_data + n * input_strides[0];
                 auto output_n = output_data + nn * output_strides[0];
-                nc = 0;
+                nc            = 0;
                 for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
                     auto zi = c / 4, ri = c % 4;
                     auto zo = nc / 4, ro = nc % 4;
 
                     auto input_c  = input_n + zi * input_strides[1];
                     auto output_c = output_n + zo * output_strides[1];
-                    nh = 0;
+                    nh            = 0;
                     for (int h = begins[2]; h < ends[2]; h += strides[2], nh++) {
                         auto input_h  = input_c + h * input_strides[2];
                         auto output_h = output_c + nh * output_strides[2];
-                        nw = 0;
+                        nw            = 0;
                         for (int w = begins[3]; w < ends[3]; w += strides[3], nw++) {
                             output_h[nw * 4 + ro] = input_h[w * 4 + ri];
                         }
@@ -97,14 +97,14 @@ static Status ExecStrideSlice(Blob *input_blob, Blob *output_blob, const std::ve
             for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
                 auto input_n  = input_data + n * input_strides[0];
                 auto output_n = output_data + nn * output_strides[0];
-                nc = 0;
+                nc            = 0;
                 for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
                     auto zi = c / 4, ri = c % 4;
                     auto zo = nc / 4, ro = nc % 4;
 
                     auto input_c  = input_n + zi * input_strides[1];
                     auto output_c = output_n + zo * output_strides[1];
-                    nh = 0;
+                    nh            = 0;
                     for (int h = begins[2]; h < ends[2]; h += strides[2], nh++) {
                         output_c[nh * 4 + ro] = input_c[h * 4 + ri];
                     }
@@ -114,7 +114,7 @@ static Status ExecStrideSlice(Blob *input_blob, Blob *output_blob, const std::ve
             for (int n = begins[0]; n < ends[0]; n += strides[0], nn++) {
                 auto input_n  = input_data + n * input_strides[0];
                 auto output_n = output_data + nn * output_strides[0];
-                nc = 0;
+                nc            = 0;
                 for (int c = begins[1]; c < ends[1]; c += strides[1], nc++) {
                     output_n[nc] = input_n[c];
                 }
@@ -174,11 +174,12 @@ static Status FastSliceForHW(const std::vector<Blob *> &inputs, const std::vecto
     auto axis               = param->axes[0];
     auto *input_ptr         = reinterpret_cast<char *>(GetBlobHandlePtr(input_blob->GetHandle()));
     auto *output_ptr        = reinterpret_cast<char *>(GetBlobHandlePtr(output_blob->GetHandle()));
-    const int batch         = DimsFunctionUtils::GetDim(dims_input, 0);
-    const int channel       = DimsFunctionUtils::GetDim(dims_input, 1);
+    const int batch         = DimsFunctionUtils::GetDim(dims_output, 0);
+    const int channel       = DimsFunctionUtils::GetDim(dims_output, 1);
+    const int count         = DimsVectorUtils::Count(dims_output, 2, axis);
     const int original_axis = DimsFunctionUtils::GetDim(dims_input, axis);
     const int slice_axis    = DimsFunctionUtils::GetDim(dims_output, axis);
-    const int step          = DimsVectorUtils::Count(dims_input, axis + 1);
+    const int step          = DimsVectorUtils::Count(dims_output, axis + 1);
     int channel_stride      = 0;
     int byte_size           = 0;
     const auto data_type    = output_blob->GetBlobDesc().data_type;
@@ -195,13 +196,14 @@ static Status FastSliceForHW(const std::vector<Blob *> &inputs, const std::vecto
     }
     int channel_up = UP_DIV(channel, channel_stride);
     // end may be max int value;
-    int step_size = step * channel_stride;
+    int step_size = step * channel_stride * byte_size;
     for (int b = 0; b < batch; ++b) {
-        for (int c = 0; c < channel_up; ++c) {
-            int input_offset  = (b * channel_up * original_axis + c * original_axis + begin) * step_size;
-            int output_offset = (b * channel_up * slice_axis + c * slice_axis) * step_size;
-            memcpy(output_ptr + output_offset * byte_size, input_ptr + input_offset * byte_size,
-                   (end - begin) * step_size * byte_size);
+        auto *input_batch_ptr  = input_ptr + b * channel_up * count * original_axis * step_size;
+        auto *output_batch_ptr = output_ptr + b * channel_up * count * slice_axis * step_size;
+        for (int c = 0; c < channel_up * count; ++c) {
+            auto *input_slice  = input_batch_ptr + (c * original_axis + begin) * step_size;
+            auto *output_slice = output_batch_ptr + (c * slice_axis) * step_size;
+            memcpy(output_slice, input_slice, (end - begin) * step_size);
         }
     }
     return TNN_OK;
