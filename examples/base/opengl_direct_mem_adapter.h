@@ -24,12 +24,12 @@
 
 #include <string>
 
-#include "../../source/tnn/device/opencl/opencl_wrapper.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/tnn.h"
 #include "tnn/utils/mat_utils.h"
 
 #if defined(SHARING_MEM_WITH_OPENGL) && (CL_HPP_TARGET_OPENCL_VERSION >= 120)
+#include "../../source/tnn/device/opencl/opencl_wrapper.h"
 #if _WIN32
 #include <windows.h>
 #define GL_GLEXT_PROTOTYPES
