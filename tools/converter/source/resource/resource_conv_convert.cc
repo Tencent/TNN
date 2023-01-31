@@ -27,7 +27,6 @@ TNN_NS::Status ResourceConvConvert::ConvertToHalfResource(std::shared_ptr<TNN_NS
     auto resource           = std::dynamic_pointer_cast<TNN_NS::ConvLayerResource>(layer_resource);
     resource->filter_handle = TNN_NS::ConvertFloatToFP16(resource->filter_handle);
     resource->bias_handle   = TNN_NS::ConvertFloatToFP16(resource->bias_handle);
-    resource->scale_handle  = TNN_NS::ConvertFloatToFP16(resource->scale_handle);
     return TNN_NS::TNN_CONVERT_OK;
 }
 

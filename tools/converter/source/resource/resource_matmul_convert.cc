@@ -24,8 +24,8 @@ DECLARE_RESOURCE_CONVERT(MatMul);
 
 TNN_NS::Status ResourceMatMulConvert::ConvertToHalfResource(std::shared_ptr<TNN_NS::LayerParam> param,
                                                             std::shared_ptr<TNN_NS::LayerResource> layer_resource) {
-    auto resource          = std::dynamic_pointer_cast<TNN_NS::MatMulLayerResource>(layer_resource);
-    resource->scale_handle = TNN_NS::ConvertFloatToFP16(resource->scale_handle);
+    auto resource    = std::dynamic_pointer_cast<TNN_NS::MatMulLayerResource>(layer_resource);
+    resource->weight = TNN_NS::ConvertFloatToFP16(resource->weight);
     return TNN_NS::TNN_CONVERT_OK;
 }
 
