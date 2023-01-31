@@ -20,26 +20,14 @@
 
 namespace TNN_CONVERTER {
 
-DECLARE_RESOURCE_CONVERT(Binary);
+DECLARE_RESOURCE_CONVERT(DetectionPostProcess);
 
-TNN_NS::Status ResourceBinaryConvert::ConvertToHalfResource(std::shared_ptr<TNN_NS::LayerParam> param,
-                                                            std::shared_ptr<TNN_NS::LayerResource> layer_resource) {
-    auto resource            = std::dynamic_pointer_cast<TNN_NS::EltwiseLayerResource>(layer_resource);
-    resource->element_handle = TNN_NS::ConvertFloatToFP16(resource->element_handle);
-
+TNN_NS::Status ResourceDetectionPostProcessConvert::ConvertToHalfResource(
+    std::shared_ptr<TNN_NS::LayerParam> param, std::shared_ptr<TNN_NS::LayerResource> layer_resource) {
+    auto resource            = std::dynamic_pointer_cast<TNN_NS::DetectionPostProcessLayerResource>(layer_resource);
+    resource->anchors_handle = TNN_NS::ConvertFloatToFP16(resource->anchors_handle);
     return TNN_NS::TNN_CONVERT_OK;
 }
 
-REGISTER_RESOURCE_CONVERT(Binary, Add);
-REGISTER_RESOURCE_CONVERT(Binary, Sub);
-REGISTER_RESOURCE_CONVERT(Binary, Mul);
-REGISTER_RESOURCE_CONVERT(Binary, Div);
-REGISTER_RESOURCE_CONVERT(Binary, Minimum);
-REGISTER_RESOURCE_CONVERT(Binary, Maximum);
-REGISTER_RESOURCE_CONVERT(Binary, Less);
-REGISTER_RESOURCE_CONVERT(Binary, Greater);
-REGISTER_RESOURCE_CONVERT(Binary, And);
-REGISTER_RESOURCE_CONVERT(Binary, Not);
-REGISTER_RESOURCE_CONVERT(Binary, Square);
-REGISTER_RESOURCE_CONVERT(Binary, SquaredDifference);
+REGISTER_RESOURCE_CONVERT(DetectionPostProcess, DetectionPostProcess);
 }  // namespace TNN_CONVERTER

@@ -23,7 +23,6 @@
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/interpreter/net_structure.h"
 #include "utils/command.h"
-#include "utils/convert_raw_buffer.h"
 #include "utils/flags.h"
 #include "utils/generate_model.h"
 #include "utils/model_config.h"
@@ -31,11 +30,6 @@
 namespace TNN_CONVERTER {
 int Run(int argc, char* argv[]) {
     ParseCommandLine(argc, argv);
-
-    //    if (FLAGS_half) {
-    //        auto convert_raw_buffer = ConvertRawBuffer::GetInstance();
-    //        convert_raw_buffer->SetTargetDataType(TNN_NS::DATA_TYPE_HALF);
-    //    }
 
     auto interpreter =
         std::shared_ptr<TNN_NS::AbstractModelInterpreter>(TNN_NS::CreateModelInterpreter(TNN_NS::MODEL_TYPE_TNN));
