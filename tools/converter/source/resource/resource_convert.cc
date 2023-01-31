@@ -23,7 +23,7 @@ TNN_NS::Status ResourceConvert::SetResourceConvertType(ResourceConvertType resou
     this->resource_convert_type_ = resource_convert_type;
     return TNN_NS::TNN_OK;
 }
-TNN_NS::Status ResourceConvert::converter(tnn::NetStructure& net_structure, tnn::NetResource& net_resource) {
+TNN_NS::Status ResourceConvert::converter(TNN_NS::NetStructure& net_structure, TNN_NS::NetResource& net_resource) {
     if (resource_convert_type_ == RESOURCE_KEEP_ORIGINAL) {
         return TNN_NS::TNN_OK;
     }
