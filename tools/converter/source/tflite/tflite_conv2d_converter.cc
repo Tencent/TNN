@@ -303,7 +303,7 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
         auto original_weight_ptr =
             reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
         TFLiteConvertOHWI2OIHW(original_weight_ptr, filter_handle.force_to<float*>(), co, kh, kw, ci);
-        layer_resource->filter_handle = ConvertRawBuffer::GetInstance()->Convert(filter_handle);
+        layer_resource->filter_handle = filter_handle;
         // bias
         if (input_size == 3) {
             const auto& bias_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
@@ -311,7 +311,7 @@ TNN_NS::Status TFLiteConv2DConverter::exec(TNN_NS::NetStructure& net_structure, 
             if (bias_data_ptr != nullptr) {
                 TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(param->output_channel * sizeof(float));
                 ::memcpy(bias_handle.force_to<float*>(), bias_data_ptr, param->output_channel * sizeof(float));
-                layer_resource->bias_handle = ConvertRawBuffer::GetInstance()->Convert(bias_handle);
+                layer_resource->bias_handle = bias_handle;
             }
         }
         net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
