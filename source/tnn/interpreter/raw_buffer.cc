@@ -173,6 +173,8 @@ RawBuffer ConvertHalfHandle(RawBuffer &buf) {
         auto data_count = buf.GetDataCount();
         RawBuffer buf_f32(data_count * sizeof(float));
         ConvertFromHalfToFloat(buf.force_to<void *>(), buf_f32.force_to<float *>(), data_count);
+        buf_f32.SetDataType(DATA_TYPE_FLOAT);
+        buf_f32.SetBufferDims(buf.GetBufferDims());
         return buf_f32;
     } else {
         return buf;
@@ -188,6 +190,7 @@ RawBuffer ConvertFloatToBFP16(RawBuffer &buf) {
         RawBuffer buf_bfp16(data_count * sizeof(bfp16_t));
         ConvertFromFloatToBFP16(buf.force_to<float *>(), buf_bfp16.force_to<void *>(), data_count);
         buf_bfp16.SetDataType(DATA_TYPE_BFP16);
+        buf_bfp16.SetBufferDims(buf.GetBufferDims());
         return buf_bfp16;
     } else {
         return buf;
@@ -204,6 +207,7 @@ RawBuffer ConvertHalfToBFP16(RawBuffer &buf) {
         RawBuffer buf_bfp16(data_count * sizeof(bfp16_t));
         ConvertFromFloatToBFP16(buf_fp32.force_to<float *>(), buf_bfp16.force_to<void *>(), data_count);
         buf_bfp16.SetDataType(DATA_TYPE_BFP16);
+        buf_bfp16.SetBufferDims(buf.GetBufferDims());
         return buf_bfp16;
     } else {
         return buf;
