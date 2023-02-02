@@ -65,12 +65,15 @@ TNN_NS::Status OnnxInt8InnerProductConverter::exec(
         input_blob_scale->name               = input_blob_scale_name;
         TNN_NS::RawBuffer input_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&input_scale);
         input_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        input_scale_handle.SetBufferDims({1});
         input_blob_scale->scale_handle = input_scale_handle;
         TNN_NS::RawBuffer bias_handle  = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&input_zero_point);
         bias_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        bias_handle.SetBufferDims({1});
         input_blob_scale->bias_handle       = bias_handle;
         TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int8_t));
         zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+        zero_point_handle.SetBufferDims({1});
         input_blob_scale->zero_point_handle              = zero_point_handle;
         net_resource.resource_map[input_blob_scale_name] = std::shared_ptr<TNN_NS::LayerResource>(input_blob_scale);
     }
@@ -86,15 +89,18 @@ TNN_NS::Status OnnxInt8InnerProductConverter::exec(
     layer_resource->name            = cur_layer->name;
     TNN_NS::RawBuffer weight_handle = TNN_NS::RawBuffer(weight_count * sizeof(uint8_t));
     weight_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+    weight_handle.SetBufferDims({weight_shape[0], weight_shape[1]});
     ::memcpy(weight_handle.force_to<uint8_t *>(), weight_value.data(), weight_count * sizeof(uint8_t));
     layer_resource->weight_handle = weight_handle;
     // quantized weight scale
     auto cal_weight_scale          = input_scale * weight_scale;
     TNN_NS::RawBuffer scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&cal_weight_scale);
     scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+    scale_handle.SetBufferDims({1});
     layer_resource->scale_handle        = scale_handle;
     TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int8_t));
     zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+    zero_point_handle.SetBufferDims({1});
     layer_resource->zero_point_handle = zero_point_handle;
 
     if (input_size > 2) {
@@ -115,6 +121,9 @@ TNN_NS::Status OnnxInt8InnerProductConverter::exec(
         assert(bias_zero_point == 0);
         TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(cal_bias_value.size() * sizeof(int32_t));
         bias_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        TNN_NS::DimsVector bias_dims;
+        bias_dims.push_back(cal_bias_value.size());
+        bias_handle.SetBufferDims(bias_dims);
         ::memcpy(bias_handle.force_to<int32_t *>(), cal_bias_value.data(), bias_value.size() * sizeof(int32_t));
         layer_resource->bias_handle = bias_handle;
     }
@@ -131,12 +140,15 @@ TNN_NS::Status OnnxInt8InnerProductConverter::exec(
         output_blob_scale->name               = output_blob_cale_name;
         TNN_NS::RawBuffer output_scale_handle = TNN_NS::RawBuffer(1 * sizeof(float), (char *)&output_scale);
         output_scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        output_scale_handle.SetBufferDims({1});
         output_blob_scale->scale_handle = output_scale_handle;
         TNN_NS::RawBuffer bias_handle   = TNN_NS::RawBuffer(1 * sizeof(int32_t), (char *)&output_zero_point);
         bias_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        bias_handle.SetBufferDims({1});
         output_blob_scale->bias_handle      = bias_handle;
         TNN_NS::RawBuffer zero_point_handle = TNN_NS::RawBuffer(1 * sizeof(int8_t));
         zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+        zero_point_handle.SetBufferDims({1});
         output_blob_scale->zero_point_handle             = zero_point_handle;
         net_resource.resource_map[output_blob_cale_name] = std::shared_ptr<TNN_NS::LayerResource>(output_blob_scale);
     }

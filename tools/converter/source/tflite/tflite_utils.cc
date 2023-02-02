@@ -219,6 +219,9 @@ TNN_NS::Status CreateBlobScaleResource(TNN_NS::NetResource& net_resource,
         }
         auto scale_handle = TNN_NS::RawBuffer(scales.size() * sizeof(float));
         scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        TNN_NS::DimsVector scale_dims;
+        scale_dims.push_back(scales.size());
+        scale_handle.SetBufferDims(scale_dims);
         auto scale_handle_data = scale_handle.force_to<float*>();
         for (int i = 0; i < scales.size(); i++) {
             scale_handle_data[i] = scales[i];
@@ -227,10 +230,12 @@ TNN_NS::Status CreateBlobScaleResource(TNN_NS::NetResource& net_resource,
         // for symmetric quantization zero point always is 0
         auto zero_point_handle = TNN_NS::RawBuffer(scales.size() * sizeof(int8_t));
         zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+        zero_point_handle.SetBufferDims(scale_dims);
         scale_resource->zero_point_handle = zero_point_handle;
 
         auto bias_handle = TNN_NS::RawBuffer(scales.size() * sizeof(int32_t));
         bias_handle.SetDataType(TNN_NS::DATA_TYPE_INT32);
+        bias_handle.SetBufferDims(scale_dims);
         scale_resource->bias_handle = bias_handle;
     }
     return TNN_NS::TNN_CONVERT_OK;

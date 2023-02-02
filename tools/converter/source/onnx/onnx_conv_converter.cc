@@ -93,6 +93,7 @@ TNN_NS::Status OnnxConvConverter::exec(TNN_NS::NetStructure &net_structure, TNN_
     const int weight_count          = co * kh * kw * ci;
     TNN_NS::RawBuffer filter_handle = TNN_NS::RawBuffer(weight_count * sizeof(float));
     filter_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+    filter_handle.SetBufferDims({co, ci, kh, kw});
     auto *filter_tensor_data = reinterpret_cast<const float *>(GetTensorProtoData(*filter_tensor));
     ::memcpy(filter_handle.force_to<float *>(), filter_tensor_data, weight_count * sizeof(float));
     layer_resource->filter_handle = filter_handle;
@@ -100,6 +101,7 @@ TNN_NS::Status OnnxConvConverter::exec(TNN_NS::NetStructure &net_structure, TNN_
     if (has_bias) {
         TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(co * sizeof(float));
         bias_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        bias_handle.SetBufferDims({co});
         const auto &bias_name   = node.input(2);
         const auto *bias_tensor = proxy_initializers_map[bias_name];
         auto *bias_tensor_data  = reinterpret_cast<const float *>(GetTensorProtoData(*bias_tensor));

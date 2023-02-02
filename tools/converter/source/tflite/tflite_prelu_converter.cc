@@ -61,6 +61,8 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
         auto layer_resource            = new TNN_NS::PReluLayerResource;
         layer_resource->name           = cur_layer->name;
         TNN_NS::RawBuffer slope_handle = TNN_NS::RawBuffer(1 * sizeof(float));
+        slope_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        slope_handle.SetBufferDims({1});
         ::memcpy(slope_handle.force_to<float*>(), &alpha, 1 * sizeof(float));
         layer_resource->slope_handle               = slope_handle;
         net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
@@ -71,6 +73,8 @@ TNN_NS::Status TFLitePReluConverter::exec(TNN_NS::NetStructure& net_structure, T
         auto layer_resource            = new TNN_NS::PReluLayerResource;
         layer_resource->name           = cur_layer->name;
         TNN_NS::RawBuffer slope_handle = TNN_NS::RawBuffer(co * sizeof(float));
+        slope_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        slope_handle.SetBufferDims({co});
         auto data_ptr = reinterpret_cast<const float*>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
         ::memcpy(slope_handle.force_to<float*>(), data_ptr, sizeof(float) * co);
         layer_resource->slope_handle = slope_handle;
