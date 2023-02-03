@@ -122,7 +122,7 @@ try:
           ext_modules=[CMakeExtension('onnx2tnn.onnx2tnn', '.')],
           cmdclass=dict(build_ext=CMakeBuild),
           install_requires=[
-              'onnx==1.6',
+              'onnx==1.13.0',
               'onnxruntime==1.1',
               'onnx-simplifier==0.2.4',
           ])
