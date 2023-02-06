@@ -519,9 +519,10 @@ class LSTMONNXLayerResourceGenerator : public LayerResourceGenerator {
         fill_map_for_blob(inputs[2]);
         fill_map_for_blob(inputs[3]);
         
-        //
-        fill_map_for_blob(inputs[4]);
-        fill_map_for_blob(inputs[5]);
+        if (inputs.size() == 6) {
+            fill_map_for_blob(inputs[4]);
+            fill_map_for_blob(inputs[5]);
+        }
         return TNN_OK;
     }
 

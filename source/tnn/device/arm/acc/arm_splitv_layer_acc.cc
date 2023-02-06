@@ -32,25 +32,35 @@ static DimsVector GetNCXHWXRoundDims(const DimsVector &dims, const int round) {
 
 // batch || height || width, no channel
 static int splitv_common(Blob *input, const std::vector<Blob *> &outputs, SplitVLayerParam *param) {
+    const auto &data_type = input->GetBlobDesc().data_type;
     const int axis        = param->axis;
     auto input_dims       = input->GetBlobDesc().dims;
-    auto round_input_dims = GetNCXHWXRoundDims(input_dims, 4);
+    int round_size        = 0;
+    int byte_size         = 0;
+    if (data_type == DATA_TYPE_FLOAT) {
+        round_size = 4;
+        byte_size  = sizeof(float);
+    } else {
+        round_size = 8;
+        byte_size  = sizeof(fp16_t);
+    }
+    auto round_input_dims = GetNCXHWXRoundDims(input_dims, round_size);
+
     const int batch       = DimsVectorUtils::Count(round_input_dims, 0, axis);
     const int slice_size  = DimsVectorUtils::Count(round_input_dims, axis + 1);
     const int slice_input = input_dims[axis];
-    auto input_data       = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
+    char *input_data      = GetBlobHandlePtr(input->GetHandle());
 
     for (int b = 0; b < batch; b++) {
         int slice_input_offset = 0;
         for (int i = 0; i < outputs.size(); i++) {
-            auto output_blob = outputs[i];
-            auto output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
-            const int slice  = output_blob->GetBlobDesc().dims[axis];
+            auto output_blob      = outputs[i];
+            char *output_data     = GetBlobHandlePtr(output_blob->GetHandle());
+            const int slice       = output_blob->GetBlobDesc().dims[axis];
+            char *output_data_ptr = output_data + b * slice * slice_size * byte_size;
+            char *input_data_ptr  = input_data + (b * slice_input + slice_input_offset) * slice_size * byte_size;
 
-            auto output_data_ptr = output_data + b * slice * slice_size;
-            auto input_data_ptr  = input_data + b * slice_input * slice_size + slice_input_offset * slice_size;
-
-            memcpy(output_data_ptr, input_data_ptr, slice * slice_size * sizeof(float));
+            memcpy(output_data_ptr, input_data_ptr, slice * slice_size * byte_size);
             slice_input_offset += slice;
         }
     }
@@ -58,44 +68,59 @@ static int splitv_common(Blob *input, const std::vector<Blob *> &outputs, SplitV
 }
 
 static int splitv_channel(Blob *input, const std::vector<Blob *> &outputs, SplitVLayerParam *param) {
-    const int axis              = param->axis;
-    auto input_dims             = input->GetBlobDesc().dims;
-    auto input_data             = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
-    DimsVector round_input_dims = GetNCXHWXRoundDims(input_dims, 4);
+    const int axis   = param->axis;
+    auto input_dims  = input->GetBlobDesc().dims;
+    char *input_data = GetBlobHandlePtr(input->GetHandle());
+    auto data_type   = input->GetBlobDesc().data_type;
+    int round_size   = 0;
+    int byte_size    = 0;
+    if (data_type == DATA_TYPE_FLOAT) {
+        round_size = 4;
+        byte_size  = sizeof(float);
+    } else {
+        round_size = 8;
+        byte_size  = sizeof(fp16_t);
+    }
+    DimsVector round_input_dims = GetNCXHWXRoundDims(input_dims, round_size);
 
     int slice_offset = 0;
     for (int i = 0; i < outputs.size(); i++) {
         auto output                  = outputs[i];
         auto output_dims             = output->GetBlobDesc().dims;
-        DimsVector round_output_dims = GetNCXHWXRoundDims(output_dims, 4);
-        auto output_data             = reinterpret_cast<float *>(GetBlobHandlePtr(output->GetHandle()));
+        DimsVector round_output_dims = GetNCXHWXRoundDims(output_dims, round_size);
+        char *output_data            = GetBlobHandlePtr(output->GetHandle());
         const int slice              = output_dims[axis];
         auto plane                   = DimsVectorUtils::Count(output_dims, 2);
         for (int b = 0; b < output_dims[0]; b++) {
-            auto input_b  = input_data + b * DimsVectorUtils::Count(round_input_dims, 1);
-            auto output_b = output_data + b * DimsVectorUtils::Count(round_output_dims, 1);
-            for (int c = 0; c < UP_DIV(output_dims[1], 4); c++) {
-                auto output_z    = output_b + c * DimsVectorUtils::Count(round_output_dims, 2);
-                auto input_c_idx = c * 4 + slice_offset;
-                auto c_remain    = output_dims[1] - c * 4;
-                auto c_c         = c_remain >= 4 ? 4 : c_remain;
+            char *input_b  = input_data + b * DimsVectorUtils::Count(round_input_dims, 1) * byte_size;
+            char *output_b = output_data + b * DimsVectorUtils::Count(round_output_dims, 1) * byte_size;
+            for (int c = 0; c < UP_DIV(output_dims[1], round_size); c++) {
+                char *output_z   = output_b + c * DimsVectorUtils::Count(round_output_dims, 2) * byte_size;
+                auto input_c_idx = c * round_size + slice_offset;
+                auto c_remain    = output_dims[1] - c * round_size;
+                auto c_c         = c_remain >= round_size ? round_size : c_remain;
                 // both src and dst can use float4
-                if (slice_offset % 4 == 0 && c * 4 + 3 < output_dims[1]) {
-                    auto input_z = input_b + input_c_idx * plane;
+                if (slice_offset % round_size == 0 && (c + 1) * round_size <= output_dims[1]) {
+                    char *input_z = input_b + input_c_idx * plane * byte_size;
                     for (int p = 0; p < plane; p++) {
-                        Float4::save(output_z + p * 4, Float4::load(input_z + p * 4));
+                        memcpy(output_z + p * round_size * byte_size, input_z + p * round_size * byte_size,
+                               round_size * byte_size);
                     }
                 } else {
-                    int s;
-                    for (s = 0; s < c_c; s++) {
-                        auto src_start = ((input_c_idx + s) / 4) * plane * 4 + ((input_c_idx + s) % 4);
+                    int s = 0;
+                    for (; s < c_c; s++) {
+                        auto src_start =
+                            ((input_c_idx + s) / round_size) * plane * round_size + ((input_c_idx + s) % round_size);
                         auto dst_start = s;
-                        for (int p = 0; p < plane; p++)
-                            output_z[dst_start + p * 4] = input_b[src_start + p * 4];
+                        for (int p = 0; p < plane; p++) {
+                            memcpy(output_z + (dst_start + p * round_size) * byte_size,
+                                   input_b + (src_start + p * round_size) * byte_size, byte_size);
+                        }
                     }
-                    for (; s < 4; s++) {
-                        for (int p = 0; p < plane; p++)
-                            output_z[s + p * 4] = 0.f;
+                    for (; s < round_size; s++) {
+                        for (int p = 0; p < plane; p++) {
+                            memset(output_z + (s + p * round_size) * byte_size, 0.0f, byte_size);
+                        }
                     }
                 }
             }
@@ -106,28 +131,36 @@ static int splitv_channel(Blob *input, const std::vector<Blob *> &outputs, Split
     return 0;
 }
 
-static int splitv_channel_c4(Blob *input, const std::vector<Blob *> &outputs, SplitVLayerParam *param) {
-    const int axis        = param->axis;
-    auto input_dims       = input->GetBlobDesc().dims;
-    auto round_input_dims = GetNCXHWXRoundDims(input_dims, 4);
+static int splitv_channel_round(Blob *input, const std::vector<Blob *> &outputs, SplitVLayerParam *param) {
+    const int axis  = param->axis;
+    auto input_dims = input->GetBlobDesc().dims;
+    auto data_type  = input->GetBlobDesc().data_type;
+    int round_size  = 0;
+    int byte_size   = 0;
+    if (data_type == DATA_TYPE_FLOAT) {
+        round_size = 4;
+        byte_size  = sizeof(float);
+    } else {
+        round_size = 8;
+        byte_size  = sizeof(fp16_t);
+    }
+    auto round_input_dims = GetNCXHWXRoundDims(input_dims, round_size);
     const int batch       = DimsVectorUtils::Count(round_input_dims, 0, axis);
     const int slice_size  = DimsVectorUtils::Count(round_input_dims, axis + 1);
     // different from split common, treat 4 element in channel as one
-    const int slice_input = UP_DIV(input_dims[axis], 4);
-    auto input_data       = reinterpret_cast<float *>(GetBlobHandlePtr(input->GetHandle()));
+    const int slice_input = UP_DIV(input_dims[axis], round_size);
+    char *input_data      = GetBlobHandlePtr(input->GetHandle());
 
     for (int b = 0; b < batch; b++) {
         int slice_input_offset = 0;
         for (int i = 0; i < outputs.size(); i++) {
-            auto output_blob = outputs[i];
-            auto output_data = reinterpret_cast<float *>(GetBlobHandlePtr(output_blob->GetHandle()));
+            auto output_blob  = outputs[i];
+            char *output_data = GetBlobHandlePtr(output_blob->GetHandle());
             // different from split common, treat 4 element in channel as one
-            const int slice  = UP_DIV(output_blob->GetBlobDesc().dims[axis], 4);
-
-            auto output_data_ptr = output_data + b * slice * slice_size;
-            auto input_data_ptr  = input_data + b * slice_input * slice_size + slice_input_offset * slice_size;
-
-            memcpy(output_data_ptr, input_data_ptr, slice * slice_size * sizeof(float));
+            const int slice       = UP_DIV(output_blob->GetBlobDesc().dims[axis], round_size);
+            char *output_data_ptr = output_data + b * slice * slice_size * byte_size;
+            char *input_data_ptr  = input_data + (b * slice_input + slice_input_offset) * slice_size * byte_size;
+            memcpy(output_data_ptr, input_data_ptr, slice * slice_size * byte_size);
             slice_input_offset += slice;
         }
     }
@@ -139,25 +172,31 @@ Status ArmSplitVLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     if (!layer_param || layer_param->slices.size() != outputs.size()) {
         return Status(TNNERR_PARAM_ERR, "ArmSplitVLayerAcc has invalid param, slices size != output blobs size");
     }
-
-    const int axis    = layer_param->axis;
-    auto input_blob   = inputs[0];
-    bool is_chanel_c4 = false;
+    const int axis         = layer_param->axis;
+    const auto &input_blob = inputs[0];
+    const auto &data_type  = input_blob->GetBlobDesc().data_type;
+    bool is_channel_round  = false;
+    int round_size         = 0;
+    if (data_type == DATA_TYPE_FLOAT) {
+        round_size = 4;
+    } else {
+        round_size = 8;
+    }
     if (axis == 1) {
-        is_chanel_c4 = true;
+        is_channel_round = true;
         for (int i = 0; i < outputs.size() - 1; i++) {
             auto output_dims = outputs[i]->GetBlobDesc().dims;
-            if (output_dims[1] % 4) {
-                is_chanel_c4 = false;
+            if (output_dims[1] % round_size) {
+                is_channel_round = false;
                 break;
             }
         }
     }
 
-    if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF) {
         if (axis == 1) {
-            if (is_chanel_c4) {
-                splitv_channel_c4(input_blob, outputs, layer_param);
+            if (is_channel_round) {
+                splitv_channel_round(input_blob, outputs, layer_param);
             } else {
                 splitv_channel(input_blob, outputs, layer_param);
             }
@@ -177,5 +216,6 @@ Status ArmSplitVLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 
 REGISTER_ARM_ACC(SplitV, LAYER_SPLITV);
 REGISTER_ARM_LAYOUT(LAYER_SPLITV, DATA_FORMAT_NC4HW4)
+REGISTER_ARM_PRECISION_FP16(LAYER_SPLITV);
 
 }  // namespace TNN_NS

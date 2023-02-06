@@ -17,37 +17,33 @@
 
 #include <string>
 
+#include "tnn/core/macro.h"
+
 namespace TNN_NS {
 
-static const std::string kNetOptimizerFuseConvPost =
-    "net_optimizer_fuse_conv_post";
+extern const char * kNetOptimizerFuseConvPost;
 
-static const std::string kNetOptimizerFuseConvAdd =
-    "net_optimizer_fuse_conv_add";
+extern const char * kNetOptimizerFuseConvActivation;
 
-static const std::string kNetOptimizerCbamFusedReduce =
-    "net_optimizer_cbam_fused_reduce";
+extern const char * kNetOptimizerFuseConvAdd;
 
-static const std::string kNetOptimizerCbamFusedPooling =
-    "net_optimizer_cbam_fused_pooling";
+extern const char * kNetOptimizerCbamFusedReduce;
 
-static const std::string kNetOptimizerInsertInt8Reformat =
-    "net_optimizer_insert_int8_reformat";
+extern const char * kNetOptimizerCbamFusedPooling;
 
-static const std::string kNetOptimizerInsertFp16Reformat =
-    "net_optimizer_insert_fp16_reformat";
+extern const char * kNetOptimizerInsertInt8Reformat;
 
-static const std::string kNetOptimizerInsertLayoutReformat =
-    "net_optimizer_insert_layout_reformat";
+extern const char * kNetOptimizerInsertFp16Reformat;
 
-static const std::string kNetOptimizerRemoveLayers =
-    "net_optimizer_remove_layers";
+extern const char * kNetOptimizerInsertLayoutReformat;
 
-static const std::string kNetOptimizerConvertInt8Layers =
-    "net_optimizer_convert_int8_layers";
+extern const char * kNetOptimizerRemoveLayers;
 
-static const std::string kNetOptimizerDynamicRangeDequant =
-    "net_optimizer_dynamic_range_dequant";
+extern const char * kNetOptimizerConvertInt8Layers;
+
+extern const char * kNetOptimizerDynamicRangeDequant;
+
+extern const char * kNetOptimizerConvertMatMulToConv;
 
 }
 

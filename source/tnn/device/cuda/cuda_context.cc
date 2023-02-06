@@ -147,7 +147,7 @@ void CudaContext::SetWorkspaceSize(int size) {
 Status CudaContext::Synchronize() {
     cudaError_t status = cudaStreamSynchronize(stream_);
     if (cudaSuccess != status) {
-        LOGE("cuda strema synchronize failed\n");
+        LOGE("cuda stream synchronize failed\n");
         return TNNERR_CUDA_SYNC_ERROR;
     }
     return TNN_OK;

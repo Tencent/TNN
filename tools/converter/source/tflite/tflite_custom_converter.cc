@@ -76,8 +76,10 @@ TNN_NS::Status TFLiteCustomConverter::exec(TNN_NS::NetStructure &net_structure, 
             param->num_anchors               = anchors_tensor_shape[0];
             param->anchors_coord_num         = anchors_tensor_shape[1];
             TNN_NS::RawBuffer anchors_handle = TNN_NS::RawBuffer(anchors_size * sizeof(float));
+            anchors_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+            anchors_handle.SetBufferDims(anchors_tensor_shape);
             ::memcpy(anchors_handle.force_to<float *>(), anchors_data_ptr, anchors_size * sizeof(float));
-            layer_resource->anchors_handle = ConvertRawBuffer::GetInstance()->Convert(anchors_handle);
+            layer_resource->anchors_handle = anchors_handle;
         }
         net_resource.resource_map[cur_layer->name] = layer_resource;
     }

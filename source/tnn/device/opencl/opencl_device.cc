@@ -55,6 +55,11 @@ Status OpenCLDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) 
     if (mat_type == N8UC4) {
         auto size_info = Calculate(desc);
         return Allocate(handle, size_info);
+    } else if (mat_type == NGRAY) {
+        desc.data_type = DATA_TYPE_INT8;
+        desc.data_format = DATA_FORMAT_NCHW;
+        auto size_info = Calculate1DMemorySize(desc);
+        return Allocate(handle, size_info);
     } else {
         LOGE("opencl allocator not support this mat type: %d\n", mat_type);
         return Status(TNNERR_PARAM_ERR, "opencl not support this mat type");
@@ -65,7 +70,8 @@ Status OpenCLDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) 
 Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
     OpenCLRuntime* opencl_runtime = OpenCLRuntime::GetInstance();
 
-    if (DATA_TYPE_HALF != desc.data_type && DATA_TYPE_FLOAT != desc.data_type && DATA_TYPE_INT32 != desc.data_type) {
+    if (DATA_TYPE_HALF != desc.data_type && DATA_TYPE_FLOAT != desc.data_type && DATA_TYPE_INT32 != desc.data_type &&
+        DATA_TYPE_INT8 != desc.data_type) {
         LOGE("opencl allocator not support this data type: %d\n", desc.data_type);
         return Status(TNNERR_PARAM_ERR, "opencl not support this data type");
     }
@@ -95,7 +101,6 @@ Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
     } else if (desc.dims.size() == 1) {
         // allocate clBuffer
         cl_mem_flags mem_flag     = CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR;
-        cl_channel_type data_type = CL_FLOAT;
         int type_size = sizeof(float);
 
         if (DATA_TYPE_HALF == desc.data_type && opencl_runtime->GetPrecision() != PRECISION_HIGH) {
@@ -103,6 +108,9 @@ Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
         }
         if (DATA_TYPE_INT32 == desc.data_type) {
             type_size = sizeof(int);
+        }
+        if (DATA_TYPE_INT8 == desc.data_type) {
+            type_size = 1;
         }
         cl_int error;
         *handle = new cl::Buffer(*opencl_runtime->Context(), mem_flag, (cl::size_type)(type_size * desc.dims[0]),

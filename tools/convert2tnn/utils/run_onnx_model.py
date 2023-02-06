@@ -26,7 +26,10 @@ from utils.run_src_model import BaseRunner
 class OnnxRunner(BaseRunner):
     def get_src_model_input_information(self) -> dict:
         onnxruntime.set_default_logger_severity(3)
-        session = onnxruntime.InferenceSession(self.src_model_path)
+        so = onnxruntime.SessionOptions()
+        so.inter_op_num_threads = 1
+        so.intra_op_num_threads = 1
+        session = onnxruntime.InferenceSession(self.src_model_path, providers=['CPUExecutionProvider'], sess_options=so)
         input_info: dict = {}
         for ip in session.get_inputs():
             name = ip.name
@@ -70,7 +73,10 @@ class OnnxRunner(BaseRunner):
         return True
 
     def inference(self) -> dict:
-        session = onnxruntime.InferenceSession(self.modify_model_path)
+        so = onnxruntime.SessionOptions()
+        so.inter_op_num_threads = 1
+        so.intra_op_num_threads = 1
+        session = onnxruntime.InferenceSession(self.modify_model_path, providers=['CPUExecutionProvider'], sess_options=so)
         outputs = [x.name for x in session.get_outputs()]
         dump_data = OrderedDict(zip(outputs, session.run(outputs, self.input_data)))
 

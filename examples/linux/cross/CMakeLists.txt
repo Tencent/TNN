@@ -22,12 +22,12 @@ include_directories(${CMAKE_SOURCE_DIR}/../../base)
 include_directories(${CMAKE_SOURCE_DIR}/../../utils)
 link_directories(${TNN_LIB_PATH})
 
-link_libraries(-Wl,--whole-archive TNN -Wl,--no-whole-archive)
-
 add_subdirectory(${TNNRoot}/third_party/gflags ${TNNRoot}/third_party/gflags)
 get_target_property(GFLAGS_INCLUDE_DIRS gflags INTERFACE_INCLUDE_DIRECTORIES)
 include_directories(BEFORE "${GFLAGS_INCLUDE_DIRS}")
 link_libraries(gflags)
+
+link_libraries(-Wl,--whole-archive TNN rt -Wl,--no-whole-archive)
 
 if(TNN_OPENMP_ENABLE)
     FIND_PACKAGE(OpenMP REQUIRED)

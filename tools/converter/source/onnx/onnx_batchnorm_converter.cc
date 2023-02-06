@@ -65,10 +65,14 @@ TNN_NS::Status OnnxBatchNormConverter::exec(TNN_NS::NetStructure &net_structure,
     auto layer_resource            = new TNN_NS::BatchNormLayerResource;
     layer_resource->name           = cur_layer->name;
     TNN_NS::RawBuffer scale_handle = TNN_NS::RawBuffer(channels * sizeof(float));
+    scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+    scale_handle.SetBufferDims({channels});
     ::memcpy(scale_handle.force_to<float *>(), slope, channels * sizeof(float));
     layer_resource->scale_handle = scale_handle;
 
     TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(channels * sizeof(float));
+    bias_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+    bias_handle.SetBufferDims({channels});
     ::memcpy(bias_handle.force_to<float *>(), bias, channels * sizeof(float));
     layer_resource->bias_handle = bias_handle;
 
