@@ -83,9 +83,9 @@ if [ $DEVICE_PLATFORM == "iPhone+Simulator" ]; then
   # 指定 i386
   # xcodebuild -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator -arch i386 build
   if [ $XCODE_MAJOR_VERSION -ge 12 ]; then
-      xcodebuild -quiet -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator OTHER_CFLAGS="-march=x86-64" EXCLUDED_ARCHS=arm64 build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+      xcodebuild build -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator OTHER_CFLAGS="${OTHER_C_FLAGS} -march=x86-64" EXCLUDED_ARCHS=arm64 CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
   else
-      xcodebuild -quiet -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator OTHER_CFLAGS="-march=x86-64" build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+      xcodebuild build -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphonesimulator OTHER_CFLAGS="${OTHER_C_FLAGS} -march=x86-64" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
   fi
   # merge lib
   lipo -create "build/$CONFIGURATION-iphonesimulator/$TARGET_NAME.framework/$TARGET_NAME" "build/$CONFIGURATION-iphoneos/$TARGET_NAME.framework/$TARGET_NAME" -output "build/$TARGET_NAME.framework/$TARGET_NAME"
