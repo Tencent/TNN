@@ -5267,11 +5267,16 @@
 				MTL_OPTIMIZATION_LEVEL = s;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
+					"-Wno-shorten-64-to-32",
+					"-Wno-expansion-to-defined",
+					"-Wno-conditional-uninitialized",
+					"-Wno-comma",
+					"-Wno-uninitialized",
 					"-Wno-deprecated-declarations",
 					"-Wno-ignored-attributes",
 					"-Wno-unused-variable",
 					"-Wno-pass-failed",
-					"-Wunused-function",
+					"-Wno-unused-function",
 					"-march=armv8.2-a+fp16+nolse",
 					"-DTNN_ARM82=defined(__aarch64__)",
 				);
@@ -5325,11 +5330,16 @@
 				MTL_OPTIMIZATION_LEVEL = s;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
+					"-Wno-shorten-64-to-32",
+					"-Wno-expansion-to-defined",
+					"-Wno-conditional-uninitialized",
+					"-Wno-comma",
+					"-Wno-uninitialized",
 					"-Wno-deprecated-declarations",
 					"-Wno-ignored-attributes",
 					"-Wno-unused-variable",
 					"-Wno-pass-failed",
-					"-Wunused-function",
+					"-Wno-unused-function",
 					"-march=armv8.2-a+fp16+nolse",
 					"-DTNN_ARM82=defined(__aarch64__)",
 				);
