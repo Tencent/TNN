@@ -56,7 +56,7 @@ if [[ $DEVICE_PLATFORM == iPhone* ]]; then
   echo '******************** Build iPhone SDK ********************'
   # 指定 arm64
   # xcodebuild -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphoneos -arch arm64 build
-  xcodebuild build -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphoneos OTHER_CFLAGS="${OTHER_C_FLAGS}" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  xcodebuild build -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphoneos OTHER_CFLAGS="${OTHER_C_FLAGS} -march=armv8.2-a+fp16+nolse" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
   cp -r build/$CONFIGURATION-iphoneos/$TARGET_NAME.framework build
 elif [ $DEVICE_PLATFORM == "Mac" ]; then
   echo ' '
