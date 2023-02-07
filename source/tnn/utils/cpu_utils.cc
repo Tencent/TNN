@@ -66,6 +66,10 @@
 #ifndef CPUFAMILY_ARM_AVALANCHE_BLIZZARD
 #define CPUFAMILY_ARM_AVALANCHE_BLIZZARD 0xda33d83d
 #endif
+// A16
+#ifndef CPUFAMILY_ARM_EVEREST_SAWTOOTH
+#define CPUFAMILY_ARM_EVEREST_SAWTOOTH 0x8765edea
+#endif
 #elif TARGET_OS_OSX
 #define __OSX__ 1
 // M1
@@ -370,7 +374,7 @@ bool CpuUtils::CpuSupportFp16() {
     sysctlbyname("hw.cpufamily", &cpu_family, &len, NULL, 0);
     fp16arith = cpu_family == CPUFAMILY_ARM_MONSOON_MISTRAL || cpu_family == CPUFAMILY_ARM_VORTEX_TEMPEST ||
                 cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER || cpu_family == CPUFAMILY_ARM_FIRESTORM_ICESTORM ||
-                cpu_family == CPUFAMILY_ARM_AVALANCHE_BLIZZARD;
+                cpu_family == CPUFAMILY_ARM_AVALANCHE_BLIZZARD || cpu_family == CPUFAMILY_ARM_EVEREST_SAWTOOTH;
     LOGD("CpuUtils::CpuSupportFp16, IOS and arm64, hw.cpufamily = %x, fp16arith = %d.\n", cpu_family, fp16arith);
     return fp16arith;
 #else
