@@ -69,6 +69,8 @@ static Status GetBroadcastType(DimsVector input, DimsVector output, int &type) {
     return TNN_OK;
 }
 
+
+// @brief expand 1 at the begin of dim0 or dim1 to the same size, for example [1, 256, 128] and [128] will be expanded to [1, 256, 128] and [1, 1, 128]
 void EXPAND(DimsVector &dim0, DimsVector &dim1) {
     if (dim0.size() < dim1.size()) {
         // dim0 < dim1
@@ -146,11 +148,10 @@ Status MultidirBroadcastLayer::InferOutputShape(bool ignore_error) {
                 LOGE_IF(!ignore_error, "Error: unsupported broadcast type\n");
                 return Status(TNNERR_LAYER_ERR, "Error: unsupported broadcast type");
             }
-            layer_res->element_shape = weight_shape;
-        } else {
-            layer_res->element_shape = weight_shape;
         }
         EXPAND(input_shape, weight_shape);
+        layer_res->element_shape = weight_shape;
+        layer_res->element_handle.SetBufferDims(weight_shape);
         DimsVector dims_output               = DimsVectorUtils::Max(input_shape, weight_shape);
         output_blobs_[0]->GetBlobDesc().dims = dims_output;
 
