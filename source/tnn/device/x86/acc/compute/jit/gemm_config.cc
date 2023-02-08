@@ -208,26 +208,25 @@ void gemm_config<a_t, b_t, c_t>::init_jit_kernel()
         }
     }
 
+#define SET_X86_GEMM_KERNEL_FUNC(M_BLOCK)                                                                              \
+    for (int m = 1; m <= nb_kernels_m; m++) {                                                                      \
+        for (int n = 1; n <= nb_kernels_n; n++) {                                                                  \
+            if ((g_kernel_##M_BLOCK)[m][n]){                                                                       \
+                kernels_[m][n] = jit::get_func_ptr<jit::sgemm_avx_kernel<0, 0>>((g_kernel_##M_BLOCK)[m][n].get()); \
+            } else {                                                                                               \
+                kernels_[m][n] = nullptr;                                                                          \
+            }                                                                                                      \
+        }                                                                                                          \
+    }
 
-    using kernel_array_ptr = decltype(&g_kernel_16);
-    kernel_array_ptr kernel_array;
     if (m_block_ == 8) {
-        kernel_array = &g_kernel_8;
+        SET_X86_GEMM_KERNEL_FUNC(8);
     } else if (m_block_ == 16)  {
-        kernel_array = &g_kernel_16;
+        SET_X86_GEMM_KERNEL_FUNC(16);
     } else {
         throw std::runtime_error("unsupported m_block value."); 
     }
 
-    for(int m=1;m<=nb_kernels_m;m++) {
-        for(int n=1;n<=nb_kernels_n;n++) {
-            if ((*kernel_array)[m][n]){
-                kernels_[m][n] = jit::get_func_ptr<jit::sgemm_avx_kernel<0, 0>>((*kernel_array)[m][n].get());
-            } else {
-                kernels_[m][n] = nullptr;
-            }
-        }
-    }
     
 }
 
