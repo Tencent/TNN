@@ -119,7 +119,7 @@ Status DefaultNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config
      */
     if (runtime_model_ == RUNTIME_MODE_CONST_FOLD && net_config.network_type != NETWORK_TYPE_COREML) {
         std::unique_lock<std::mutex> lck(optimize_mtx_);
-        auto optimizer = optimizer::NetOptimizerManager::GetNetOptimizerByName("net_optimizer_dynamic_range_dequant");
+        auto optimizer = optimizer::NetOptimizerManager::GetNetOptimizerCreatorByName("net_optimizer_dynamic_range_dequant")();
         if (optimizer) {
             RETURN_ON_NEQ(optimizer->Optimize(net_structure, net_resource), TNN_OK);
         }
@@ -501,8 +501,7 @@ Status DefaultNetwork::PrepareDoReshape(const InputShapesMap& inputs, bool& shap
     for (auto iter : inputs) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
         if (blob == nullptr) {
-            LOGE("DefaultNetwork reshape blob is empty, maybe the blob name is wrong\n");
-            return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty, maybe the blob name is wrong");
+            continue;  // inputs contains groud turth label when train a model, so continues
         }
         if(!DimsVectorUtils::Equal(blob->GetBlobDesc().dims, iter.second)) {
             blob->GetBlobDesc().dims = iter.second;
