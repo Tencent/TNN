@@ -1047,11 +1047,6 @@
 		9EEED1A32869C658000E6E0B /* coreml_network.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9EEED0612869C657000E6E0B /* coreml_network.mm */; };
 		9EEED1A42869C658000E6E0B /* coreml_model.h in Headers */ = {isa = PBXBuildFile; fileRef = 9EEED0622869C657000E6E0B /* coreml_model.h */; };
 		9EEED1A62869C658000E6E0B /* coreml_network.h in Headers */ = {isa = PBXBuildFile; fileRef = 9EEED0642869C657000E6E0B /* coreml_network.h */; };
-		9EEED1A72869C658000E6E0B /* NeuralNetwork.proto in Sources */ = {isa = PBXBuildFile; fileRef = 9EEED0672869C657000E6E0B /* NeuralNetwork.proto */; };
-		9EEED1A82869C658000E6E0B /* DataStructures.proto in Sources */ = {isa = PBXBuildFile; fileRef = 9EEED0682869C657000E6E0B /* DataStructures.proto */; };
-		9EEED1A92869C658000E6E0B /* FeatureTypes.proto in Sources */ = {isa = PBXBuildFile; fileRef = 9EEED0692869C657000E6E0B /* FeatureTypes.proto */; };
-		9EEED1AA2869C658000E6E0B /* Parameters.proto in Sources */ = {isa = PBXBuildFile; fileRef = 9EEED06A2869C657000E6E0B /* Parameters.proto */; };
-		9EEED1AB2869C658000E6E0B /* Model.proto in Sources */ = {isa = PBXBuildFile; fileRef = 9EEED06B2869C657000E6E0B /* Model.proto */; };
 		9EEED1AC2869C658000E6E0B /* Model.pb-c.h in Headers */ = {isa = PBXBuildFile; fileRef = 9EEED06D2869C657000E6E0B /* Model.pb-c.h */; };
 		9EEED1AD2869C658000E6E0B /* protobuf-c.h in Headers */ = {isa = PBXBuildFile; fileRef = 9EEED06F2869C657000E6E0B /* protobuf-c.h */; };
 		9EEED1AE2869C658000E6E0B /* FeatureTypes.pb-c.h in Headers */ = {isa = PBXBuildFile; fileRef = 9EEED0702869C657000E6E0B /* FeatureTypes.pb-c.h */; };
@@ -2412,11 +2407,6 @@
 		9EEED0612869C657000E6E0B /* coreml_network.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = coreml_network.mm; sourceTree = "<group>"; };
 		9EEED0622869C657000E6E0B /* coreml_model.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coreml_model.h; sourceTree = "<group>"; };
 		9EEED0642869C657000E6E0B /* coreml_network.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coreml_network.h; sourceTree = "<group>"; };
-		9EEED0672869C657000E6E0B /* NeuralNetwork.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.protobuf; path = NeuralNetwork.proto; sourceTree = "<group>"; };
-		9EEED0682869C657000E6E0B /* DataStructures.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.protobuf; path = DataStructures.proto; sourceTree = "<group>"; };
-		9EEED0692869C657000E6E0B /* FeatureTypes.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.protobuf; path = FeatureTypes.proto; sourceTree = "<group>"; };
-		9EEED06A2869C657000E6E0B /* Parameters.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.protobuf; path = Parameters.proto; sourceTree = "<group>"; };
-		9EEED06B2869C657000E6E0B /* Model.proto */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.protobuf; path = Model.proto; sourceTree = "<group>"; };
 		9EEED06D2869C657000E6E0B /* Model.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Model.pb-c.h"; sourceTree = "<group>"; };
 		9EEED06F2869C657000E6E0B /* protobuf-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "protobuf-c.h"; sourceTree = "<group>"; };
 		9EEED0702869C657000E6E0B /* FeatureTypes.pb-c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "FeatureTypes.pb-c.h"; sourceTree = "<group>"; };
@@ -4284,23 +4274,10 @@
 		9EEED0652869C657000E6E0B /* mlmodel */ = {
 			isa = PBXGroup;
 			children = (
-				9EEED0662869C657000E6E0B /* proto */,
 				9EEED06C2869C657000E6E0B /* include */,
 				9EEED0742869C657000E6E0B /* src */,
 			);
 			path = mlmodel;
-			sourceTree = "<group>";
-		};
-		9EEED0662869C657000E6E0B /* proto */ = {
-			isa = PBXGroup;
-			children = (
-				9EEED0672869C657000E6E0B /* NeuralNetwork.proto */,
-				9EEED0682869C657000E6E0B /* DataStructures.proto */,
-				9EEED0692869C657000E6E0B /* FeatureTypes.proto */,
-				9EEED06A2869C657000E6E0B /* Parameters.proto */,
-				9EEED06B2869C657000E6E0B /* Model.proto */,
-			);
-			path = proto;
 			sourceTree = "<group>";
 		};
 		9EEED06C2869C657000E6E0B /* include */ = {
@@ -4943,7 +4920,7 @@
 		9D2DB1C822D759C8000C508F /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1310;
+				LastUpgradeCheck = 1420;
 				ORGANIZATIONNAME = tencent;
 				TargetAttributes = {
 					9D2DB1D022D759C8000C508F = {
@@ -4957,6 +4934,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = 9D2DB1C722D759C8000C508F;
 			productRefGroup = 9D2DB1D222D759C8000C508F /* Products */;
@@ -5007,7 +4985,6 @@
 				9E12F05C2865BCCE0089E089 /* arm_device.cc in Sources */,
 				9DD1FBA2247CE9BE00800139 /* metal_pad_layer_acc.mm in Sources */,
 				9EA7952B2869BD5300E61ED7 /* arm_sub_layer_acc.cc in Sources */,
-				9EEED1AB2869C658000E6E0B /* Model.proto in Sources */,
 				9DD1FB55247CE9BE00800139 /* metal_sqrt_layer_acc.mm in Sources */,
 				4E187D1D267202D800804FDF /* inverse_layer.cc in Sources */,
 				9DD1FB6A247CE9BE00800139 /* metal_reduce_l1_layer_acc.mm in Sources */,
@@ -5026,7 +5003,6 @@
 				3623EFA22695990000932B9F /* cpu_flatten_layer_acc.cc in Sources */,
 				ECCDCEC925DF536000D7D297 /* compute_elewise.cc in Sources */,
 				36289E722987F4770091FDA9 /* graph_parser.cc in Sources */,
-				9EEED1A72869C658000E6E0B /* NeuralNetwork.proto in Sources */,
 				9DF5444D258B162F006CEC97 /* npu_common_utils.cc in Sources */,
 				9EEED1D32869C659000E6E0B /* coreml_permute_layer.cc in Sources */,
 				9EA795322869BD5300E61ED7 /* arm_splitv_layer_acc.cc in Sources */,
@@ -5503,7 +5479,6 @@
 				9E12F13C2865BCD00089E089 /* arm_conv_layer_1x1.cc in Sources */,
 				3623EFAC2695996E00932B9F /* metal_grid_sample_layer_acc.mm in Sources */,
 				9DD1FBA4247CE9BE00800139 /* metal_stride_slice_layer_acc.metal in Sources */,
-				9EEED1A82869C658000E6E0B /* DataStructures.proto in Sources */,
 				9D289AF1275F1DFC000C4E25 /* x86_abs_layer_acc.cc in Sources */,
 				9D32FF7A24557EED002DCDAB /* default_network.cc in Sources */,
 				ECD945B0254ADD7100BF9214 /* metal_pixel_shuffle_layer_acc.mm in Sources */,
@@ -5673,7 +5648,6 @@
 				ECCDCEB625DF536000D7D297 /* cpu_rsqrt_layer_acc.cc in Sources */,
 				9E12F0F42865BCCF0089E089 /* CONV_BFP16_O4.S in Sources */,
 				9D289AA4275F1DFC000C4E25 /* x86_unary2_layer_acc.cc in Sources */,
-				9EEED1AA2869C658000E6E0B /* Parameters.proto in Sources */,
 				EC2CF7832511F80500EE3899 /* metal_arg_max_or_min_layer_acc.metal in Sources */,
 				9DD1FB49247CE9BE00800139 /* metal_ceil_layer_acc.metal in Sources */,
 				9EA794F32869BD3900E61ED7 /* arm_max_layer_acc.cc in Sources */,
@@ -5714,7 +5688,6 @@
 				9E12F14F2865BCD00089E089 /* arm_conv_layer_acc.cc in Sources */,
 				9D289B15275F1DFC000C4E25 /* x86_selu_layer_acc.cc in Sources */,
 				9D32FCBE24557EEC002DCDAB /* cpu_utils.cc in Sources */,
-				9EEED1A92869C658000E6E0B /* FeatureTypes.proto in Sources */,
 				9DD1FB6F247CE9BE00800139 /* metal_acos_layer_acc.mm in Sources */,
 				9D32FF3524557EED002DCDAB /* scale_layer_interpreter.cc in Sources */,
 				E44D947226048C1A003FE4A3 /* dims_function_utils.cc in Sources */,
@@ -6051,6 +6024,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -6059,7 +6033,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 109;
+				CURRENT_PROJECT_VERSION = 110;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -6113,6 +6088,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -6121,7 +6097,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 109;
+				CURRENT_PROJECT_VERSION = 110;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -6150,10 +6127,11 @@
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 109;
+				DYLIB_CURRENT_VERSION = 110;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_BITCODE = YES;
 				EXCLUDED_ARCHS = arm64;
@@ -6174,27 +6152,29 @@
 				);
 				INFOPLIST_FILE = tnn/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				MTL_HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../../source/device/metal/acc\" \"$(SRCROOT)/../../source\"";
 				MTL_LANGUAGE_REVISION = Metal11;
 				MTL_OPTIMIZATION_LEVEL = s;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
-					"-fvisibility=hidden",
-					"-Wno-comma",
 					"-Wno-shorten-64-to-32",
-					"-Wno-unused-variable",
+					"-Wno-expansion-to-defined",
+					"-Wno-conditional-uninitialized",
+					"-Wno-comma",
+					"-Wno-uninitialized",
 					"-Wno-deprecated-declarations",
 					"-Wno-ignored-attributes",
 					"-Wno-unused-variable",
 					"-Wno-pass-failed",
-					"-Wunused-function",
+					"-Wno-unused-function",
 					"-mavx2",
 					"-mavx",
 					"-mfma",
@@ -6218,10 +6198,11 @@
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 109;
+				DYLIB_CURRENT_VERSION = 110;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_BITCODE = YES;
 				EXCLUDED_ARCHS = arm64;
@@ -6244,27 +6225,29 @@
 				);
 				INFOPLIST_FILE = tnn/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				MTL_HEADER_SEARCH_PATHS = "\"$(SRCROOT)/../../source/device/metal/acc\" \"$(SRCROOT)/../../source\"";
 				MTL_LANGUAGE_REVISION = Metal11;
 				MTL_OPTIMIZATION_LEVEL = s;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
-					"-fvisibility=hidden",
-					"-Wno-comma",
 					"-Wno-shorten-64-to-32",
-					"-Wno-unused-variable",
+					"-Wno-expansion-to-defined",
+					"-Wno-conditional-uninitialized",
+					"-Wno-comma",
+					"-Wno-uninitialized",
 					"-Wno-deprecated-declarations",
 					"-Wno-ignored-attributes",
 					"-Wno-unused-variable",
 					"-Wno-pass-failed",
-					"-Wunused-function",
+					"-Wno-unused-function",
 					"-mavx2",
 					"-mavx",
 					"-mfma",
