@@ -62,7 +62,7 @@ elif [ $DEVICE_PLATFORM == "Mac" ]; then
   echo ' '
   echo '******************** Build Mac SDK ********************'
   # cp ios project.pbxproj to mac directory
-  # cp -r $TNN_ROOT_PATH/platforms/ios/tnn.xcodeproj $TNN_ROOT_PATH/platforms/mac/tnn.xcodeproj
+  cp -r $TNN_ROOT_PATH/platforms/ios/tnn.xcodeproj $TNN_ROOT_PATH/platforms/mac/tnn.xcodeproj
 
   # build macosx for arm64
   xcodebuild build -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk macosx -arch arm64 OTHER_CFLAGS="${OTHER_C_FLAGS} -ffast-math" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
