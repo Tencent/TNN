@@ -4605,7 +4605,7 @@
 			isa = PBXGroup;
 			children = (
 				9D2DB1D322D759C8000C508F /* tnn */,
-				9D4A43C12994B37000407FE5 /* tnn-x86 */,
+				9D4A43C12994B37000407FE5 /* tnn_x86 */,
 				9D2DB1D222D759C8000C508F /* Products */,
 				9D29E24F22DC89300050DC63 /* Frameworks */,
 				3620402F26E8D45800935711 /* Recovered References */,
@@ -5167,13 +5167,13 @@
 			path = core;
 			sourceTree = "<group>";
 		};
-		9D4A43C12994B37000407FE5 /* tnn-x86 */ = {
+		9D4A43C12994B37000407FE5 /* tnn_x86 */ = {
 			isa = PBXGroup;
 			children = (
 				9D4A43C72994B40900407FE5 /* include */,
 				9D4A43EF2994B46200407FE5 /* source */,
 			);
-			path = "tnn-x86";
+			path = "tnn_x86";
 			sourceTree = "<group>";
 		};
 		9D4A43C72994B40900407FE5 /* include */ = {
@@ -8061,9 +8061,9 @@
 			productReference = 9D2DB1D122D759C8000C508F /* tnn.framework */;
 			productType = "com.apple.product-type.framework";
 		};
-		9D4A43BF2994B37000407FE5 /* tnn-x86 */ = {
+		9D4A43BF2994B37000407FE5 /* tnn_x86 */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9D4A43C62994B37000407FE5 /* Build configuration list for PBXNativeTarget "tnn-x86" */;
+			buildConfigurationList = 9D4A43C62994B37000407FE5 /* Build configuration list for PBXNativeTarget "tnn_x86" */;
 			buildPhases = (
 				9D4A43BB2994B37000407FE5 /* Headers */,
 				9D4A43BC2994B37000407FE5 /* Sources */,
@@ -8074,8 +8074,8 @@
 			);
 			dependencies = (
 			);
-			name = "tnn-x86";
-			productName = "tnn-x86";
+			name = "tnn_x86";
+			productName = "tnn_x86";
 			productReference = 9D4A43C02994B37000407FE5 /* tnn_x86.framework */;
 			productType = "com.apple.product-type.framework";
 		};
@@ -8110,7 +8110,7 @@
 			projectRoot = "";
 			targets = (
 				9D2DB1D022D759C8000C508F /* tnn */,
-				9D4A43BF2994B37000407FE5 /* tnn-x86 */,
+				9D4A43BF2994B37000407FE5 /* tnn_x86 */,
 			);
 		};
 /* End PBXProject section */
@@ -10232,7 +10232,7 @@
 					"-mfma",
 					"-ffast-math",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.tencent.youtu.tnn-x86";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.tencent.youtu.tnn_x86";
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -10304,7 +10304,7 @@
 					"-mfma",
 					"-ffast-math",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.tencent.youtu.tnn-x86";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.tencent.youtu.tnn_x86";
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
 				STRIP_STYLE = "non-global";
@@ -10334,7 +10334,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9D4A43C62994B37000407FE5 /* Build configuration list for PBXNativeTarget "tnn-x86" */ = {
+		9D4A43C62994B37000407FE5 /* Build configuration list for PBXNativeTarget "tnn_x86" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9D4A43C42994B37000407FE5 /* Debug */,

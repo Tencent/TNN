@@ -16,7 +16,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "9D4A43BF2994B37000407FE5"
                BuildableName = "tnn_x86.framework"
-               BlueprintName = "tnn-x86"
+               BlueprintName = "tnn_x86"
                ReferencedContainer = "container:tnn.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -52,7 +52,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "9D4A43BF2994B37000407FE5"
             BuildableName = "tnn_x86.framework"
-            BlueprintName = "tnn-x86"
+            BlueprintName = "tnn_x86"
             ReferencedContainer = "container:tnn.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
