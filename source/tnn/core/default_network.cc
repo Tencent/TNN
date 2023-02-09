@@ -501,7 +501,11 @@ Status DefaultNetwork::PrepareDoReshape(const InputShapesMap& inputs, bool& shap
     for (auto iter : inputs) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
         if (blob == nullptr) {
-            continue;  // inputs contains groud turth label when train a model, so continues
+            if (config_.train_config.run_mode == TRAIN_MODE_TRAIN) {
+                continue;  // inputs contains groud turth label, so continues
+            }
+            LOGE("DefaultNetwork reshape blob is empty, maybe the blob name is wrong\n");
+            return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty, maybe the blob name is wrong");
         }
         if(!DimsVectorUtils::Equal(blob->GetBlobDesc().dims, iter.second)) {
             blob->GetBlobDesc().dims = iter.second;
