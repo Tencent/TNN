@@ -325,6 +325,10 @@ void Instance::StartProfile() {
 
 std::string Instance::FinishProfile(bool do_print) {
     std::shared_ptr<ProfileResult> profile_result = network_->FinishProfile();
+    if (!profile_result || profile_result->GetData().size() <= 0) {
+        return "";
+    }
+    
     std::string result_str                        = " ";
     if (profile_result) {
         result_str = profile_result->GetProfilingDataInfo();

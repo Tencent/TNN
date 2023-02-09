@@ -28,6 +28,8 @@ TNN_OBJC_CLASS(TNNMMetalContextImpl);
 @property(weak, nonatomic) TNNMMetalContextImpl *_Nullable metalContextImpl;
 
 - (instancetype _Nullable)initWithCommandQueue:(nullable id<MTLCommandQueue>)command_queue;
+
+- (void)insertDebugCaptureBoundary API_DEPRECATED("Use MTLCaptureScope instead", macos(10.11, 10.13), ios(8.0, 11.0));
 @end
 
 #endif // TNN_SOURCE_TNN_DEVICE_METAL_METAL_COMMAND_QUEUE_H_

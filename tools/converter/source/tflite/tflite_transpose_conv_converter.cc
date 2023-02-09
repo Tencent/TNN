@@ -89,7 +89,7 @@ TNN_NS::Status TFLiteTransposeConvConverter::exec(
     auto original_weight_ptr =
         reinterpret_cast<const float *>(tf_lite_model_buffer[weight_tensor->buffer]->data.data());
     TFLiteConvertOHWI2IOHW(original_weight_ptr, filter_handle.force_to<float *>(), co, kh, kw, ci);
-    layer_resource->filter_handle              = ConvertRawBuffer::GetInstance()->Convert(filter_handle);
+    layer_resource->filter_handle              = filter_handle;
     net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);
 
     cur_layer->inputs.resize(1);

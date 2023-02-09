@@ -58,8 +58,6 @@ TNN_NS::Status TFLitePackConverter::exec(TNN_NS::NetStructure &net_structure, TN
             ::memcpy(raw_buffer->force_to<int32_t *>(), reinterpret_cast<int32_t *>(buffer->data.data()),
                      data_count * sizeof(int32_t));
             net_resource.constant_map[tensor->name] = std::shared_ptr<TNN_NS::RawBuffer>(raw_buffer);
-            net_resource.constant_map[tensor->name] =
-                std::make_shared<TNN_NS::RawBuffer>(ConvertRawBuffer::GetInstance()->Convert(*raw_buffer));
         } else {
             LOGE("TFLite Pack only support pack one value");
             return TNN_NS::Status(TNN_NS::TNNERR_UNSUPPORT_NET, "TFLite Pack only support pack one value");
