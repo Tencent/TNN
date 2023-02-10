@@ -78,6 +78,9 @@ elif [ $DEVICE_PLATFORM == "Mac" ]; then
   # copy metallib
   cp -r "build/$TARGET_NAME.framework/Resources/default.metallib" "build/$TARGET_NAME.framework/default.metallib"
   rm build/$TARGET_NAME.framework/Resources/default.metallib
+
+  # copy Info.plist
+  cp -r "build/$TARGET_NAME.framework/Resources/Info.plist" "build/$TARGET_NAME.framework/Info.plist"
 fi
 
 
@@ -104,6 +107,11 @@ else
  rm -r $TARGET_NAME.framework/Versions
 fi
 rm -r build
+if [ ! -d $TARGET_NAME.framework/Resources ]; then
+  echo " "
+else
+ rm -r $TARGET_NAME.framework/Resources
+fi
 
 # 对于包含Metal的SDK, 转移metallib文件到bundle
 if [ ! -d $TARGET_NAME.bundle ]; then
