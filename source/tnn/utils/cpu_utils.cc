@@ -66,11 +66,19 @@
 #ifndef CPUFAMILY_ARM_AVALANCHE_BLIZZARD
 #define CPUFAMILY_ARM_AVALANCHE_BLIZZARD 0xda33d83d
 #endif
+// A16
+#ifndef CPUFAMILY_ARM_EVEREST_SAWTOOTH
+#define CPUFAMILY_ARM_EVEREST_SAWTOOTH 0x8765edea
+#endif
 #elif TARGET_OS_OSX
 #define __OSX__ 1
 // M1
 #ifndef CPUFAMILY_AARCH64_FIRESTORM_ICESTORM
 #define CPUFAMILY_AARCH64_FIRESTORM_ICESTORM 0x1b588bb3
+#endif
+// Apple M2
+#ifndef CPUFAMILY_AARCH64_AVALANCHE_BLIZZARD
+#define CPUFAMILY_AARCH64_AVALANCHE_BLIZZARD 0xda33d83d
 #endif
 #endif  // TARGET_OS_IPHONE
 #endif  // __APPLE__
@@ -370,7 +378,7 @@ bool CpuUtils::CpuSupportFp16() {
     sysctlbyname("hw.cpufamily", &cpu_family, &len, NULL, 0);
     fp16arith = cpu_family == CPUFAMILY_ARM_MONSOON_MISTRAL || cpu_family == CPUFAMILY_ARM_VORTEX_TEMPEST ||
                 cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER || cpu_family == CPUFAMILY_ARM_FIRESTORM_ICESTORM ||
-                cpu_family == CPUFAMILY_ARM_AVALANCHE_BLIZZARD;
+                cpu_family == CPUFAMILY_ARM_AVALANCHE_BLIZZARD || cpu_family == CPUFAMILY_ARM_EVEREST_SAWTOOTH;
     LOGD("CpuUtils::CpuSupportFp16, IOS and arm64, hw.cpufamily = %x, fp16arith = %d.\n", cpu_family, fp16arith);
     return fp16arith;
 #else
@@ -438,7 +446,8 @@ bool CpuUtils::CpuSupportFp16() {
     unsigned int cpu_family = 0;
     size_t len              = sizeof(cpu_family);
     sysctlbyname("hw.cpufamily", &cpu_family, &len, NULL, 0);
-    fp16arith = cpu_family == CPUFAMILY_AARCH64_FIRESTORM_ICESTORM;
+    fp16arith =
+        cpu_family == CPUFAMILY_AARCH64_FIRESTORM_ICESTORM || cpu_family == CPUFAMILY_AARCH64_AVALANCHE_BLIZZARD;
     LOGD("CpuUtils::CpuSupportFp16, OSX and arm64, hw.cpufamily = %x, fp16arith = %d.\n", cpu_family, fp16arith);
     return fp16arith;
 #else
@@ -470,7 +479,7 @@ bool CpuUtils::CpuSupportInt8Dot() {
     size_t len              = sizeof(cpu_family);
     sysctlbyname("hw.cpufamily", &cpu_family, &len, NULL, 0);
     int8dot = cpu_family == CPUFAMILY_ARM_LIGHTNING_THUNDER || cpu_family == CPUFAMILY_ARM_FIRESTORM_ICESTORM ||
-              cpu_family == CPUFAMILY_ARM_AVALANCHE_BLIZZARD;
+              cpu_family == CPUFAMILY_ARM_AVALANCHE_BLIZZARD || cpu_family == CPUFAMILY_ARM_EVEREST_SAWTOOTH;
     LOGD("CpuUtils::CpuSupportInt8Dot, IOS and arm64, hw.cpufamily = %x, int8dot = %d.\n", cpu_family, int8dot);
     return int8dot;
 #else
@@ -531,7 +540,7 @@ bool CpuUtils::CpuSupportInt8Dot() {
     unsigned int cpu_family = 0;
     size_t len              = sizeof(cpu_family);
     sysctlbyname("hw.cpufamily", &cpu_family, &len, NULL, 0);
-    int8dot = cpu_family == CPUFAMILY_AARCH64_FIRESTORM_ICESTORM;
+    int8dot = cpu_family == CPUFAMILY_AARCH64_FIRESTORM_ICESTORM || cpu_family == CPUFAMILY_AARCH64_AVALANCHE_BLIZZARD;
     LOGD("CpuUtils::CpuSupportInt8Dot, OSX and arm64, hw.cpufamily = %x, int8dot = %d.\n", cpu_family, int8dot);
     return int8dot;
 #else

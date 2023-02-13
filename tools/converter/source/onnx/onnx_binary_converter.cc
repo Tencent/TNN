@@ -55,13 +55,17 @@ TNN_NS::Status OnnxBinaryConverter::exec(TNN_NS::NetStructure &net_structure, TN
     auto *weight_tensor_data  = reinterpret_cast<const float *>(GetTensorProtoData(*weight_tensor));
     const auto &weight_dims   = weight_tensor->dims();
     int weight_size           = 1;
+    TNN_NS::DimsVector element_dims;
     for (const auto dim : weight_dims) {
         weight_size *= dim;
+        element_dims.push_back(dim);
     }
 
     auto layer_resource              = new TNN_NS::EltwiseLayerResource;
     layer_resource->name             = cur_layer->name;
     TNN_NS::RawBuffer element_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
+    element_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+    element_handle.SetBufferDims(element_dims);
     ::memcpy(element_handle.force_to<float *>(), weight_tensor_data, weight_size * sizeof(float));
     layer_resource->element_handle             = element_handle;
     net_resource.resource_map[cur_layer->name] = std::shared_ptr<TNN_NS::LayerResource>(layer_resource);

@@ -30,7 +30,7 @@ bool HasAppleNPU() {
 #if TNN_COREML_TEST
     return true;
 #else
-    return true;
+    //return true;
     //check hardware
     struct utsname system_info;
     uname(&system_info);

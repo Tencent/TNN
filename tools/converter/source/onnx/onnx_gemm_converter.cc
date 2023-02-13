@@ -56,11 +56,7 @@ TNN_NS::Status OnnxGemmConverter::exec(TNN_NS::NetStructure &net_structure, TNN_
     const auto *weight_tensor = proxy_initializers_map[weight_name];
     float *weight_tensor_data = (float *)GetTensorProtoData(*weight_tensor);
     int weight_tensor_size    = GetTensorProtoDataSize(*weight_tensor);
-
-    for (int i = 0; i < weight_tensor_size; i++) {
-        float w = weight_tensor_data[i];
-        int x   = 0;
-    }
+    auto weight_dims          = CreateDimsVectorFromTensor(*weight_tensor);
 
     const auto h = weight_tensor->dims(0);
     const auto w = weight_tensor->dims(1);
@@ -90,6 +86,7 @@ TNN_NS::Status OnnxGemmConverter::exec(TNN_NS::NetStructure &net_structure, TNN_
     layer_resource->name            = cur_layer->name;
     TNN_NS::RawBuffer weight_handle = TNN_NS::RawBuffer(weight_tensor_size * sizeof(float));
     weight_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+    weight_handle.SetBufferDims(weight_dims);
     ::memcpy(weight_handle.force_to<float *>(), weight_tensor_data, weight_tensor_size * sizeof(float));
     layer_resource->weight_handle = weight_handle;
 
@@ -101,9 +98,11 @@ TNN_NS::Status OnnxGemmConverter::exec(TNN_NS::NetStructure &net_structure, TNN_
         const auto *bias_tensor = proxy_initializers_map[bias_name];
         auto *bias_tensor_data  = (float *)GetTensorProtoData(*bias_tensor);
         int bias_tensor_size    = GetTensorProtoDataSize(*bias_tensor);
+        auto bias_dims          = CreateDimsVectorFromTensor(*bias_tensor);
 
         TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(bias_tensor_size * sizeof(float));
-        //        bias_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        bias_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        bias_handle.SetBufferDims(bias_dims);
         ::memcpy(bias_handle.force_to<float *>(), bias_tensor_data, bias_tensor_size * sizeof(float));
         layer_resource->bias_handle = bias_handle;
 
