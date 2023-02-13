@@ -133,4 +133,9 @@ Status RawBuffer2Blob(RawBuffer *buffer, std::shared_ptr<Blob> &blob) {
     return TNN_OK;
 }
 
+void ConvertFromInt32ToFloat(int32_t* from, float *target, int count) {
+    for (int i = 0; i < count; i++) {
+        target[i] = from[i];
+    }
+}
 }  // namespace TNN_NS

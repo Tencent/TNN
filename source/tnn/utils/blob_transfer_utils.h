@@ -30,6 +30,8 @@ Status CopyFromDevice(Blob *blob, Blob *src, void *command_queue);
 Status Blob2RawBuffer(Blob *blob, std::shared_ptr<RawBuffer> &buffer);
 // @brief transfer rawbuffer to blob. The device of blob will be DEVICE_NAIVE
 Status RawBuffer2Blob(RawBuffer *buffer, std::shared_ptr<Blob> &blob);
+
+void ConvertFromInt32ToFloat(int32_t* from, float *target, int count);
 }  // namespace TNN_NS
 
 #endif  // TNN_INCLUDE_TNN_UTILS_BLOB_TRANSFER_UTILS_H
