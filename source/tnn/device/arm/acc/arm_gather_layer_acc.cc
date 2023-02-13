@@ -59,7 +59,7 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 
     const int ele_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
     auto output_data_ptr = GetBlobHandlePtr(outputs[0]->GetHandle());
-
+    
     for (int b = 0; b < batch; b++) {
         int input_index_b = b * input_slice_count * slice_size;
         int output_index_b = b * output_slice_count * slice_size;
@@ -69,7 +69,7 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 slice_index += input_slice_count;
             }
             if (slice_index < 0 || slice_index >= input_slice_count) {
-                LOGE("ArmGatherLayerAcc::Forward invalid slice_index\n");
+                LOGE("ArmGatherLayerAcc::Forward invalid slice_index %d %d\n", slice_index, (int)indices_data_ptr[i]);
                 return Status(TNNERR_MODEL_ERR, "ArmGatherLayerAcc::Forward invalid slice_index");
             }
             int input_index = input_index_b + slice_index * slice_size;

@@ -74,6 +74,7 @@ TEST_P(LSTMLayerTest, LSTMONNXLayer) {
     std::vector<int> wi_dims    = {num_directions, 4*output_size, input_size};
     std::vector<int> wh_dims    = {num_directions, 4*output_size, output_size};
     std::vector<int> bias_dims  = {num_directions, 8*output_size};
+
     std::shared_ptr<AbstractModelInterpreter> interpreter = nullptr;
     if (dev == DEVICE_APPLE_NPU) {
         std::vector<int> h0_dims    = {num_directions, batch, output_size};

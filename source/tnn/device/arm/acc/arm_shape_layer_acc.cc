@@ -12,25 +12,28 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-DimsVector DimsOffsetUtils::ConvertOffsetToIndex(const DimsVector &dims, int offset) {
-    DimsVector index(dims.size(), 1);
-    for(int i = dims.size() - 1; i >=0; --i) {
-        index[i] = offset % dims[i];
-        offset /= dims[i];
+DECLARE_ARM_ACC(Shape, LAYER_SHAPE);
+
+Status ArmShapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    void *input_data  = GetBlobHandlePtr(inputs[0]->GetHandle());
+    auto input_dims   = inputs[0]->GetBlobDesc().dims;
+    void *output_data = GetBlobHandlePtr(outputs[0]->GetHandle());
+
+    int *output_data_ptr = (int *)output_data; 
+    for(int i = 0; i < input_dims.size(); i++) {
+        output_data_ptr[i] = static_cast<int>(input_dims[i]);
     }
-    return index;
+    output_data = reinterpret_cast<void *>(output_data_ptr);
+    return TNN_OK;
 }
 
-int DimsOffsetUtils::ConvertIndexToOffset(const DimsVector &dims, const DimsVector &index) {
-    int offset = 0;
-    for(int i = 0; i < dims.size(); ++i) {
-        offset = offset * dims[i] + index[i];
-    }
-    return offset;
-}
+REGISTER_ARM_ACC(Shape, LAYER_SHAPE);
+REGISTER_ARM_LAYOUT(LAYER_SHAPE, DATA_FORMAT_NCHW)
 
 }  // namespace TNN_NS

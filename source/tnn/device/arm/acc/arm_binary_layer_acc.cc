@@ -108,11 +108,47 @@ Float4 binary_op<ArmBinaryOpType::kHARDSWISH, Float4>(const Float4 &a, const Flo
     return a * Float4::max(Float4::min(b * alpha + beta, 1.0f), 0.f);
 }
 
+template <>
+float binary_op<ArmBinaryOpType::kEQUAL, float>(const float &a, const float &b, float alpha, float beta) {
+    return a == b ? 1.0f : 0.f;
+}
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kEQUAL, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<float>(a) == static_cast<float>(b) ? 1.0f : 0.f;
+}
+template <>
+float binary_op<ArmBinaryOpType::kGREATER, float>(const float &a, const float &b, float alpha, float beta) {
+    return a > b ? 1.0f : 0.f;
+}
+template <>
+bfp16_t binary_op<ArmBinaryOpType::kGREATER, bfp16_t>(const bfp16_t &a, const bfp16_t &b, float alpha, float beta) {
+    return static_cast<float>(a) > static_cast<float>(b) ? 1.0f : 0.f;
+}
+template <>
+Float4 binary_op<ArmBinaryOpType::kEQUAL, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+    Float4 dst;
+    for (int i = 0; i < 4; ++i) {
+        dst.value[i] = (a.value[i] == b.value[i] ? 1.0f : 0.f);
+    }
+    return dst;
+}
+template <>
+Float4 binary_op<ArmBinaryOpType::kGREATER, Float4>(const Float4 &a, const Float4 &b, float alpha, float beta) {
+    Float4 dst;
+    for (int i = 0; i < 4; ++i) {
+        dst.value[i] = a.value[i] > b.value[i] ? 1.0f : 0.f;
+    }
+    return dst;
+}
+
 Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+        
     desc_for_config_const_blob_ = outputs[0]->GetBlobDesc();
     RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
-    if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+    
+    if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT
+     || outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
         RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), TNN_OK);
     }
 #if TNN_ARM82
@@ -221,7 +257,8 @@ Status ArmBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::
 
 // SUPPORTED DATATYPES
 bool ArmBinaryLayerAcc::DataTypeSupported(DataType data_type) {
-    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_BFP16)
+    if (data_type == DATA_TYPE_FLOAT || data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_BFP16
+     || data_type == DATA_TYPE_INT32)
         return true;
     else
         return false;
@@ -269,7 +306,7 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
         auto data_byte_size = DataTypeUtils::GetBytesSize(element_handle.GetDataType());
         auto layer_data     = element_handle.force_to<void *>();
         if (element_handle.GetDataType() == DATA_TYPE_FLOAT) {
-            if (layer_res_size == 1) {
+            if (layer_res_size == 1 || dims_pad.size() == 0 ){
                 // broadcast single, just memcpy
                 RawBuffer temp(4 * layer_res_size * data_byte_size);
                 memcpy(temp.force_to<void *>(), layer_data, layer_res_size * data_byte_size);
@@ -290,6 +327,7 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
                     hw_stride = DimsVectorUtils::Count(dims_pad, 2);
                 }
                 RawBuffer temp(count * data_byte_size);
+
                 DataFormatConverter::ConvertFromNCHWToNCHW4Float(
                     static_cast<float *>(layer_data), temp.force_to<float *>(), dims_pad[0], channel, hw_stride, 1);
                 broadcast_ = temp;
@@ -311,6 +349,7 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
         }
     }
 
+
     return TNN_OK;
 }
 
@@ -331,7 +370,6 @@ Status ArmBinaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
         auto output_ptr = GetBlobHandlePtr(output->GetHandle());
         auto input0_ptr = input_ptrs_[0];
         auto input1_ptr = input_ptrs_[1];
-
         // input0_shape != output_shape && input1_shape != output_shape -> general impl
         if (!DimsVectorUtils::Equal(output_dims, input_shapes_[0]) &&
             !DimsVectorUtils::Equal(output_dims, input_shapes_[1])) {
@@ -361,7 +399,6 @@ Status ArmBinaryLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
             BinaryFunc<T, op_type>(output_ptr, output_ptr, input_ptr, output_dims, input0_pad_shape, alpha_, beta_);
         }
     }
-
     return TNN_OK;
 }
 
@@ -412,7 +449,10 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 return Exec<float, ArmBinaryOpType::kMIN>(inputs, outputs);
             case ArmBinaryOpType::kHARDSWISH:
                 return Exec<float, ArmBinaryOpType::kHARDSWISH>(inputs, outputs);
-
+            case ArmBinaryOpType::kEQUAL:
+                return Exec<float, ArmBinaryOpType::kEQUAL>(inputs, outputs);
+            case ArmBinaryOpType::kGREATER:
+                return Exec<float, ArmBinaryOpType::kGREATER>(inputs, outputs);
             default:
                 LOGE("Error, unknown binary op_type\n");
                 return TNNERR_LAYER_ERR;
@@ -439,12 +479,22 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
                 return TNNERR_LAYER_ERR;
         }
     } else if (data_type == DATA_TYPE_INT8) {
-        if (op_type_ == ArmBinaryOpType::kADD) {
-            return ExecInt8(inputs, outputs);
-        } else {
-            LOGE("Error, int8 binary op only support add\n");
-            return TNNERR_LAYER_ERR;
+        switch (op_type_) {
+            case ArmBinaryOpType::kADD:
+                return ExecInt8(inputs, outputs);
+            case ArmBinaryOpType::kEQUAL:
+                outputs[0]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
+                Exec<float, ArmBinaryOpType::kEQUAL>(inputs, outputs);
+                break;
+            case ArmBinaryOpType::kGREATER:
+                outputs[0]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
+                Exec<float, ArmBinaryOpType::kGREATER>(inputs, outputs);
+                break;
+            default:
+                LOGE("Error, int8 binary op only support add\n");
+                return TNNERR_LAYER_ERR;
         }
+        return TNN_OK;
     }
 #if TNN_ARM82
     else if (data_type == DATA_TYPE_HALF) {

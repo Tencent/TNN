@@ -24,6 +24,9 @@ class ArmConcatLayerAcc : public ArmLayerAcc {
 public:
     virtual ~ArmConcatLayerAcc();
 
+    template <typename T_IN, typename T_OUT>
+    Status TransDataType(void *data, const DimsVector &shapes, bool padding = false);
+
     Status ExecInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     Status ExecNchw(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);

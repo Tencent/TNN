@@ -219,6 +219,11 @@ namespace optimizer {
             if (constant_layers.count(cur_layer->name) > 0) {
                 continue;
             }
+            // 修改处：CAST 算子来源于 Constant 时，数据格式为 NCHW，无需额外转换。
+            if (cur_layer->type == LAYER_CAST && layer_choosed_layout.find(cur_layer->name) == layer_choosed_layout.end()) {
+                layer_choosed_layout[cur_layer->name] = GetLayoutsByLayerType(cur_layer->type)->layouts[0];
+                continue; 
+            }
             if (layer_choosed_layout.find(cur_layer->name) == layer_choosed_layout.end()) {
                 LOGE("NetOptimizerInsertLayoutReformat Error: layout of cur layer not choosen, index: %d, layer: %s\n",
                      index, cur_layer->name.c_str());

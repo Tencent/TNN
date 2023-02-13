@@ -12,24 +12,27 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_INCLUDE_TNN_UTILS_DIMS_OFFSET_UTILS_H_
-#define TNN_INCLUDE_TNN_UTILS_DIMS_OFFSET_UTILS_H_
+#ifndef TNN_SOURCE_TNN_DEVICE_ARM_ARM_WHERE_LAYER_ACC_H_
+#define TNN_SOURCE_TNN_DEVICE_ARM_ARM_WHERE_LAYER_ACC_H_
 
-#include <algorithm>
-
-#include "tnn/core/common.h"
-#include "tnn/core/macro.h"
-#include "tnn/core/status.h"
+#include "tnn/device/arm/acc/arm_layer_acc.h"
 
 namespace TNN_NS {
 
-class DimsOffsetUtils {
+class ArmWhereLayerAcc : public ArmLayerAcc {
 public:
-    static DimsVector ConvertOffsetToIndex(const DimsVector &dims, int offset);
+    virtual ~ArmWhereLayerAcc(){};
+    virtual Status Init(Context *context, LayerParam *param, LayerResource *resource, const std::vector<Blob *> &inputs,
+                        const std::vector<Blob *> &outputs) override;
 
-    static int ConvertIndexToOffset(const DimsVector &dims, const DimsVector &index);
+    virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+private:
+    template <typename T>
+    Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
 };
 
 }  // namespace TNN_NS
 
-#endif  // TNN_INCLUDE_TNN_UTILS_DIMS_OFFSET_UTILS_H_
+#endif  // TNN_SOURCE_TNN_DEVICE_ARM_ARM_WHERE_LAYER_ACC_H_

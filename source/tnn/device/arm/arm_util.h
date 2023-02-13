@@ -86,6 +86,8 @@ int PackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t h
 int UnpackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw);
 int PackInt32Blob(int32_t *dst, int32_t *src, size_t batch, size_t channel, size_t hw);
 int UnpackInt32Blob(int32_t *dst, int32_t *src, size_t batch, size_t channel, size_t hw);
+int PackInt8Blob(int8_t *dst, int8_t *src, size_t batch, size_t channel, size_t hw);
+int UnpackInt8Blob(int8_t *dst, int8_t *src, size_t batch, size_t channel, size_t hw);
 int PackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, size_t hw);
 int UnpackFloatBlob(bfp16_t *dst, bfp16_t *src, size_t batch, size_t channel, size_t hw);
 int PackHalfBlob(fp16_t *dst, fp16_t *src, size_t batch, size_t channel, size_t hw);

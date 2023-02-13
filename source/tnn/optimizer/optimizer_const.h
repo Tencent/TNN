@@ -45,6 +45,9 @@ extern const char * kNetOptimizerDynamicRangeDequant;
 
 extern const char * kNetOptimizerConvertMatMulToConv;
 
+static const std::string kNetOptimizerInsertInt32Cast =
+    "net_optimizer_insert_int32_cast";
+
 }
 
 #endif // TNN_SOURCE_TNN_OPTIMIZER_OPTIMIZER_CONST_H_

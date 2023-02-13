@@ -152,7 +152,8 @@ int OnnxOpConverterGemm::WriteTNNModel(Serializer* net_writer,
             onnx::TensorProto bias;
             if (node.input_size() == 3) {
                 bias = get_node_attr_tensor(node, "C", net_info, 2);
-            } else {
+            } 
+            if (node.input_size() != 3 || bias.name() == "") {
                 std::vector<int> bias_shape = {num_bias};
                 std::vector<float> bias_data(num_bias, 0.0f);
                 bias = MakeTensor("C", bias_data, bias_shape, onnx::TensorProto::FLOAT);

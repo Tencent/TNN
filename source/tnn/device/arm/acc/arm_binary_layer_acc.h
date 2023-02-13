@@ -27,6 +27,8 @@ enum class ArmBinaryOpType : int {
     kMAX = 4,
     kMIN = 5,
     kHARDSWISH = 6,
+    kEQUAL     = 7,
+    kGREATER   = 8,
 };
 
 class ArmBinaryLayerAcc : public ArmLayerAcc {
@@ -40,6 +42,9 @@ public:
 
     template <typename T, ArmBinaryOpType op_type>
     Status Exec(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
+    template <typename T_IN, typename T_OUT>
+    Status TransDataType(void *data, const DimsVector &shapes);
 
     // int8 will be implemented inside op
     virtual Status ExecInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);

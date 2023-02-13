@@ -32,17 +32,18 @@ public:
         return TNN_OK;
     }
     virtual float operator()(float in) {
-        float temp = in;
+        double temp = in;
         if (temp <= 0) {
             temp = gamma_ * (alpha_ * exp(temp) - alpha_);
         } else {
             temp = gamma_ * temp;
         }
-        return temp;
+        return (float)temp;
     }
 
 private:
-    float alpha_ = 0.f, gamma_ = 0.f;
+    // 使用 double 提高精度
+    double alpha_ = 0.f, gamma_ = 0.f;
 } SELU_OP;
 
 DECLARE_UNARY_ACC(Selu, LAYER_SELU, SELU_OP);

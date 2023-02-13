@@ -12,24 +12,28 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_INCLUDE_TNN_UTILS_DIMS_OFFSET_UTILS_H_
-#define TNN_INCLUDE_TNN_UTILS_DIMS_OFFSET_UTILS_H_
-
-#include <algorithm>
-
-#include "tnn/core/common.h"
-#include "tnn/core/macro.h"
-#include "tnn/core/status.h"
+#include "tnn/device/arm/acc/arm_binary_layer_acc.h"
 
 namespace TNN_NS {
 
-class DimsOffsetUtils {
-public:
-    static DimsVector ConvertOffsetToIndex(const DimsVector &dims, int offset);
+DECLARE_ARM_BINARY_ACC(Greater);
 
-    static int ConvertIndexToOffset(const DimsVector &dims, const DimsVector &index);
-};
+Status ArmGreaterLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                            const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    Status status = ArmBinaryLayerAcc::Init(context, param, resource, inputs, outputs);
+    if (status != TNN_OK) {
+        return status;
+    }
+
+    op_type_ = ArmBinaryOpType::kGREATER;
+
+    return TNN_OK;
+}
+
+ArmGreaterLayerAcc::~ArmGreaterLayerAcc() {}
+
+REGISTER_ARM_ACC(Greater, LAYER_GREATER)
+REGISTER_ARM_PRECISION_FP16(LAYER_GREATER)
+REGISTER_ARM_LAYOUT(LAYER_GREATER, DATA_FORMAT_NC4HW4)
 
 }  // namespace TNN_NS
-
-#endif  // TNN_INCLUDE_TNN_UTILS_DIMS_OFFSET_UTILS_H_

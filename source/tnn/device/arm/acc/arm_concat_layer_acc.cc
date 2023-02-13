@@ -18,6 +18,7 @@
 #include "tnn/utils/dims_utils.h"
 #include "tnn/utils/naive_compute.h"
 #include "tnn/utils/data_type_utils.h"
+#include <math.h>
 
 namespace TNN_NS {
 
@@ -216,7 +217,12 @@ static int concat_common_i8(Blob *output, const std::vector<Blob *> &inputs, int
 }
 
 static DimsVector GetCXRoundDims(const DimsVector &dims, const int round) {
-    DimsVector round_dims = {dims[0], UP_DIV(dims[1], round)};
+    DimsVector round_dims = {dims[0]};
+    if (dims.size() < 2) {
+        round_dims.push_back(0);
+    } else {
+        round_dims.push_back(UP_DIV(dims[1], round));
+    }
     for (int i = 2; i < dims.size(); ++i) {
         round_dims.push_back(dims[i]);
     }
@@ -242,6 +248,8 @@ static int concat_common(Blob *output, const std::vector<Blob *> &inputs, int ax
             auto input_dims             = input->GetBlobDesc().dims;
             DimsVector round_input_dims = GetCXRoundDims(input_dims, 4);
             auto input_stride           = DimsVectorUtils::Count(round_input_dims, axis);
+            // concat 拼接时，若原始数据不足 4，则每次至少取 1
+            input_stride = std::max(1, input_stride);
             auto input_ptr = reinterpret_cast<T *>(GetBlobHandlePtr(input->GetHandle())) + n * input_stride;
             memcpy(output_ptr, input_ptr, input_stride * sizeof(T));
             output_ptr += input_stride;
@@ -492,14 +500,15 @@ Status ArmConcatLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     }
 
     if (inputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NCHW) {
-        return ExecNchw(inputs, outputs);
+        ExecNchw(inputs, outputs);
     } else if (inputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NC4HW4 ||
                inputs[0]->GetBlobDesc().data_format == DATA_FORMAT_NC8HW8) {
-        return Exec(inputs, outputs);
+        Exec(inputs, outputs);
     } else {
         return Status(TNNERR_LAYER_ERR, "Unsupported data format in concat");
     }
-    return TNNERR_LAYER_ERR;
+
+    return TNN_OK;
 }
 
 REGISTER_ARM_ACC(Concat, LAYER_CONCAT)
