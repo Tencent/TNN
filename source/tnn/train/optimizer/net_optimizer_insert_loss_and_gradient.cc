@@ -171,7 +171,7 @@ namespace optimizer {
     Status NetOptimizerInsertLossAndGradient::InsertGradientLayers(NetStructure *net_structure,
                                                                    NetResource *net_resource) {
         std::set<std::string> need_grad_layers;
-        RETURN_ON_NEQ(GetNeedGradLayers(net_structure, need_grad_layers), TNN_OK);
+        RETURN_ON_NEQ(GetNeedGradLayers(net_structure, net_resource, need_grad_layers), TNN_OK);
 
         std::map<std::string, std::string> blob_to_grad_map;
         auto ori_layers = net_structure->layers;
@@ -389,6 +389,7 @@ namespace optimizer {
     }
 
     Status NetOptimizerInsertLossAndGradient::GetNeedGradLayers(NetStructure *structure,
+                                                                NetResource *resource,
                                                                 std::set<std::string> &need_grad_layers) {
         // check params first
         std::set<std::string> layer_names_set;
@@ -421,7 +422,8 @@ namespace optimizer {
             bool need_grad = false;
             // if previous layer need grad, its succeed need too
             for (auto &input : layer->inputs) {
-                if (structure->inputs_shape_map.find(input) == structure->inputs_shape_map.end()) {
+                if (structure->inputs_shape_map.find(input) == structure->inputs_shape_map.end()
+                    && resource->constant_map.find(input) == resource->constant_map.end()) {
                     // not model input, must be output of some layer
                     LayerInfo *prev_layer = blob_to_layer[input];
                     if (prev_layer == nullptr) {
