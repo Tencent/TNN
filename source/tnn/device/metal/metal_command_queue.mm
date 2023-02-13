@@ -41,6 +41,10 @@
     return [mtl_command_queue_ commandBuffer];
 }
 
+- (nullable id <MTLCommandBuffer>)commandBufferWithDescriptor:(MTLCommandBufferDescriptor*)descriptor API_AVAILABLE(macos(11.0), ios(14.0)) {
+    return [mtl_command_queue_ commandBufferWithDescriptor:descriptor];
+}
+
 - (nullable id<MTLCommandBuffer>)commandBufferWithUnretainedReferences {
     return [mtl_command_queue_ commandBufferWithUnretainedReferences];
 }

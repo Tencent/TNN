@@ -48,18 +48,22 @@ Status CoreMLConstLayer::BuildLayerParam() {
     
     auto element_size = raw_buffer_.GetDataCount();
     auto element_dims = raw_buffer_.GetBufferDims();
+    int dims_count = std::max((int)1, (int)element_dims.size());
+    if (element_size == 1) {
+        dims_count = 1;
+    }
     
     //shape
-    shape_ = std::shared_ptr<uint64_t>(new uint64_t [element_dims.size()], [](uint64_t* p) { delete[] p; });
+    shape_ = std::shared_ptr<uint64_t>(new uint64_t [dims_count], [](uint64_t* p) { delete[] p; });
     coreml_layer_->loadconstantnd->shape = shape_.get();
-    if (element_dims.size() != 0) {
-        coreml_layer_->loadconstant->n_shape = element_dims.size();
+    coreml_layer_->loadconstantnd->n_shape = dims_count;
+    
+    if (element_size > 1) {
         for (int i = 0; i < element_dims.size(); i++) {
-            coreml_layer_->loadconstant->shape[i] = element_dims[i];
+            coreml_layer_->loadconstantnd->shape[i] = element_dims[i];
         }
-    } else if (element_size != 0) {
-        coreml_layer_->loadconstant->n_shape = element_size;
-        coreml_layer_->loadconstant->shape[0] = 1;
+    } else if (element_size == 1) {
+        coreml_layer_->loadconstantnd->shape[0] = element_size;
     } else {
         LOGE("CoreMLConstLayer weight shape is error\n");
         return Status(TNNERR_PARAM_ERR, "CoreMLConstLayer weight shape is error");

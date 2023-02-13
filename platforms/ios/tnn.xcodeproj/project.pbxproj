@@ -381,7 +381,6 @@
 		9DAD955F2886B22300170339 /* arm_batch_norm_fp16_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DAD94642886B22300170339 /* arm_batch_norm_fp16_layer.cc */; };
 		9DAD95602886B22300170339 /* arm_deconv_fp16_layer_common.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DAD94652886B22300170339 /* arm_deconv_fp16_layer_common.cc */; };
 		9DAD95612886B22300170339 /* compute_sdot_int8.h in Headers */ = {isa = PBXBuildFile; fileRef = 9DAD94662886B22300170339 /* compute_sdot_int8.h */; };
-		9DAD95622886B22300170339 /* CMakeLists.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9DAD94672886B22300170339 /* CMakeLists.txt */; };
 		9DAD95632886B22300170339 /* arm_conv_int8_sdot_layer_depthwise_3x3.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9DAD94682886B22300170339 /* arm_conv_int8_sdot_layer_depthwise_3x3.cc */; };
 		9DAD95642886B22300170339 /* GEMV_INT8_SDOT.S in Sources */ = {isa = PBXBuildFile; fileRef = 9DAD946A2886B22300170339 /* GEMV_INT8_SDOT.S */; };
 		9DAD95652886B22300170339 /* DECONV_FP16_O8_C1.S in Sources */ = {isa = PBXBuildFile; fileRef = 9DAD946B2886B22300170339 /* DECONV_FP16_O8_C1.S */; };
@@ -1541,7 +1540,6 @@
 		9DAD94642886B22300170339 /* arm_batch_norm_fp16_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_batch_norm_fp16_layer.cc; sourceTree = "<group>"; };
 		9DAD94652886B22300170339 /* arm_deconv_fp16_layer_common.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_deconv_fp16_layer_common.cc; sourceTree = "<group>"; };
 		9DAD94662886B22300170339 /* compute_sdot_int8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = compute_sdot_int8.h; sourceTree = "<group>"; };
-		9DAD94672886B22300170339 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		9DAD94682886B22300170339 /* arm_conv_int8_sdot_layer_depthwise_3x3.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arm_conv_int8_sdot_layer_depthwise_3x3.cc; sourceTree = "<group>"; };
 		9DAD946A2886B22300170339 /* GEMV_INT8_SDOT.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = GEMV_INT8_SDOT.S; sourceTree = "<group>"; };
 		9DAD946B2886B22300170339 /* DECONV_FP16_O8_C1.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = DECONV_FP16_O8_C1.S; sourceTree = "<group>"; };
@@ -3115,7 +3113,6 @@
 				9DAD94642886B22300170339 /* arm_batch_norm_fp16_layer.cc */,
 				9DAD94652886B22300170339 /* arm_deconv_fp16_layer_common.cc */,
 				9DAD94662886B22300170339 /* compute_sdot_int8.h */,
-				9DAD94672886B22300170339 /* CMakeLists.txt */,
 				9DAD94682886B22300170339 /* arm_conv_int8_sdot_layer_depthwise_3x3.cc */,
 				9DAD94692886B22300170339 /* asm_32 */,
 				9DAD94762886B22300170339 /* arm_unary_fp16_layer.h */,
@@ -4185,7 +4182,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9DAD95622886B22300170339 /* CMakeLists.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5267,11 +5263,16 @@
 				MTL_OPTIMIZATION_LEVEL = s;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
+					"-Wno-shorten-64-to-32",
+					"-Wno-expansion-to-defined",
+					"-Wno-conditional-uninitialized",
+					"-Wno-comma",
+					"-Wno-uninitialized",
 					"-Wno-deprecated-declarations",
 					"-Wno-ignored-attributes",
 					"-Wno-unused-variable",
 					"-Wno-pass-failed",
-					"-Wunused-function",
+					"-Wno-unused-function",
 					"-march=armv8.2-a+fp16+nolse",
 					"-DTNN_ARM82=defined(__aarch64__)",
 				);
@@ -5325,11 +5326,16 @@
 				MTL_OPTIMIZATION_LEVEL = s;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
+					"-Wno-shorten-64-to-32",
+					"-Wno-expansion-to-defined",
+					"-Wno-conditional-uninitialized",
+					"-Wno-comma",
+					"-Wno-uninitialized",
 					"-Wno-deprecated-declarations",
 					"-Wno-ignored-attributes",
 					"-Wno-unused-variable",
 					"-Wno-pass-failed",
-					"-Wunused-function",
+					"-Wno-unused-function",
 					"-march=armv8.2-a+fp16+nolse",
 					"-DTNN_ARM82=defined(__aarch64__)",
 				);

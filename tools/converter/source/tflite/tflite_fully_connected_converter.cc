@@ -64,6 +64,7 @@ static TNN_NS::Status CreateResource(TNN_NS::NetResource &net_resource,
         }
         auto weight_handle = TNN_NS::RawBuffer(weight_count * sizeof(int8_t));
         weight_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+        weight_handle.SetBufferDims({output_channel, feature_size});
         auto &weight_zero_point = weight_tensor->quantization->zero_point;
         ASSERT(weight_zero_point.size() == 1);
         auto weight_handle_data = weight_handle.force_to<int8_t *>();
@@ -79,6 +80,9 @@ static TNN_NS::Status CreateResource(TNN_NS::NetResource &net_resource,
         ASSERT(input_scale.size() == weight_scale.size());
         auto scale_handle = TNN_NS::RawBuffer(weight_scale.size() * sizeof(float));
         scale_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        TNN_NS::DimsVector weight_dims;
+        weight_dims.push_back(weight_scale.size());
+        scale_handle.SetBufferDims(weight_dims);
         auto scale_data = scale_handle.force_to<float *>();
         for (int i = 0; i < weight_scale.size(); ++i) {
             scale_data[i] = input_scale[i] * weight_scale[i];
@@ -87,6 +91,7 @@ static TNN_NS::Status CreateResource(TNN_NS::NetResource &net_resource,
         // for symmetric quantization zero point always is 0
         auto zero_point_handle = TNN_NS::RawBuffer(weight_scale.size() * sizeof(int8_t));
         zero_point_handle.SetDataType(TNN_NS::DATA_TYPE_INT8);
+        zero_point_handle.SetBufferDims(weight_dims);
         resource->zero_point_handle = zero_point_handle;
     } else {
         return TNN_NS::Status(TNN_NS::TNNERR_CONVERT_UNSUPPORT_LAYER, "Quantized TFLite Converter do not support\n");
@@ -99,6 +104,8 @@ static TNN_NS::Status CreateResource(TNN_NS::NetResource &net_resource,
         int bias_count                = Count(bias_dims);
         TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(bias_count * sizeof(int32_t));
         ::memcpy(bias_handle.force_to<int32_t *>(), bias_ptr, bias_count * sizeof(int32_t));
+        bias_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+        bias_handle.SetBufferDims(bias_dims);
         resource->bias_handle = bias_handle;
     }
     return TNN_NS::TNN_CONVERT_OK;
@@ -161,13 +168,17 @@ TNN_NS::Status TFLiteFullyConnectedConverter::exec(
                     data_ptr, &tmp[i * feature_size], n, c, h, w, TNN_NS::DataFormatConverter::NHWC2NCHW);
             }
             TNN_NS::RawBuffer weight_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
+            weight_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+            weight_handle.SetBufferDims({co, feature_size});
             ::memcpy(weight_handle.force_to<float *>(), tmp, weight_size * sizeof(float));
-            layer_resource->weight_handle = ConvertRawBuffer::GetInstance()->Convert(weight_handle);
+            layer_resource->weight_handle = weight_handle;
             delete[] tmp;
         } else {
             TNN_NS::RawBuffer weight_handle = TNN_NS::RawBuffer(weight_size * sizeof(float));
+            weight_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+            weight_handle.SetBufferDims(weight_shape);
             ::memcpy(weight_handle.force_to<float *>(), weight_ptr, weight_size * sizeof(float));
-            layer_resource->weight_handle = ConvertRawBuffer::GetInstance()->Convert(weight_handle);
+            layer_resource->weight_handle = weight_handle;
         }
         if (tf_lite_operator->inputs.size() == 3 && tf_lite_operator->inputs[2] >= 0) {
             auto &bias_tensor = tf_lite_tensors[tf_lite_operator->inputs[2]];
@@ -175,8 +186,10 @@ TNN_NS::Status TFLiteFullyConnectedConverter::exec(
             auto bias_shape   = bias_tensor->shape;
             int bias_size     = Count(bias_shape);
             TNN_NS::RawBuffer bias_handle = TNN_NS::RawBuffer(bias_size * sizeof(float));
+            bias_handle.SetDataType(TNN_NS::DATA_TYPE_FLOAT);
+            bias_handle.SetBufferDims(bias_shape);
             ::memcpy(bias_handle.force_to<float *>(), bias_ptr, bias_size * sizeof(float));
-            layer_resource->bias_handle = ConvertRawBuffer::GetInstance()->Convert(bias_handle);
+            layer_resource->bias_handle = bias_handle;
         }
     }
 
