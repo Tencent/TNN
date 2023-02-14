@@ -56,27 +56,31 @@ if [[ $DEVICE_PLATFORM == iPhone* ]]; then
   echo '******************** Build iPhone SDK ********************'
   # 指定 arm64
   # xcodebuild -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphoneos -arch arm64 build
-  xcodebuild build -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphoneos OTHER_CFLAGS="${OTHER_C_FLAGS}" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  xcodebuild build -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk iphoneos OTHER_CFLAGS="${OTHER_C_FLAGS} -march=armv8.2-a+fp16+nolse" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
   cp -r build/$CONFIGURATION-iphoneos/$TARGET_NAME.framework build
 elif [ $DEVICE_PLATFORM == "Mac" ]; then
   echo ' '
   echo '******************** Build Mac SDK ********************'
   # cp ios project.pbxproj to mac directory
   cp -r $TNN_ROOT_PATH/platforms/ios/tnn.xcodeproj $TNN_ROOT_PATH/platforms/mac/tnn.xcodeproj
-  
-  #build macosx for x86_64
-  xcodebuild -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk macosx -arch x86_64 OTHER_CFLAGS="${OTHER_C_FLAGS} -mavx2 -mavx -mfma -ffast-math" build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
-  cp -r build/$CONFIGURATION/$TARGET_NAME.framework build
-  #build macosx for arm64
+
+  # build macosx for arm64
   xcodebuild build -target "$TARGET_NAME" -configuration ${CONFIGURATION}  -sdk macosx -arch arm64 OTHER_CFLAGS="${OTHER_C_FLAGS} -ffast-math" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
-  mkdir build/macosx-arm64
-  cp -r build/$CONFIGURATION/$TARGET_NAME.framework build/macosx-arm64
+  cp -r build/$CONFIGURATION/$TARGET_NAME.framework build
+
+  # build macosx for x86_64
+  xcodebuild build -target "${TARGET_NAME}_x86" -configuration ${CONFIGURATION}  -sdk macosx -arch x86_64 OTHER_CFLAGS="${OTHER_C_FLAGS} -mavx2 -mavx -mfma -ffast-math" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  cp -r build/$CONFIGURATION/${TARGET_NAME}_x86.framework build
+
   # merge lib
-  lipo -create "build/$TARGET_NAME.framework/$TARGET_NAME" "build/macosx-arm64/$TARGET_NAME.framework/$TARGET_NAME" -output "build/$TARGET_NAME.framework/$TARGET_NAME"
+  lipo -create "build/$TARGET_NAME.framework/$TARGET_NAME" "build/${TARGET_NAME}_x86.framework/${TARGET_NAME}_x86" -output "build/$TARGET_NAME.framework/$TARGET_NAME"
 
   # copy metallib
   cp -r "build/$TARGET_NAME.framework/Resources/default.metallib" "build/$TARGET_NAME.framework/default.metallib"
   rm build/$TARGET_NAME.framework/Resources/default.metallib
+
+  # copy Info.plist
+  cp -r "build/$TARGET_NAME.framework/Resources/Info.plist" "build/$TARGET_NAME.framework/Info.plist"
 fi
 
 
@@ -98,9 +102,16 @@ fi
 
 cp -r build/$TARGET_NAME.framework .
 if [ ! -d $TARGET_NAME.framework/Versions ]; then
+  echo " "
+else
  rm -r $TARGET_NAME.framework/Versions
 fi
 rm -r build
+if [ ! -d $TARGET_NAME.framework/Resources ]; then
+  echo " "
+else
+ rm -r $TARGET_NAME.framework/Resources
+fi
 
 # 对于包含Metal的SDK, 转移metallib文件到bundle
 if [ ! -d $TARGET_NAME.bundle ]; then

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1310"
+   LastUpgradeVersion = "1420"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9D2DB1D022D759C8000C508F"
-               BuildableName = "tnn.framework"
-               BlueprintName = "tnn"
+               BlueprintIdentifier = "9D4A43BF2994B37000407FE5"
+               BuildableName = "tnn_x86.framework"
+               BlueprintName = "tnn_x86"
                ReferencedContainer = "container:tnn.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -50,9 +50,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "9D2DB1D022D759C8000C508F"
-            BuildableName = "tnn.framework"
-            BlueprintName = "tnn"
+            BlueprintIdentifier = "9D4A43BF2994B37000407FE5"
+            BuildableName = "tnn_x86.framework"
+            BlueprintName = "tnn_x86"
             ReferencedContainer = "container:tnn.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
