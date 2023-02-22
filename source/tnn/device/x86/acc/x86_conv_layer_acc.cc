@@ -27,11 +27,12 @@ Status X86ConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     CHECK_PARAM_NULL(conv_resource);
 
     Status ret;
-    if (conv_resource->filter_handle.GetDataType() == DATA_TYPE_HALF) {
+    if (conv_resource->filter_handle.GetDataType() == DATA_TYPE_HALF ||
+        conv_resource->bias_handle.GetDataType() == DATA_TYPE_HALF) {
         LayerResource *fp32_res = nullptr;
         RETURN_ON_NEQ(ConvertHalfResource(LAYER_CONVOLUTION, conv_resource, &fp32_res), TNN_OK);
         conv_acc_f32_resource_ = std::shared_ptr<LayerResource>(fp32_res);
-        ret = X86LayerAcc::Init(context, param, conv_acc_f32_resource_.get(), inputs, outputs);
+        ret                    = X86LayerAcc::Init(context, param, conv_acc_f32_resource_.get(), inputs, outputs);
     } else {
         ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
     }
