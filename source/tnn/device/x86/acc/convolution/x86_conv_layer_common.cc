@@ -13,8 +13,10 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/x86/acc/convolution/x86_conv_layer_common.h"
+
 #include "tnn/device/x86/acc/compute/x86_compute.h"
 #include "tnn/device/x86/x86_context.h"
+#include "tnn/interpreter/layer_resource_generator.h"
 #include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
@@ -96,9 +98,20 @@ Status X86ConvLayerCommon::allocateBufferBias(const std::vector<Blob *> &inputs,
 
 Status X86ConvLayerCommon::Init(Context *context, LayerParam *param, LayerResource *resource,
                                 const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto status = X86LayerAcc::Init(context, param, resource, inputs, outputs);
-    if (status != TNN_OK) {
-        return status;
+    auto *conv_res = dynamic_cast<ConvLayerResource *>(resource);
+    if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF ||
+        conv_res->bias_handle.GetDataType() == DATA_TYPE_HALF) {
+        LayerResource *fp32_res = nullptr;
+        RETURN_ON_NEQ(ConvertHalfResource(LAYER_CONVOLUTION, conv_res, &fp32_res), TNN_OK);
+        auto status = X86LayerAcc::Init(context, param, fp32_res, inputs, outputs);
+        if (status != TNN_OK) {
+            return status;
+        }
+    } else {
+        auto status = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+        if (status != TNN_OK) {
+            return status;
+        }
     }
     conv_gemm_conf_ = conv_gemm_config<float, float, float>();
 
