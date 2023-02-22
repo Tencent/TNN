@@ -233,6 +233,10 @@ std::string BaseLayer::GetLayerName() {
     return layer_name_;
 }
 
+LayerType BaseLayer::GetLayerType() {
+    return type_;
+}
+
 //@brief get all input blobs
 std::vector<Blob*> BaseLayer::GetInputBlobs() {
     return input_blobs_;

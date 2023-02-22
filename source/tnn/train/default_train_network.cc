@@ -87,15 +87,21 @@ Status DefaultTrainNetwork::GetTrainingFeedback(TrainingFeedback &feed_back) {
 }
 
 Status DefaultTrainNetwork::InitTrainingStatus() {
+    std::unordered_map<std::string, std::shared_ptr<LayerInfo>> layer_info_map;
+    for (auto layer : net_structure_->layers) {
+        layer_info_map[layer->name] = layer;
+    }
+
     LayerInfo *loss_layer      = nullptr;
     LayerInfo *loss_grad_layer = nullptr;
     int cnt                    = 0;
-    for (auto layer : net_structure_->layers) {
-        if (layer->type == LAYER_GRADIENT) {
-            loss_grad_layer = layer.get();
+    for (auto layer : layers_) {
+        std::shared_ptr<LayerInfo> layer_info = layer_info_map.at(layer->GetLayerName());
+        if (layer->GetLayerType() == LAYER_GRADIENT) {
+            loss_grad_layer = layer_info.get();
             break;
         }
-        loss_layer = layer.get();
+        loss_layer = layer_info.get();
         cnt++;
     }
     forward_layer_count_ = cnt;
