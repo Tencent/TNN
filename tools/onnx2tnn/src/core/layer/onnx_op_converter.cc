@@ -316,6 +316,9 @@ int OnnxOpConverter::WriteRawData(const void *raw_data, int data_count, int src_
                 DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
                 assert(0);
             }
+        } else if (src_data_type == onnx::TensorProto_DataType_FLOAT16) {
+            //for fp16 onnx model, only save it to fp16 tnn model
+            writer->PutRaw(data_count * 2 *sizeof(int8_t), (char *)raw_data, dims, DATA_TYPE_HALF);
         } else {
             DLog("unsupport  src_data_type: %d dst_data_type: %d\n", src_data_type, dst_data_type);
             assert(0);
