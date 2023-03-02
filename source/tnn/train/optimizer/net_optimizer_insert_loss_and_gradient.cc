@@ -83,6 +83,8 @@ namespace optimizer {
             return Status(TNNERR_TRAIN_ERROR, "train mode but trainable_layers is empty");
         }
 
+        resource_grads_.clear(); // clear to be able to load other model in A process.
+
         RETURN_ON_NEQ(InsertLossLayer(structure), TNN_OK);
 
         RETURN_ON_NEQ(InsertGradientLayers(structure, resource), TNN_OK);

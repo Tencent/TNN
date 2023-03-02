@@ -20,7 +20,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <functional>
 
 #include "tnn/core/common.h"
 #include "tnn/core/status.h"
@@ -45,19 +44,17 @@ namespace optimizer {
         PLAST = 1000
     } OptPriority;
 
-    using NetOptimizerCreator = std::function<NetOptimizerPtr()>;
-
     //@brief net optimize: fuse relu and relu6 to convolution
     class NetOptimizerManager {
     public:
         static Status Optimize(NetStructure *structure, NetResource *resource, const NetworkConfig &net_config);
 
-        static void RegisterNetOptimizer(NetOptimizerCreator optimizer_creator, OptPriority prior);
+        static void RegisterNetOptimizer(NetOptimizer *ptimizer, OptPriority prior);
 
-        static NetOptimizerCreator GetNetOptimizerCreatorByName(const std::string &k_net_optimizer);
+        static std::shared_ptr<NetOptimizer> GetNetOptimizerByName(const std::string &k_net_optimizer);
 
     private:
-        static std::map<std::string, NetOptimizerCreator> &GetNetOptimizerMap();
+        static std::map<std::string, std::shared_ptr<NetOptimizer>> &GetNetOptimizerMap();
 
         static std::vector<std::pair<OptPriority, std::string>> &GetNetOptimizerSeq();
     };
@@ -66,9 +63,10 @@ namespace optimizer {
     class NetOptimizerRegister {
     public:
         explicit NetOptimizerRegister(OptPriority p) {
-            NetOptimizerManager::RegisterNetOptimizer([]() { return NetOptimizerPtr(new T()); }, p);
+            NetOptimizerManager::RegisterNetOptimizer(new T(), p);
         }
     };
+
 }  // namespace optimizer
 
 }  // namespace TNN_NS

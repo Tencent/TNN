@@ -41,7 +41,7 @@ namespace optimizer {
 #else
         auto device = net_config.device_type;
         if (device == DEVICE_ARM || device == DEVICE_NAIVE || device == DEVICE_X86) {
-            auto conv_post_optimizer = NetOptimizerManager::GetNetOptimizerCreatorByName(kNetOptimizerFuseConvPost)();
+            auto conv_post_optimizer = NetOptimizerManager::GetNetOptimizerByName(kNetOptimizerFuseConvPost);
             if (conv_post_optimizer && conv_post_optimizer->IsSupported(net_config)) {
                 conv_post_opt_ = conv_post_optimizer;
             } else {
