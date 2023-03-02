@@ -97,7 +97,7 @@ Status DefaultTrainNetwork::InitTrainingStatus() {
     int cnt                    = 0;
     for (auto layer : layers_) {
         std::shared_ptr<LayerInfo> layer_info = layer_info_map.at(layer->GetLayerName());
-        if (layer->GetLayerType() == LAYER_GRADIENT) {
+        if (layer_info->type == LAYER_GRADIENT) {
             loss_grad_layer = layer_info.get();
             break;
         }
