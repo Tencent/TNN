@@ -134,7 +134,7 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
                 } else if (buff_dtype == DATA_TYPE_INT32 && blob_dtype == DATA_TYPE_FLOAT) {
                     ConvertFromInt32ToFloat(buffer->force_to<int32_t *>(),
                                             reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())),
-                                            buffer->GetBytesSize() /  sizeof(int32_t));
+                                            buffer->GetBytesSize() / sizeof(int32_t));
                 } else {
                     LOGE("RawBuffer2ArmBlob:: unsupported buffer and blob data type: %d, %d\n", buff_dtype, blob_dtype);
                     return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: unsupported buffer and blob data type");
