@@ -20,8 +20,8 @@ namespace TNN_NS {
 
 namespace optimizer {
 
-    std::map<std::string, NetOptimizerCreator> &NetOptimizerManager::GetNetOptimizerMap() {
-        static std::map<std::string, NetOptimizerCreator> s_net_optimizer_map;
+    std::map<std::string, shared_ptr<NetOptimizer>> &NetOptimizerManager::GetNetOptimizerMap() {
+        static std::map<std::string, std::shared_ptr<NetOptimizer>> s_net_optimizer_map;
         return s_net_optimizer_map;
     }
 
@@ -36,9 +36,8 @@ namespace optimizer {
         std::sort(NetOptimizerManager::GetNetOptimizerSeq().begin(), NetOptimizerManager::GetNetOptimizerSeq().end());
 
         for (auto iter : NetOptimizerManager::GetNetOptimizerSeq()) {
-            auto optimizer_creator = GetNetOptimizerCreatorByName(iter.second);
-            NetOptimizerPtr optimizer = optimizer_creator();
-            if (optimizer && optimizer->IsSupported(net_config)) {
+            auto optimizer = optimizer_map[iter.second];
+            if (optimizer->IsSupported(net_config)) {
                 auto status = optimizer->Optimize(structure, resource);
                 if (status != TNN_OK) {
                     return status;
@@ -49,8 +48,7 @@ namespace optimizer {
         return TNN_OK;
     }
 
-    void NetOptimizerManager::RegisterNetOptimizer(NetOptimizerCreator optimizer_creator, OptPriority prior) {
-        NetOptimizerPtr optimizer = optimizer_creator();
+    void NetOptimizerManager::RegisterNetOptimizer(NetOptimizer *optimizer, OptPriority prior) {
         if (optimizer && optimizer->Strategy().length() > 0) {
             auto &optimizer_map = NetOptimizerManager::GetNetOptimizerMap();
             if (optimizer_map.find(optimizer->Strategy()) != optimizer_map.end()) {
@@ -59,17 +57,17 @@ namespace optimizer {
                     "duplicated: %s\n",
                     optimizer->Strategy().c_str());
             }
-            optimizer_map[optimizer->Strategy()] = optimizer_creator;
+            optimizer_map[optimizer->Strategy()] = std::shared_ptr<NetOptimizer>(optimizer);
             NetOptimizerManager::GetNetOptimizerSeq().push_back(std::make_pair(prior, optimizer->Strategy()));
         }
     }
 
-    NetOptimizerCreator NetOptimizerManager::GetNetOptimizerCreatorByName(const std::string &k_net_optimizer) {
+    std::shared_ptr<NetOptimizer> NetOptimizerManager::GetNetOptimizerByName(const std::string &k_net_optimizer) {
         auto &optimizer_map = NetOptimizerManager::GetNetOptimizerMap();
         if (optimizer_map.find(k_net_optimizer) != optimizer_map.end()) {
             return optimizer_map[k_net_optimizer];
         } else {
-            return []() { return nullptr; };
+            return nullptr;
         }
     }
 
