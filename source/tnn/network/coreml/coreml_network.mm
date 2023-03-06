@@ -55,6 +55,11 @@ bool HasAppleNPU() {
       const int major_version = atoi(system_info.machine + 4);
       return major_version >= 21;
     }
+    else if (strncmp("Mac", system_info.machine, 3) == 0) {
+        //for macbook with  Apple M2
+      const int major_version = atoi(system_info.machine + 3);
+      return major_version >= 14;
+    }
     else if (strncmp("Macmini", system_info.machine, 7) == 0) {
       const int major_version = atoi(system_info.machine + 7);
       return major_version >= 9;
