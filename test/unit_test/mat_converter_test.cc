@@ -244,6 +244,22 @@ INSTANTIATE_TEST_SUITE_P(MatConverterTest, MatConverterTest,
                                                       INTERP_TYPE_NEAREST, BORDER_TYPE_CONSTANT, 255),
                                 MatConverterTestParam(MatConverterType::WarpAffine, 2, 1, 100, 3, 7, 50,
                                                       INTERP_TYPE_NEAREST, BORDER_TYPE_CONSTANT, 255),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_REPLICATE, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_REPLICATE, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 1, 0, 50, 0, 1, 100,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_REPLICATE, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 2, 1, 100, 3, 7, 50,
+                                                      INTERP_TYPE_LINEAR, BORDER_TYPE_REPLICATE, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                                      INTERP_TYPE_NEAREST, BORDER_TYPE_REPLICATE, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6,
+                                                      INTERP_TYPE_NEAREST, BORDER_TYPE_REPLICATE, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 1, 0, 50, 0, 1, 100,
+                                                      INTERP_TYPE_NEAREST, BORDER_TYPE_REPLICATE, 0.0),
+                                MatConverterTestParam(MatConverterType::WarpAffine, 2, 1, 100, 3, 7, 50,
+                                                      INTERP_TYPE_NEAREST, BORDER_TYPE_REPLICATE, 0.0),
                                 // CvtColor
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRTOGRAY),
                                 MatConverterTestParam(MatConverterType::CvtColor, COLOR_CONVERT_BGRATOGRAY),
@@ -295,6 +311,16 @@ TEST_P(MatConverterTest, MatConverterTest) {
     }
     if (device_type == DEVICE_HUAWEI_NPU) {
         GTEST_SKIP();
+    }
+    if (device_type == DEVICE_APPLE_NPU) {
+        GTEST_SKIP();
+    }
+    // only cuda device support replicate border now
+    if (mat_converter_type == MatConverterType::WarpAffine &&
+        mat_converter_test_param.warp_affine_param.border_type == BORDER_TYPE_REPLICATE) {
+        if (device_type != DEVICE_CUDA) {
+            GTEST_SKIP();
+        }
     }
 
     int output_size;

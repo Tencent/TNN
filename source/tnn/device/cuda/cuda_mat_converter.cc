@@ -124,7 +124,7 @@ Status CudaMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param
         return ret;
 
     if (param.interp_type == INTERP_TYPE_LINEAR && 
-    (param.border_type == BORDER_TYPE_CONSTANT || param.border_type == BORDER_TYPE_TRANSPARENT)) {
+    (param.border_type == BORDER_TYPE_CONSTANT || param.border_type == BORDER_TYPE_TRANSPARENT || param.border_type == BORDER_TYPE_REPLICATE)) {
         if (src.GetMatType() == NGRAY || src.GetMatType() == N8UC3 || src.GetMatType() == N8UC4) {
             int channel = src.GetMatType() == NGRAY ? 1 : (src.GetMatType() == N8UC3 ? 3 : 4);
             uint8_t* src_ptr = (uint8_t*)src.GetData();
@@ -135,13 +135,13 @@ Status CudaMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam param
             return Status(TNNERR_PARAM_ERR, "convert type not support yet");
         }
     } else if (param.interp_type == INTERP_TYPE_NEAREST && 
-    (param.border_type == BORDER_TYPE_CONSTANT || param.border_type == BORDER_TYPE_TRANSPARENT)) {
+    (param.border_type == BORDER_TYPE_CONSTANT || param.border_type == BORDER_TYPE_TRANSPARENT || param.border_type == BORDER_TYPE_REPLICATE)) {
         if (src.GetMatType() == NGRAY || src.GetMatType() == N8UC3 || src.GetMatType() == N8UC4) {
             int channel = src.GetMatType() == NGRAY ? 1 : (src.GetMatType() == N8UC3 ? 3 : 4);
             uint8_t* src_ptr = (uint8_t*)src.GetData();
             uint8_t* dst_ptr = (uint8_t*)dst.GetData();
             WarpAffineNearest(src_ptr, src.GetBatch(), channel, src.GetWidth(), src.GetHeight(), dst_ptr, dst.GetWidth(),
-                dst.GetHeight(), param.transform, param.border_val, param.border_type);
+                dst.GetHeight(), param.transform, param.border_val, param.border_type, command_queue);
         } else {
             return Status(TNNERR_PARAM_ERR, "convert type not support yet");
         }

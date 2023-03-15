@@ -34,8 +34,8 @@ Status X86LRNLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
     Blob *output_blob  = outputs[0];
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+        float *input_data  = handle_ptr<float *>(input_blob->GetHandle());
+        float *output_data = handle_ptr<float *>(output_blob->GetHandle());
 
         int batch   = output_blob->GetBlobDesc().dims[0];
         int channel = output_blob->GetBlobDesc().dims[1];

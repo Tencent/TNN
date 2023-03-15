@@ -31,7 +31,8 @@ Status ArmConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource 
     ConvLayerResource *conv_res = dynamic_cast<ConvLayerResource *>(resource);
     CHECK_PARAM_NULL(conv_res);
 
-    if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF) {
+    if (conv_res->filter_handle.GetDataType() == DATA_TYPE_HALF
+        || conv_res->bias_handle.GetDataType() == DATA_TYPE_HALF) {
         LayerResource *fp32_res = nullptr;
         RETURN_ON_NEQ(ConvertHalfResource(LAYER_CONVOLUTION, conv_res, &fp32_res), TNN_OK);
         conv_acc_f32_resource_ = std::shared_ptr<LayerResource>(fp32_res);

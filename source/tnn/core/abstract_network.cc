@@ -35,11 +35,11 @@ Status AbstractNetwork::SetCpuNumThreads(int num_threads) {
 
 #if TNN_PROFILE
 void AbstractNetwork::StartProfile() {
-    LOGI("subclass should implement the func: StartProfile\n");
+    LOGI("warning: to make profiling work, subclass should implement the func: StartProfile\n");
 }
 
 std::shared_ptr<ProfileResult> AbstractNetwork::FinishProfile() {
-    LOGI("subclass should implement the func: FinishProfile\n");
+    LOGI("warning: to make profiling work, subclass should implement the func: FinishProfile\n");
     return std::make_shared<ProfileResult>();
 }
 #endif

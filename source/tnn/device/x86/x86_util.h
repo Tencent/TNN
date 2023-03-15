@@ -25,6 +25,7 @@
 #include "tnn/core/macro.h"
 
 namespace TNN_NS {
+namespace x86 {
 #if TNN_PROFILE
 using std::chrono::duration_cast;
 using std::chrono::microseconds;
@@ -60,6 +61,17 @@ int MatTranspose(T *dst, const T *src, size_t M, size_t N);
 
 int PackINT8Weight(int8_t *src, int8_t *dst, int input_channel, int output_channel, int height, int width);
 
+template<typename T>
+T handle_ptr(BlobHandle &handle) {
+    return reinterpret_cast<T>(((char*)handle.base) + handle.bytes_offset);
+}
+
+template<typename T>
+T handle_ptr(BlobHandle &&handle) {
+    return reinterpret_cast<T>(((char*)handle.base) + handle.bytes_offset);
+}
+
+}  // namespace x86
 }  // namespace TNN_NS
 
 #endif

@@ -15,6 +15,7 @@
 #include "include/tnn/core/tnn.h"
 #include "onnx/onnx_converter.h"
 #include "optimizer/tnn_optimizer.h"
+#include "resource/resource_convert.h"
 #include "runtime/tnn_runtime.h"
 #include "tflite/tflite_converter.h"
 #include "tnn/interpreter/abstract_model_interpreter.h"
@@ -25,16 +26,10 @@
 #include "utils/flags.h"
 #include "utils/generate_model.h"
 #include "utils/model_config.h"
-#include "utils/convert_raw_buffer.h"
 
 namespace TNN_CONVERTER {
 int Run(int argc, char* argv[]) {
     ParseCommandLine(argc, argv);
-
-    if(FLAGS_half) {
-        auto convert_raw_buffer = ConvertRawBuffer::GetInstance();
-        convert_raw_buffer->SetTargetDataType(TNN_NS::DATA_TYPE_HALF);
-    }
 
     auto interpreter =
         std::shared_ptr<TNN_NS::AbstractModelInterpreter>(TNN_NS::CreateModelInterpreter(TNN_NS::MODEL_TYPE_TNN));
@@ -76,7 +71,12 @@ int Run(int argc, char* argv[]) {
         LOGE("Converter: optimize %s failed!\n", FLAGS_mp.c_str());
         return status;
     }
-
+    // convert weight data type
+    ResourceConvert resource_manager;
+    if (FLAGS_half) {
+        resource_manager.SetResourceConvertType(RESOURCE_CONVERT_HALF);
+    }
+    resource_manager.converter(net_structure, net_resource);
     // wright the model
     std::string file_name = GetFileName(model_config.model_path_);
     status                = GenerateModel(net_structure, net_resource, model_config.output_dir_, file_name);

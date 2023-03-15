@@ -1,5 +1,5 @@
 [中文版本](README_CH.md)
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN.png"/>
+<div align=left ><img src="https://github.com/darrenyao87/tnn-models/raw/master/TNN.png"/>
 
 ## Introduction
 
@@ -7,13 +7,17 @@ TNN: A high-performance, lightweight neural network inference framework open sou
 
 ## Effect Example
 
-Face Detection(blazeface)   |   Object Detection(yolov5s)    |  Face Alignment<br>(from Tencent Youtu Lab)  |   Hair Segmentation<br>(from Tencent Guangying Lab) 
-:-------------------------: | :------: | :------: | :------:
-[![face_detection](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) <br> model link: [tflite](https://github.com/google/mediapipe/blob/master/mediapipe/models/face_detection_front.tflite) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) | [![yolov5](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) <br> model link: [onnx](https://github.com/ultralytics/yolov5/blob/master/models/export.py) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) | [![youtu_face_alignment](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) <br> model link: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) | [![hair_segmentation](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation) <br> model link: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation)
+Face Detection(blazeface)   |  Face Alignment<br>(from Tencent Youtu Lab)  |   Hair Segmentation<br>(from Tencent Guangying Lab)
+:-------------------------: | :------: | :------:
+[![face_detection](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) <br> model link: [tflite](https://github.com/google/mediapipe/blob/master/mediapipe/models/face_detection_front.tflite) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/blazeface) | [![youtu_face_alignment](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/face_alignment.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) <br> model link: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/youtu_face_alignment) | [![hair_segmentation](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/hair_seg_red.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation) <br> model link: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/hair_segmentation)
 
-Pose Estimation<br>(from Tencent Guangliu)   |   Pose Estimation<br>(blazepose)    |   Chinese OCR |  Reading Comprehension
-:--------------------------: | :------: | :------: | :------:
-[![skeleton](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_guangliu.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) <br> model link: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) | [![blazepose](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_blazepose.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) <br> model link: [tflite](https://github.com/google/mediapipe/blob/master/mediapipe/modules/pose_landmark/pose_landmark_full_body.tflite) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) | [![chinese-ocr](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/chinese-ocr.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr) <br> model link: [onnx](https://github.com/DayBreak-u/chineseocr_lite/tree/onnx/models) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr) | [![bertsquad10](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/bert_squad.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10) <br> model link: [onnx](https://github.com/onnx/models/blob/master/text/machine_comprehension/bert-squad/model/bertsquad-10.onnx) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10)
+Pose Estimation<br>(from Tencent Guangliu)   |   Pose Estimation<br>(blazepose)    |   Chinese OCR
+:--------------------------: | :------: | :------: 
+[![skeleton](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_guangliu.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) <br> model link: [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/skeleton) | [![blazepose](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/skeleton_blazepose.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) <br> model link: [tflite](https://github.com/google/mediapipe/blob/master/mediapipe/modules/pose_landmark/pose_landmark_full.tflite) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/blazepose) | [![chinese-ocr](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/chinese-ocr.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr) <br> model link: [onnx](https://github.com/DayBreak-u/chineseocr_lite/tree/onnx/models) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/chinese-ocr)
+
+Object Detection(yolov5s)    |   Object Detection(MobilenetV2-SSD)    |  Reading Comprehension
+:-------------------------: |:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:| :------: 
+[![yolov5](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/object-detection.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) <br> model link: [onnx](https://github.com/ultralytics/yolov5/blob/master/export.py) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/yolov5) | [![mobilenetv2_ssd](tutorial/mobilenet_v2_ssd/imgs/mobilenetv2_ssd_tf_fix_box.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/mobilenet_v2-ssd) <br> model link: [tensorflow](http://download.tensorflow.org/models/object_detection/ssdlite_mobilenet_v2_coco_2018_05_09.tar.gz) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/mobilenet_v2-ssd) |  [![bertsquad10](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/doc/demo/bert_squad.gif)](https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10) <br> model link: [onnx](https://github.com/onnx/models/blob/master/text/machine_comprehension/bert-squad/model/bertsquad-10.onnx) [tnn](https://github.com/darrenyao87/tnn-models/tree/master/model/bertsquad10)
 
 <small>Chinese OCR demo is the TNN implementation of [chineseocr_lite](https://github.com/DayBreak-u/chineseocr_lite) project. It is lightweight and supports tilted, rotated and vertical text recognition.</small>
 
@@ -40,9 +44,9 @@ Detailed hands-on tutorials can be found here [How to Create a TNN Model](doc/en
    For these platforms, TNN provides convenient one-click scripts to compile. For detailed steps, please refer to [How to Compile TNN](doc/en/user/compile_en.md).
 
 3. The final step is to use the compiled TNN engine for inference. You can make program calls to TNN inside your application. We provide a rich and detailed demo as a reference to help you complete.
-    * [Run an iOS Demo](doc/en/user/demo_en.md)
-    * [Run an Android Demo](doc/en/user/demo_en.md)
-    * [Run an Linux/Windows Demo](doc/en/user/demo_en.md)
+    * [Run an iOS Demo](doc/en/user/demo_en.md#i-introduction-to-ios-demo)
+    * [Run an Android Demo](doc/en/user/demo_en.md#ii-introduction-to-android-demo)
+    * [Run an Linux/Windows Demo](doc/en/user/demo_en.md#iii-introduction-to-linuxmacwindowsarmlinuxcudalinux-demo)
 
 ## Technical Solutions
 
@@ -67,7 +71,7 @@ At present, TNN has been launched in various major businesses, and its following
 
 * TNN architecture diagram：
 
-   <div><img src="https://gitee.com/darren3d/tnn-resource/raw/master/doc/en/imgs/tnn_architect.jpg"/>
+   <div><img src="https://github.com/darrenyao87/tnn-models/raw/master/doc/en/imgs/tnn_architect.jpg"/>
 
 * TNN supports TensorFlow, Pytorch, MxNet, Caffe, and other training frameworks through ONNX, leveraging the continuous improvement of the ONNX open-source society.
   Currently, TNN supports 100+ ONNX operators, consisting of most of the mainstream CNN, NLP operators needed.
@@ -90,6 +94,8 @@ At present, TNN has been launched in various major businesses, and its following
     * [Model Visualization Netron](https://lutzroeder.github.io/netron/)
     * [Performance Analysis](doc/en/development/profiling_en.md)
     * [Model Alignment](doc/en/development/model_check_en.md)
+* [Tutorial]()
+    * [TNN model conversion and deployment for SSD](tutorial/mobilenet_v2_ssd/doc/ssd_conversion_and_deployment_en.md)
 
 ## API Document
 * [API call](doc/en/user/api_en.md)
@@ -127,7 +133,7 @@ TNN referenced the following projects：
 
 * Everyone is welcome to participate to build the best inference framework in the industry.
 
-* Technical Discussion QQ Group: 913940506 Answer: TNN
+* Technical Discussion QQ Group: 704900079 Answer: TNN
 
 * Scan the QR code to join the TNN discussion group：
-<div align=left ><img src="https://gitee.com/darren3d/tnn-resource/raw/master/TNN-QQ.png"/>
+<div align=left ><img src="TNN-QQ.png"/>

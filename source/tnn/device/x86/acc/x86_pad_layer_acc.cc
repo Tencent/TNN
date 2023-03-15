@@ -137,8 +137,8 @@ Status X86PadLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::v
     int input_width         = input_dim[3];
 
     if (output_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
-        float *output_data = static_cast<float *>(output_blob->GetHandle().base);
+        float *input_data  = handle_ptr<float *>(input_blob->GetHandle());
+        float *output_data = handle_ptr<float *>(output_blob->GetHandle());
 
         if (param->type == 0) {
             // mode: const

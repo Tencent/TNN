@@ -30,7 +30,7 @@ bool HasAppleNPU() {
 #if TNN_COREML_TEST
     return true;
 #else
-    return true;
+    //return true;
     //check hardware
     struct utsname system_info;
     uname(&system_info);
@@ -120,7 +120,18 @@ Status CoreMLNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
             auto default_interpreter = dynamic_cast<DefaultModelInterpreter *>(interpreter);
             CHECK_PARAM_NULL(default_interpreter);
             auto md5s = default_interpreter->GetParamsMd5();
-            std::string md5 = md5s.size() > 0 ? md5s[0]: "unit_test_default_md5";  // default md5 for unit_test
+
+            std::string md5;
+            if ( md5s.size() > 0 ) {
+                md5 = md5s[0];
+            } else {
+                // default md5 for unit_test
+                auto time = static_cast<int>(clock() *1000000/ CLOCKS_PER_SEC);
+                char md5_default[64] = {0};
+                sprintf(md5_default, "unit_test_default_md5_%d", time);
+                md5 = md5_default;
+            }
+            
             if (md5s.size() >= 2) {
                 md5 = md5 + "-" + md5s[1];
             }
@@ -287,8 +298,10 @@ Status CoreMLNetwork::ConvertCoreMLModel(NetStructure *net_structure, NetResourc
             return Status(TNNERR_PARAM_ERR, "CreateCoreMLBaseLayer failed, dont support op");
         }
         cur_layer->SetNetResource(net_resource);
-        
-        auto resource = net_resource->resource_map[layer_info->name];
+        std::shared_ptr<LayerResource> resource = nullptr;
+        if (net_resource->resource_map.find(layer_info->name) != net_resource->resource_map.end()) {
+            resource = net_resource->resource_map[layer_info->name];
+        }
         // cur_layer->convert
         ret = cur_layer->Init(layer_info.get(), resource.get());
         if (ret != TNN_OK) {

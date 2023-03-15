@@ -70,7 +70,7 @@ public:
 };
 
 #define REGISTER_X86_BLOB_CONVERT_FUNC(mat_type, data_type, cvt_dir, cvt_func)                                  \
-    X86BlobConvertFuncRegister g_arm_##mat_type##_##data_type##_##cvt_dir##_register(mat_type, data_type,       \
+    X86BlobConvertFuncRegister g_x86_##mat_type##_##data_type##_##cvt_dir##_register(mat_type, data_type,       \
                                                                                      cvt_dir, cvt_func);
 
 }  // namespace TNN_NS

@@ -18,4 +18,5 @@
     <string name="tnn_sd_stream_btn_name">人体关键点-腾讯微视-视频输入</string>
     <string name="tnn_ocrdet_stream_btn_name">OCR检测-视频输入</string>
     <string name="tnn_reading_comprehension_btn_name">阅读理解-文字输入</string>
+    <string name="tnn_ic_ogl_image_btn_name">图像分类OpenGL-图片输入</string>
 </resources>

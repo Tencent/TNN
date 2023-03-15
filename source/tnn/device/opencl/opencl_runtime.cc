@@ -25,7 +25,11 @@
 #endif
 
 #ifdef SHARING_MEM_WITH_OPENGL
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <EGL/egl.h>
+#endif
 #endif
 
 namespace TNN_NS {
@@ -142,9 +146,15 @@ Status OpenCLRuntime::Init() {
 #if defined(SHARING_MEM_WITH_OPENGL) && (CL_HPP_TARGET_OPENCL_VERSION >= 120)
         // create context from glcontext
         LOGI("Create special opencl context to share with OpenGL\n");
+#if _WIN32
+        LOGI("wglGetCurrentContext(): 0x%x\n", wglGetCurrentContext());
+        cl_context_properties context_prop[] = {CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
+                                                CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(), 0};
+#else
         LOGI("eglGetCurrentContext(): 0x%x\n", eglGetCurrentContext());
         cl_context_properties context_prop[] = {CL_GL_CONTEXT_KHR, (cl_context_properties)eglGetCurrentContext(),
                                                 CL_EGL_DISPLAY_KHR, (cl_context_properties)eglGetCurrentDisplay(), 0};
+#endif
         context_ = std::shared_ptr<cl::Context>(new cl::Context(*device_, context_prop, nullptr, nullptr, &err));
 
         if (err != CL_SUCCESS) {
@@ -312,6 +322,11 @@ Status OpenCLRuntime::BuildKernel(cl::Kernel &kernel, const std::string &program
     for (auto &option : build_options) {
         build_options_str += " " + option;
     }
+
+    for (auto &option : extra_build_options_) {
+        build_options_str += " " + option;
+    }
+
     build_options_str += default_build_opts_;
     //program identifier = program_name + build_options
     std::pair<std::string, std::string> build_program_key =
@@ -393,9 +408,17 @@ GpuInfo OpenCLRuntime::ParseGpuInfo(std::string device_name, std::string device_
         LOGD("GPU type is Intel GPU\n");
         info.type = INTEL_GPU;
         sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
-    } else if (device_name.find("GeForce") != std::string::npos) {
+    } else if (device_version.find("CUDA") != std::string::npos) {
         LOGD("GPU type is Nvidia GPU\n");
         info.type = NVIDIA_GPU;
+        sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
+    } else if (device_name.find("AMD") != std::string::npos || device_version.find("AMD") != std::string::npos) {
+        LOGD("GPU type is AMD GPU\n");
+        info.type = AMD_GPU;
+        sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
+    } else {
+        // get the opencl version for version checking
+        sscanf(device_version.c_str(), "%*s%f%*s", &info.opencl_version);
     }
     LOGD("GPU Type: %d, model_num: %d, opencl version: %f\n", info.type, info.model_num, info.opencl_version);
 
@@ -445,12 +468,29 @@ Status OpenCLRuntime::SearchGpuDevice(std::shared_ptr<cl::Device>& device) {
 
     // choose GPU
     DevicePacket device_packet_to_use;
-    if (gpu_map.count(NVIDIA_GPU) > 0) {
+    GpuType gpu_type;
+    bool gpu_selected = false;
+    #ifdef TNN_OPENCL_PREFER_GPU_TYPE
+    if (gpu_map.count(TNN_OPENCL_PREFER_GPU_TYPE) > 0) {
+        gpu_type             = TNN_OPENCL_PREFER_GPU_TYPE;
+        device_packet_to_use = gpu_map[TNN_OPENCL_PREFER_GPU_TYPE].front();
+        gpu_selected = true;
+        LOGE("opencl runtime set prefer gpu type: %d\n", TNN_OPENCL_PREFER_GPU_TYPE);
+    }
+    #endif
+    if (!gpu_selected && gpu_map.count(NVIDIA_GPU) > 0) {
         device_packet_to_use = gpu_map[NVIDIA_GPU].front();
     } else if (gpu_map.count(INTEL_GPU) > 0) {
         device_packet_to_use = gpu_map[INTEL_GPU].front();
     } else {
+        gpu_type             = gpu_map.begin()->first;
         device_packet_to_use = gpu_map.begin()->second.front();
+    }
+
+    // On some AMD GPUs, reading data with out-of-bounds coordinates gets (0, 0, 0, 1),
+    // but the excepted data is (0, 0, 0, 0). Use -DCHECK_INPUT_COOR to check input data on AMD GPU.
+    if (AMD_GPU == gpu_type) {
+        extra_build_options_.emplace("-DCHECK_INPUT_COOR");
     }
 
     cl::Platform::setDefault(device_packet_to_use.platform);
@@ -491,7 +531,7 @@ bool OpenCLRuntime::BuildProgram(const std::string &build_options, cl::Program *
 
 Status OpenCLRuntime::LoadProgramCache() {
     Status ret = TNN_OK;
-#ifdef __ANDROID__
+#if (defined __ANDROID__) || (defined _WIN32)
     if (!program_cache_file_path_.empty()) {
         FILE* program_cache_fin = fopen(program_cache_file_path_.c_str(), "rb");
         if (!program_cache_fin) {
@@ -533,7 +573,11 @@ Status OpenCLRuntime::LoadProgramCache() {
             }
             std::string program_cache_bin_file_path = program_cache_file_path_ + "_" + program_name +
                                                         "_" + md5(build_option) + "_" + program_source_md5;
+#if (defined __ANDROID__)
             FILE* program_binary_stream_fin = fopen(program_cache_bin_file_path.c_str(), "r");
+#elif (defined _WIN32)
+            FILE* program_binary_stream_fin = fopen(program_cache_bin_file_path.c_str(), "rb");
+#endif
             if (!program_binary_stream_fin) {
                 ret = Status(TNNERR_OPENCL_KERNELBUILD_ERROR,
                              "open program cache binary file failed, input path: " +
@@ -590,7 +634,7 @@ Status OpenCLRuntime::LoadProgramCache() {
 
 Status OpenCLRuntime::SaveProgramCache() {
     Status ret = TNN_OK;
-#ifdef __ANDROID__
+#if (defined __ANDROID__) || (defined _WIN32)
     if (!program_cache_file_path_.empty() && is_program_cache_changed_) {
         FILE *program_cache_fout = fopen(program_cache_file_path_.c_str(), "wb");
         if (!program_cache_fout) {

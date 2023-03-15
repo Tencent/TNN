@@ -31,14 +31,14 @@
 #define CL_TARGET_OPENCL_VERSION 200
 #endif
 #ifndef CL_HPP_TARGET_OPENCL_VERSION
-#define CL_HPP_TARGET_OPENCL_VERSION 110
+#define CL_HPP_TARGET_OPENCL_VERSION 120
 #endif
 #ifndef CL_HPP_MINIMUM_OPENCL_VERSION
 #define CL_HPP_MINIMUM_OPENCL_VERSION 110
 #endif
 
 #include "CL/cl2.hpp"
-
+#include <CL/cl_egl.h>
 #define CHECK_NOTNULL(X)                                                       \
     ASSERT(X != NULL)                                                          \
     if (X == NULL) {                                                           \
@@ -210,13 +210,57 @@ public:
     using clEnqueueCopyImageToBufferFunc = cl_int(CL_API_CALL *)(
         cl_command_queue, cl_mem, cl_mem, const size_t *, const size_t *,
         size_t, cl_uint, const cl_event *, cl_event *);
-#if CL_HPP_TARGET_OPENCL_VERSION >= 120
+    using clCreateFromEGLImageKHRFunc = cl_mem(CL_API_CALL *)(cl_context, CLeglDisplayKHR,
+                                                              CLeglImageKHR, cl_mem_flags,
+                                                              const cl_egl_image_properties_khr *, cl_int *);
+    using clEnqueueAcquireEGLObjectsKHRFunc = cl_int(CL_API_CALL *)(cl_command_queue /* command_queue */,
+                                                                    cl_uint          /* num_objects */,
+                                                                    const cl_mem *   /* mem_objects */,
+                                                                    cl_uint          /* num_events_in_wait_list */,
+                                                                    const cl_event * /* event_wait_list */,
+                                                                    cl_event *       /* event */);
+    using clEnqueueReleaseEGLObjectsKHRFunc = cl_int(CL_API_CALL *)(cl_command_queue /* command_queue */,
+                                                                    cl_uint          /* num_objects */,
+                                                                    const cl_mem *   /* mem_objects */,
+                                                                    cl_uint          /* num_events_in_wait_list */,
+                                                                    const cl_event * /* event_wait_list */,
+                                                                    cl_event *       /* event */);
+    using clEnqueueReadImageFunc = cl_int(CL_API_CALL *)(cl_command_queue     /* command_queue */,
+                                                         cl_mem               /* image */,
+                                                         cl_bool              /* blocking_read */,
+                                                         const size_t *       /* origin[3] */,
+                                                         const size_t *       /* region[3] */,
+                                                         size_t               /* row_pitch */,
+                                                         size_t               /* slice_pitch */,
+                                                         void *               /* ptr */,
+                                                         cl_uint              /* num_events_in_wait_list */,
+                                                         const cl_event *     /* event_wait_list */,
+                                                         cl_event *           /* event */);
+    #if CL_HPP_TARGET_OPENCL_VERSION >= 120
     using clRetainDeviceFunc        = cl_int (CL_API_CALL *)(cl_device_id);
     using clReleaseDeviceFunc       = cl_int (CL_API_CALL *)(cl_device_id);
     using clCreateImageFunc         = cl_mem (CL_API_CALL *)(cl_context, cl_mem_flags,
                                         const cl_image_format *,
                                         const cl_image_desc *, void *,
                                         cl_int *);
+    using clEnqueueAcquireGLObjectsFunc = cl_int (*)(cl_command_queue queue     /* command_queue */,
+                                                     cl_uint n_obj              /* num_objects */,
+                                                     const cl_mem * mem      /* mem_objects */,
+                                                     cl_uint n_elist             /* num_events_in_wait_list */,
+                                                     const cl_event * wlist    /* event_wait_list */,
+                                                     cl_event * event           /* event */);
+    using clEnqueueReleaseGLObjectsFunc = cl_int (*)(cl_command_queue queue     /* command_queue */,
+                                                     cl_uint n_obj              /* num_objects */,
+                                                     const cl_mem * mem      /* mem_objects */,
+                                                     cl_uint n_elist             /* num_events_in_wait_list */,
+                                                     const cl_event * wlist    /* event_wait_list */,
+                                                     cl_event * event           /* event */);
+    using clCreateFromGLTextureFunc = cl_mem (*)(cl_context context     /* context */,
+                                                 cl_mem_flags flags   /* flags */,
+                                                 cl_GLenum target     /* target */,
+                                                 cl_GLint level       /* miplevel */,
+                                                 cl_GLuint tex      /* texture */,
+                                                 cl_int * err       /* errcode_ret */);
 #endif
 #if CL_HPP_TARGET_OPENCL_VERSION >= 200
     //opencl 2.0 can get sub group info and wave size.
@@ -276,10 +320,17 @@ public:
     TNN_CL_DEFINE_FUNC_PTR(clGetImageInfo);
     TNN_CL_DEFINE_FUNC_PTR(clEnqueueCopyBufferToImage);
     TNN_CL_DEFINE_FUNC_PTR(clEnqueueCopyImageToBuffer);
+    TNN_CL_DEFINE_FUNC_PTR(clCreateFromEGLImageKHR);
+    TNN_CL_DEFINE_FUNC_PTR(clEnqueueAcquireEGLObjectsKHR);
+    TNN_CL_DEFINE_FUNC_PTR(clEnqueueReleaseEGLObjectsKHR);
+    TNN_CL_DEFINE_FUNC_PTR(clEnqueueReadImage);
 #if CL_HPP_TARGET_OPENCL_VERSION >= 120
     TNN_CL_DEFINE_FUNC_PTR(clRetainDevice);
     TNN_CL_DEFINE_FUNC_PTR(clReleaseDevice);
     TNN_CL_DEFINE_FUNC_PTR(clCreateImage);
+    TNN_CL_DEFINE_FUNC_PTR(clEnqueueAcquireGLObjects);
+    TNN_CL_DEFINE_FUNC_PTR(clEnqueueReleaseGLObjects);
+    TNN_CL_DEFINE_FUNC_PTR(clCreateFromGLTexture);
 #endif
 #if CL_HPP_TARGET_OPENCL_VERSION >= 200
     TNN_CL_DEFINE_FUNC_PTR(clGetKernelSubGroupInfoKHR);

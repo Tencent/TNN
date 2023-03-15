@@ -396,6 +396,8 @@ Status OpenCLBlobConverterAcc::CreateConvertUnit(OpenCLExecuteUnit &unit, Mat &m
         } else if (DEVICE_OPENCL == mat.GetDeviceType()) {
             if (N8UC4 == mat.GetMatType()) {
                 kernel_name = "ConvertToN32FC4Image";
+            } else if (NGRAY == mat.GetMatType()) {
+                kernel_name = "ConvertToNGray";
             } else {
                 return Status(TNNERR_PARAM_ERR, "convert type not support yet");
             }
@@ -413,6 +415,8 @@ Status OpenCLBlobConverterAcc::CreateConvertUnit(OpenCLExecuteUnit &unit, Mat &m
         } else if (DEVICE_OPENCL == mat.GetDeviceType()) {
             if (N8UC4 == mat.GetMatType()) {
                 kernel_name = "ConvertFromN32FC4Image";
+            } else if (NGRAY == mat.GetMatType()) {
+                kernel_name = "ConvertFromNGray";
             } else {
                 return Status(TNNERR_PARAM_ERR, "convert type not support yet");
             }
@@ -526,14 +530,31 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
             CHECK_CL_SUCCESS(cl_ret);
         }
     } else if (DEVICE_OPENCL == mat.GetDeviceType()) {
-        cl::Image *mat_image = static_cast<cl::Image *>(mat.GetData());
-        cl_ret               = unit.ocl_kernel.setArg(idx++, *mat_image);
-        CHECK_CL_SUCCESS(cl_ret);
-        cl_ret = unit.ocl_kernel.setArg(idx++, *image);
-        CHECK_CL_SUCCESS(cl_ret);
-        if (!convert_to_mat) {
-            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 1));
+        if (NGRAY == mat.GetMatType()) {
+            if (blob_->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
+                cl_ret = unit.ocl_kernel.setArg(idx++, *image);
+                CHECK_CL_SUCCESS(cl_ret);
+            } else {
+                cl_ret = unit.ocl_kernel.setArg(idx++, *buffer);
+                CHECK_CL_SUCCESS(cl_ret);
+            }
+            cl::Buffer *mat_buffer  = static_cast<cl::Buffer *>(mat.GetData());
+            cl_ret                  = unit.ocl_kernel.setArg(idx++, *mat_buffer);
             CHECK_CL_SUCCESS(cl_ret);
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 2));
+            CHECK_CL_SUCCESS(cl_ret);
+            cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 3));
+            CHECK_CL_SUCCESS(cl_ret);
+        } else {
+            cl::Image *mat_image = static_cast<cl::Image *>(mat.GetData());
+            cl_ret               = unit.ocl_kernel.setArg(idx++, *mat_image);
+            CHECK_CL_SUCCESS(cl_ret);
+            cl_ret = unit.ocl_kernel.setArg(idx++, *image);
+            CHECK_CL_SUCCESS(cl_ret);
+            if (!convert_to_mat) {
+                cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 1));
+                CHECK_CL_SUCCESS(cl_ret);
+            }
         }
         if (param.scale.size() > 4 || param.bias.size() > 4) {
             return Status(TNNERR_PARAM_ERR, "Gpu convert scale/bias is not valid");

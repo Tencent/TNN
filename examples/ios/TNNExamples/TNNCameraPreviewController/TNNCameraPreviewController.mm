@@ -154,6 +154,11 @@ typedef void(^CommonCallback)(Status);
     self.boundingBoxes = boundingBoxes;
 }
 
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    [self resizePreviewLayer];
+}
+
 - (void)resizePreviewLayer {
     if (_cameraDevice && _cameraPreview) {
         _cameraDevice.videoPreviewLayer.frame = _cameraPreview.bounds;

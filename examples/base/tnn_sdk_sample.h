@@ -17,6 +17,7 @@
 #ifdef _WIN32
     #define NOMINMAX
 #endif
+#include <iomanip>
 #include <cmath>
 #include <fstream>
 #include <sstream>

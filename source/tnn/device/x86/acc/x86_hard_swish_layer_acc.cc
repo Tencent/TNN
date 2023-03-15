@@ -56,12 +56,12 @@ Status X86HardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
         channel_size = DimsVectorUtils::Count(input_dim0, 2);
     }
 
-    auto input_ptr0 = reinterpret_cast<float *>(input_blob0->GetHandle().base);
-    auto input_ptr1 = reinterpret_cast<float *>(input_blob1->GetHandle().base);
+    auto input_ptr0 = handle_ptr<float *>(input_blob0->GetHandle());
+    auto input_ptr1 = handle_ptr<float *>(input_blob1->GetHandle());
 
-    auto output_ptr = reinterpret_cast<float *>(outputs[0]->GetHandle().base);
+    auto output_ptr = handle_ptr<float *>(outputs[0]->GetHandle());
 
-#ifdef __AVX2__
+#ifdef __AVX__
     __m256 alpha_, beta_, zero_, one_, tmp00_, tmp01_, tmp02_, tmp03_, tmp10_, tmp11_, tmp12_, tmp13_;
     alpha_ = _mm256_set1_ps(alpha);
     beta_  = _mm256_set1_ps(beta);
@@ -85,10 +85,17 @@ Status X86HardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
                 tmp12_ = _mm256_loadu_ps(input_ptr1 + index + offset2);
                 tmp13_ = _mm256_loadu_ps(input_ptr1 + index + offset3);
 
+#ifdef __AVX2__
                 tmp10_ = _mm256_fmadd_ps(tmp10_, alpha_, beta_);
                 tmp11_ = _mm256_fmadd_ps(tmp11_, alpha_, beta_);
                 tmp12_ = _mm256_fmadd_ps(tmp12_, alpha_, beta_);
                 tmp13_ = _mm256_fmadd_ps(tmp13_, alpha_, beta_);
+#else
+                tmp10_ = _mm256_add_ps(_mm256_mul_ps(tmp10_, alpha_), beta_);
+                tmp11_ = _mm256_add_ps(_mm256_mul_ps(tmp11_, alpha_), beta_);
+                tmp12_ = _mm256_add_ps(_mm256_mul_ps(tmp12_, alpha_), beta_);
+                tmp13_ = _mm256_add_ps(_mm256_mul_ps(tmp13_, alpha_), beta_);
+#endif
 
                 tmp10_ = _mm256_min_ps(tmp10_, one_);
                 tmp11_ = _mm256_min_ps(tmp11_, one_);
@@ -129,10 +136,17 @@ Status X86HardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
             tmp12_ = _mm256_maskload_ps(input_ptr1 + tail + 16, mask2_);
             tmp13_ = _mm256_maskload_ps(input_ptr1 + tail + 24, mask3_);
 
+#ifdef __AVX2__
             tmp10_ = _mm256_fmadd_ps(tmp10_, alpha_, beta_);
             tmp11_ = _mm256_fmadd_ps(tmp11_, alpha_, beta_);
             tmp12_ = _mm256_fmadd_ps(tmp12_, alpha_, beta_);
             tmp13_ = _mm256_fmadd_ps(tmp13_, alpha_, beta_);
+#else
+            tmp10_ = _mm256_add_ps(_mm256_mul_ps(tmp10_, alpha_), beta_);
+            tmp11_ = _mm256_add_ps(_mm256_mul_ps(tmp11_, alpha_), beta_);
+            tmp12_ = _mm256_add_ps(_mm256_mul_ps(tmp12_, alpha_), beta_);
+            tmp13_ = _mm256_add_ps(_mm256_mul_ps(tmp13_, alpha_), beta_);
+#endif
 
             tmp10_ = _mm256_min_ps(tmp10_, one_);
             tmp11_ = _mm256_min_ps(tmp11_, one_);

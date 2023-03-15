@@ -208,7 +208,7 @@ Status ArmConvLayerCommon::Exec(const std::vector<Blob *> &inputs, const std::ve
 
         /*
         first unpack input tensor to nchw data format
-        pack data to make sure every group chanel algin4
+        pack data to make sure every group channel algin4
         */
         if (gic_4 != (gic / 4) && group != 1) {
             RawBuffer i_temp_buffer_(group * input_bytes_per_group);

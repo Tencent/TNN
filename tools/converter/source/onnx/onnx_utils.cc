@@ -334,7 +334,19 @@ void *GetDataFromTensor(const onnx::TensorProto &tensor, onnx::TensorProto_DataT
     if (tensor.data_type() == data_type) {
         if (tensor.has_raw_data()) {
             data_ptr = (void *)tensor.raw_data().data();
+        } else if (data_type == onnx::TensorProto_DataType_FLOAT) {
+            data_ptr = (void *)tensor.float_data().data();
+        } else if (data_type == onnx::TensorProto_DataType_INT32) {
+            data_ptr = (void *)tensor.int32_data().data();
+        } else if (data_type == onnx::TensorProto_DataType_INT64) {
+            data_ptr = (void *)tensor.int64_data().data();
+        } else if (data_type == onnx::TensorProto_DataType_DOUBLE) {
+            data_ptr = (void *)(tensor.double_data().data());
+        } else {
+            LOGE("Tensor(%s) do not have valid data\n", tensor.name().c_str());
         }
+    } else {
+        LOGE("Tensor(%s) data type does not match special data type\n", tensor.name().c_str());
     }
     return data_ptr;
 }

@@ -41,9 +41,11 @@ bool OpenCLConvLayerWinogradAcc::IsPrefered(const ConvLayerParam *param, const s
         return false;
     }
 
+    // TODO : return true when winograd cost < direct conv cost. 
+    //        # winograd cost =  src transform + gemm + dst transform
     return  param->kernels[0] == 3 && param->kernels[1] == 3 && param->dialations[0] == 1 && 
             param->dialations[1] == 1 && param->strides[0] == 1 && param->strides[1] == 1 && 
-            param->output_channel >=32 && param->input_channel >= 32 && 
+            param->output_channel > 32 && param->input_channel >= 32 && 
             DimsFunctionUtils::GetDim(input_dims, 3) * 1.0f / param->output_channel <= 4;
 }
 

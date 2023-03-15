@@ -73,6 +73,9 @@ enum FusionType {
 struct BatchNormLayerParam : public LayerParam {
     int channels = 0;
     float eps    = 1e-5f;
+    
+    //now only used by coreml
+    int is_instance_norm = 0;
 
     PARAM_COPY(BatchNormLayerParam)
 };
@@ -693,6 +696,12 @@ struct LogSoftmaxLayerParam : public LayerParam {
     int axis = 1;
 
     PARAM_COPY(LogSoftmaxLayerParam)
+};
+
+struct GLULayerParam : public LayerParam {
+    int axis = -1;
+
+    PARAM_COPY(GLULayerParam);
 };
 
 };  // namespace TNN_NS

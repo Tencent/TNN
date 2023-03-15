@@ -161,17 +161,22 @@ struct BenchResult {
            }
 
            NSArray<NSString *> *coremls = [[modelFiles filteredArrayUsingPredicate:predicateCoreML] sortedArrayUsingComparator:sort];
-           if (coremls.count > 0) {
+           for (NSString *iter in coremls) {
+               auto proto_prefix = [iter substringToIndex:iter.length - @".mlmodel".length];
+               model.name = proto_prefix.UTF8String;
                model.tnn_proto_content = "";
                model.tnn_model_content = "";
-               model.coreml = [modelDirPath stringByAppendingPathComponent:coremls[0]].UTF8String;
+               model.coreml = [modelDirPath stringByAppendingPathComponent:iter].UTF8String;
                netmodels.push_back(model);
            }
+           
            coremls = [modelFiles filteredArrayUsingPredicate:predicateCoreMLC];
-           if (coremls.count > 0) {
+           for (NSString *iter in coremls) {
+               auto proto_prefix = [iter substringToIndex:iter.length - @".mlmodelc".length];
+               model.name = proto_prefix.UTF8String;
                model.tnn_proto_content = "";
                model.tnn_model_content = "";
-               model.coreml = [modelDirPath stringByAppendingPathComponent:coremls[0]].UTF8String;
+               model.coreml = [modelDirPath stringByAppendingPathComponent:iter].UTF8String;
                netmodels.push_back(model);
            }
        }
@@ -190,6 +195,7 @@ struct BenchResult {
     option.warm_count = 5;
     option.forward_count = 10;
     option.create_count = 1;
+    option.create_count = 2;
     
     //Get metallib path from app bundle
     //PS：A script(Build Phases -> Run Script) is added to copy the metallib file in tnn framework project to benchmark app
@@ -200,48 +206,54 @@ struct BenchResult {
     
     NSString *allResult = [NSString string];
     for (auto model : allModels) {
-        NSLog(@"model: %s", model.name.c_str());
-        allResult = [allResult stringByAppendingFormat:@"model: %s\n", model.name.c_str()];
-    
-        //benchmark on cpu
-        auto result_cpu = [self benchmarkWithProtoContent:model.tnn_proto_content
-                                                model:model.tnn_model_content
-                                               coreml:model.coreml
-                                              library:pathLibrary.UTF8String
-                                              netType:NETWORK_TYPE_DEFAULT
-                                              deviceType:DEVICE_ARM
-                                               option:option];
-        NSLog(@"cpu: \ntime: %s", result_cpu.description().c_str());
-        allResult = [allResult stringByAppendingFormat:@"cpu: \ntime: %s\n",
-                     result_cpu.description().c_str()];
+        @autoreleasepool {
+            NSLog(@"model: %s", model.name.c_str());
+            allResult = [allResult stringByAppendingFormat:@"model: %s\n", model.name.c_str()];
+            
+            //tnn proto and model
+            if (model.tnn_proto_content.length() > 0 && model.tnn_model_content.length() > 0) {
+                //benchmark on cpu
+                auto result_cpu = [self benchmarkWithProtoContent:model.tnn_proto_content
+                                                        model:model.tnn_model_content
+                                                       coreml:model.coreml
+                                                      library:pathLibrary.UTF8String
+                                                      netType:NETWORK_TYPE_DEFAULT
+                                                      deviceType:DEVICE_ARM
+                                                       option:option];
+                NSLog(@"cpu: \ntime: %s", result_cpu.description().c_str());
+                allResult = [allResult stringByAppendingFormat:@"cpu: \ntime: %s\n",
+                             result_cpu.description().c_str()];
 
-        //benchmark on gpu
-        auto result_gpu = [self benchmarkWithProtoContent:model.tnn_proto_content
-                                                model:model.tnn_model_content
-                                               coreml:model.coreml
-                                              library:pathLibrary.UTF8String
-                                              netType:NETWORK_TYPE_DEFAULT
-                                              deviceType:DEVICE_METAL
-                                               option:option];
-        NSLog(@"gpu: \ntime: %s", result_gpu.description().c_str());
-        allResult = [allResult stringByAppendingFormat:@"gpu: \ntime: %s\n",
-                     result_gpu.description().c_str()];
-
-        //benchmark on npu
-        auto result_npu = [self benchmarkWithProtoContent:model.tnn_proto_content
-                                                model:model.tnn_model_content
-                                               coreml:model.coreml
-                                              library:pathLibrary.UTF8String
-                                              netType:NETWORK_TYPE_COREML
-                                              deviceType:DEVICE_APPLE_NPU
-                                               option:option];
-        NSLog(@"npu: \ntime: %s", result_npu.description().c_str());
-        allResult = [allResult stringByAppendingFormat:@"npu: \ntime: %s\n",
-                     result_npu.description().c_str()];
+                //benchmark on gpu
+                auto result_gpu = [self benchmarkWithProtoContent:model.tnn_proto_content
+                                                        model:model.tnn_model_content
+                                                       coreml:model.coreml
+                                                      library:pathLibrary.UTF8String
+                                                      netType:NETWORK_TYPE_DEFAULT
+                                                      deviceType:DEVICE_METAL
+                                                       option:option];
+                NSLog(@"gpu: \ntime: %s", result_gpu.description().c_str());
+                allResult = [allResult stringByAppendingFormat:@"gpu: \ntime: %s\n",
+                             result_gpu.description().c_str()];
+            }
+            
+            //tnn proto and model pr coreml model
+            //benchmark on npu
+            auto result_npu = [self benchmarkWithProtoContent:model.tnn_proto_content
+                                                    model:model.tnn_model_content
+                                                   coreml:model.coreml
+                                                  library:pathLibrary.UTF8String
+                                                  netType:NETWORK_TYPE_COREML
+                                                  deviceType:DEVICE_APPLE_NPU
+                                                   option:option];
+            NSLog(@"npu: \ntime: %s", result_npu.description().c_str());
+            allResult = [allResult stringByAppendingFormat:@"npu: \ntime: %s\n",
+                         result_npu.description().c_str()];
+            
+        }
         
+        self.textViewResult.text = allResult;
     }
-    
-    self.textViewResult.text = allResult;
 }
 
 - (BenchResult)benchmarkWithProtoContent:(string)protoContent
@@ -293,10 +305,12 @@ struct BenchResult {
     
     //warm cpu, only used when benchmark
     for (int cc=0; cc<option.warm_count; cc++) {
-        result.status = instance->Forward();
-        if (result.status != TNN_OK) {
-            NSLog(@"instance.Forward Error: %s", result.status.description().c_str());
-            return result;
+        @autoreleasepool {
+            result.status = instance->Forward();
+            if (result.status != TNN_OK) {
+                NSLog(@"instance.Forward Error: %s", result.status.description().c_str());
+                return result;
+            }
         }
     }
     
@@ -309,14 +323,16 @@ struct BenchResult {
     }
 #endif
     for (int cc=0; cc<option.forward_count; cc++) {
-        timeval tv_begin, tv_end;
-        gettimeofday(&tv_begin, NULL);
-        
-        result.status = instance->Forward();
-        
-        gettimeofday(&tv_end, NULL);
-        double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
-        result.addTime(elapsed);
+        @autoreleasepool {
+            timeval tv_begin, tv_end;
+            gettimeofday(&tv_begin, NULL);
+            
+            result.status = instance->Forward();
+            
+            gettimeofday(&tv_end, NULL);
+            double elapsed = (tv_end.tv_sec - tv_begin.tv_sec) * 1000.0 + (tv_end.tv_usec - tv_begin.tv_usec) / 1000.0;
+            result.addTime(elapsed);
+        }
     }
 #if TNN_PROFILE
     if (profile_layer_time) {

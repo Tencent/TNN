@@ -42,7 +42,7 @@ kernel void mul_broadcast(const device ftype4 *src0                             
     const int index = (int)gid.z * params.input_slice * params.input_size  + index_size;
     const int batch_offset0 = params.weight_index == 0? 0 : (int)gid.z * params.input0_size;
     const int batch_offset1 = params.weight_index == 1? 0 : (int)gid.z * params.input1_size;
-    
+
     ftype4 data0;
     if (params.broadcast_input0 == kBroadcastTypeChannel) {
         data0 = src0[batch_offset0 + gid.y];
@@ -58,7 +58,9 @@ kernel void mul_broadcast(const device ftype4 *src0                             
         data0 = ftype4(src0[(int)(gid.x % params.output_width) + (int)(gid.y * params.input0_size)]);
     } else if (params.broadcast_input0 == kBroadcastType5DimsHeightWidth) {
         data0 = ftype4(src0[(int)(gid.x % params.real_input0_4) + (int)(gid.y * params.real_input0_4 * params.real_input0_3)]);
-    } else if (params.broadcast_input0 == kBroadcastTypeWidth) {  //kBroadcastTypeChannelHeight
+    } else if (params.broadcast_input0 == kBroadcastTypeChannelHeight) {  //kBroadcastTypeChannelHeight
+        data0 = ftype4(src0[(int)(gid.x / params.output_width) + (int)(gid.y * params.input0_size)]);
+    } else if (params.broadcast_input0 == kBroadcastTypeWidth) {
         const int w = gid.x % params.input_width;
         data0 = ftype4(src0[batch_offset0 + w].x);
     } else {
@@ -80,7 +82,9 @@ kernel void mul_broadcast(const device ftype4 *src0                             
         data1 = ftype4(src1[(int)(gid.x % params.output_width) + (int)(gid.y * params.input1_size)]);
     } else if (params.broadcast_input1 == kBroadcastType5DimsHeightWidth) {
         data1 = ftype4(src1[(int)(gid.x % params.real_input1_4) + (int)(gid.y * params.real_input1_4 * params.real_input1_3)]);
-    } else if (params.broadcast_input1 == kBroadcastTypeWidth) {   //kBroadcastTypeChannelHeight
+    } else if (params.broadcast_input1 == kBroadcastTypeChannelHeight) {  //kBroadcastTypeChannelHeight
+        data1 = ftype4(src1[(int)(gid.x / params.output_width) + (int)(gid.y * params.input1_size)]);
+    } else if (params.broadcast_input1 == kBroadcastTypeWidth) {
         const int w = gid.x % params.input_width;
         data1 = ftype4(src1[batch_offset1 + w].x);
     } else {

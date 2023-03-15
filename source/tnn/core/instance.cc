@@ -94,8 +94,8 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
     }
 
     if (default_interpreter && default_interpreter->GetNetStructure() &&
-        (NeedDoConstantFolding(default_interpreter->GetNetStructure()) ||
-         net_config_.device_type == DEVICE_CUDA || net_config_.device_type == DEVICE_APPLE_NPU)) {
+        (NeedDoConstantFolding(default_interpreter->GetNetStructure()) || net_config_.device_type == DEVICE_CUDA ||
+         net_config_.device_type == DEVICE_APPLE_NPU || net_config_.device_type == DEVICE_ARM)) {
         auto const_folder = std::make_shared<ConstFolder>();
         auto folder_net_config = net_config_;
         folder_net_config.share_memory_mode = SHARE_MEMORY_MODE_DEFAULT;
@@ -325,6 +325,10 @@ void Instance::StartProfile() {
 
 std::string Instance::FinishProfile(bool do_print) {
     std::shared_ptr<ProfileResult> profile_result = network_->FinishProfile();
+    if (!profile_result || profile_result->GetData().size() <= 0) {
+        return "";
+    }
+    
     std::string result_str                        = " ";
     if (profile_result) {
         result_str = profile_result->GetProfilingDataInfo();
