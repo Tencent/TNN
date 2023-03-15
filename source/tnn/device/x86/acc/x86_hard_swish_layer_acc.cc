@@ -256,16 +256,62 @@ Status X86HardSwishLayerAcc::DoForward(const std::vector<Blob *> &inputs, const 
     }
 
 #else
-    for (int b = 0; b < batch; b++) {
-        for (int c = 0; c < channel; c++) {
-            auto input_data0 = input_ptr0 + (b * channel + c) * channel_size;
-            auto input_data1 = input_ptr1 + (b * channel + c) * channel_size;
-            auto output_data = output_ptr + (b * channel + c) * channel_size;
-            for (int index = 0; index < channel_size; index++) {
-                float tmp = input_data1[index] * alpha + beta;
-                tmp = std::min(tmp, 1.f);
-                tmp = std::max(tmp, 0.f);
-                output_data[index] = input_data0[index] * tmp;
+    // Simple impl when input_dims0 == input_dims1
+    if (DimsVectorUtils::Equal(input_dim0, input_dim1)) {
+        for (int b = 0; b < batch; b++) {
+            for (int c = 0; c < channel; c++) {
+                auto input_data0 = input_ptr0 + (b * channel + c) * channel_size;
+                auto input_data1 = input_ptr1 + (b * channel + c) * channel_size;
+                auto output_data = output_ptr + (b * channel + c) * channel_size;
+                for (int index = 0; index < channel_size; index++) {
+                    float tmp = input_data1[index] * alpha + beta;
+                    tmp = std::min(tmp, 1.f);
+                    tmp = std::max(tmp, 0.f);
+                    output_data[index] = input_data0[index] * tmp;
+                }
+            }
+        }
+        return TNN_OK;
+    }
+    // General impl
+    auto output_dims = outputs[0]->GetBlobDesc().dims;
+
+    batch            = output_dims[0];
+    channel          = output_dims[1];
+    const int height = output_dims.size() > 2 ? output_dims[2] : 1;
+    const int width  = output_dims.size() > 3 ? output_dims[3] : 1;
+    channel_size     = height * width;
+
+    const int input0_dim2 = input_dim0.size() > 2 ? input_dim0[2] : 1;
+    const int input1_dim2 = input_dim1.size() > 2 ? input_dim1[2] : 1;
+    const int input0_dim3 = input_dim0.size() > 3 ? input_dim0[3] : 1;
+    const int input1_dim3 = input_dim1.size() > 3 ? input_dim1[3] : 1;
+
+    for (int b = 0; b < batch; ++b) {
+        int output_index_b  = b * channel * channel_size;
+        int input_index_b_0 =
+            std::min(b, input_dim0[0] - 1) * input_dim0[1] * input0_dim2 * input0_dim3;
+        int input_index_b_1 =
+            std::min(b, input_dim1[0] - 1) * input_dim1[1] * input1_dim2 * input1_dim3;
+        for (int c = 0; c < channel; ++c) {
+            int output_index_c  = c * channel_size + output_index_b;
+            int input_index_c_0 =
+                std::min(c, input_dim0[1] - 1) * input0_dim2 * input0_dim3 + input_index_b_0;
+            int input_index_c_1 =
+                std::min(c, input_dim1[1] - 1) * input1_dim2 * input1_dim3 + input_index_b_1;
+            for (int h = 0; h < height; ++h) {
+                int output_index_h  = h * width + output_index_c;
+                int input_index_h_0 = std::min(h, input0_dim2 - 1) * input0_dim3 + input_index_c_0;
+                int input_index_h_1 = std::min(h, input1_dim2 - 1) * input1_dim3 + input_index_c_1;
+                for (int w = 0; w < width; ++w) {
+                    int output_index_w  = w + output_index_h;
+                    int input_index_w_0 = std::min(w, input0_dim3 - 1) + input_index_h_0;
+                    int input_index_w_1 = std::min(w, input1_dim3 - 1) + input_index_h_1;
+
+                    auto temp0                 = input_ptr0[input_index_w_0];
+                    auto temp1                 = input_ptr1[input_index_w_1] * alpha + beta;
+                    output_ptr[output_index_w] = temp0 * std::max(std::min(temp1, 1.0f), 0.0f);
+                }
             }
         }
     }
