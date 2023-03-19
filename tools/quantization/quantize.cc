@@ -206,7 +206,7 @@ void PrintConfig() {
         "\t-t, --merge_type\t(optional) merge blob/weights channel when quantize blob/weights\n"
         "\t\t0: per-channel mode  (default)\n"
         "\t\t1: mix mode          weight: per-channel  blob: per-tensor\n"
-        "\t\t2: per-tersor mode\n"
+        "\t\t2: per-tensor mode\n"
         "\t-o, --output       \t(optional) specify the name of output\n");
 }
 

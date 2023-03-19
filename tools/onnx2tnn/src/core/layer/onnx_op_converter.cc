@@ -157,7 +157,7 @@ int OnnxOpConverter::WriteTensorData(const onnx::TensorProto &tensor,
 //        }
         
         auto tensor_data_type = tensor.data_type();
-        DLog("tersor (%s) data type: %d item_size: %d\n", tensor.name().c_str(), tensor_data_type, item_size);
+        DLog("tensor (%s) data type: %d item_size: %d\n", tensor.name().c_str(), tensor_data_type, item_size);
         
         auto dims = GetDimsFromTensor(tensor);
         if (dims.empty() && item_size !=1) {
