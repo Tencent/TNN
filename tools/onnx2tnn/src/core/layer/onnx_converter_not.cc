@@ -15,4 +15,4 @@
 #include "onnx_op_converter.h"
 #include "onnx_utility.h"
 
-REGISTER_OP_CONVERTER_NoParamNoWeight(Neg, Not);
+REGISTER_OP_CONVERTER_NoParamNoWeight(Not, Not);
