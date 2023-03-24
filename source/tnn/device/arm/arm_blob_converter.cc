@@ -98,6 +98,14 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param,
             memcpy(image.GetData(), GetBlobHandlePtr(blob_->GetHandle()), count * ele_size);
         }
         return ret;
+    } else if (desc.data_type == DATA_TYPE_FLOAT && desc.data_format == DATA_FORMAT_NCHW) {
+        //nchw blob to nchw mat, only copy data. no need to pack data
+        int count    = DimsVectorUtils::Count(blob_->GetBlobDesc().dims);
+        int ele_size = DataTypeUtils::GetBytesSize(desc.data_type);
+        if (image.GetMatType() == NCHW_FLOAT && !NeedDoScaleBias(param)) {
+            memcpy(image.GetData(), GetBlobHandlePtr(blob_->GetHandle()), count * ele_size);
+            return ret;
+        }
     }
 
     auto cvt_data_type  = desc.data_type;
@@ -988,21 +996,6 @@ void RGBAChannelReverse(uint8_t *src, uint8_t *dst, int channel, int hw) {
         dst[i * 4]     = src[i * 4 + 2];
         dst[i * 4 + 2] = tmp;
     }
-}
-
-bool NeedDoScaleBias(const MatConvertParam &param) {
-    for (auto s : param.scale) {
-        if (s != 1.0f) {
-            return true;
-        }
-    }
-    for (auto b : param.bias) {
-        if (b != 0.0f) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 static Status ConvertN8UC4ToInt8Blob(Mat& image, char* handle_ptr, const MatConvertParam& param, const DimsVector& dims,
