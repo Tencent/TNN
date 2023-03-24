@@ -21,6 +21,21 @@
 
 namespace TNN_NS {
 
+bool NeedDoScaleBias(const MatConvertParam& param) {
+    for (auto s : param.scale) {
+        if (s != 1.0f) {
+            return true;
+        }
+    }
+    for (auto b : param.bias) {
+        if (b != 0.0f) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 BlobConverter::BlobConverter(Blob* blob) {
     blob_ = blob;
     impl_ = BlobConverterManager::Shared()->CreateBlobConverterAcc(blob);
@@ -102,21 +117,6 @@ Status BlobConverter::CheckScaleBiasInParam(Mat& image, MatConvertParam& param, 
     }
 
     return TNN_OK;
-}
-
-bool BlobConverter::NeedDoScaleBias(MatConvertParam &param) {
-    for (auto s : param.scale) {
-        if (s != 1.0f) {
-            return true;
-        }
-    }
-    for (auto b : param.bias) {
-        if (b != 0.0f) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 std::shared_ptr<BlobConverterManager>& BlobConverterManager::Shared() {

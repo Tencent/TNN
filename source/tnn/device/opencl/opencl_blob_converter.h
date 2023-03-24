@@ -34,7 +34,6 @@ public:
     virtual Status ConvertFromMatAsync(Mat& image, MatConvertParam param, void* command_queue = NULL);
 
 private:
-    bool NeedDoScaleBias(MatConvertParam& param);
     Status CreateConvertUnit(OpenCLExecuteUnit& unit, Mat& mat, MatConvertParam param, bool convert_to_mat);
     void CalculateWorkgroupSize(OpenCLExecuteUnit& unit);
     Status SetConvertArgs(OpenCLExecuteUnit& unit, Mat& mat, MatConvertParam param, bool convert_to_mat);

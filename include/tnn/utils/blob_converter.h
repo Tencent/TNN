@@ -36,6 +36,8 @@ struct PUBLIC MatConvertParam {
     bool reverse_channel     = false;
 };
 
+bool NeedDoScaleBias(const MatConvertParam& param);
+
 class BlobConverterAcc;
 class PUBLIC BlobConverter {
 public:
@@ -51,7 +53,7 @@ private:
     std::shared_ptr<BlobConverterAcc> impl_ = nullptr;
 
     Status CheckScaleBiasInParam(Mat& image, MatConvertParam& param, bool convert_to_mat);
-    bool NeedDoScaleBias(MatConvertParam &param);
+    
 };
 
 }  // namespace TNN_NS

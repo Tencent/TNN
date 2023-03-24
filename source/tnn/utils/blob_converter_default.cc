@@ -276,21 +276,6 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
     return ret;
 }
 
-static bool NeedDoScaleBias(const MatConvertParam &param) {
-    for (auto s : param.scale) {
-        if (s != 1.0f) {
-            return true;
-        }
-    }
-    for (auto b : param.bias) {
-        if (b != 0.0f) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 Status DefaultBlobConverterAcc::ConvertFromMatFunc(Mat& image, float* blob_data,
         MatConvertParam& param, BlobDesc& desc, const DimsVector& dims, const int hw) {
     if (image.GetMatType() == NCHW_FLOAT) {
