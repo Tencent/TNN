@@ -32,7 +32,7 @@ OpenCLBlobConverterAcc::OpenCLBlobConverterAcc(Blob *blob) : BlobConverterAcc(bl
         size_info = Calculate1DMemorySize(blob->GetBlobDesc());
     }
     // force float to get the max memeory
-    size_info.data_type   = DATA_TYPE_FLOAT;  
+    size_info.data_type   = DATA_TYPE_FLOAT;
     auto opencl_runtime   = OpenCLRuntime::GetInstance();
     buffer_size_          = GetBlobMemoryBytesSize(size_info);
     cl_int ret            = CL_SUCCESS;
@@ -177,7 +177,7 @@ Status OpenCLBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam par
         return ret;
     }
 
-    //if mat device is cpu, need copy mat data to buffer and convert buffer to blob 
+    //if mat device is cpu, need copy mat data to buffer and convert buffer to blob
     if (mat.GetDeviceType() != DEVICE_OPENCL) {
         ret = CopyMatToBufferData(mat, cl_command_queue);
         if (ret != TNN_OK) {
@@ -219,21 +219,6 @@ Status OpenCLBlobConverterAcc::ConvertFromMat(Mat &mat, MatConvertParam param, v
         opencl_command_queue->finish();
     }
     return ret;
-}
-
-bool OpenCLBlobConverterAcc::NeedDoScaleBias(MatConvertParam &param) {
-    for (auto s : param.scale) {
-        if (s != 1.0f) {
-            return true;
-        }
-    }
-    for (auto b : param.bias) {
-        if (b != 0.0f) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& kernel_name, std::string& program_name) {
