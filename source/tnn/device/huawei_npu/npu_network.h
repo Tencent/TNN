@@ -33,143 +33,145 @@
 #include "graph/attr_value.h"
 #include "graph/graph.h"
 #include "graph/op/nn_defs.h"
+#include "tensor/nd_tensor_buffer.h"
 #include "tnn/core/abstract_network.h"
 
 namespace TNN_NS {
 
-class NpuNetwork : public AbstractNetwork {
-public:
-    // @brief default constructor
-    NpuNetwork();
+    class NpuNetwork : public AbstractNetwork {
+    public:
+        // @brief default constructor
+        NpuNetwork();
 
-    // @brief virtual default destructor
-    virtual ~NpuNetwork();
+        // @brief virtual default destructor
+        virtual ~NpuNetwork();
 
-    // @brief init network with net cfg and net res.
-    // @param net_cfg
-    // @param net_res
-    virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder=true);
+        // @brief init network with net cfg and net res.
+        // @param net_cfg
+        // @param net_res
+        virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
+                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder=true);
 
-    // @brief deinit release init create resource
-    virtual Status DeInit();
+        // @brief deinit release init create resource
+        virtual Status DeInit();
 
-    //  @brief return the amount of memory required for forward
-    //  @param memory_size: the memory size used by rapidnet layers for
-    //  forward
-    //  @return error code: If successful, returns zero. Otherwise, returns
-    //  an error code.
-    virtual Status GetForwardMemorySize(int &memory_size);
+        //  @brief return the amount of memory required for forward
+        //  @param memory_size: the memory size used by rapidnet layers for
+        //  forward
+        //  @return error code: If successful, returns zero. Otherwise, returns
+        //  an error code.
+        virtual Status GetForwardMemorySize(int &memory_size);
 
-    //  @brief: set memory used by the rapidnet instance without forward
-    //  memory, the memory size must be at least that returned by
-    //  GetForwardMemorySize(). releasing or otherwise using the memory for
-    //  other purposes during the rapidnet network run will result in
-    //  undefined behavior.
-    //  @param memory: the memory used by rapidnet layers for forward
-    //  @return error code: If successful, returns zero. Otherwise, returns
-    //  an error code.
-    //
-    virtual Status SetForwardMemory(void *memory);
+        //  @brief: set memory used by the rapidnet instance without forward
+        //  memory, the memory size must be at least that returned by
+        //  GetForwardMemorySize(). releasing or otherwise using the memory for
+        //  other purposes during the rapidnet network run will result in
+        //  undefined behavior.
+        //  @param memory: the memory used by rapidnet layers for forward
+        //  @return error code: If successful, returns zero. Otherwise, returns
+        //  an error code.
+        //
+        virtual Status SetForwardMemory(void *memory);
 
-    // @brief network infer
-    virtual Status Reshape(const InputShapesMap &inputs);
+        // @brief network infer
+        virtual Status Reshape(const InputShapesMap &inputs);
 
-    // @brief get rapidnet command queue
-    // @param command_queue device command queue for forward
-    virtual Status GetCommandQueue(void **command_queue);
+        // @brief get rapidnet command queue
+        // @param command_queue device command queue for forward
+        virtual Status GetCommandQueue(void **command_queue);
 
-    // @brief network infer, it will sync to wait result
-    virtual Status Forward();
+        // @brief network infer, it will sync to wait result
+        virtual Status Forward();
 
-    // @brief rapidnet instance network infer, it will not wait
-    virtual Status ForwardAsync(Callback call_back);
+        // @brief rapidnet instance network infer, it will not wait
+        virtual Status ForwardAsync(Callback call_back);
 
-    // @brief get all input blobs
-    // @param blobs input blobs name map
-    virtual Status GetAllInputBlobs(BlobMap &blobs);
+        // @brief get all input blobs
+        // @param blobs input blobs name map
+        virtual Status GetAllInputBlobs(BlobMap &blobs);
 
-    // @brief get all output blobs
-    // @param blobs output blobs name map
-    virtual Status GetAllOutputBlobs(BlobMap &blobs);
+        // @brief get all output blobs
+        // @param blobs output blobs name map
+        virtual Status GetAllOutputBlobs(BlobMap &blobs);
 
-    // @brief set device affinity
-    virtual Status SetDeviceAffinity(const std::vector<int> &device_list);
+        // @brief set device affinity
+        virtual Status SetDeviceAffinity(const std::vector<int> &device_list);
 
 #if TNN_PROFILE
-public:
+        public:
     virtual void StartProfile();
     virtual std::shared_ptr<ProfileResult> FinishProfile();
 #endif
 
-private:
-    // add for huawei_npu
+    private:
+        // add for huawei_npu
 
-    bool InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config);
+        bool InitConfigCheck(NetworkConfig &net_config, ModelConfig &model_config);
 
-    Status RomVersionCheck();
+        Status RomVersionCheck();
 
-    Status InitContext(NetworkConfig &net_config);
+        Status InitContext(NetworkConfig &net_config);
 
-    Status HiAIModelInit(std::string model_path, NetworkConfig &net_config, ModelConfig &model_config,
-                         DefaultModelInterpreter *interpreter, InputShapesMap inputs_shape,
-                         InputShapesMap &cpu_inputs_shape);
+        Status HiAIModelInit(std::string model_path, NetworkConfig &net_config, ModelConfig &model_config,
+                             DefaultModelInterpreter *interpreter, InputShapesMap inputs_shape,
+                             InputShapesMap &cpu_inputs_shape);
 
-    Status IRInitLayers(NetworkConfig &net_config, DefaultModelInterpreter *interpreter, InputShapesMap &inputs_shape);
+        Status IRInitLayers(NetworkConfig &net_config, DefaultModelInterpreter *interpreter, InputShapesMap &inputs_shape);
 
-    Status InitSubNetwork(NetworkConfig &net_config, ModelConfig &model_config, DefaultModelInterpreter *interpreter,
-                          InputShapesMap &cpu_inputs_shape);
+        Status InitSubNetwork(NetworkConfig &net_config, ModelConfig &model_config, DefaultModelInterpreter *interpreter,
+                              InputShapesMap &cpu_inputs_shape);
 
-    Status ConvertLayers(NetResource *net_resource);
+        Status ConvertLayers(NetResource *net_resource);
 
-    Status CreateGraphInputs(InputShapesMap &input_shape_map);
+        Status CreateGraphInputs(InputShapesMap &input_shape_map);
 
-    Status SetGraphInputsAndOutputs(InputShapesMap &input_shape_map, InputShapesMap &cpu_input_shape_map);
+        Status SetGraphInputsAndOutputs(InputShapesMap &input_shape_map, InputShapesMap &cpu_input_shape_map);
 
-    Status BuildGraph(domi::HiaiIrBuild &ir_build, domi::ModelBufferData &om_model_buff);
+        Status BuildGraph(hiai::HiaiIrBuild &ir_build);
 
-    Status InitBlobs(InputShapesMap &inputs_shape, InputShapesMap &cpu_inputs_shape);
+        Status InitBlobs(InputShapesMap &inputs_shape, InputShapesMap &cpu_inputs_shape);
 
-    Blob *CreateNpuBlob(hiai::TensorDimension dims, std::string name, void *data);
+        Blob *CreateNpuBlob(hiai::NDTensorDesc& tensor_desc, std::string name, void *data);
 
-private:
-    AbstractDevice *device_ = nullptr;
+    private:
+        AbstractDevice *device_ = nullptr;
 
-    Context *context_ = nullptr;
+        Context *context_ = nullptr;
 
-    std::vector<NpuBaseLayer *> layers_;
+        std::vector<NpuBaseLayer *> layers_;
 
-    NetStructure *net_structure_ = nullptr;
-    // add for huawei_npu
-    // map to store the operators corresponding to their names
-    std::map<std::string, shared_ptr<OperatorInfo>> global_operator_map_;
-    // graph used to build
-    ge::Graph graph_ = ge::Graph("graph");
+        NetStructure *net_structure_ = nullptr;
+        // add for huawei_npu
+        // map to store the operators corresponding to their names
+        std::map<std::string, shared_ptr<OperatorInfo>> global_operator_map_;
+        // graph used to build
+        ge::Graph graph_ = ge::Graph("graph");
 
-    // the boolean controls if build from om or build from memory
-    bool use_path_ = true;
-    // the name of the model
-    std::string model_name_;
-    std::string version_str_ = "";
-    std::shared_ptr<hiai::AiModelMngerClient> client_;
-    std::vector<std::shared_ptr<hiai::AiTensor>> input_tensor_;
-    std::vector<std::shared_ptr<hiai::AiTensor>> output_tensor_;
+        // the boolean controls if build from om or build from memory
+        bool use_path_ = true;
+        // the name of the model
+        std::string model_name_;
+        std::string version_str_ = "";
+        std::shared_ptr<hiai::IModelManager> model_manager_;
+        std::shared_ptr<hiai::IBuiltModel> built_model_;
+        std::vector<std::shared_ptr<hiai::INDTensorBuffer>> input_tensor_;
+        std::vector<std::shared_ptr<hiai::INDTensorBuffer>> output_tensor_;
 
-    // blob map used only for input
-    BlobMap input_blob_map_;
-    BlobMap output_blob_map_;
+        // blob map used only for input
+        BlobMap input_blob_map_;
+        BlobMap output_blob_map_;
 
-    // here to add sub network :
-    std::shared_ptr<DefaultNetwork> sub_network_;
-    std::shared_ptr<DefaultModelInterpreter> sub_network_interp_;
-    // count how many layers have been constructed
-    int cpu_count_;
-    std::set<std::string> visited_;
-    bool use_subnet_ = false;
-    BlobMap npu_inter_out_blobmap_;
-    BlobMap cpu_inter_in_blobmap_;
-    std::map<std::string, std::shared_ptr<BlobConverter>> cpu_blob_converter_map_;
-};
+        // here to add sub network :
+        std::shared_ptr<DefaultNetwork> sub_network_;
+        std::shared_ptr<DefaultModelInterpreter> sub_network_interp_;
+        // count how many layers have been constructed
+        int cpu_count_;
+        std::set<std::string> visited_;
+        bool use_subnet_ = false;
+        BlobMap npu_inter_out_blobmap_;
+        BlobMap cpu_inter_in_blobmap_;
+        std::map<std::string, std::shared_ptr<BlobConverter>> cpu_blob_converter_map_;
+    };
 
 }  // namespace TNN_NS
 

@@ -24,6 +24,7 @@
 #include "graph/compatible/all_ops.h"
 #include "graph/operator.h"
 #include "hiai_ir_build.h"
+#include "model/built_model.h"
 #include "npu_base_layer_convert.h"
 #include "tnn/core/common.h"
 #include "tnn/core/status.h"
@@ -57,7 +58,7 @@ public:
     static Status CreateConstOpFromResource(std::shared_ptr<OperatorInfo> &const_op, std::string name,
                                             NetResource *net_resource);
 
-    static Status WriteModelFile(domi::ModelBufferData &model_buffer_data, std::string file_path);
+    static Status WriteModelFile(std::shared_ptr<hiai::IBuiltModel>& builtModel, std::string file_path);
 
     static Status GetPadMode(int &pad_mode, int pad_type);
 

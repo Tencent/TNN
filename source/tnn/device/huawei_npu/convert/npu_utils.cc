@@ -89,16 +89,8 @@ Status NpuUtils::CreateConstOpFromResource(std::shared_ptr<OperatorInfo> &const_
     return TNN_OK;
 }
 
-Status NpuUtils::WriteModelFile(domi::ModelBufferData &model_buffer_data, std::string file_path) {
-    int file_length = model_buffer_data.length;
-    if (file_length == 0) {
-        LOGE("ERROR: The file length equals to 0 build model fail\n");
-        return Status(TNNERR_NPU_HIAI_API_ERROR, "ERROR: The file length equals to 0 build model fail");
-    }
-    std::ofstream file(file_path.c_str(), std::ios::binary);
-    file.write(static_cast<char *>(model_buffer_data.data), model_buffer_data.length);
-    file.close();
-    return TNN_OK;
+Status NpuUtils::WriteModelFile(std::shared_ptr<hiai::IBuiltModel>& builtModel, std::string file_path) {
+    return builtModel->SaveToFile(file_path.c_str());
 }
 
 Status NpuUtils::GetPadMode(int &pad_mode, int pad_type) {
