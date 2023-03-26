@@ -25,7 +25,7 @@ int Onnx2TNN::FuseSwish(onnx::GraphProto* mutable_graph,
 
     //for now, we only implement the fusion logic and cpu operator. cancel "return 0" if implementation are all done for device opencl、arm、cuda and metal
     //remember to implement the activation of conv
-    return 0;
+    //return 0;
 
     for (int i = 0; i < node_count; i++) {
         auto node = index_nodes[i].node;
