@@ -82,6 +82,7 @@ int Onnx2TNN::FuseBatchNorm(onnx::GraphProto* mutable_graph,
                 //check weights
                 string scale_name, bias_name, input_name;
                 std::vector<int> scale_dims;
+                bool is_valid_dims = true;
                 int data_count = 1;
                 {
                     if (weights.find(node_mul->input(0)) != weights.end() && weights.find(node_mul->input(1)) == weights.end()) {
@@ -91,6 +92,7 @@ int Onnx2TNN::FuseBatchNorm(onnx::GraphProto* mutable_graph,
                         scale_name = node_mul->input(1);
                         input_name = node_mul->input(0);
                     } else {
+                        is_valid_dims = false;
                         break;
                     }
                     
@@ -99,6 +101,7 @@ int Onnx2TNN::FuseBatchNorm(onnx::GraphProto* mutable_graph,
                     } else if (weights.find(node_add->input(1)) != weights.end() && weights.find(node_add->input(0)) == weights.end()) {
                         bias_name = node_add->input(1);
                     } else {
+                        is_valid_dims = false;
                         break;
                     }
                     
@@ -108,17 +111,30 @@ int Onnx2TNN::FuseBatchNorm(onnx::GraphProto* mutable_graph,
                     auto weight_bias = weights[scale_name];
                     auto dims_bias =  weight_scale.dims();
                     if (weight_bias.dims_size() != dims_bias.size() || dims_bias.size() < 2 || dims_bias.Get(0) != 1) {
+                        is_valid_dims = false;
                         break;
                     }
+                    
                     for (int ind = 0; ind < dims_scale.size(); ind++) {
                         if (dims_scale.Get(ind) != dims_bias.Get(ind)) {
+                            is_valid_dims = false;
                             break;
                         }
+                        
+                        //check dims to insure no broadcast
+                        if (ind < dims_scale.size()-1 && dims_scale.Get(ind) != 1) {
+                            is_valid_dims = false;
+                            break;
+                        }
+                        
                         scale_dims.push_back((int)dims_scale.Get(ind));
                         data_count *= dims_scale.Get(ind);
                     }
                 }
-
+                if (!is_valid_dims) {
+                    break;
+                }
+                
                 string mean_name = node_add->output(0) + "-mean";
                 string var_name = node_add->output(0) + "-var";
                 //set weights mean var
