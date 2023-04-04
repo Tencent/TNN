@@ -67,7 +67,7 @@ function build_model_check_and_tnn_converter_and_onnx2tnn() {
 
     #From the date 20210123 on, onnx2tnn is compiled by default with Cmake option TNN_CONVERTER_ENABLE
     #Copy the so file of onnx2tnn from the building directory to tnn/tools/onnx2tnn/onnx-converter/onnx2tnn
-    onnx2nn_files=$(ls -U tools/onnx2tnn/onnx-converter/onnx2tnn*.so);
+    onnx2nn_files=$(ls -U tools/onnx2tnn/onnx-converter/onnx2tnn*);
     if [ ${#onnx2nn_files[*]} -ge 1 ]; then
         cp ${onnx2nn_files[0]} ../../onnx2tnn/onnx-converter
         rm ${onnx2nn_files[0]}
