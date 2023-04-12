@@ -556,3 +556,97 @@ The interface provides conversion from uchar string to std::string, which is mai
 
 ### 16. version.h
 Build version information.
+
+# Python API Documentation
+
+Python API encapsulates C++ Core related APIs based on pybind, and all defined types can be imported through the package name of `pytnn`. The related usage is basically the same as that of the C++ API, except that the function behavior of C++ passing reference parameters as the return value is changed, and it is changed to directly return as the function return value in the python corresponding interface. In addition, the Python API provides a simplified API interface.
+
+### 1. load 
+
+```python
+def load(model_path, config_dict = {}):
+```  
+
+Models like TNN whose model structure and weight are stored separately, only need to pass the tnnproto file path, and the model weight path is automatically searched based on the suffix name. `config_dict` supports dictionary input, the related key description is as follows:  
+
+
+* `input_shapes`:  support python list or dict input, the dict key can specify the input name。 each input can be specified in two formats:
+
+```python
+{ "input_shapes": [ {"min": [1,3,224,224], "max": [1,3,248,248]} ]}
+{ "input_shapes": [ [1,3,224,224] ]}
+```  
+
+min, max can be used to specify the minimum and maximum sizes supported. For a fixed size, you only need to specify one size. The size supports tuple and list.  
+For multi-input models, different input sizes can use different formats to specify the supported input sizes.  
+
+```python
+{ "input_shapes":  [ [1,3,112,112], {"min": [1,3,224,224], "max": [1,3,248,248]} ] }
+```   
+
+The first input is a fixed input size, and the second input specifies the minimum and maximum size supported.  
+
+The same input is passed in through dict, and the key can be used to specify the input name:
+
+```python
+{"input_shapes": {"data_0": [1,3,112,112], "data_1": {"min": [1,3,224,224], "max": [1,3,248,248]}}}
+```
+
+`data_0` is a fixed input size, and `data_1` specifies the minimum and maximum size supported.  
+
+
+* `device_type`:  Support enumeration type DeviceType and string type as input.
+
+```python
+{"device_type": DEVICE_NAIVE}
+{"device_type": "naive"}
+```  
+The enumeration type is the same as c++, and supports `DEVICE_CUDA`, `DEVICE_X86`, `DEVICE_ARM`, `DEVICE_NAIVE`, etc.  
+There is a one-to-one correspondence between string types and enumeration types. For example, `CUDA` and `cuda` both represent DEVICE_CUDA and support upper and lower case.
+
+Special note: device_type is not specified, `DEVICE_CUDA` is selected by default.
+
+* `data_format`, `network_type`, `precision`, `share_memory_mode`, `data_format` are similar to `device_type`, both support enumeration type and string type as input, enumeration type is the same as c++, string type and enumeration type Name one-to-one correspondence, support upper and lower case.
+
+* `cache_path`, `library_path` support string type as input, `enable_tune_kernel` supports boolean type as input.
+
+### 2. `load_raw`, `load_raw_range`
+
+```python
+def load_raw(model_path, network_config, input_shapes=None):
+def load_raw_range(model_path, network_config, min_input_shapes, max_input_shapes):
+```
+
+The two interfaces are simple packages of the TNN corresponding interface CreateInst, where `model_path` passes the model path; `network_config` is an instance of the `NetworkConfig` class, which is the same as the C++ class; `input_shapes`, `min_input_shapes`, and `max_input_shapes` correspond to related input size settings, the type is a dictionary, where the key is the input name, and the value corresponds to the input size list.
+
+## 二、网络运行
+
+After the model is loaded, an instance of the Module class will be returned, and an important function defined by the Module class is forward.
+
+```python
+class Module:
+...
+    def forward(self, *inputs, rtype="list"):
+...
+```  
+
+`inputs` is a variable number of  arguments, each input data is stored in `numpy.ndarray`, arranged as NC[D1-D4]. It supports direct input of multiple inputs, and also supports input in the form of list, tuple, and dict. For example, a two-input network, the input name is `data_1`, `data_2` in sequence, and support the following ways to transfer parameters.
+
+```
+input1=numpy.ones((1,3,224,224), np.float32, 'F')
+input2=numpy.ones((1,3,224,224), np.float32, 'F')
+# case1
+outputs=module.forward(input1, input2)
+#case2
+outputs=module.forward((input1, input2))
+#case3
+outputs=module.forward([input1, input2])
+#case4
+outputs=module.forward({"data_1":input1, "data_2":input2})
+```  
+
+The default return type of output is list, and each output is stored in `numpy.ndarray`, arranged as NC[D1-D4].
+
+`rtype` supports `list`, `dict`, if the output return type is a dictionary type, where key is the model output name, and value corresponds to the output data, which is stored in `numpy.ndarray`.
+
+

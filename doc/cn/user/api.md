@@ -556,3 +556,94 @@ struct PUBLIC MatConvertParam {
 
 ### 16. version.h
 构建版本信息
+
+# Python API说明
+
+Python API 基于pybind 对 C++ Core 相关API进行了封装，所有定义类型均可通过`pytnn`包名引入。相关用法与C++ API基本相同，仅改变了c++传引用参数作为返回值的函数行为，在python对应接口中改为直接作为函数返回值返回。此外，Python API提供了简化的API接口。
+
+## 一、模型加载
+
+### 1. load 
+
+```python
+def load(model_path, config_dict = {}):
+```  
+
+其中`model_path`传递模型路径，对于TNN这种模型结构与权重分开存储的模型，仅需传递tnnproto 文件路径，模型权重路径基于后缀名自动查找。`config_dict`支持字典传入，相关key说明如下:  
+
+* `input_shapes`:  支持list以及dict两种形式传入，其中dict key 可指定输入name。shape可通过两种格式指定：
+
+```python
+{ "input_shapes": [ {"min": [1,3,224,224], "max": [1,3,248,248]} ]}
+{ "input_shapes": [ [1,3,224,224] ]}
+```  
+其中min, max可用来指定支持的最小，最大尺寸，固定尺寸仅需指定一个尺寸即可，尺寸支持tuple和list。  
+对于多输入模型，不同输入尺寸可以采用不同的格式指定支持的输入尺寸。   
+
+```python
+{ "input_shapes":  [ [1,3,112,112], {"min": [1,3,224,224], "max": [1,3,248,248]} ] }
+```   
+
+其中第一个输入为固定输入尺寸，第二个输入为可变尺寸。  
+相同的输入，通过dict传入，key可用于指定输入name：  
+
+```python
+{ "input_shapes":  { "data_0": [1,3,112,112], "data_1": {"min": [1,3,224,224], "max": [1,3,248,248]} } }
+```   
+其中`data_0` 为固定输入尺寸，`data_1` 为可变输入尺寸。  
+
+* `device_type`:  支持DeviceType枚举类型以及字符串传入。
+
+```python
+{"device_type": DEVICE_NAIVE}
+{"device_type": "naive"}
+```  
+枚举类型同c++，支持 `DEVICE_CUDA`, `DEVICE_X86`, `DEVICE_ARM`, `DEVICE_NAIVE`等。  
+字符串类型与枚举类型命名一一对应，如`CUDA`, `cuda`均表示DEVICE_CUDA，支持大小写。  
+特别说明：不指定device_type，默认选择`DEVICE_CUDA`。
+
+* `data_format`，`network_type`, `precision`, `share_memory_mode`, `data_format` 与 `device_type`类似，均支持枚举类型和字符串类型输入，枚举类型同c++， 字符串类型与枚举类型命名一一对应，支持大小写。
+
+* `cache_path`, `library_path` 支持字符串类型传入，`enable_tune_kernel` 支持布尔类型传入。
+
+### 2. `load_raw`, `load_raw_range`
+
+```python
+def load_raw(model_path, network_config, input_shapes=None):
+def load_raw_range(model_path, network_config, min_input_shapes, max_input_shapes):
+```
+两接口为TNN对应接口CreateInst的简单封装，其中`model_path`传递模型路径；`network_config`为`NetworkConfig`类实例，与C++类相同；`input_shapes`，`min_input_shapes`以及`max_input_shapes` 对应相关输入尺寸设定，类型为字典，其中key为输入name，value对应输入尺寸list。
+
+## 二、网络运行
+
+模型加载完成后，会返回pytnn新定义的Module类实例， 其中Module类定义的一重要函数为forward。
+
+```python
+class Module:
+...
+    def forward(self, *inputs, rtype="list"):
+...
+```  
+
+其中`inputs`为不定长参数，每个输入数据存储于`numpy.ndarray`中，排布为NC[D1-D4]。支持多个输入直接传入，也支持list, tuple，dict形式传入。 如一个两输入网络，输入name依次为`data_1`, `data_2`，可支持以下几种方式传入数据。
+
+```
+input1=numpy.ones((1,3,224,224), np.float32, 'F')
+input2=numpy.ones((1,3,224,224), np.float32, 'F')
+# case1
+outputs=module.forward(input1, input2)
+#case2
+outputs=module.forward((input1, input2))
+#case3
+outputs=module.forward([input1, input2])
+#case4
+outputs=module.forward({"data_1":input1, "data_2":input2})
+```
+输出`outputs`默认返回类型为list，每个输出存储于`numpy.ndarray`中，排布为NC[D1-D4]。
+
+`rtype` 支持  `list` , `dict`， 指定输出返回类型为字典类型时，key为模型输出name，value对应输出数据，存储于`numpy.ndarray`中。
+
+
+ 
+
+
