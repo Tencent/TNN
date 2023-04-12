@@ -19,6 +19,7 @@
 
 #include "tnn/core/common.h"
 #include "tnn/utils/bfp16.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -40,6 +41,8 @@ DeviceType ConvertDeviceType(std::string device_type) {
         return DEVICE_RK_NPU;
     } else if ("APPLE_NPU" == device_type) {
         return DEVICE_APPLE_NPU;
+    } else if ("ZIXIAO" == device_type) {
+        return DEVICE_ZIXIAO;
     } else {
         return DEVICE_ARM;
     }
@@ -56,6 +59,12 @@ ModelType ConvertModelType(std::string model_type) {
         return MODEL_TYPE_NCNN;
     } else if ("RKCACHE" == model_type) {
         return MODEL_TYPE_RKCACHE;
+    } else if ("TS" == model_type) {
+        return MODEL_TYPE_TORCHSCRIPT;
+    } else if ("TSB" == model_type) {
+        return MODEL_TYPE_TORCHSCRIPT_BIN;
+    } else if ("LRT" == model_type) {
+        return MODEL_TYPE_LRT;
     } else {
         return MODEL_TYPE_TNN;
     }
@@ -74,8 +83,12 @@ NetworkType ConvertNetworkType(std::string network_type) {
         return NETWORK_TYPE_RK_NPU;
     } else if ("TRT" == network_type) {
         return NETWORK_TYPE_TENSORRT;
+    } else if ("TORCH" == network_type) {
+        return NETWORK_TYPE_TNNTORCH;
+    } else if ("ZIXIAO" == network_type) {
+        return NETWORK_TYPE_ZIXIAO;
     } else {
-        return NETWORK_TYPE_DEFAULT;
+        return NETWORK_TYPE_AUTO;
     }
 }
 
