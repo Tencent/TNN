@@ -11,11 +11,18 @@
 // under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 // specific language governing permissions and limitations under the License.
-#ifndef TNN_INCLUDE_TNN_VERSION_H_
-#define TNN_INCLUDE_TNN_VERSION_H_
 
-static char *branch_name_tnn = "master";
-static char *commit_date_tnn = "2023-04-12";
-static char *commit_hash_tnn = "1790ad63";
+#ifndef TNN_INCLUDE_TNN_UTILS_DEVICE_UTILS_H_
+#define TNN_INCLUDE_TNN_UTILS_DEVICE_UTILS_H_
 
-#endif //TNN_INCLUDE_TNN_VERSION_H_
+#include "tnn/core/common.h"
+#include "tnn/core/macro.h"
+
+namespace TNN_NS {
+
+// @brief Get a specified device from a device group
+PUBLIC DeviceType GetConcreteDeviceType(DeviceType type);
+
+}  // namespace TNN_NS
+
+#endif  // TNN_INCLUDE_TNN_UTILS_DEVICE_UTILS_H_

@@ -46,16 +46,16 @@ public:
     ~Instance();
 
     // init with model interpeter and inputs shape.
-    Status Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape);
+    Status Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap inputs_shape, InputDataTypeMap inputs_data_type = InputDataTypeMap());
 
     // init with model interpeter, min inputs shape and max inputs shape.
-    Status Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape);
+    Status Init(std::shared_ptr<AbstractModelInterpreter> interpreter, InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type = InputDataTypeMap());
 
     // deinit, release network
     Status DeInit();
 
     //  return memory bytes required for forward
-    Status GetForwardMemorySize(int& memory_size);
+    Status GetForwardMemorySize(size_t& memory_size);
 
     //  set memory to tnn instance. if success, return status code zero.
     //  only instance created with SHARE_MEMORY_MODE_SET_FROM_EXTERNAL can be set from external.
@@ -69,10 +69,17 @@ public:
 
     // get tnn command queue
     Status GetCommandQueue(void** command_queue);
+
+    // set tnn command queue
+    Status SetCommandQueue(void* command_queue);
     
     // @brief share command queue with another instance
     // @param instance to share command queue
     Status ShareCommandQueue(Instance *instance);
+
+    // @brief share network resource with another instance
+    // @param instance to share network resource
+    Status ShareNetResource(Instance *instance);
 
     // @brief tnn instance network infer, it will wait until all layer infer complete.
     Status Forward();
