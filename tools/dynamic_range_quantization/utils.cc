@@ -57,7 +57,7 @@ bool NeedPerChannelQuantize(RawBuffer& raw_buffer, const int channel_size) {
     }
     float average_range = sum_range / channel_size;
     if (average_range > RANGE_BOUND) {
-        LOGE("The range of weights overflowed.\n");
+        LOGE("The range of weights %.6f overflowed %.6f.\n", average_range, RANGE_BOUND);
         return false;
     }
     return true;
@@ -87,7 +87,7 @@ bool NeedPerTensorQuantize(RawBuffer& raw_buffer) {
     float sum_range     = max - min;
     float average_range = sum_range / 1;
     if (average_range > RANGE_BOUND) {
-        LOGE("The range of weights overflowed.\n");
+        LOGE("The range of weights %.6f overflowed %.6f.\n", average_range, RANGE_BOUND);
         return false;
     }
     return true;

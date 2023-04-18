@@ -64,6 +64,9 @@ Status DynamicRangeQuantizer::GetDynamicRangeQuantModel(std::shared_ptr<NetStruc
             case LAYER_INNER_PRODUCT:
                 QuantInnerProduct(layer, resource_map, constant_map);
                 break;
+            case LAYER_GATHER:
+                QuantGatherEmbedding(layer, resource_map, constant_map);
+                break;
             default:
                 break;
         }
@@ -82,12 +85,15 @@ Status DynamicRangeQuantizer::QuantConvolution(std::shared_ptr<LayerInfo>& layer
     }
     auto conv_resource = std::dynamic_pointer_cast<ConvLayerResource>(layer_resource);
     if (!NeedPerChannelQuantize(conv_resource->filter_handle, conv_param->output_channel)) {
-        LOGE("The %s layer does need quantized.\n", layer->name.c_str());
+        LOGE("The %s layer doesnot need quantized.\n", layer->name.c_str());
         return TNN_OK;
     }
     RawBuffer quant_buf;
     RawBuffer scale_buf;
-    PerChannelQuant(conv_resource->filter_handle, quant_buf, scale_buf, conv_param->output_channel);
+    if (PerChannelQuant(conv_resource->filter_handle, quant_buf, scale_buf, conv_param->output_channel) != TNN_OK) {
+        LOGE("The %s layer doesnot need quantized.\n", layer->name.c_str());
+        return TNN_OK;
+    }
 
     conv_param->dynamic_range_quantized = true;
     conv_resource->filter_handle        = quant_buf;
@@ -115,8 +121,11 @@ Status DynamicRangeQuantizer::QuantLSTM(std::shared_ptr<LayerInfo>& layer,
     std::shared_ptr<RawBuffer> scale_weight_buf     = std::make_shared<RawBuffer>();
     std::shared_ptr<RawBuffer> quant_recurrence_buf = std::make_shared<RawBuffer>();
     std::shared_ptr<RawBuffer> scale_recurrence_buf = std::make_shared<RawBuffer>();
-    PerTensorQuant(weight_buf, *quant_weight_buf, *scale_weight_buf);
-    PerTensorQuant(recurrence_buf, *quant_recurrence_buf, *scale_recurrence_buf);
+    if (PerTensorQuant(weight_buf, *quant_weight_buf, *scale_weight_buf) != TNN_OK ||
+        PerTensorQuant(recurrence_buf, *quant_recurrence_buf, *scale_recurrence_buf) != TNN_OK) {
+        LOGE("The %s layer doesnot need quantized.\n", layer->name.c_str());
+        return TNN_OK;
+    }
 
     constant_map[weight_name]                                    = quant_weight_buf;
     constant_map[recurrence_name]                                = quant_recurrence_buf;
@@ -140,10 +149,14 @@ Status DynamicRangeQuantizer::QuantMatMul(std::shared_ptr<LayerInfo>& layer,
         RawBuffer scale_buf;
         auto matmul_resource = std::dynamic_pointer_cast<MatMulLayerResource>(layer_resource);
         if (!NeedPerTensorQuantize(matmul_resource->weight)) {
-            LOGE("The %s layer does need quantized.\n", layer->name.c_str());
+            LOGE("The %s layer doesnot need quantized.\n", layer->name.c_str());
             return TNN_OK;
         }
-        PerTensorQuant(matmul_resource->weight, quant_buf, scale_buf);
+        if (PerTensorQuant(matmul_resource->weight, quant_buf, scale_buf) != TNN_OK) {
+            LOGE("The %s layer doesnot need quantized.\n", layer->name.c_str());
+            return TNN_OK;
+        }
+        
         matmul_resource->weight               = quant_buf;
         matmul_resource->scale_handle         = scale_buf;
         matmul_param->dynamic_range_quantized = true;
@@ -159,12 +172,15 @@ Status DynamicRangeQuantizer::QuantMatMul(std::shared_ptr<LayerInfo>& layer,
 
         std::shared_ptr<RawBuffer> quant_weight_buf = std::make_shared<RawBuffer>();
         std::shared_ptr<RawBuffer> scale_weight_buf = std::make_shared<RawBuffer>();
-        PerTensorQuant(weight_buf, *quant_weight_buf, *scale_weight_buf);
         if (!NeedPerTensorQuantize(weight_buf)) {
-            LOGE("The %s layer does need quantized.\n", layer->name.c_str());
+            LOGE("The %s layer doesnot need quantized.\n", layer->name.c_str());
             return TNN_OK;
         }
-
+        if (PerTensorQuant(weight_buf, *quant_weight_buf, *scale_weight_buf) != TNN_OK) {
+            LOGE("The %s layer doesnot need quantized.\n", layer->name.c_str());
+            return TNN_OK;
+        }
+        
         constant_map[weight_name]                                = quant_weight_buf;
         constant_map[weight_name + DynamicRangeQuantScaleSuffix] = scale_weight_buf;
         matmul_param->dynamic_range_quantized                    = true;
@@ -269,14 +285,53 @@ Status DynamicRangeQuantizer::QuantInnerProduct(std::shared_ptr<LayerInfo>& laye
     }
     auto inner_product_resource = std::dynamic_pointer_cast<InnerProductLayerResource>(layer_resource);
     if (!NeedPerTensorQuantize(inner_product_resource->weight_handle)) {
-        LOGE("The %s layer does need quantized.\n", layer->name.c_str());
+        LOGE("The %s layer doesnot need quantized.\n", layer->name.c_str());
         return TNN_OK;
     }
     RawBuffer quant_buf;
     RawBuffer scale_buf;
-    PerTensorQuant(inner_product_resource->weight_handle, quant_buf, scale_buf);
+    if ( PerTensorQuant(inner_product_resource->weight_handle, quant_buf, scale_buf) != TNN_OK) {
+        LOGE("The %s layer doesnot need quantized.\n", layer->name.c_str());
+        return TNN_OK;
+    }
     inner_product_resource->weight_handle = quant_buf;
     inner_product_resource->scale_handle  = scale_buf;
+    layer_param->dynamic_range_quantized  = true;
+    return TNN_OK;
+}
+
+Status DynamicRangeQuantizer::QuantGatherEmbedding(std::shared_ptr<LayerInfo>& layer,
+                                                std::map<std::string, std::shared_ptr<LayerResource>>& resource_map,
+                                                std::map<std::string, std::shared_ptr<RawBuffer>>& constant_map) {
+    auto layer_param = std::dynamic_pointer_cast<GatherLayerParam>(layer->param);
+    // only data can be compressed by int8
+    if (!(layer_param && layer_param->data_in_resource))
+        return TNN_OK;
+
+    std::shared_ptr<LayerResource> layer_resource = nullptr;
+    if (resource_map.find(layer->name) != resource_map.end()) {
+        layer_resource = resource_map[layer->name];
+    }
+    auto gather_resource = std::dynamic_pointer_cast<GatherLayerResource>(layer_resource);
+    auto data_dims = gather_resource->data.GetBufferDims();
+    if (data_dims.size() <= 1) {
+        LOGE("The %s layer doesnot need quantized.\n", layer->name.c_str());
+        return TNN_OK;
+    }
+
+    if (!NeedPerChannelQuantize(gather_resource->data, data_dims[0])) {
+        LOGE("The %s layer doesnot need quantized.\n", layer->name.c_str());
+        return TNN_OK;
+    }
+    RawBuffer quant_buf;
+    RawBuffer scale_buf;
+    if ( PerChannelQuant(gather_resource->data, quant_buf, scale_buf, data_dims[0]) != TNN_OK) {
+        LOGE("The %s layer doesnot need quantized.\n", layer->name.c_str());
+        return TNN_OK;
+    }
+
+    gather_resource->data = quant_buf;
+    gather_resource->scale_data  = scale_buf;
     layer_param->dynamic_range_quantized  = true;
     return TNN_OK;
 }

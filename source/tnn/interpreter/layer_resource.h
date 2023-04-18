@@ -146,6 +146,8 @@ struct GatherLayerResource : public LayerResource {
     //RawBuffer has dims
     RawBuffer data;
     RawBuffer indices;
+    // extra scale handle for data, only data can be compressed by int8
+    RawBuffer scale_data;
 };
 
 struct ConstantOfShapeLayerResource : public LayerResource {

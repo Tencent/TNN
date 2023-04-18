@@ -36,6 +36,10 @@ Status GatherLayerInterpreter::InterpretResource(Deserializer& deserializer, Lay
     if (indices_in_resource) {
         GET_BUFFER_FOR_ATTR(layer_res, indices, deserializer);
     }
+    
+    if (data_in_resource && layer_res->data.GetDataType() == DATA_TYPE_INT8) {
+        GET_BUFFER_FOR_ATTR(layer_res, scale_data, deserializer);
+    }
     return TNN_OK;
 }
 
@@ -71,6 +75,11 @@ Status GatherLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* 
         serializer.PutRaw(layer_res->indices);
     } else {
         serializer.PutInt(0);
+    }
+    
+    if (layer_param->data_in_resource && layer_param->dynamic_range_quantized) {
+        // now dynamic range quantization is to use symmetric quantization, only save scale
+        serializer.PutRaw(layer_res->scale_data);
     }
     return TNN_OK;
 }

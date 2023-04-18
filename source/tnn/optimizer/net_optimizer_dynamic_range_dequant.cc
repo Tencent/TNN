@@ -66,6 +66,9 @@ namespace optimizer {
                 case LAYER_INNER_PRODUCT:
                     DequantInnerProduct(layer, structure, resource);
                     break;
+                case LAYER_GATHER:
+                    DequantGatherEmbedding(layer, structure, resource);
+                    break;
                 default:
                     break;
             }
@@ -268,6 +271,50 @@ namespace optimizer {
         layer->param->dynamic_range_quantized = false;
         return TNN_OK;
     }
+
+Status NetOptimizerDynamicRangeDequant::DequantGatherEmbedding(std::shared_ptr<LayerInfo> &layer,
+                                                            NetStructure *structure, NetResource *resource) {
+    auto layer_param = std::dynamic_pointer_cast<GatherLayerParam>(layer->param);
+    // only data can be compressed by int8
+    if (!(layer_param && layer_param->data_in_resource))
+        return TNN_OK;
+    
+    auto layer_name = layer->name;
+    auto gather_resource = std::dynamic_pointer_cast<GatherLayerResource>(resource->resource_map[layer_name]);
+    auto data_dims = gather_resource->data.GetBufferDims();
+    auto scale_value = gather_resource->scale_data;
+    
+    if (gather_resource->data.GetDataType() != DATA_TYPE_INT8 || data_dims.size()<2 || scale_value.GetDataCount() != data_dims[0]) {
+        LOGD(
+            "Dynamic range dequantize layer(%s) weight data type is not int8_t."
+            "This weight might have been dequantized before.\n",
+            layer_name.c_str());
+        return TNN_OK;
+    }
+    
+    const int data_count = gather_resource->data.GetDataCount();
+    const int channel = data_dims[0];
+    const int stride = data_dims[1];
+    auto data_int8 = gather_resource->data.force_to<int8_t *>();
+    auto scale_ptr = scale_value.force_to<float *>();
+    
+    std::vector<float> weight_data(data_count, 0);
+    for (int i = 0; i < channel; i++) {
+        int begin_index = i * stride;
+        for (int j = 0; j < stride; j++) {
+            weight_data[begin_index + j] = scale_ptr[i] * (float)(data_int8[begin_index + j]);
+        }
+    }
+
+    RawBuffer weight_buf(data_count * sizeof(float));
+    memcpy(weight_buf.force_to<float *>(), weight_data.data(), data_count * sizeof(float));
+    weight_buf.SetDataType(DATA_TYPE_FLOAT);
+    weight_buf.SetBufferDims(data_dims);
+
+    gather_resource->data = weight_buf;
+    layer->param->dynamic_range_quantized = false;
+    return TNN_OK;
+}
 
 }  // namespace optimizer
 
