@@ -99,12 +99,6 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
     }
     int count = DimsVectorUtils::Count(blob_desc.dims);
 
-#ifdef DUMP_RAW_INT8
-    int8_t* ptr = reinterpret_cast<int8_t*>(cpu_mat.GetData());
-    for (int n = 0; n < count; ++n) {
-        fprintf(fp, "%d\n", int(ptr[n]));
-    }
-#else
     if (data_type == DATA_TYPE_FLOAT) {
         auto ptr = (float *)data_ptr;
         for (int n = 0; n < count; ++n) {
@@ -128,7 +122,6 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
     } else {
         LOGE("unsupport data type to dump: %d\n", data_type);
     }
-#endif
 
     fclose(fp);
 
