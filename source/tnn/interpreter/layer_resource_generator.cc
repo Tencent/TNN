@@ -434,7 +434,7 @@ class MulLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class LessLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class GreaterLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class AndLayerResourceGenerator : public BinaryLayerResourceGenerator {};
-class NotLayerResourceGenerator : public BinaryLayerResourceGenerator {};
+// class NotLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 class SquaredDifferenceLayerResourceGenerator : public BinaryLayerResourceGenerator {};
 
 /*
@@ -586,7 +586,7 @@ REGISTER_LAYER_RESOURCE(Mul, LAYER_MUL);
 REGISTER_LAYER_RESOURCE(Less, LAYER_LESS);
 REGISTER_LAYER_RESOURCE(Greater, LAYER_GREATER);
 REGISTER_LAYER_RESOURCE(And, LAYER_AND);
-REGISTER_LAYER_RESOURCE(Not, LAYER_NOT);
+// REGISTER_LAYER_RESOURCE(Not, LAYER_NOT);
 REGISTER_LAYER_RESOURCE(SquaredDifference, LAYER_SQUARED_DIFFERENCE);
 REGISTER_LAYER_RESOURCE(HdrGuide, LAYER_HDRGUIDE);
 REGISTER_LAYER_RESOURCE(MatMul, LAYER_MATMUL);
