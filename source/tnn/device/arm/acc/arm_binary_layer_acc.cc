@@ -450,7 +450,7 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             return TNNERR_LAYER_ERR;
         }
     } else if (data_type == DATA_TYPE_INT32) {
-        if (op_type_ == ArmBinaryOpType::kMUL) {
+        if (op_type_ == ArmBinaryOpType::kMUL || op_type_ == ArmBinaryOpType::kADD) {
             return ExecInt32(inputs, outputs);
         } else {
             LOGE("Error, not supported int32 binary op\n");

@@ -32,6 +32,8 @@ public:
     
     virtual Status ExecInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+    virtual Status ExecInt32(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
 private:
     RawBuffer input0_int_scale_;
     RawBuffer input1_int_scale_;
