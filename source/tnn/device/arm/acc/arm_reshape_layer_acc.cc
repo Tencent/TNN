@@ -245,7 +245,7 @@ Status ArmReshapeLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
     workspace_          = context_->GetSharedWorkSpace(size_in_bytes);
 
     if (DATA_FORMAT_NC4HW4 == in_data_format || DATA_FORMAT_NC8HW8 == in_data_format) {
-        if (DATA_TYPE_FLOAT == in_data_type) {
+        if (DATA_TYPE_FLOAT == in_data_type || DATA_TYPE_INT32 == in_data_type) {
             return Exec<float>(inputs, outputs);
         } else if (DATA_TYPE_BFP16 == in_data_type) {
             return Exec<bfp16_t>(inputs, outputs);
