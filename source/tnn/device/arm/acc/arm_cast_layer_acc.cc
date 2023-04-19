@@ -70,6 +70,13 @@ Status ArmCastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
             for(int i = 0; i < count; ++i) {
                 output_data_ptr[i] = static_cast<int>(input_data_ptr[i]);
             }
+        } else if (input_data_type == DATA_TYPE_INT8 &&
+                   output_data_type == DATA_TYPE_INT32) {
+            auto *input_data_ptr = (int8_t *)input_data;
+            auto *output_data_ptr = (int32_t *)output_data;
+            for(int i = 0; i < count; ++i) {
+                output_data_ptr[i] = static_cast<int32_t>(input_data_ptr[i]);
+            }
         } else {
             return Status(TNNERR_LAYER_ERR, "Unsupported data type in cast");
         }
