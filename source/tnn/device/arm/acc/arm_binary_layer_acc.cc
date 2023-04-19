@@ -112,7 +112,7 @@ Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
                                const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     desc_for_config_const_blob_ = outputs[0]->GetBlobDesc();
     RETURN_ON_NEQ(ArmLayerAcc::Init(context, param, resource, inputs, outputs), TNN_OK);
-    if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+    if (outputs[0]->GetBlobDesc().data_type == DATA_TYPE_FLOAT || outputs[0]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
         RETURN_ON_NEQ(allocateBufferParam(inputs, outputs), TNN_OK);
     }
 #if TNN_ARM82
@@ -268,7 +268,7 @@ Status ArmBinaryLayerAcc::allocateBufferParam(const std::vector<Blob *> &inputs,
         auto layer_res_size = element_handle.GetDataCount();
         auto data_byte_size = DataTypeUtils::GetBytesSize(element_handle.GetDataType());
         auto layer_data     = element_handle.force_to<void *>();
-        if (element_handle.GetDataType() == DATA_TYPE_FLOAT) {
+        if (element_handle.GetDataType() == DATA_TYPE_FLOAT || element_handle.GetDataType() == DATA_TYPE_INT32) {
             if (layer_res_size == 1) {
                 // broadcast single, just memcpy
                 RawBuffer temp(4 * layer_res_size * data_byte_size);
@@ -369,6 +369,10 @@ Status ArmBinaryLayerAcc::ExecInt8(const std::vector<Blob *> &inputs, const std:
     return TNN_OK;
 }
 
+Status ArmBinaryLayerAcc::ExecInt32(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
 Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
     // prepare input ptrs, since blob memory is allocted after init
@@ -443,6 +447,13 @@ Status ArmBinaryLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
             return ExecInt8(inputs, outputs);
         } else {
             LOGE("Error, int8 binary op only support add\n");
+            return TNNERR_LAYER_ERR;
+        }
+    } else if (data_type == DATA_TYPE_INT32) {
+        if (op_type_ == ArmBinaryOpType::kMUL) {
+            return ExecInt32(inputs, outputs);
+        } else {
+            LOGE("Error, not supported int32 binary op\n");
             return TNNERR_LAYER_ERR;
         }
     }

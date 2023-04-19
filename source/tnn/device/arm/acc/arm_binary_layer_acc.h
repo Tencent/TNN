@@ -44,6 +44,9 @@ public:
     // int8 will be implemented inside op
     virtual Status ExecInt8(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
+    // int32 will be implemented inside op
+    virtual Status ExecInt32(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
+
 #if TNN_ARM82
     virtual Status allocateBufferParamHalf(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
     template <ArmBinaryOpType op_type>
@@ -62,9 +65,9 @@ protected:
     // used for hardswish
     float alpha_ = 0.f;
     float beta_ = 0.f;
-private:
+protected:
     RawBuffer broadcast_;
-
+private:
     std::vector<void *> input_ptrs_;
     std::vector<DimsVector> input_shapes_;
     BroadcastType btype_;
