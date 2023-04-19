@@ -78,7 +78,7 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param,
     auto hw         = DimsVectorUtils::Count(dims, 2);
     auto c_r4       = ROUND_UP(channel, 4);
     auto handle_ptr = GetBlobHandlePtr(blob_->GetHandle());
-    if (desc.data_type == DATA_TYPE_INT8) {
+    if (desc.data_type == DATA_TYPE_INT8 && image.GetMatType() != RESERVED_INT8_TEST) {
         if (fused_int8_scale.size() < c_r4) {
             fused_int8_scale.resize(c_r4);
             fused_int8_bias.resize(c_r4);
@@ -104,6 +104,11 @@ Status ArmBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param,
         int ele_size = DataTypeUtils::GetBytesSize(desc.data_type);
         if (image.GetMatType() == NCHW_FLOAT && !NeedDoScaleBias(param)) {
             memcpy(image.GetData(), GetBlobHandlePtr(blob_->GetHandle()), count * ele_size);
+            return ret;
+        }
+    } else if (desc.data_type == DATA_TYPE_INT8 && desc.data_format == DATA_FORMAT_NCHW) {
+        if (image.GetMatType() == RESERVED_INT8_TEST) {
+            memcpy(image.GetData(), GetBlobHandlePtr(blob_->GetHandle()), DimsVectorUtils::Count(dims));
             return ret;
         }
     }
