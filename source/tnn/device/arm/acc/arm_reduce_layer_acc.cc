@@ -91,7 +91,17 @@ static bool NeedRepack(const DimsVector &src_dims, const DimsVector &dst_dims) {
         // skip repack for one-dimensional tensor
         return false;
     }
-    return ((src_dims.size() != dst_dims.size()) && (src_dims[1] != dst_dims[1]));
+    if (src_dims.size() == dst_dims.size()) {
+        // keep dims is true, no need to repack
+        return false;
+    }
+    if (src_dims[0] == dst_dims[0]) {
+        // if batch dim is euqal, need to repack if channel dim differs
+        return src_dims[1] != dst_dims[1];
+    } else {
+        // if batch dim is not equal, need to repack
+        return true;
+    }
 }
 
 Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -158,13 +168,27 @@ Status ArmReduceLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         if (NeedRepack(dims_in, output->GetBlobDesc().dims)) {
             tmp_out[0]    = RawBuffer(ROUND_UP(DimsVectorUtils::Count(dims_in), 4) * data_byte_size);
             auto tmp_data = tmp_out[0].force_to<float *>();
+            auto n_src    = DimsFunctionUtils::GetDim(dims_in, 0);
             auto c_src    = DimsFunctionUtils::GetDim(dims_in, 1);
             auto hw_src   = DimsVectorUtils::Count(dims_in, 2);
+            auto n_dst    = DimsFunctionUtils::GetDim(output->GetBlobDesc().dims, 0);
             auto c_dst    = DimsFunctionUtils::GetDim(output->GetBlobDesc().dims, 1);
             auto hw_dst   = DimsVectorUtils::Count(output->GetBlobDesc().dims, 2);
-            for (int b = 0; b < dims_in[0]; ++b) {
-                UnpackC4(tmp_data, output_data_a + b * ROUND_UP(c_src, 4) * hw_src, hw_src, c_src);
-                PackC4(output_data + b * ROUND_UP(c_dst, 4) * hw_dst, tmp_data, hw_dst, c_dst);
+
+            if (n_src == n_dst) {
+                for (int b = 0; b < n_dst; ++b) {
+                    UnpackC4(tmp_data, output_data_a + b * ROUND_UP(c_src, 4) * hw_src, hw_src, c_src);
+                    PackC4(output_data + b * ROUND_UP(c_dst, 4) * hw_dst, tmp_data, hw_dst, c_dst);
+                }
+            } else {
+                if (n_src != 1) {
+                    LOGE("Error: reduce batch dim, n_src should be 1 now, but found %d\n", n_src);
+                    return TNNERR_LAYER_ERR;
+                }
+                UnpackC4(tmp_data, output_data_a, hw_src, c_src);
+                for (int b = 0; b < n_dst; ++b) {
+                    PackC4(output_data + b * ROUND_UP(c_dst, 4) * hw_dst, tmp_data + b * hw_src, hw_dst, c_dst);
+                }
             }
         }
     } else {
