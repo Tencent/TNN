@@ -323,6 +323,28 @@ Status BinaryFunc(void *out_ptr, void *input0_ptr, void *input1_ptr, DimsVector 
     return TNN_OK;
 }
 
+template <typename T>
+Status Broadcast(T *in, const DimsVector &in_dims, T *out, const DimsVector &out_dims) {
+    if (in_dims.size() > out_dims.size()) {
+        LOGE("Error: invalid broadcast shape\n");
+        return Status(TNNERR_LAYER_ERR, "Unsupported broadcast shape");
+    }
+    if (out_dims.size() > 6) {
+        LOGE("Error: broadcast dims too larger\n");
+        return Status(TNNERR_LAYER_ERR, "Unsupported broadcast dims");
+    }
+
+    DimsVector output_offset;
+    BinaryComputeOffset(output_offset, out_dims, out_dims);
+
+    DimsVector input_offset;
+    BinaryComputeOffset(input_offset, in_dims, out_dims);
+
+    BinaryComputeFirst(input_offset, output_offset, out_dims, in, out);
+
+    return TNN_OK;
+}
+
 }  // namespace TNN_NS
 
 #endif
