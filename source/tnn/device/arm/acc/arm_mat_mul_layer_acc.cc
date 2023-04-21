@@ -108,6 +108,11 @@ Status ArmMatMulLayerAcc::Exec(const std::vector<Blob *> &inputs, const std::vec
     int K = matrix_a_dims[matrix_a_dims.size() - 1];
     int M = matrix_a_dims[matrix_a_dims.size() - 2];
 
+    if (matrix_b_dims.size() == 2 && matrix_a_dims.size() > 2) {
+        // merge into a single matmul
+        M = DimsVectorUtils::Count(matrix_a_dims, 0, matrix_a_dims.size() - 1);
+    }
+
     auto data_byte_size = DataTypeUtils::GetBytesSize(data_type);
     size_t pack_a_size  = M * K * data_byte_size + NEON_KERNEL_EXTRA_LOAD;
     int n_pack          = 8;
