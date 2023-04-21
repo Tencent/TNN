@@ -77,9 +77,13 @@ namespace optimizer {
 
     // only support all inputs with the same layout now
     static DataFormat GetInputLayout(const NetworkConfig *config, const DeviceType &type) {
-        if (config != nullptr && config->data_format != DATA_FORMAT_AUTO)
+        if (config != nullptr && config->data_format != DATA_FORMAT_AUTO) {
+            if (config->data_format == DATA_FORMAT_NCDHW) {
+                // optimizer treats DATA_FORMAT_NCDHW same as DATA_FORMAT_NCHW
+                return DATA_FORMAT_NCHW;
+            }
             return config->data_format;
-        if (type == DEVICE_ARM || type == DEVICE_METAL) {
+        } if (type == DEVICE_ARM || type == DEVICE_METAL) {
             return DATA_FORMAT_NC4HW4;
         } else if (type == DEVICE_OPENCL) {
             return DATA_FORMAT_NHC4W4;

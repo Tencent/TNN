@@ -212,6 +212,11 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam para
             memcpy(GetBlobHandlePtr(blob_->GetHandle()), image.GetData(), count * ele_size);
         }
         return ret;
+    } else if (desc.data_type == DATA_TYPE_INT8 && desc.data_format == DATA_FORMAT_NCHW) {
+        if (image.GetMatType() == RESERVED_INT8_TEST) {
+            memcpy(GetBlobHandlePtr(blob_->GetHandle()), image.GetData(), DimsVectorUtils::Count(dims));
+            return ret;
+        }
     }
 
     auto cvt_data_type  = desc.data_type;

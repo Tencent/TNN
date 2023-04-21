@@ -53,8 +53,13 @@ BlobManager::~BlobManager() {
 
 static void UpdateDeviceInputDataFormat(NetworkConfig &config, Blob *input, const DeviceType &type,
                                         bool is_quantized_layer) {
-    if (config.data_format != DATA_FORMAT_AUTO)
+    if (config.data_format != DATA_FORMAT_AUTO) {
+        if (type == DEVICE_ARM && config.data_format == DATA_FORMAT_NCDHW) {
+            // arm treats DATA_FORMAT_NCDHW same as DATA_FORMAT_NCHW
+            input->GetBlobDesc().data_format = DATA_FORMAT_NCHW;
+        }
         return;
+    }
     if (type == DEVICE_ARM && is_quantized_layer) {
         input->GetBlobDesc().data_format = DATA_FORMAT_NHWC4;
     } else if (type == DEVICE_ARM || type == DEVICE_METAL) {

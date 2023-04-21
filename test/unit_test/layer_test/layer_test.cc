@@ -395,7 +395,7 @@ int LayerTest::CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queu
                                   static_cast<bfp16_t*>(dev_cpu_mat.GetData()), count, 0.05);
     } else if (blob_desc_device.data_type == DATA_TYPE_INT8) {
         cmp_result |=
-            CompareData(static_cast<int8_t*>(cpu_mat.GetData()), static_cast<int8_t*>(dev_cpu_mat.GetData()), count);
+            CompareData(static_cast<int8_t*>(cpu_mat.GetData()), static_cast<int8_t*>(dev_cpu_mat.GetData()), count, int8_allowed_diff_);
     } else if (blob_desc_device.data_type == DATA_TYPE_INT32) {
         cmp_result |=
             CompareData(static_cast<int*>(cpu_mat.GetData()), static_cast<int*>(dev_cpu_mat.GetData()), count);

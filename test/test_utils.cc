@@ -160,9 +160,9 @@ int CompareData(const bfp16_t* ref_data, const bfp16_t* result_data, size_t n, f
     return 0;
 }
 
-int CompareData(const int8_t* ref_data, const int8_t* result_data, size_t n) {
+int CompareData(const int8_t* ref_data, const int8_t* result_data, size_t n, int8_t allowed_diff) {
     for (unsigned long long i = 0; i < n; i++) {
-        if (abs(result_data[i] - ref_data[i]) > 1) {
+        if (abs(result_data[i] - ref_data[i]) > allowed_diff) {
             LOGE("ERROR AT %llu result %d ref %d\n", i, result_data[i], ref_data[i]);
             return -1;
         }
