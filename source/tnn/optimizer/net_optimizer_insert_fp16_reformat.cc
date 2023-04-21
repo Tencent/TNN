@@ -33,8 +33,7 @@ namespace optimizer {
     // Plast priority: reformat after all fuse
     NetOptimizerRegister<NetOptimizerInsertFp16Reformat> g_net_optimizer_insert_fp16_reformat(OptPriority::P2);
     static const std::string reformat_name_suffix         = "_fp16_reformat";
-    static const std::set<LayerType> kLayerOutputNonFloat = {LAYER_ARG_MAX_OR_MIN};
-    static const std::set<LayerType> kLayerOutputMaybeNonFloat = {LAYER_UNSQUEEZE, LAYER_GATHER};
+    static const std::set<LayerType> kLayerOutputNonFloat = {LAYER_ARG_MAX_OR_MIN, LAYER_EQUAL};
     std::set<std::string> whitelist_i32;
 
     static const std::set<LayerType> kLayerNeedSpecialTreat = {LAYER_GATHER};
@@ -44,22 +43,23 @@ namespace optimizer {
         if (kLayerOutputNonFloat.find(layer->type) != kLayerOutputNonFloat.end()) {
             return false;
         }
+        return whitelist_i32.find(layer->name) == whitelist_i32.end();
 
-        if (layer->type == LAYER_CAST) {
-            auto layer_param = dynamic_cast<CastLayerParam *>(layer->param.get());
-            CHECK_PARAM_NULL(layer_param);
-            return (layer_param->to == DATA_TYPE_FLOAT || layer_param->to == DATA_TYPE_HALF);
-        }
+        // if (layer->type == LAYER_CAST) {
+        //     auto layer_param = dynamic_cast<CastLayerParam *>(layer->param.get());
+        //     CHECK_PARAM_NULL(layer_param);
+        //     return (layer_param->to == DATA_TYPE_FLOAT || layer_param->to == DATA_TYPE_HALF);
+        // }
 
-        if (layer->type == LAYER_UNSQUEEZE) {
-            return whitelist_i32.find(layer->name) == whitelist_i32.end();
-        }
+        // if (layer->type == LAYER_UNSQUEEZE) {
+        //     return whitelist_i32.find(layer->name) == whitelist_i32.end();
+        // }
 
-        if (layer->type == LAYER_GATHER) {
-            return whitelist_i32.find(layer->name) == whitelist_i32.end();
-        }
+        // if (layer->type == LAYER_GATHER) {
+        //     return whitelist_i32.find(layer->name) == whitelist_i32.end();
+        // }
 
-        return true;
+        // return true;
     }
 
     void OutputSameAsInput(std::shared_ptr<LayerInfo> cur_layer, std::set<std::string> &whitelist_i32, std::set<std::string> &blob_i32) {
@@ -97,37 +97,53 @@ namespace optimizer {
         for (int index = 0; index < count; index++) {
             auto cur_layer = layers_orig[index];
 
-            if (kLayerOutputMaybeNonFloat.find(cur_layer->type) != kLayerOutputMaybeNonFloat.end()){
+            if (kLayerOutputNonFloat.find(cur_layer->type) != kLayerOutputNonFloat.end()) {
+                whitelist_i32.insert(cur_layer->name);
+                for (auto cur_output: cur_layer->outputs){
+                    blob_i32.insert(cur_output);
+                }
+            }
 
-                // process Gather
-                if (cur_layer->type == LAYER_GATHER){
-                    auto layer_param = dynamic_cast<GatherLayerParam *>(cur_layer->param.get());
-                    CHECK_PARAM_NULL(layer_param);
-                    if (layer_param->data_in_resource == true) {
-                        // if data in resource, must return type is decided by resource
-                        auto resource_ = resource->resource_map.find(cur_layer->name)->second.get();
-                        auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
-                        if (layer_resource->data.GetDataType() == DATA_TYPE_INT32){
-                            whitelist_i32.insert(cur_layer->name);
-                            for (auto cur_output: cur_layer->outputs){
-                                blob_i32.insert(cur_output);
-                            }
-                        }
-                    } else {
-                        // else indice in reource, output type in the same as input
-                        OutputSameAsInput(cur_layer, whitelist_i32, blob_i32);
+            // process Cast
+            if (cur_layer->type == LAYER_CAST) {
+                auto layer_param = dynamic_cast<CastLayerParam *>(cur_layer->param.get());
+                CHECK_PARAM_NULL(layer_param);
+                if (layer_param->to != DATA_TYPE_FLOAT && layer_param->to != DATA_TYPE_HALF) {
+                    whitelist_i32.insert(cur_layer->name);
+                    for (auto cur_output: cur_layer->outputs) {
+                        blob_i32.insert(cur_output);
                     }
                 }
+            }
 
-                // process Unsqueeze
-                if (cur_layer->type == LAYER_UNSQUEEZE){
-                    // output type is the same as input
+            // process Gather
+            if (cur_layer->type == LAYER_GATHER){
+                auto layer_param = dynamic_cast<GatherLayerParam *>(cur_layer->param.get());
+                CHECK_PARAM_NULL(layer_param);
+                if (layer_param->data_in_resource == true) {
+                    // if data in resource, must return type is decided by resource
+                    auto resource_ = resource->resource_map.find(cur_layer->name)->second.get();
+                    auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
+                    if (layer_resource->data.GetDataType() == DATA_TYPE_INT32){
+                        whitelist_i32.insert(cur_layer->name);
+                        for (auto cur_output: cur_layer->outputs){
+                            blob_i32.insert(cur_output);
+                        }
+                    }
+                } else {
+                    // else indice in reource, output type in the same as input
                     OutputSameAsInput(cur_layer, whitelist_i32, blob_i32);
                 }
-
-                // other cases ...
-
             }
+
+            // process Unsqueeze, binary, reshape
+            if (cur_layer->type == LAYER_UNSQUEEZE || cur_layer->type == LAYER_MUL || cur_layer->type == LAYER_ADD || cur_layer->type == LAYER_RESHAPE){
+                // output type is the same as input
+                OutputSameAsInput(cur_layer, whitelist_i32, blob_i32);
+            }
+
+            // other cases ...
+
         }
         return true;
     }
@@ -234,7 +250,7 @@ namespace optimizer {
                 }
                 for (const auto &layer_input : cur_layer->inputs) {
                     if (layer_input == model_input) {
-                        if (device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented) {
+                        if (device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented && !IsSpecialCase_fp32(resource, cur_layer)) {
                             ++need_fp16_input;
                         } else {
                             ++need_fp32_input;
