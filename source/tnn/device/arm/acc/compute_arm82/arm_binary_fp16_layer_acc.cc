@@ -155,7 +155,7 @@ Status ArmBinaryLayerAcc::allocateBufferParamHalf(const std::vector<Blob *> &inp
                 RawBuffer temp(count * data_byte_size);
                 for (int b = 0; b < dims_pad[0]; b++) {
                     fp16_t *src = filter_half_ptr + b * DimsVectorUtils::Count(dims_pad, 1);
-                    fp16_t *dst = temp.force_to<fp16_t *>() + b * channel * hw_stride;
+                    fp16_t *dst = temp.force_to<fp16_t *>() + b * ROUND_UP(channel, 8) * hw_stride;
                     PackC8(dst, src, hw_stride, channel);
                 }
                 broadcast_ = temp;
