@@ -12,7 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/arm/acc/arm_layer_acc.h"
+#include "tnn/device/arm/acc/arm_equal_layer_acc.h"
+#include "tnn/device/arm/acc/compute/binary_function.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 #include "tnn/utils/omp_utils.h"
@@ -23,27 +24,9 @@
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(Equal, LAYER_EQUAL);
+ArmEqualLayerAcc::~ArmEqualLayerAcc() {}
 
-Status ArmEqualLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    if (inputs.size() != 2) {
-        LOGE("Error: invalid inputs count\n");
-        return Status(TNNERR_LAYER_ERR, "Equal layer's inputs size must be 2");
-    }
-
-    if (inputs[0]->GetBlobDesc().data_type != DATA_TYPE_INT32 || inputs[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
-        LOGE("Error: invalid inputs dtype\n");
-        return Status(TNNERR_LAYER_ERR, "Unsupported equal layer's inputs dtype");
-    }
-
-    if (outputs[0]->GetBlobDesc().data_type != DATA_TYPE_INT8) {
-        LOGE("Error: invalid output dtype\n");
-        return Status(TNNERR_LAYER_ERR, "Unsupported equal layer's output dtype");
-    }
-
-    Blob *in_0 = inputs[0];
-    Blob *in_1 = inputs[1];
-    Blob *out  = outputs[0];
+Status ArmEqualLayerAcc::ExecSingle(Blob *in_0, Blob *in_1, Blob *out) {
     if (DimsVectorUtils::Count(in_0->GetBlobDesc().dims) == 1) {
         std::swap(in_0, in_1);
     }
@@ -87,9 +70,84 @@ Status ArmEqualLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
         }
 #endif
     }
-    // vceqq_s32
 
     return TNN_OK;
+}
+
+Status ArmEqualLayerAcc::ExecGeneral(Blob *in_0, Blob *in_1, Blob *out) {
+    if (!DimsVectorUtils::Equal(in_0->GetBlobDesc().dims, out->GetBlobDesc().dims)) {
+        std::swap(in_0, in_1);
+    }
+
+    if (!DimsVectorUtils::Equal(in_0->GetBlobDesc().dims, out->GetBlobDesc().dims)) {
+        LOGE("Error in ExecGeneral: mismatch input and output shape\n");
+        return Status(TNNERR_LAYER_ERR, "Unsupported equal layer's input and output shape in ExecGeneral");
+    }
+
+    int32_t *input0_data = reinterpret_cast<int32_t*>(GetBlobHandlePtr(in_0->GetHandle()));
+    int32_t *input1_data = reinterpret_cast<int32_t*>(GetBlobHandlePtr(in_1->GetHandle()));
+    int8_t  *output_data = reinterpret_cast<int8_t*>(GetBlobHandlePtr(out->GetHandle()));
+
+    if (!DimsVectorUtils::Equal(in_1->GetBlobDesc().dims, out->GetBlobDesc().dims)) {
+        int32_t *broadcast = reinterpret_cast<int32_t*>(context_->GetSharedWorkSpace(DimsVectorUtils::Count(in_0->GetBlobDesc().dims) * sizeof(int32_t) + NEON_KERNEL_EXTRA_LOAD));
+        Broadcast<int32_t>(input1_data, in_1->GetBlobDesc().dims, broadcast, out->GetBlobDesc().dims);
+        input1_data = broadcast;
+    }
+
+    auto dims         = out->GetBlobDesc().dims;
+    auto count        = DimsVectorUtils::Count(dims);
+
+#ifdef TNN_USE_NEON
+    int8x8_t v_one  = vdup_n_s8(1);
+    int8x8_t v_zero = vdup_n_s8(0);
+#endif
+
+    OMP_PARALLEL_FOR_
+    for (int i = 0; i < UP_DIV(count, 8); ++i) {
+#ifdef TNN_USE_NEON
+        uint32x4_t c0 = vceqq_s32(vld1q_s32(input0_data + (i<<3)), vld1q_s32(input1_data + (i<<3)));
+        uint32x4_t c1 = vceqq_s32(vld1q_s32(input0_data + (i<<3) + 4), vld1q_s32(input1_data + (i<<3) + 4));
+        uint16x8_t c  = vcombine_u16(vmovn_u32(c0), vmovn_u32(c1));
+        int8x8_t res = vbsl_s8(vmovn_u16(c), v_one, v_zero);
+        vst1_s8(output_data + (i<<3), res);
+#else
+        for (int j = 0; j < 8; ++j) {
+            output_data[(i<<3)+j] = (int8_t)(input0_data[(i<<3)+j] == input1_data[(i<<3)+j]);
+        }
+#endif
+    }
+
+    return TNN_OK;
+}
+
+Status ArmEqualLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    if (inputs.size() != 2) {
+        LOGE("Error: invalid inputs count\n");
+        return Status(TNNERR_LAYER_ERR, "Equal layer's inputs size must be 2");
+    }
+
+    if (inputs[0]->GetBlobDesc().data_type != DATA_TYPE_INT32 || inputs[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+        LOGE("Error: invalid inputs dtype\n");
+        return Status(TNNERR_LAYER_ERR, "Unsupported equal layer's inputs dtype");
+    }
+
+    if (outputs[0]->GetBlobDesc().data_type != DATA_TYPE_INT8) {
+        LOGE("Error: invalid output dtype\n");
+        return Status(TNNERR_LAYER_ERR, "Unsupported equal layer's output dtype");
+    }
+
+    Blob *in_0 = inputs[0];
+    Blob *in_1 = inputs[1];
+    Blob *out  = outputs[0];
+
+    if (DimsVectorUtils::Count(in_0->GetBlobDesc().dims) == 1 || DimsVectorUtils::Count(in_1->GetBlobDesc().dims) == 1) {
+        return ExecSingle(in_0, in_1, out);
+    } else if (DimsVectorUtils::Equal(in_0->GetBlobDesc().dims, out->GetBlobDesc().dims) || DimsVectorUtils::Equal(in_1->GetBlobDesc().dims, out->GetBlobDesc().dims)) {
+        return ExecGeneral(in_0, in_1, out);
+    } else {
+        LOGE("Error: unsupported equal layer's broadcast type\n");
+        return Status(TNNERR_LAYER_ERR, "Unsupported equal layer's broadcast type");
+    }
 }
 
 REGISTER_ARM_ACC(Equal, LAYER_EQUAL);
