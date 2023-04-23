@@ -353,6 +353,11 @@ Status MetalContext::Synchronize() {
 }
 
 - (void)commit:(BOOL)force_commit {
+    if (!_commandBuffer) {
+        LOGE("Error: _commandBuffer when committed is nil\n");
+        return;
+    }
+    
     _commitCount++;
     if (!force_commit && _commitCount % kMetalCommandBufferDepth != 0) {
         return;
