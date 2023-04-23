@@ -57,6 +57,9 @@ static void UpdateDeviceInputDataFormat(NetworkConfig &config, Blob *input, cons
         if (type == DEVICE_ARM && config.data_format == DATA_FORMAT_NCDHW) {
             // arm treats DATA_FORMAT_NCDHW same as DATA_FORMAT_NCHW
             input->GetBlobDesc().data_format = DATA_FORMAT_NCHW;
+        } else if (config.data_format == DATA_FORMAT_NCDHW && input->GetBlobDesc().dims.size() != 5) {
+            // if dims is not equal to 5, treat DATA_FORMAT_NCDHW same as DATA_FORMAT_NCHW
+            input->GetBlobDesc().data_format = DATA_FORMAT_NCHW;
         }
         return;
     }

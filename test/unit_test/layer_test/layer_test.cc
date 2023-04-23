@@ -294,9 +294,9 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
     } else if (mat_type == RESERVED_INT8_TEST) {
         if (ensure_input_positive_) {
             // some layers only supports positive values as input
-            InitRandom(static_cast<int8_t*>(input_data), blob_count, (int8_t)0, (int8_t)8);
+            InitRandom(static_cast<int8_t*>(input_data), blob_count, (int8_t)0, int8_input_max_);
         } else {
-            InitRandom(static_cast<int8_t*>(input_data), blob_count, (int8_t)8);
+            InitRandom(static_cast<int8_t*>(input_data), blob_count, int8_input_max_);
         }
     } else if (mat_type == RESERVED_BFP16_TEST) {
         if (ensure_input_positive_) {

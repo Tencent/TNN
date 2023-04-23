@@ -31,7 +31,10 @@ protected:
     virtual bool UseNaiveConstantBlobs();
 
 private:
-    template <bool reverse> Status Exec_Fp32(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
+    Status ExecSingle(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
+    template <bool reverse> Status exec_fp32_single(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
+    Status ExecGeneral(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
+    template <bool reverse> Status exec_fp32_general(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
 };
 
 }  // namespace TNN_NS
