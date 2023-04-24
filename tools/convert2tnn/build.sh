@@ -55,8 +55,7 @@ function build_model_check_and_tnn_converter_and_onnx2tnn() {
         cp dynamic_range_quantization ../${BIN_DIR}/
         echo "Compiled dynamic_range_quantization successfully !"
     else
-
-        echo "Compiled model_check failed !!!"
+        echo "Compiled dynamic_range_quantization failed !!!"
     fi
 
     if [ -f "tools/converter/TnnConverter" ]; then
@@ -66,11 +65,12 @@ function build_model_check_and_tnn_converter_and_onnx2tnn() {
         echo "Compiled TNNConverter failed !!!"
     fi
 
-    #From the date 20210123 on, onnx2tnn is compiled by default with Cmake option DTNN_CONVERTER_ENABLE
+    #From the date 20210123 on, onnx2tnn is compiled by default with Cmake option TNN_CONVERTER_ENABLE
+    #Copy the so file of onnx2tnn from the building directory to tnn/tools/onnx2tnn/onnx-converter/onnx2tnn
     onnx2nn_files=$(ls -U tools/onnx2tnn/onnx-converter/onnx2tnn*.so);
     if [ ${#onnx2nn_files[*]} -ge 1 ]; then
-        cp ${onnx2nn_files[i]} ../../onnx2tnn/onnx-converter
-        rm ${onnx2nn_files[i]}
+        cp ${onnx2nn_files[0]} ../../onnx2tnn/onnx-converter
+        rm ${onnx2nn_files[0]}
         echo "Compiled onnx2tnn successfully !"
     else
         echo "Compiled onnx2tnn failed !!!"
