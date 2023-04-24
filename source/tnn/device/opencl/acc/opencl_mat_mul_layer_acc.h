@@ -29,6 +29,7 @@ public:
     virtual Status Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
 private:
+    virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) override;
     Status InitReshapeLayer(Blob *blob, std::shared_ptr<OpenCLReshapeLayerAcc>& layer,
                             bool &need_reshape, std::vector<Blob *> &reshape_layer_inputs,
                             std::vector<Blob *> &reshape_layer_outputs, std::shared_ptr<Blob>& reshape_blob,

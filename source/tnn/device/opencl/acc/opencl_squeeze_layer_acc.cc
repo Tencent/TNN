@@ -210,7 +210,7 @@ Status OpenCLSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
 }
 
 std::vector<DataType> OpenCLSqueezeLayerAcc::SupportDataType(int dims_size, BlobType blob_type) {
-    return {DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_INT32};
+    return {DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_INT32, DATA_TYPE_INT8};
 }
 
 REGISTER_OPENCL_ACC(Squeeze, LAYER_SQUEEZE)

@@ -108,6 +108,8 @@ Status ImageBufferConvertor::ConvertBufferToImage(const OpenCLMemory *buffer, co
         if (dims.size() == 5) {
             kernel_name = "NCHWBufferToImage5D";
         }
+    } else if (type == NCHW_INT32_BUFFER) {
+        kernel_name = "NCHWIntBufferToImage";
     } else if (type == ARGUMENT) {
         kernel_name = "ArgBufferToImage";
     } else if (type == LSTM_FILTER) {

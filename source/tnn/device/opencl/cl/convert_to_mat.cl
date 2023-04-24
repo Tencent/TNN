@@ -122,6 +122,59 @@ __kernel void IntBlobConvertToNCINT32(GLOBAL_SIZE_2_DIMS __read_only image2d_t i
     }
 }
 
+__kernel void Int8BlobConvertToInt8Mat(GLOBAL_SIZE_2_DIMS __read_only image2d_t input_ptr,
+                                       __global char *output, __private const int height,
+                                       __private const int width,
+                                       __private const int channels,
+                                       __global const float* scale,
+                                       __global const float* bias) {
+    int image_width_idx  = get_global_id(0);
+    int image_height_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(image_width_idx, image_height_idx);
+
+    const int batch_idx     = image_height_idx / height;
+    const int height_idx    = image_height_idx % height;
+    const int width_idx     = image_width_idx % width;
+    const int channel_4_idx = (image_width_idx / width) << 2;
+    int buffer_offset =
+        ((batch_idx * channels + channel_4_idx) * height + height_idx) * width +
+        width_idx;
+    int4 in_values = read_imagei(input_ptr, SAMPLER,
+                                 (int2)(image_width_idx, image_height_idx));
+    char4 values = convert_char4(in_values);
+
+    const int height_width_size = height * width;
+
+    const int remain_channel = channels - channel_4_idx;
+
+    if (remain_channel >= 4) {
+        int offset     = buffer_offset;
+        output[offset] = values.x;
+        offset += height_width_size;
+        output[offset] = values.y;
+        offset += height_width_size;
+        output[offset] = values.z;
+        offset += height_width_size;
+        output[offset] = values.w;
+    } else if (remain_channel == 3) {
+        int offset     = buffer_offset;
+        output[offset] = values.x;
+        offset += height_width_size;
+        output[offset] = values.y;
+        offset += height_width_size;
+        output[offset] = values.z;
+    } else if (remain_channel == 2) {
+        int offset     = buffer_offset;
+        output[offset] = values.x;
+        offset += height_width_size;
+        output[offset] = values.y;
+    } else if (remain_channel == 1) {
+        int offset     = buffer_offset;
+        output[offset] = values.x;
+    }
+}
+
 __kernel void IntBlobConvertToNCHW(GLOBAL_SIZE_2_DIMS __read_only image2d_t input_ptr,
                                    __global float *output, __private const int height,
                                    __private const int width,

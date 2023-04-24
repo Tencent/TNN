@@ -237,6 +237,18 @@ Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& 
             return Status(TNNERR_PARAM_ERR, "convert type not support yet");
         }
     }
+    if (blob_->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+        if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4 && dims_size <= 4) {
+            if (RESERVED_INT8_TEST == mat.GetMatType()) {
+                kernel_name = "Int8BlobConvertToInt8Mat";
+            } else {
+                return Status(TNNERR_PARAM_ERR, "int8 mat convert type not support yet");
+            }
+            return TNN_OK;
+        } else {
+            return Status(TNNERR_PARAM_ERR, "int8 blob convert type not support");
+        }
+    }
     if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
         if (dims_size <= 4) {
             if (N8UC3 == mat.GetMatType()) {
@@ -306,6 +318,26 @@ Status OpenCLBlobConverterAcc::GetConvertFromMatKernelName(Mat &mat, std::string
             return TNN_OK;
         } else {
             return Status(TNNERR_PARAM_ERR, "convert type not support yet");
+        }
+    }
+    if (blob_->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+        if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4 && dims_size <= 4) {
+            if (RESERVED_INT8_TEST == mat.GetMatType()) {
+                kernel_name = "Int8BlobConvertFromInt8Mat";
+            } else {
+                return Status(TNNERR_PARAM_ERR, "ConvertFromMat: int8 mat convert type not support yet");
+            }
+            return TNN_OK;
+        } else if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4 && dims_size == 5) {
+            if (RESERVED_INT8_TEST == mat.GetMatType()) {
+                program_name = "blob_5d_convert_from_mat";
+                kernel_name = "Int8Blob5DConvertFromInt8Mat";
+            } else {
+                return Status(TNNERR_PARAM_ERR, "ConvertFromMat: int8 mat convert type not support yet");
+            }
+            return TNN_OK;
+        } else {
+            return Status(TNNERR_PARAM_ERR, "ConvertFromMat: int8 blob convert type not support");
         }
     }
     if (blob_->GetBlobDesc().data_format == DATA_FORMAT_NHC4W4) {
@@ -485,7 +517,7 @@ Status OpenCLBlobConverterAcc::SetConvertArgs(OpenCLExecuteUnit &unit, Mat &mat,
             }
         }
 
-        if (NCHW_FLOAT == mat.GetMatType() || NC_INT32 == mat.GetMatType()) {
+        if (NCHW_FLOAT == mat.GetMatType() || NC_INT32 == mat.GetMatType() || RESERVED_INT8_TEST == mat.GetMatType()) {
             //special for NCHW_FLOAT, need channel parameter
             cl_ret = unit.ocl_kernel.setArg(idx++, DimsFunctionUtils::GetDim(dims, 1));
             CHECK_CL_SUCCESS(cl_ret);

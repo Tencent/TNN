@@ -98,8 +98,14 @@ TEST_P(WhereLayerTest, WhereLayer) {
     int8_input_max_ = 2;
 
     auto interpreter = GenerateInterpreter("Where", {input0_dims, input1_dims, param_dims}, param, nullptr, 1, {data_type, data_type, DATA_TYPE_INT8});
-    DataFormat data_format = dims_size != 5 ? DATA_FORMAT_NCHW : DATA_FORMAT_NCDHW;
-    Run(interpreter, precision, data_format, data_format);
+    DataFormat cpu_data_format = dims_size != 5 ? DATA_FORMAT_NCHW : DATA_FORMAT_NCDHW;
+    DataFormat dev_data_format;
+    if (DEVICE_OPENCL == dev) {
+        dev_data_format = DATA_FORMAT_NHC4W4;
+    } else {
+        dev_data_format = cpu_data_format;
+    }
+    Run(interpreter, precision, cpu_data_format, dev_data_format);
 }
 
 }  // namespace TNN_NS

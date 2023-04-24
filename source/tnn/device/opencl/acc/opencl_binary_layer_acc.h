@@ -31,9 +31,12 @@ public:
 
     virtual Status ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool only_reload_shape_differ_blob = false) override;
 
+    virtual std::vector<DataType> SupportDataType(int dims_size, BlobType blob_type);
+
 private:
-    std::string GetKernelName(const MultidirBroadcastLayerParam &param);
+    std::string GetKernelName(const MultidirBroadcastLayerParam &param, DataType data_type=DATA_TYPE_FLOAT);
     Status ConvertParam(float *bias_data_ptr, std::vector<int> param_dims);
+    Status ConvertIntParam(int *bias_data_ptr, std::vector<int> param_dims);
 
 protected:
     std::string kernel_name_ = "";

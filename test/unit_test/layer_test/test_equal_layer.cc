@@ -52,6 +52,10 @@ TEST_P(EqualLayerTest, EqualLayer) {
         GTEST_SKIP();
     }
 
+    if (DEVICE_OPENCL == dev && dims_size >= 5) {
+        GTEST_SKIP();
+    }
+
     std::vector<int> param_dims;
     std::vector<int> input_dims = {batch, channel, input_size, input_size};
     if (0 == param_size_type) {
@@ -96,8 +100,14 @@ TEST_P(EqualLayerTest, EqualLayer) {
     } 
 
     auto interpreter = GenerateInterpreter("Equal", {input0_dims, input1_dims}, param, nullptr, 1, {data_type, data_type});
-    DataFormat data_format = dims_size != 5 ? DATA_FORMAT_NCHW : DATA_FORMAT_NCDHW;
-    Run(interpreter, precision, data_format, data_format);
+    DataFormat cpu_data_format = dims_size != 5 ? DATA_FORMAT_NCHW : DATA_FORMAT_NCDHW;
+    DataFormat dev_data_format;
+    if (DEVICE_OPENCL == dev) {
+        dev_data_format = DATA_FORMAT_NHC4W4;
+    } else {
+        dev_data_format = cpu_data_format;
+    }
+    Run(interpreter, precision, cpu_data_format, dev_data_format);
 }
 
 }  // namespace TNN_NS

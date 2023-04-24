@@ -27,6 +27,13 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, NotLayerTest,
                                             testing::Values(DATA_TYPE_INT8)));
 
 TEST_P(NotLayerTest, UnaryLayerTest) {
+    int dim_count      = std::get<3>(GetParam());
+    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
+    // skip dims > 4 for OPENCL
+    if (dim_count > 4 && DEVICE_OPENCL == dev) {
+        GTEST_SKIP();
+    }
+
     RunUnaryTest("Not");
 }
 
