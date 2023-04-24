@@ -48,7 +48,7 @@ TNN_NS::Status TnnRuntime::ConstantFolding(const std::shared_ptr<TNN_NS::Abstrac
     TNN_NS::InputShapesMap& input_shapes_map = tnn_interpreter->GetNetStructure()->inputs_shape_map;
     auto const_folder                        = std::make_shared<TNN_NS::ConstFolder>();
     auto& instance                           = const_folder;
-    auto status = const_folder->Init(network_config_, model_config_, tnn_interpreter, {}, {});
+    auto status = const_folder->Init(network_config_, model_config_, tnn_interpreter, {}, {}, {});
     if (status != TNN_NS::TNN_OK) {
         LOGE("Converter Runtime: instance init failed!\n");
         return status;
