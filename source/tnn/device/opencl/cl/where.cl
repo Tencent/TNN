@@ -67,7 +67,7 @@ __kernel void WhereGeneral(GLOBAL_SIZE_2_DIMS
                   select(in1.y, in0.y, in2.y),
                   select(in1.z, in0.z, in2.z),
                   select(in1.w, in0.w, in2.w)};
-    write_imagei(output, (int2)(output_cw, output_bh), out);
+    WI_F(output, (int2)(output_cw, output_bh), out);
 }
 
 __kernel void WhereGeneral5D(GLOBAL_SIZE_2_DIMS
