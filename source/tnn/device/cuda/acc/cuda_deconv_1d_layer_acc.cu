@@ -12,27 +12,27 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/device/cuda/acc/cuda_deconv_1d_layer_acc.h"
 #include "tnn/utils/dims_utils.h"
 
+#include <cuda_fp16.h>
 namespace TNN_NS {
 
-DECLARE_CUDA_ACC(Permute, LAYER_PERMUTE);
-
-Status CudaPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
-        const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
-}
-
-Status CudaPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaDeconvolution1DLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                       const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CudaPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+CudaDeconvolution1DLayerAcc::~CudaDeconvolution1DLayerAcc() {}
+
+Status CudaDeconvolution1DLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-REGISTER_CUDA_ACC(Permute, LAYER_PERMUTE);
-REGISTER_CUDA_ACC(Permute, LAYER_PERMUTEV2);
+Status CudaDeconvolution1DLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return Status(TNNERR_LAYER_ERR, "acc not implemented \n");
+}
+
+REGISTER_CUDA_ACC(Deconvolution1D, LAYER_DECONVOLUTION_1D);
 
 }  // namespace TNN_NS

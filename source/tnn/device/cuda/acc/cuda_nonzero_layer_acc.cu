@@ -17,29 +17,21 @@
 
 namespace TNN_NS {
 
-DECLARE_CUDA_ACC(Reshape, LAYER_RESHAPE);
+DECLARE_CUDA_ACC(NonZero, LAYER_NONZERO);
 
-Status CudaReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status CudaNonZeroLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
-Status CudaReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaNonZeroLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CudaReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Blob *input_blob  = inputs[0];
-    Blob *output_blob = outputs[0];
-    auto dims = input_blob->GetBlobDesc().dims;
-    int count = DimsVectorUtils::Count(dims);
-    void* input_data = input_blob->GetHandle().base;
-    void* output_data = output_blob->GetHandle().base;
-    cudaMemcpyAsync(output_data, input_data, count * sizeof(float), cudaMemcpyDeviceToDevice, context_->GetStream());
+Status CudaNonZeroLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-REGISTER_CUDA_ACC(Reshape, LAYER_RESHAPE);
-REGISTER_CUDA_ACC(Reshape, LAYER_RESHAPETORCH);
+REGISTER_CUDA_ACC(NonZero, LAYER_NONZERO);
 
 }  // namespace TNN_NS

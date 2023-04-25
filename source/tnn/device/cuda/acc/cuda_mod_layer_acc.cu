@@ -1,6 +1,6 @@
 // Tencent is pleased to support the open source community by making TNN available.
 //
-// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+// Copyright (C) 2022 THL A29 Limited, a Tencent company. All rights reserved.
 //
 // Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -17,29 +17,21 @@
 
 namespace TNN_NS {
 
-DECLARE_CUDA_ACC(Reshape, LAYER_RESHAPE);
+DECLARE_CUDA_ACC(Mod, LAYER_MOD);
 
-Status CudaReshapeLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status CudaModLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
-Status CudaReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaModLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CudaReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Blob *input_blob  = inputs[0];
-    Blob *output_blob = outputs[0];
-    auto dims = input_blob->GetBlobDesc().dims;
-    int count = DimsVectorUtils::Count(dims);
-    void* input_data = input_blob->GetHandle().base;
-    void* output_data = output_blob->GetHandle().base;
-    cudaMemcpyAsync(output_data, input_data, count * sizeof(float), cudaMemcpyDeviceToDevice, context_->GetStream());
+Status CudaModLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-REGISTER_CUDA_ACC(Reshape, LAYER_RESHAPE);
-REGISTER_CUDA_ACC(Reshape, LAYER_RESHAPETORCH);
+REGISTER_CUDA_ACC(Mod, LAYER_MOD);
 
 }  // namespace TNN_NS

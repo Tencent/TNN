@@ -79,6 +79,22 @@ __global__ void gridsample_kernel(const float* input_data, const float* grid_dat
 
 Status CudaGridSampleLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    // pad_type => 0: const   1:reflect  2:edge
+    // mode =>     1: nereast 2: bilinear/linear 3: cubic
+    auto gs_param = dynamic_cast<GridSampleLayerParam *>(param);
+    if (!gs_param) {
+        LOGE("Error: Unable to Get Param of CUDA GridSample Layer.\n");
+        return Status(TNNERR_LAYER_ERR, "Error: Unable to Get Param of CUDA GridSample Layer.");
+    }
+    if (gs_param->pad_type != 0) {
+        LOGE("Error: Unsupported! CUDA GridSample Layer only support 'zero' padding_type now.\n");
+        return Status(TNNERR_LAYER_ERR, "Error: Unsupported! CUDA GridSample Layer only support 'zero' padding_type now.");
+    }
+    if (gs_param->mode != 2) {
+        LOGE("Error: Unsupported! CUDA GridSample Layer only support 'bilinear' mode now.\n");
+        return Status(TNNERR_LAYER_ERR, "Error: Unsupported! CUDA GridSample Layer only support 'bilinear' mode now.");
+    }
+
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 

@@ -1,8 +1,8 @@
 // Tencent is pleased to support the open source community by making TNN available.
 //
-// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+// Copyright (C) 2022 THL A29 Limited, a Tencent company. All rights reserved.
 //
-// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// Licensed under the BSD 3-Clause License (the "License"); you may And use this file except
 // in compliance with the License. You may obtain a copy of the License at
 //
 // https://opensource.org/licenses/BSD-3-Clause
@@ -17,22 +17,21 @@
 
 namespace TNN_NS {
 
-DECLARE_CUDA_ACC(Permute, LAYER_PERMUTE);
+DECLARE_CUDA_ACC(Or, LAYER_OR);
 
-Status CudaPermuteLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+Status CudaOrLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return CudaLayerAcc::Init(context, param, resource, inputs, outputs);
 }
 
-Status CudaPermuteLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaOrLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-Status CudaPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+Status CudaOrLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     return TNN_OK;
 }
 
-REGISTER_CUDA_ACC(Permute, LAYER_PERMUTE);
-REGISTER_CUDA_ACC(Permute, LAYER_PERMUTEV2);
+REGISTER_CUDA_ACC(Or, LAYER_OR);
 
 }  // namespace TNN_NS
