@@ -25,6 +25,7 @@
 #include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/optimizer/optimizer_const.h"
 #include "tnn/utils/cpu_utils.h"
+// #include "tnn/interpreter/tnn/model_packer.h"
 
 namespace TNN_NS {
 
@@ -35,8 +36,6 @@ namespace optimizer {
     static const std::string reformat_name_suffix         = "_fp16_reformat";
     static const std::set<LayerType> kLayerOutputNonFloat = {LAYER_ARG_MAX_OR_MIN, LAYER_EQUAL};
     std::set<std::string> whitelist_i32;
-
-    static const std::set<LayerType> kLayerNeedSpecialTreat = {LAYER_GATHER};
 
     // skip fp16 reformat if output of the layer is not float type
     bool IsLayerOutputFloat(std::shared_ptr<LayerInfo> layer) {
@@ -149,26 +148,54 @@ namespace optimizer {
     }
 
     // skip some special cases which must output fp32 instead of fp16, such as gather (data in resource)
-    bool IsSpecialCase_fp32(NetResource* resource, std::shared_ptr<LayerInfo> cur_layer){
-        if (kLayerNeedSpecialTreat.find(cur_layer->type) != kLayerNeedSpecialTreat.end()) {
-            
-            // handle gather layer. When resource type if fp32, the layer will return fp32
-            if (cur_layer->type == LAYER_GATHER) {
-                auto layer_param = dynamic_cast<GatherLayerParam *>(cur_layer->param.get());
-                CHECK_PARAM_NULL(layer_param);
-                if (layer_param->data_in_resource == true) {
-                    // if data in resource, must return type is decided by resource
-                    auto resource_ = resource->resource_map.find(cur_layer->name)->second.get();
-                    auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
-                    if (layer_resource->data.GetDataType() == DATA_TYPE_FLOAT){
-                        return true;
-                    }
+    bool IsSpecialCase_fp32(NetResource* resource, std::shared_ptr<LayerInfo> cur_layer) {
+        // handle gather layer. When resource type if fp32, the layer will return fp32
+        if (cur_layer->type == LAYER_GATHER) {
+            auto layer_param = dynamic_cast<GatherLayerParam *>(cur_layer->param.get());
+            CHECK_PARAM_NULL(layer_param);
+            if (layer_param->data_in_resource == true) {
+                // if data in resource, must return type is decided by resource
+                auto resource_ = resource->resource_map.find(cur_layer->name)->second.get();
+                auto layer_resource = dynamic_cast<GatherLayerResource*>(resource_);
+                if (layer_resource->data.GetDataType() == DATA_TYPE_FLOAT){
+                    return true;
                 }
             }
-
-            // other cases ...
-
         }
+
+        // handle where layer. When resource type if fp32, the layer will return fp32
+        if (cur_layer->type == LAYER_WHERE) {
+            if (cur_layer->inputs.size() < 2) {
+                return false;
+            }
+            if (resource->constant_map.count(cur_layer->inputs[0])) {
+                if (resource->constant_map[cur_layer->inputs[0]]->GetDataType() == DATA_TYPE_FLOAT) {
+                    return true;
+                }
+            } else if (resource->constant_map.count(cur_layer->inputs[1])) {
+                if (resource->constant_map[cur_layer->inputs[1]]->GetDataType() == DATA_TYPE_FLOAT) {
+                    return true;
+                }
+            }
+        }
+
+        // other cases ...
+
+        return false;
+    }
+
+    // skip some special cases which must input integer blob
+    bool IsInputInt(NetResource* resource, std::shared_ptr<LayerInfo> cur_layer){
+        // handle gather layer.
+        if (cur_layer->type == LAYER_GATHER) {
+            auto layer_param = dynamic_cast<GatherLayerParam *>(cur_layer->param.get());
+            CHECK_PARAM_NULL(layer_param);
+            if (layer_param->data_in_resource == true) {
+                return true;
+            }
+        }
+
+        // other cases ...
 
         return false;
     }
@@ -244,13 +271,18 @@ namespace optimizer {
             }
             int need_fp16_input = 0;
             int need_fp32_input = 0;
+            bool is_int = false;
             for (const auto &cur_layer : layers_orig) {
                 if (constant_layers.count(cur_layer->name) > 0) {
                     continue;
                 }
+                if (IsInputInt(resource, cur_layer)) {
+                    is_int = true;
+                    break;
+                }
                 for (const auto &layer_input : cur_layer->inputs) {
                     if (layer_input == model_input) {
-                        if (device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented && !IsSpecialCase_fp32(resource, cur_layer)) {
+                        if (device_->GetImplementedPrecision(cur_layer->type)->fp16_implemented) {
                             ++need_fp16_input;
                         } else {
                             ++need_fp32_input;
@@ -259,6 +291,10 @@ namespace optimizer {
                     }
                 }
             }
+            if (is_int) {
+                LOGD("Skip because input is int dtype: %s\n", model_input.c_str());
+                continue;
+            }
             if (need_fp16_input > 0 && need_fp32_input > 0) {
                 std::vector<std::string> reformat_outs = {model_input};
                 // create fp16 -> fp32 reformat layer
@@ -266,7 +302,7 @@ namespace optimizer {
                     CreateReformat(model_input + reformat_name_suffix + "__from_model_input__", true);
 
                 AdjustLayer(layers_orig, structure, constant_layers, true, new_layer, reformat_outs,
-                            reformat_name_suffix, -1, count);
+                            reformat_name_suffix, -1, count, resource);
 
                 LOGD("Insert fp16 refomat layer : src %s dst %s\n", new_layer->inputs[0].c_str(),
                      new_layer->outputs[0].c_str());
@@ -316,13 +352,16 @@ namespace optimizer {
                 CreateReformat(cur_layer->name + reformat_name_suffix, is_cur_layer_fp16);
 
             AdjustLayer(layers_orig, structure, constant_layers, is_cur_layer_fp16, new_layer, reformat_outs,
-                        reformat_name_suffix, index, count);
+                        reformat_name_suffix, index, count, resource);
 
             LOGD("Insert fp16 refomat layer: src %s dst %s\n", new_layer->inputs[0].c_str(),
                  new_layer->outputs[0].c_str());
             layers_fused.push_back(new_layer);
         }
         structure->layers = layers_fused;
+
+        // ModelPacker packer(structure, resource);
+        // packer.Pack("fp16.tnnproto", "fp16.tnnmodel");
 
         return TNN_OK;
     }
@@ -333,7 +372,7 @@ namespace optimizer {
                                                      bool is_cur_layer_fp16, std::shared_ptr<LayerInfo> &new_layer,
                                                      std::vector<std::string> &reformat_outs,
                                                      const std::string &reformat_name_suffix, const int index,
-                                                     const int count) {
+                                                     const int count, NetResource* resource) {
         // change blobs for layers to read blob data correctly
         new_layer->inputs = reformat_outs;
         for (auto cur_out : reformat_outs) {
@@ -345,7 +384,7 @@ namespace optimizer {
                 auto next_layer = layers_orig[next_id];
                 if (constant_layers.count(next_layer->name) > 0)
                     continue;
-                bool is_next_layer_fp16 = device_->GetImplementedPrecision(next_layer->type)->fp16_implemented;
+                bool is_next_layer_fp16 = device_->GetImplementedPrecision(next_layer->type)->fp16_implemented & !IsSpecialCase_fp32(resource, next_layer);
                 for (auto &next_in : next_layer->inputs) {
                     // only use reformat out when fp16 status diff
                     if (next_in == cur_out && is_next_layer_fp16 != is_cur_layer_fp16) {

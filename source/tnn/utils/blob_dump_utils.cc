@@ -23,6 +23,7 @@
 #include "tnn/utils/blob_converter.h"
 #include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
+#include "tnn/utils/half_utils_inner.h"
 
 namespace TNN_NS {
 
@@ -118,6 +119,11 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
         auto ptr = (unsigned int *)data_ptr;
         for (int n = 0; n < count; ++n) {
             fprintf(fp, "%d\n", ptr[n]);
+        }
+    } else if (data_type == DATA_TYPE_HALF) {
+        auto ptr = (fp16_t *)data_ptr;
+        for (int n = 0; n < count; ++n) {
+            fprintf(fp, "%.9f\n", float(ptr[n]));
         }
     } else {
         LOGE("unsupport data type to dump: %d\n", data_type);

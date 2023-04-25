@@ -31,7 +31,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, WhereLayerTest,
                                             // dims
                                             testing::Values(2, 3, 4, 5),
                                             // data_type
-                                            testing::Values(DATA_TYPE_FLOAT)));
+                                            testing::Values(DATA_TYPE_FLOAT, DATA_TYPE_HALF)));
 
 TEST_P(WhereLayerTest, WhereLayer) {
     // get param

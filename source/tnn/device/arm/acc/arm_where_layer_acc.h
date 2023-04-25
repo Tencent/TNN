@@ -27,14 +27,13 @@ public:
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
-protected:
-    virtual bool UseNaiveConstantBlobs();
-
 private:
     Status ExecSingle(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
     template <bool reverse> Status exec_fp32_single(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
+    template <bool reverse> Status exec_fp16_single(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
     Status ExecGeneral(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
     template <bool reverse> Status exec_fp32_general(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
+    template <bool reverse> Status exec_fp16_general(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
 };
 
 }  // namespace TNN_NS

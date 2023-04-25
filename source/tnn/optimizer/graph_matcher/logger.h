@@ -168,6 +168,12 @@ public:
     ::TNN_NS::Logger::instance().log(std::string(vname_), ::TNN_NS::Logger::kLogLevelError());\
   } while(0)
 
+#define DEBUGV(f_, vname_, ...) \
+  __LOG_FORMAT(vname_, 2000, f_, ##__VA_ARGS__); \
+  do { \
+    ::TNN_NS::Logger::instance().log(std::string(vname_), ::TNN_NS::Logger::kLogLevelDebug());\
+  } while(0)
+
 #define FATAL(f_, ...) \
   do { \
     __LOG_FORMAT(__ss, 2000, f_, ##__VA_ARGS__); \

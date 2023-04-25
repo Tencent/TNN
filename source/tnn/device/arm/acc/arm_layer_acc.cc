@@ -199,6 +199,11 @@ Status ArmLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool 
             continue;
         }
 
+        // skip int8 blobs
+        if (iter->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+            continue;
+        }
+
         arm_default_desc.device_type = DEVICE_ARM;
         arm_default_desc.data_type   = iter->GetBlobDesc().data_type;
         arm_default_desc.data_format = iter->GetBlobDesc().data_format;

@@ -135,8 +135,8 @@ Status ArmSoftmaxLayerAcc::ExecFp16(const std::vector<Blob *> &inputs, const std
     fp16_t *output_origin = reinterpret_cast<fp16_t *>(GetBlobHandlePtr(output->GetHandle()));
 
     for (int batch_idx = 0; batch_idx < batch; batch_idx++) {
-        auto input_ptr     = input_origin + batch_idx * hw * ROUND_UP(dims[1], 8);
-        auto output_ptr    = output_origin + batch_idx * hw * ROUND_UP(dims[1], 8);
+        auto input_ptr     = input_origin + batch_idx * hw * (packed ? ROUND_UP(dims[1], 8) : dims[1]);
+        auto output_ptr    = output_origin + batch_idx * hw * (packed ? ROUND_UP(dims[1], 8) : dims[1]);
         reorder_buffer_ptr = output_ptr;
 
         if (packed) {
