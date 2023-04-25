@@ -30,34 +30,36 @@ Status CpuReshapeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
 Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto *layer_param = dynamic_cast<ReshapeLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
-    
+
     Status status = TNN_OK;
     auto input_dims = inputs[0]->GetBlobDesc().dims;
     if (inputs.size() >= 2) {
         if (inputs[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
             return Status(TNNERR_PARAM_ERR, "Reshape input(shape) has invalid data type");
         }
-        
+
         auto dim_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
         auto dim_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
         DimsVector dims;
         for (int i=0; i<dim_count; i++) {
             dims.push_back(dim_data[i]);
         }
-        layer_param->shape = dims;
+        if (layer_param->shape.empty()) {
+            layer_param->shape = dims;
+        }
         layer_param->num_axes = dim_count;
         auto output_dims = DimsFunctionUtils::Reshape(input_dims, dims, layer_param->axis, dim_count, &status);
         RETURN_ON_NEQ(status, TNN_OK);
         
         outputs[0]->GetBlobDesc().dims = output_dims;
     }
-    
+
     //Adjust params to different batch\height\width with 0 and -1
     auto shape = layer_param->shape;
     auto output_dims = outputs[0]->GetBlobDesc().dims;
     if (shape.size() == output_dims.size()) {
         const auto count = MIN(output_dims.size(), input_dims.size());
-        
+
         //reset 0
         {
             for (auto i=0; i<count; i++) {
@@ -66,7 +68,53 @@ Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &in
                 }
             }
         }
-        
+
+        // In rare cases, mainly in TNN-Torch,
+        // e.g.
+        // input0.shape = [16, batch, 768]
+        // input1.data = [-1, 8*batch, 96], provided by torch
+        // output.shape = [16, 8*batch, 96]
+        //
+        // In this case, the -1, 0th input1 data & 0th output dim is actually fixed.
+        // the 0th -1 here exists because the 0th output dim "16" is related to a fixed Whole Net Input DIM.
+        //
+        // The fix Whole Net Input DIM may be something like "max_sequence length",
+        // which is not specified until Whole Net Init but fixed since then.
+        // So, when this happens, our job here is to reset layer_param->shape here on a second call, to its true value.
+        //
+        // In the this example, when InferRuntimeOutputShape is called for the first time.
+        // layer_param->shape is set to [-1, 8*batch_call_0, 96]
+        // When InferRuntimeOutputShape is then called with a different batch, say, batch_call_1, later,
+        // layer_param->shape is not setted in the code above, but this time, input1.data = [-1, 8*batch_call_1, 96]
+        // Difference exists, we are able to infer the true dim that need to be set to -1 , which is dim1 in this example.
+        //
+        // Besides, the reason we can change layer_param->shape here is based upon the fact that.
+        // Reshape should have only one -1 dim.
+        if (inputs.size() >= 2) {
+            auto dim_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
+            auto curr_dim_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
+            DimsVector curr_dims;
+            for (int i=0; i<dim_count; i++) {
+                curr_dims.push_back(curr_dim_data[i]);
+            }
+            if (!DimsVectorUtils::Equal(curr_dims, shape)) {
+                int diff_index = -1;
+                int diff_count = 0;
+                for (auto i=0; i<shape.size(); i++) {
+                    if (curr_dims[i]!=shape[i] && curr_dims[i]!=0 && shape[i]!=0 ) {
+                        diff_count += 1;
+                        diff_index = i;
+                    }
+                }
+                if (diff_count == 1) {
+                    // Reset LayerParam.shape.
+                    shape = output_dims;
+                    shape[diff_index] = -1;
+                    layer_param->shape = shape;
+                }
+            }
+        }
+
         //reset -1
         {
             int non_zero_index = -1;
@@ -85,10 +133,12 @@ Status CpuReshapeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &in
         
         auto infer_output_dims = DimsFunctionUtils::Reshape(input_dims, shape, layer_param->axis, (int)shape.size(), &status);
         if (status == TNN_OK && DimsVectorUtils::Equal(infer_output_dims, output_dims)) {
-            layer_param->shape = shape;
+            if (inputs.size()==1 || !layer_param->shape.empty()) {
+                layer_param->shape = shape;
+            }
         }
     }
-    
+
     return TNN_OK;
 }
 
