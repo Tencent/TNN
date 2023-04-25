@@ -39,6 +39,10 @@ Status OpenCLContext::GetCommandQueue(void** command_queue) {
     return TNN_OK;
 }
 
+Status OpenCLContext::SetCommandQueue(void* command_queue) {
+    return Status(TNNERR_COMMON_ERROR, "SetCommandQueue is not supported in opencl");
+}
+
 Status OpenCLContext::ShareCommandQueue(Context* context) {
     auto context_target = dynamic_cast<OpenCLContext *>(context);
     if (!context_target) {
