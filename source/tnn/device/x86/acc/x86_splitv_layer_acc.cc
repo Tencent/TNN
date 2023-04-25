@@ -61,5 +61,6 @@ Status X86SplitVLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_X86_ACC(SplitV, LAYER_SPLITV);
+REGISTER_X86_ACC(SplitV, LAYER_SPLITTORCH);
 
 }  // namespace TNN_NS
