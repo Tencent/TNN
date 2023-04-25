@@ -45,7 +45,7 @@ NpuNetwork::~NpuNetwork() {
 }
 
 Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder) {
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type, bool enable_const_folder) {
     // config check
     if (InitConfigCheck(net_config, model_config)) {
         return Status(TNNERR_NULL_PARAM, "ERROR: Npu not support device_type or model type");
@@ -289,7 +289,7 @@ Status NpuNetwork::InitSubNetwork(NetworkConfig &net_config, ModelConfig &model_
         return Status(TNNERR_LAYER_ERR,
                       "ERROR: When split the network,  the arm can not find input in the huawei_npu visited layers");
     }
-    Status ret = sub_network_->Init(cpu_net_config, model_config, interpreter, cpu_inputs_shape, cpu_inputs_shape);
+    Status ret = sub_network_->InitWrapper(cpu_net_config, model_config, interpreter, cpu_inputs_shape, cpu_inputs_shape);
     if (ret != TNN_OK) {
         return ret;
     }
@@ -557,7 +557,7 @@ Blob *NpuNetwork::CreateNpuBlob(hiai::TensorDimension dims, std::string name, vo
     return new Blob(desc, handle);
 }
 
-Status NpuNetwork::GetForwardMemorySize(int &memory_size) {
+Status NpuNetwork::GetForwardMemorySize(size_t &memory_size) {
     memory_size = 0;
     return TNNERR_NPU_UNSUPPORT_ERROR;
 }
@@ -631,6 +631,10 @@ Status NpuNetwork::DeInit() {
 }
 
 Status NpuNetwork::GetCommandQueue(void **command_queue) {
+    return TNN_OK;
+}
+
+Status NpuNetwork::SetCommandQueue(void* command_queue) {
     return TNN_OK;
 }
 
