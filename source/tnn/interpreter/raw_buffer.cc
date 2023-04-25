@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/interpreter/raw_buffer.h"
+#include <exception>
 #include <fstream>
 #include <string>
 #include <typeinfo>
@@ -20,6 +21,7 @@
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
 #include "tnn/utils/data_type_utils.h"
+#include "tnn/utils/dims_vector_utils.h"
 
 using namespace TNN_NS;
 
@@ -106,6 +108,15 @@ void permute(void *in, void *out, size_t outter, size_t inner) {
         for (size_t j = 0; j < inner; j++) {
             out_ptr[j * outter + i] = in_ptr[i * inner + j];
         }
+    }
+}
+
+void RawBuffer::Reshape(DimsVector& new_dims) {
+    printf("Reshape dims_ %d new_dims: %d \n", DimsVectorUtils::Count(dims_), DimsVectorUtils::Count(new_dims));
+    if(DimsVectorUtils::Count(dims_) == DimsVectorUtils::Count(new_dims)) {
+        dims_ = new_dims;
+    } else {
+        throw std::runtime_error("RawBuffer Reshape error \n");
     }
 }
 
@@ -214,6 +225,19 @@ RawBuffer ConvertHalfToBFP16(RawBuffer &buf) {
     }
 }
 
+RawBuffer ConvertFloatToHalf(RawBuffer &buf) {
+    if (buf.GetBytesSize() > 0 && buf.GetDataType() == DATA_TYPE_FLOAT) {
+        auto data_count = buf.GetDataCount();
+        RawBuffer buf_fp16(data_count * sizeof(fp16_t));
+        ConvertFromFloatToHalf(buf.force_to<float *>(), buf_fp16.force_to<void *>(), data_count);
+        buf_fp16.SetDataType(DATA_TYPE_HALF);
+        buf_bfp16.SetBufferDims(buf.GetBufferDims());
+        return buf_fp16;
+    } else {
+        return buf;
+    }
+}
+
 std::shared_ptr<float> GetFloatFromRawBuffer(const RawBuffer &raw_buffer) {
     int element_size = 0;
     DataType type    = raw_buffer.GetDataType();
@@ -249,6 +273,44 @@ RawBuffer ConvertFloatToFP16(RawBuffer &buf) {
     } else {
         return buf;
     }
+}
+
+RawBuffer Concat(std::vector<RawBuffer> & list, int axis) {
+    RawBuffer buffer0 = list[0];
+    auto buffer0_dims = buffer0.GetBufferDims();
+    for(int i= 1; i < list.size(); ++i) {
+        auto dims = list[i].GetBufferDims();
+        if(buffer0_dims.size() != dims.size() && axis >= buffer0_dims.size()) {
+             throw std::runtime_error("RawBuffer Concat Error \n");
+        }
+    }
+    auto output_dims = buffer0_dims;
+    int out_concat_dim_size = 0;
+    for(int i = 0; i <list.size(); ++i) {
+        out_concat_dim_size += list[i].GetBufferDims()[axis];
+    }
+    output_dims[axis] = out_concat_dim_size;
+    int num_concats = DimsVectorUtils::Count(buffer0_dims, 0, axis);
+    auto datasize                 = DataTypeUtils::GetBytesSize(buffer0.GetDataType());
+
+    RawBuffer output_buffer(DimsVectorUtils::Count(output_dims) * datasize);
+    output_buffer.SetBufferDims(output_dims);
+    int8_t* output_data = output_buffer.force_to<int8_t*>();
+
+    int concate_size = DimsVectorUtils::Count(buffer0_dims, axis+ 1);
+    int output_concat_axis_offset = 0;
+
+    for (size_t i = 0; i < list.size(); ++i) {
+        int8_t *input_data          = list[i].force_to<int8_t*>();
+        const int input_concat_axis = list[i].GetBufferDims()[axis];
+        for (int n = 0; n < num_concats; ++n) {
+            memcpy(output_data + (n * out_concat_dim_size + output_concat_axis_offset) * concate_size * datasize,
+                   input_data + n * input_concat_axis * concate_size * datasize,
+                   input_concat_axis * concate_size * datasize);
+        }
+        output_concat_axis_offset += input_concat_axis;
+    }
+    return output_buffer;
 }
 
 }  // namespace TNN_NS
