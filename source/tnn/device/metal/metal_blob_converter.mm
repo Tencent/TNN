@@ -51,6 +51,7 @@ protected:
     Status AllocateComputePipeline(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob,
                                    void *command_queue);
     bool CheckDeviceAndMat(DeviceType device_type, MatType mat_type);
+    bool NeedDoScaleBias(MatConvertParam& param);
     std::shared_ptr<Mat> buffer_mat_ = nullptr;
 };
 
@@ -67,6 +68,21 @@ bool MetalBlobConverterAcc::CheckDeviceAndMat(DeviceType device_type, MatType ma
             mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32);
 
     return device_supported && mat_supported;
+}
+
+bool MetalBlobConverterAcc::NeedDoScaleBias(MatConvertParam &param) {
+    for (auto s : param.scale) {
+        if (s != 1.0f) {
+            return true;
+        }
+    }
+    for (auto b : param.bias) {
+        if (b != 0.0f) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob) {
