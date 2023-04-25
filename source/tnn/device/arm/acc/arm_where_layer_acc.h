@@ -30,10 +30,12 @@ public:
 private:
     Status ExecSingle(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
     template <bool reverse> Status exec_fp32_single(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
-    template <bool reverse> Status exec_fp16_single(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
     Status ExecGeneral(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
     template <bool reverse> Status exec_fp32_general(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
+#if TNN_ARM82
     template <bool reverse> Status exec_fp16_general(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
+    template <bool reverse> Status exec_fp16_single(Blob *in_0, Blob *in_1, Blob *in_2, Blob *out);
+#endif
 };
 
 }  // namespace TNN_NS
