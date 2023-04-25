@@ -1,3 +1,4 @@
+
 // Tencent is pleased to support the open source community by making TNN available.
 //
 // Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
@@ -18,43 +19,23 @@
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
-DECLARE_LAYER(Pad, LAYER_PAD);
+DECLARE_LAYER(InplaceSliceCopy, LAYER_INPLACE_SLICE_COPY);
 
-Status PadLayer::InferOutputDataType() {
+Status InplaceSliceCopyLayer::InferOutputDataType() {
     return BaseLayer::InferOutputDataType();
 }
 
-Status PadLayer::InferOutputShape(bool ignore_error) {
+Status InplaceSliceCopyLayer::InferOutputShape(bool ignore_error) {
     BaseLayer::InferOutputShape(ignore_error);
-    
-    auto layer_param = dynamic_cast<PadLayerParam*>(param_);
-    if (!layer_param) {
-        LOGE_IF(!ignore_error, "Error: layer param is nil\n");
-        return Status(TNNERR_PARAM_ERR, "Error: layer param is nil");
-    }
 
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
     auto dims         = input_blob->GetBlobDesc().dims;
-    if (dims.size()==3) {
-        // C,H,W 
-        dims[2] += layer_param->pads[0] + layer_param->pads[1];
-        dims[1] += layer_param->pads[2] + layer_param->pads[3];
-        dims[0] += layer_param->pads[4] + layer_param->pads[5];
-    } else if (dims.size()==4) {
-        // N,C,H,W
-        dims[3] += layer_param->pads[0] + layer_param->pads[1];
-        dims[2] += layer_param->pads[2] + layer_param->pads[3];
-        dims[1] += layer_param->pads[4] + layer_param->pads[5];
-    } else {
-        LOGE_IF(!ignore_error, "Error: unsupported PAD input format, should be NCHW or CHW.\n");
-        return Status(TNNERR_LAYER_ERR, "Error: unsupported PAD input format, should be NCHW or CHW.");
-    }
 
     output_blob->GetBlobDesc().dims = dims;
     return TNN_OK;
 }
 
-REGISTER_LAYER(Pad, LAYER_PAD);
+REGISTER_LAYER(InplaceSliceCopy, LAYER_INPLACE_SLICE_COPY);
 
 }  // namespace TNN_NS

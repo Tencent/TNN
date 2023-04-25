@@ -54,7 +54,7 @@ Status BaseLayer::Init(Context* context, LayerParam* param, LayerResource* resou
     if (!output_blobs_[0]->NeedAllocateInForward()){
         status = InferOutputShape();
         if (status != TNN_OK) {
-            LOGE("InferOutputShape failed\n");
+            LOGE("InferOutputShape failed, err msg: %s\n", status.description().c_str());
             return status;
         }
     }

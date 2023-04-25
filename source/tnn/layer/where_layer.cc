@@ -21,7 +21,20 @@ DECLARE_LAYER(Where, LAYER_WHERE);
 Status WhereLayer::InferOutputDataType() {
     auto status = BaseLayer::InferOutputDataType();
     RETURN_ON_NEQ(status, TNN_OK);
-    
+
+    auto layer_resource = dynamic_cast<WhereLayerResource*>(resource_);
+    if (layer_resource) {
+        if (layer_resource->x.GetBytesSize()>0 && layer_resource->y.GetBytesSize()>0) {
+            if (layer_resource->x.GetDataType()!=layer_resource->y.GetDataType()) {
+                return Status(TNNERR_PARAM_ERR, "DataType WhereTorchLayer x(Constant) and y(Constant) should be the same: " + layer_name_);
+            } else {
+                output_blobs_[0]->GetBlobDesc().data_type = layer_resource->x.GetDataType();
+            }
+        }
+        // If at least one of x and y is not stored in LayerResouce.
+        // The first input of Where Layer should be the remaining x or y. Out DataType==in0.data_type.
+    }
+ 
     output_blobs_[0]->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
     return TNN_OK;
 }
@@ -37,6 +50,19 @@ Status WhereLayer::InferOutputShape(bool ignore_error) {
     for (auto iter : input_blobs_) {
         dims       = iter->GetBlobDesc().dims;
         dims_output = DimsVectorUtils::Max(dims, dims_output);
+    }
+
+    // For Where Torch, x or y may be in resource instead of in inputs.
+    auto layer_resource = dynamic_cast<WhereLayerResource*>(resource_);
+    if (layer_resource) {
+        if (layer_resource->x.GetBytesSize()>0) {
+            dims = layer_resource->x.GetBufferDims();
+            dims_output = DimsVectorUtils::Max(dims, dims_output);
+        }
+        if (layer_resource->y.GetBytesSize()>0) {
+            dims = layer_resource->y.GetBufferDims();
+            dims_output = DimsVectorUtils::Max(dims, dims_output);
+        }
     }
 
     output_blobs_[0]->GetBlobDesc().dims = dims_output;

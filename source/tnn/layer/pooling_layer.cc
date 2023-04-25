@@ -19,7 +19,8 @@
 
 namespace TNN_NS {
 
-DECLARE_LAYER(Pooling, LAYER_POOLING);
+DECLARE_LAYER_WITH_FUNC(Pooling, LAYER_POOLING,
+                        virtual Status FillLayerParamWithConstantResource(););
 
 inline int PoolingLayerRuntimeKernelHeight(PoolingLayerParam* pool_param, DimsVector input_dims) {
     int kernel_h = pool_param->kernels_params[1];
@@ -52,7 +53,17 @@ inline int PoolingLayerRuntimeKernelWidth(PoolingLayerParam* pool_param, DimsVec
 }
 
 Status PoolingLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    BaseLayer::InferOutputDataType();
+    auto layer_param = dynamic_cast<PoolingLayerParam*>(param_);
+
+    if (layer_param->is_adaptive_pool && layer_param->output_shape[0] == -1 &&
+        runtime_model_ == RUNTIME_MODE_CONST_FOLD) {
+        for (auto& iter : output_blobs_) {
+            int allocat_status = DATA_FLAG_ALLOCATE_IN_FORWARD;
+            iter->SetFlag(iter->GetFlag() | allocat_status);
+        }
+    }
+    return TNN_OK;
 }
 
 Status PoolingLayer::InferOutputShape(bool ignore_error) {
@@ -70,13 +81,34 @@ Status PoolingLayer::InferOutputShape(bool ignore_error) {
     int width       = dims_input[3];
 
     if (pool_param->is_adaptive_pool) {
+        if (pool_param->output_shape[0] == -1) {
+            LOGE_IF(!ignore_error, "adaptive pool has no output shape. layer name: %s\n", pool_param->name.c_str());
+            return Status(TNNERR_PARAM_ERR, "adaptive pool has no output shape");
+        }
+
         const int output_blobs_size = output_blobs_.size();
         const auto output_shape     = pool_param->output_shape;
         for (int i = 0; i < output_blobs_size; i++) {
             output_blobs_[i]->GetBlobDesc().dims = {num, channels, output_shape[1], output_shape[0]};
         }
-
-        return TNN_OK;
+        pool_param->pads = {0, 0, 0, 0};
+        pool_param->kernels = {width, height};
+        pool_param->strides = {1, 1};
+        pool_param->pool_type = 1;
+        if (output_shape[0] == 1 && output_shape[1] == 1) {
+            pool_param->is_global_pool   = true;
+            DimsVector output_dims;
+            output_dims.push_back(num);
+            output_dims.push_back(channels);
+            output_dims.push_back(1);
+            output_dims.push_back(1);
+            for (int i = 0; i < output_blobs_.size(); ++i) {
+                output_blobs_[i]->GetBlobDesc().dims = output_dims;
+            }
+            return TNN_OK;
+        } else {
+            return TNN_OK;
+        }
     }
 
     const int kernel_w = PoolingLayerRuntimeKernelWidth(pool_param, dims_input);
@@ -181,6 +213,34 @@ Status PoolingLayer::InferOutputShape(bool ignore_error) {
     for (int i = 0; i < output_blobs_.size(); ++i) {
         output_blobs_[i]->GetBlobDesc().dims = output_dims;
     }
+    return TNN_OK;
+}
+
+Status PoolingLayer::FillLayerParamWithConstantResource() {
+    auto layer_param = dynamic_cast<PoolingLayerParam*>(param_);
+    CHECK_PARAM_NULL(layer_param);
+
+    if (layer_param->is_adaptive_pool) {
+        if (input_blobs_.size() > 1) {
+            layer_param->output_shape.clear();
+            const auto blob_name = input_blobs_[1]->GetBlobDesc().name;
+            if (const_resource_ != nullptr && const_resource_->find(blob_name) != const_resource_->end()) {
+                auto sizes_buffer = (*const_resource_)[blob_name];
+                if (sizes_buffer && sizes_buffer->GetBytesSize() > 0) {
+                    auto sizes_data = sizes_buffer->force_to<int *>();
+                    auto sizes_count = sizes_buffer->GetDataCount();
+                    if (sizes_count < 2) {
+                        LOGE("Error: AdaptiveAvgPool has invalid sizes count:%d\n", sizes_count);
+                        return Status(TNNERR_PARAM_ERR, "Error: AdaptiveAvgPool has invalid sizes count");
+                    }
+                    for (int i = sizes_count-1; i >= 0; i--) {
+                        layer_param->output_shape.push_back(sizes_data[i]);
+                    }
+                }
+            }
+        }
+    }
+
     return TNN_OK;
 }
 

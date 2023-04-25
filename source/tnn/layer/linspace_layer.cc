@@ -16,22 +16,22 @@
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
-DECLARE_LAYER_WITH_FUNC(Range, LAYER_RANGE,
+DECLARE_LAYER_WITH_FUNC(Linspace, LAYER_LINSPACE,
                         virtual Status FillLayerParamWithConstantResource(););
 
-Status RangeLayer::InferOutputDataType() {
+Status LinspaceLayer::InferOutputDataType() {
     auto status = BaseLayer::InferOutputDataType();
     if (runtime_model_ != RUNTIME_MODE_CONST_FOLD) {
         return status;
     }
     
-    auto *layer_param = dynamic_cast<RangeLayerParam *>(param_);
+    auto *layer_param = dynamic_cast<LinspaceLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
 
-    // Used In TNN torch, when 1-3 of start, limit, delta is in input_blobs_
-    // start_index, limit_index, delta_index represent their index in input_blobs.
-    if (layer_param->start_index!=-1 || layer_param->limit_index!=-1 ||
-        layer_param->delta_index!=-1) {
+    // Used In TNN torch, when 1-3 of start, end, end is in input_blobs_
+    // start_index, end_index, end_index represent their index in input_blobs.
+    if (layer_param->start_index != -1 || layer_param->end_index != -1 ||
+        layer_param->steps_index != -1) {
         output_blobs_[0]->SetFlag(output_blobs_[0]->GetFlag() | DATA_FLAG_ALLOCATE_IN_FORWARD);
         return status;
     }
@@ -44,38 +44,36 @@ Status RangeLayer::InferOutputDataType() {
     return status;
 }
 
-Status RangeLayer::InferOutputShape(bool ignore_error) {
+Status LinspaceLayer::InferOutputShape(bool ignore_error) {
     //NOTE: This layer should not be excuted on device which is not NAIVE. see ConstantOfShapeLayer
     
     auto status = BaseLayer::InferOutputShape(ignore_error);
     RETURN_ON_NEQ(status, TNN_OK);
     
-    auto *layer_param = dynamic_cast<RangeLayerParam *>(param_);
+    auto *layer_param = dynamic_cast<LinspaceLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
     
     if (input_blobs_[0]->GetBlobDesc().device_type != DEVICE_NAIVE) {
         return Status(TNNERR_MODEL_ERR, "RangeLayer input blob has invalid device type");
     }
     
-    auto output_dims = DimsFunctionUtils::Range(layer_param->start, layer_param->limit,
-                                              layer_param->delta, layer_param->data_type, &status);
-    RETURN_ON_NEQ(status, TNN_OK);
+    auto output_dims = {layer_param->steps.i};
     
     output_blobs_[0]->GetBlobDesc().dims = output_dims;
     
     return TNN_OK;
 }
 
-Status RangeLayer::FillLayerParamWithConstantResource() {
+Status LinspaceLayer::FillLayerParamWithConstantResource() {
     Status status = TNN_OK;
-    auto *layer_param = dynamic_cast<RangeLayerParam *>(param_);
+    auto *layer_param = dynamic_cast<LinspaceLayerParam *>(param_);
     CHECK_PARAM_NULL(layer_param);
     
     if (input_blobs_.size() != 3) {
         return Status(TNNERR_PARAM_ERR, "RangeLayer has invalid layer param");
     }
     
-    //start
+    // start
     {
         const auto start_name = input_blobs_[0]->GetBlobDesc().name;
         if (const_resource_ != nullptr && const_resource_->find(start_name) != const_resource_->end()) {
@@ -94,46 +92,43 @@ Status RangeLayer::FillLayerParamWithConstantResource() {
         }
     }
     
-    //limit
+    // end
     {
-        const auto limit_name = input_blobs_[1]->GetBlobDesc().name;
-        if (const_resource_ != nullptr && const_resource_->find(limit_name) != const_resource_->end()) {
-            auto limit_buffer = (*const_resource_)[limit_name];
-            layer_param->data_type = limit_buffer->GetDataType();
-            auto limit_data   = limit_buffer->force_to<float *>();
-            auto limit = layer_param->limit;
-            if (limit_buffer->GetDataType() == DATA_TYPE_FLOAT) {
-                limit.f = *limit_data;
-            } else if (limit_buffer->GetDataType() == DATA_TYPE_INT32) {
-                limit.i = *((int *)limit_data);
+        const auto end_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(end_name) != const_resource_->end()) {
+            auto end_buffer = (*const_resource_)[end_name];
+            layer_param->data_type = end_buffer->GetDataType();
+            auto end_data   = end_buffer->force_to<float *>();
+            auto end = layer_param->end;
+            if (end_buffer->GetDataType() == DATA_TYPE_FLOAT) {
+                end.f = *end_data;
+            } else if (end_buffer->GetDataType() == DATA_TYPE_INT32) {
+                end.i = *((int *)end_data);
             } else {
-                return Status(TNNERR_PARAM_ERR, "RangeLayer has invalid limit data type");
+                return Status(TNNERR_PARAM_ERR, "RangeLayer has invalid end data type");
             }
-            layer_param->limit = limit;
+            layer_param->end = end;
         }
     }
     
-    //delta
+    // steps
     {
-        const auto delta_name = input_blobs_[2]->GetBlobDesc().name;
-        if (const_resource_ != nullptr && const_resource_->find(delta_name) != const_resource_->end()) {
-            auto delta_buffer = (*const_resource_)[delta_name];
-            layer_param->data_type = delta_buffer->GetDataType();
-            auto delta_data   = delta_buffer->force_to<float *>();
-            auto delta = layer_param->delta;
-            if (delta_buffer->GetDataType() == DATA_TYPE_FLOAT) {
-                delta.f = *delta_data;
-            } else if (delta_buffer->GetDataType() == DATA_TYPE_INT32) {
-                delta.i = *((int *)delta_data);
+        const auto steps_name = input_blobs_[2]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(steps_name) != const_resource_->end()) {
+            auto steps_buffer = (*const_resource_)[steps_name];
+            auto steps_data   = steps_buffer->force_to<float *>();
+            auto steps = layer_param->steps;
+            if (steps_buffer->GetDataType() == DATA_TYPE_INT32) {
+                steps.i = *((int *)steps_data);
             } else {
-                return Status(TNNERR_PARAM_ERR, "RangeLayer has invalid limit data type");
+                return Status(TNNERR_PARAM_ERR, "RangeLayer has invalid end data type");
             }
-            layer_param->delta = delta;
+            layer_param->steps = steps;
         }
     }
     return status;
 }
 
-REGISTER_LAYER(Range, LAYER_RANGE);
+REGISTER_LAYER(Linspace, LAYER_LINSPACE);
 
 }  // namespace TNN_NS
