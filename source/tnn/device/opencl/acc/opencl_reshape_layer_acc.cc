@@ -206,7 +206,7 @@ std::vector<DataType> OpenCLReshapeLayerAcc::SupportDataType(int dims_size, Blob
         // reshape layer blob may contain shape info
         return {DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_INT32};
     } else {
-        return {DATA_TYPE_FLOAT, DATA_TYPE_HALF};
+        return {DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_INT32};
     }
 }
 

@@ -240,7 +240,7 @@ bool OpenCLSymbols::LoadLibraryFromPath(const std::string &library_path) {
     TNN_LOAD_FUNCTION_PTR(clEnqueueCopyImage);
     TNN_LOAD_FUNCTION_PTR(clEnqueueCopyBufferToImage);
     TNN_LOAD_FUNCTION_PTR(clEnqueueCopyImageToBuffer);
-#ifndef WIN32
+#if !defined(WIN32) && !defined(__MACOS) && !defined(__APPLE__) && !defined(__MACOSX)
     TNN_LOAD_FUNCTION_PTR(clCreateFromEGLImageKHR);
     TNN_LOAD_FUNCTION_PTR(clEnqueueAcquireEGLObjectsKHR);
     TNN_LOAD_FUNCTION_PTR(clEnqueueReleaseEGLObjectsKHR);

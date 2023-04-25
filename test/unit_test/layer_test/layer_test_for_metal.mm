@@ -12,29 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "test/unit_test/layer_test/test_unary_layer.h"
+#include "test/unit_test/layer_test/layer_test.h"
+#if defined(TNN_METAL_DEBUG) && defined(__APPLE__)
+#import <Foundation/Foundation.h>
+#endif
 
 namespace TNN_NS {
 
-class NotLayerTest : public UnaryLayerTest {
-public:
-    NotLayerTest() : UnaryLayerTest(LAYER_NOT) {}
-};
+void LayerTest::RunForMetal(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision, DataFormat cpu_input_data_format, DataFormat device_input_data_format) {
+#if defined(TNN_METAL_DEBUG) && defined(__APPLE__)
+    @autoreleasepool{
+#endif
 
-INSTANTIATE_TEST_SUITE_P(LayerTest, NotLayerTest,
-                         ::testing::Combine(UNARY_BATCH_CHANNEL_SIZE,
-                                            testing::Values(2, 3, 4, 5),
-                                            testing::Values(DATA_TYPE_INT8)));
+        DoRun(interp, precision, cpu_input_data_format, device_input_data_format);
 
-TEST_P(NotLayerTest, UnaryLayerTest) {
-    int dim_count      = std::get<3>(GetParam());
-    DeviceType dev     = ConvertDeviceType(FLAGS_dt);
-    // skip dims > 4 for OPENCL
-    if (dim_count > 4 && DEVICE_OPENCL == dev) {
-        GTEST_SKIP();
+#if defined(TNN_METAL_DEBUG) && defined(__APPLE__)
     }
-
-    RunUnaryTest("Not");
+#endif
 }
 
 }  // namespace TNN_NS

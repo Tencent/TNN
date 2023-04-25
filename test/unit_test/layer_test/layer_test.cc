@@ -42,7 +42,7 @@ bool LayerTest::CheckDataTypeSkip(DataType data_type) {
     }
 #endif
     DeviceType dev = ConvertDeviceType(FLAGS_dt);
-    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev && DEVICE_X86 != dev && DEVICE_NAIVE != dev) {
+    if (data_type == DATA_TYPE_INT8 && DEVICE_ARM != dev && DEVICE_X86 != dev && DEVICE_OPENCL != dev && DEVICE_NAIVE != dev) {
         return true;
     }
     if ( (data_type == DATA_TYPE_HALF || data_type == DATA_TYPE_BFP16) && (DEVICE_ARM != dev &&  DEVICE_NAIVE != dev))  {
@@ -53,9 +53,16 @@ bool LayerTest::CheckDataTypeSkip(DataType data_type) {
 
 
 void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision, DataFormat cpu_input_data_format, DataFormat device_input_data_format) {
-#if defined(__OBJC__) && defined(__APPLE__)
-    @autoreleasepool{
+#if defined(TNN_METAL_DEBUG) && defined(__APPLE__)
+    RunForMetal(interp, precision, cpu_input_data_format, device_input_data_format);
+    return;
+#else
+    DoRun(interp, precision, cpu_input_data_format, device_input_data_format);
+    return;
 #endif
+}
+
+void LayerTest::DoRun(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision, DataFormat cpu_input_data_format, DataFormat device_input_data_format) {
     TNN_NS::Status ret = TNN_NS::TNN_OK;
 
     ret = Init(interp, precision, cpu_input_data_format, device_input_data_format);
@@ -94,10 +101,8 @@ void LayerTest::Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision 
         EXPECT_EQ((int)ret, TNN_OK);
         return;
     }
-#if defined(__OBJC__) && defined(__APPLE__)
-    }
-#endif
 }
+
 
 Status LayerTest::Init(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision, DataFormat cpu_input_data_format, DataFormat device_input_data_format) {
     TNN_NS::Status ret = TNN_NS::TNN_OK;

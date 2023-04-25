@@ -31,14 +31,15 @@
 namespace TNN_NS {
 
 enum OpenCLBufferFormat {
-    CONV2D_FILTER    = 0,
-    NHWC_BUFFER      = 1,
-    ARGUMENT         = 2,
-    DW_CONV2D_FILTER = 3,
-    NCHW_BUFFER      = 4,
-    NHWC4_BUFFER     = 5,
-    LSTM_FILTER      = 6,
-    LSTM_BIAS        = 7,
+    CONV2D_FILTER     = 0,
+    NHWC_BUFFER       = 1,
+    ARGUMENT          = 2,
+    DW_CONV2D_FILTER  = 3,
+    NCHW_BUFFER       = 4,
+    NHWC4_BUFFER      = 5,
+    LSTM_FILTER       = 6,
+    LSTM_BIAS         = 7,
+    NCHW_INT32_BUFFER = 8,
 };
 
 template <typename T, typename Dim>

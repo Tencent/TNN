@@ -305,6 +305,7 @@ Status OpenCLMatMulLayerAcc::InitReshapeLayer(
         dim1 = dims.back();
         dim0 = DimsVectorUtils::Count(dims) / dim1;
         input_desc.dims = {dim0, dim1, dim2, dim3};
+        input_desc.data_format = DATA_FORMAT_NHC4W4;
         reshape_blob    = std::make_shared<Blob>(input_desc, true);
         if (reshape_blob == nullptr) {
             LOGE("Create reshape input blob in MatMul failed!\n");
@@ -407,6 +408,16 @@ Status OpenCLMatMulLayerAcc::ConvertWeights(float *weights_data_ptr, int weight_
     CHECK_TNN_OK(ret_convert)
 
     return TNN_OK;
+}
+
+std::vector<DataFormat> OpenCLMatMulLayerAcc::SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type) {
+    std::vector<DataFormat> support_list;
+    support_list.push_back(DATA_FORMAT_NHC4W4);
+    // output blob support nchw
+    if (blob_type == BLOB_OUTPUT) {
+        support_list.push_back(DATA_FORMAT_NCHW);
+    }
+    return support_list;
 }
 
 REGISTER_OPENCL_ACC(MatMul, LAYER_MATMUL)

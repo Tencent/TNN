@@ -238,6 +238,26 @@ std::shared_ptr<float> GetFloatFromRawBuffer(const RawBuffer &raw_buffer) {
     return float_data;
 }
 
+std::shared_ptr<int> GetIntFromRawBuffer(const RawBuffer &raw_buffer) {
+    int element_size = 0;
+    DataType type    = raw_buffer.GetDataType();
+    int bytes        = raw_buffer.GetBytesSize();
+    if (0 == bytes)
+        return nullptr;
+
+    std::shared_ptr<int> int_data;
+    if (type == DATA_TYPE_INT32) {
+        element_size = bytes / sizeof(int);
+        int_data.reset(new int[element_size], [](int *p) { delete[] p; });
+        memcpy(int_data.get(), raw_buffer.force_to<int *>(), bytes);
+    } else {
+        LOGE("Not support type when get Int from raw buffer\n");
+        return nullptr;
+    }
+
+    return int_data;
+}
+
 RawBuffer ConvertFloatToFP16(RawBuffer &buf) {
     if (buf.GetBytesSize() > 0 && buf.GetDataType() == DATA_TYPE_FLOAT) {
         int data_count = buf.GetDataCount();

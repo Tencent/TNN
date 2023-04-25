@@ -40,18 +40,22 @@ Status OpenCLLayerAcc::Init(Context *context, LayerParam *param, LayerResource *
     if (context->GetPrecision() != PRECISION_HIGH) {
         LOGD("OpenCL Blob Pricision is Half!\n");
         for (auto blob : inputs) {
-            blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 : DATA_TYPE_HALF;
+            blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 :
+                blob->GetBlobDesc().data_type == DATA_TYPE_INT8 ? DATA_TYPE_INT8 : DATA_TYPE_HALF;
         }
         for (auto blob : outputs) {
-            blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 : DATA_TYPE_HALF;
+            blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 :
+                blob->GetBlobDesc().data_type == DATA_TYPE_INT8 ? DATA_TYPE_INT8 : DATA_TYPE_HALF;
         }
     } else {
         LOGD("OpenCL Blob Pricision is Float!\n");
         for (auto blob : inputs) {
-            blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 : DATA_TYPE_FLOAT;
+            blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 :
+                blob->GetBlobDesc().data_type == DATA_TYPE_INT8 ? DATA_TYPE_INT8 : DATA_TYPE_HALF;
         }
         for (auto blob : outputs) {
-            blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 : DATA_TYPE_FLOAT;
+            blob->GetBlobDesc().data_type = blob->GetBlobDesc().data_type == DATA_TYPE_INT32 ? DATA_TYPE_INT32 :
+                blob->GetBlobDesc().data_type == DATA_TYPE_INT8 ? DATA_TYPE_INT8 : DATA_TYPE_HALF;
         }
     }
 
@@ -179,7 +183,6 @@ std::vector<DataFormat> OpenCLLayerAcc::SupportDataFormat(DataType data_type, in
 }
 
 std::vector<DataType> OpenCLLayerAcc::SupportDataType(int dims_size, BlobType blob_type) {
-    std::vector<DataType> support_list;
     return {DATA_TYPE_FLOAT, DATA_TYPE_HALF};
 }
 
@@ -319,10 +322,6 @@ Status OpenCLLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bo
         }
 
         auto buffer = (*const_resource)[name];
-        // int32 blob is not supported on opencl, only used on cpu
-        if (buffer->GetDataType() == DATA_TYPE_INT32) {
-            continue;
-        }
         std::shared_ptr<Blob> blob = nullptr;
         if (const_blob_map.find(name) != const_blob_map.end()) {
             blob = const_blob_map[name];
@@ -349,6 +348,7 @@ Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<B
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
 
     float *buffer_data_ptr;
+    int *buffer_int_data_ptr;
     if (buffer->GetDataType() == DATA_TYPE_FLOAT) {
         // get float pointer from raw buffer
         buffer_data_ptr = buffer->force_to<float *>();
@@ -362,6 +362,12 @@ Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<B
             return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "pointer is null");
         }
         buffer_data_ptr = float_data_ptr.get();
+    } else if (buffer->GetDataType() == DATA_TYPE_INT32) {
+        // get int pointer from raw buffer
+        buffer_int_data_ptr = buffer->force_to<int *>();
+        if (buffer_int_data_ptr == nullptr) {
+            return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "int pointer is null");
+        }
     } else {
         return Status(TNNERR_PARAM_ERR, "data type for opencl blob is invalid");
     }
@@ -394,7 +400,11 @@ Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<B
             return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
         }
         memset(cl_buffer_ptr, 0, blob_buffer_size * sizeof(float));
-        memcpy(cl_buffer_ptr, buffer_data_ptr, buffer_size * sizeof(float));
+        if (buffer->GetDataType() == DATA_TYPE_INT32) {
+            memcpy(cl_buffer_ptr, buffer_int_data_ptr, buffer_size * sizeof(int));
+        } else {
+            memcpy(cl_buffer_ptr, buffer_data_ptr, buffer_size * sizeof(float));
+        }
         ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(cl_buffer, cl_buffer_ptr);
         if (ret != CL_SUCCESS) {
             CHECK_CL_SUCCESS(ret)
@@ -403,7 +413,11 @@ Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<B
 
         BlobDesc desc;
         desc.device_type = DEVICE_OPENCL;
-        desc.data_type = opencl_runtime->GetPrecision() == PRECISION_HIGH ? DATA_TYPE_FLOAT : DATA_TYPE_HALF;
+        if (buffer->GetDataType() == DATA_TYPE_INT32) {
+            desc.data_type = DATA_TYPE_INT32;
+        } else {
+            desc.data_type = opencl_runtime->GetPrecision() == PRECISION_HIGH ? DATA_TYPE_FLOAT : DATA_TYPE_HALF;
+        }
         desc.dims = dims;
         desc.data_format = format;
         if (buffer_size > 0) {
@@ -417,9 +431,15 @@ Status OpenCLLayerAcc::RawBuffer2OpenCLBlob(RawBuffer *buffer, std::shared_ptr<B
         std::shared_ptr<OpenCLMemory> blob_memory;
         blob_memory.reset(new OpenCLMemory(TNN_CL_IMAGE));
         blob_memory->SetData(blob->GetHandle().base, false);
-        Status ret_convert = convertor.ConvertBufferToImage(
+        if (buffer->GetDataType() == DATA_TYPE_INT32) {
+            Status ret_convert = convertor.ConvertBufferToImage(
+                blob_buffer.get(), NCHW_INT32_BUFFER, dims, blob_memory.get(), true);
+            CHECK_TNN_OK(ret_convert)
+        } else {
+            Status ret_convert = convertor.ConvertBufferToImage(
                 blob_buffer.get(), NCHW_BUFFER, dims, blob_memory.get(), true);
-        CHECK_TNN_OK(ret_convert)
+            CHECK_TNN_OK(ret_convert)
+        }
     } else {
         return Status(TNNERR_PARAM_ERR, "only NHC4W4 blob is supported for now");
     }

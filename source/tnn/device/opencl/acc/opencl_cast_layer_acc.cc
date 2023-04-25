@@ -58,6 +58,11 @@ Status OpenCLCastLayerAcc::Init(Context *context, LayerParam *param, LayerResour
         if(ret != TNN_OK) {
             return ret;
         }
+    } else if (input_data_type == DATA_TYPE_INT8 && output_data_type == DATA_TYPE_INT32) {
+        ret         = CreateExecuteUnit(execute_units_[0], "copy", "CopyIntImage");
+        if (ret != TNN_OK) {
+            return ret;
+        }
     } else {
         return Status(TNNERR_PARAM_ERR, "cast not support");        
     }
@@ -100,11 +105,11 @@ Status OpenCLCastLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
 }
 
 std::vector<DataType> OpenCLCastLayerAcc::SupportDataType(int dims_size, BlobType blob_type) {
-    return {DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_INT32};
+    return {DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_INT32, DATA_TYPE_INT8};
 }
 
 
-REGISTER_OPENCL_ACC(Cast, LAYER_CAST)
+REGISTER_OPENCL_ACC(Cast, LAYER_CAST);
 REGISTER_OPENCL_LAYOUT(LAYER_CAST, DATA_FORMAT_NHC4W4);
 
 }  // namespace TNN_NS

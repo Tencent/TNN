@@ -328,6 +328,10 @@ Status DefaultBlobConverterAcc::ConvertFromMatFunc(Mat& image, float* blob_data,
         for (int n = 0; n < DimsVectorUtils::Count(dims); n++) {
             blob_data[n] = (float)(reinterpret_cast<fp16_t *>(image.GetData())[n]);
         }
+    } else if (image.GetMatType() == RESERVED_INT8_TEST) {
+        for (int n = 0; n < DimsVectorUtils::Count(dims); n++) {
+            blob_data[n] = (float)(reinterpret_cast<int8_t *>(image.GetData())[n]);
+        }
     } else {
         return Status(TNNERR_PARAM_ERR, "DefaultBlobConverterAcc::ConvertFromMatFunc, convert type not support yet");
     }

@@ -62,7 +62,6 @@ __kernel void Image5DToNCHWBuffer(GLOBAL_SIZE_2_DIMS __global float *output, /* 
                                 dim3 + dim3_idx) * dim4 + dim4_idx;
 
     const int stride         = dim2 * dim3 * dim4;
-    int2 coord               = (int2)(image_width_idx, image_height_idx);
     #ifdef ENABLE_BUFFER_PRECISION_ADJUST
     __global FLOAT *output_ptr = (__global FLOAT *)output;
     FLOAT4 values    = RI_F(input_ptr, SAMPLER, (int2)(image_width_idx, image_height_idx));

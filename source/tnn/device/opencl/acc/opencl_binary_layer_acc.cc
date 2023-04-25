@@ -34,6 +34,7 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
     CHECK_PARAM_NULL(broadcast_param);
     broadcast_param_ = *broadcast_param;
 
+    DataType data_type = DATA_TYPE_FLOAT;
     EltwiseLayerResource *layer_res = dynamic_cast<EltwiseLayerResource *>(resource);
     if (layer_res == nullptr) {
         if (inputs.size() == 2) {
@@ -85,17 +86,25 @@ Status OpenCLBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerReso
             float *data_ptr = layer_res->element_handle.force_to<float *>();
             ret             = ConvertParam(data_ptr, param_dims_);
             CHECK_TNN_OK(ret)
-        } else {
+        } else if (layer_res->element_handle.GetDataType() == DATA_TYPE_HALF) {
             auto float_data_ptr = GetFloatFromRawBuffer(layer_res->element_handle);  // handle the memory
             if (float_data_ptr == nullptr) {
                 return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "convert res to float failed");
             }
             ret = ConvertParam(float_data_ptr.get(), param_dims_);
             CHECK_TNN_OK(ret)
+        } else {
+            auto int_data_ptr = GetIntFromRawBuffer(layer_res->element_handle);  // handle the memory
+            if (int_data_ptr == nullptr) {
+                return Status(TNNERR_OPENCL_ACC_INIT_ERROR, "convert res to int failed");
+            }
+            ret = ConvertIntParam(int_data_ptr.get(), param_dims_);
+            CHECK_TNN_OK(ret)
+            data_type = DATA_TYPE_INT32;
         }
     }
 
-    kernel_name_ = GetKernelName(broadcast_param_);
+    kernel_name_ = GetKernelName(broadcast_param_, data_type);
 
     return TNN_OK;
 }
@@ -116,7 +125,7 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)inputs[param_idx_]->GetHandle().base));
     } else {
         if (kernel_name_ == "BinaryBroadcast" || kernel_name_ == "BinaryBroadcast5D" ||
-            kernel_name_ == "BinaryElementWise") {  // only in0 - in1
+            kernel_name_ == "BinaryElementWise" || kernel_name_ == "BinaryIntBroadcast") {  // only in0 - in1
             if (broadcast_param_.weight_input_index == 0) {
                 execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)binary_params_->GetData()));
                 execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, *((cl::Image *)inputs[0]->GetHandle().base));
@@ -157,7 +166,7 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
             param_batch     = DimsFunctionUtils::GetDim(param_dims, 0);
         }
         execute_units_[0].ocl_kernel.setArg(kernel_arg_idx_++, param_batch);
-    } else if (kernel_name_ == "BinaryBroadcast") {
+    } else if (kernel_name_ == "BinaryBroadcast" || kernel_name_ == "BinaryIntBroadcast") {
         std::vector<int> output_shape(4), input0_shape(4), input1_shape(4);
         if (inputs.size() == 2) {
             if (inputs[input_idx_]->GetBlobDesc().dims.size() > 4 ||
@@ -232,7 +241,10 @@ Status OpenCLBinaryLayerAcc::Reshape(const std::vector<Blob *> &inputs, const st
     return TNN_OK;
 }
 
-std::string OpenCLBinaryLayerAcc::GetKernelName(const MultidirBroadcastLayerParam &param) {
+std::string OpenCLBinaryLayerAcc::GetKernelName(const MultidirBroadcastLayerParam &param, DataType data_type) {
+    if (data_type == DATA_TYPE_INT32) {
+        return "BinaryIntBroadcast";
+    }
     if (output_dims_size_ == 5) {
         return "BinaryBroadcast5D";
     }
@@ -329,6 +341,66 @@ Status OpenCLBinaryLayerAcc::ConvertParam(float *param_data_ptr, std::vector<int
     return convertor.ConvertBufferToImage(param_buffer.get(), NCHW_BUFFER, param_dims, binary_params_.get(), true);
 }
 
+Status OpenCLBinaryLayerAcc::ConvertIntParam(int *param_data_ptr, std::vector<int> param_dims) {
+    OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+
+    // copy param data into clBuffer
+    shared_ptr<OpenCLMemory> param_buffer(new OpenCLMemory(TNN_CL_BUFFER));
+    int param_size  = DimsVectorUtils::Count(param_dims);
+    int buffer_size = DimsFunctionUtils::GetDim(param_dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(param_dims, 1), 4) *
+                      DimsFunctionUtils::GetDim(param_dims, 2) * DimsFunctionUtils::GetDim(param_dims, 3);
+    if (param_dims.size() > 4) {
+        for (int i = 4; i < param_dims.size(); i++) {
+            buffer_size *= DimsFunctionUtils::GetDim(param_dims, i);
+        }
+    }
+    cl_int ret = CL_SUCCESS;
+    cl::Buffer param_clbuffer(*opencl_runtime->Context(), CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
+                              buffer_size * sizeof(float), nullptr, &ret);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
+    }
+    param_buffer->SetData(&param_clbuffer);
+    auto param_clbuffer_ptr = ocl_context_->CommandQueue()->enqueueMapBuffer(
+        param_clbuffer, true, CL_MAP_WRITE, 0, buffer_size * sizeof(int), nullptr, nullptr, &ret);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMMAP_ERROR, "OpenCL MemMap failed");
+    }
+    memset(param_clbuffer_ptr, 0, buffer_size * sizeof(int));
+    memcpy(param_clbuffer_ptr, param_data_ptr, param_size * sizeof(int));
+    ret = ocl_context_->CommandQueue()->enqueueUnmapMemObject(param_clbuffer, param_clbuffer_ptr);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        return Status(TNNERR_OPENCL_MEMUNMAP_ERROR, "OpenCL MemUnMap failed");
+    }
+
+    // create binary_param_
+    int climage_w = UP_DIV(DimsFunctionUtils::GetDim(param_dims, 1), 4) * DimsFunctionUtils::GetDim(param_dims, 3);
+    int climage_h = DimsFunctionUtils::GetDim(param_dims, 0) * DimsFunctionUtils::GetDim(param_dims, 2);
+    if (param_dims.size() == 5) {
+        climage_w = UP_DIV(DimsFunctionUtils::GetDim(param_dims, 1), 4) * DimsFunctionUtils::GetDim(param_dims, 4);
+        climage_h = DimsFunctionUtils::GetDim(param_dims, 0) * DimsFunctionUtils::GetDim(param_dims, 2) *
+                    DimsFunctionUtils::GetDim(param_dims, 3);
+    }
+    cl_channel_type data_type = CL_SIGNED_INT32;
+    cl::Image2D *image = new cl::Image2D(*opencl_runtime->Context(), CL_MEM_READ_WRITE,
+                                         cl::ImageFormat(CL_RGBA, data_type), climage_w, climage_h, 0, nullptr, &ret);
+    if (ret != CL_SUCCESS) {
+        CHECK_CL_SUCCESS(ret)
+        if (nullptr != image)
+            delete image;
+        return Status(TNNERR_OPENCL_MEMALLOC_ERROR, "OpenCL malloc memory failed");
+    }
+    binary_params_.reset(new OpenCLMemory(TNN_CL_IMAGE));
+    binary_params_->SetData(image, true);
+
+    // convert nchw buffer to Image
+    ImageBufferConvertor convertor(opencl_runtime, ocl_context_->CommandQueue());
+    return convertor.ConvertBufferToImage(param_buffer.get(), NCHW_INT32_BUFFER, param_dims, binary_params_.get(), true);
+}
+
 Status OpenCLBinaryLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs,
                                                  bool only_reload_shape_differ_blob) {
     auto const_resource      = const_resource_;
@@ -373,6 +445,10 @@ Status OpenCLBinaryLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inpu
     }
     const_blob_map_ = const_blob_map;
     return TNN_OK;
+}
+
+std::vector<DataType> OpenCLBinaryLayerAcc::SupportDataType(int dims_size, BlobType blob_type) {
+    return {DATA_TYPE_FLOAT, DATA_TYPE_HALF, DATA_TYPE_INT32};
 }
 
 }  // namespace TNN_NS

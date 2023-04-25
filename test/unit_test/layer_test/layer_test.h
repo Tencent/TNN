@@ -42,6 +42,8 @@ protected:
     static void SetUpTestCase();
 
     void Run(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision = PRECISION_AUTO, DataFormat cpu_input_data_format = DATA_FORMAT_AUTO, DataFormat device_input_data_format = DATA_FORMAT_AUTO);
+    void RunForMetal(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision = PRECISION_AUTO, DataFormat cpu_input_data_format = DATA_FORMAT_AUTO, DataFormat device_input_data_format = DATA_FORMAT_AUTO);
+    void DoRun(std::shared_ptr<AbstractModelInterpreter> interp, Precision precision = PRECISION_AUTO, DataFormat cpu_input_data_format = DATA_FORMAT_AUTO, DataFormat device_input_data_format = DATA_FORMAT_AUTO);
 
     bool CheckDataTypeSkip(DataType data_type);
 

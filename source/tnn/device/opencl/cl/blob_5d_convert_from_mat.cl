@@ -72,3 +72,58 @@ __kernel void Blob5DConvertFromNCHW(GLOBAL_SIZE_2_DIMS __write_only image2d_t ou
     write_imagef(output, (int2)(image_width_idx, image_height_idx),
                  output_values);
 }
+
+__kernel void Int8Blob5DConvertFromInt8Mat(GLOBAL_SIZE_2_DIMS __write_only image2d_t output,
+                                    __global const char *input_ptr, __private const int dim2,
+                                    __private const int dim3, __private const int dim4,
+                                    __private const int channels,
+                                    __global const float* scale,
+                                    __global const float* bias) {
+    int image_width_idx  = get_global_id(0);
+    int image_height_idx = get_global_id(1);
+
+    DEAL_NON_UNIFORM_DIM2(image_width_idx, image_height_idx);
+
+    const int dim3_idx       = image_height_idx % dim3;
+    const int batch_dim2_idx = image_height_idx / dim3;
+    const int dim2_idx       = batch_dim2_idx % dim2;
+    const int batch_idx      = batch_dim2_idx / dim2;
+    const int dim4_idx       = image_width_idx % dim4;
+    const int channel_4_idx  = (image_width_idx / dim4) << 2;
+    const int buffer_offset  = (((batch_idx * channels + channel_4_idx) * dim2 + dim2_idx) *
+                                dim3 + dim3_idx) * dim4 + dim4_idx;
+
+    const int stride         = dim2 * dim3 * dim4;
+    const int remain_channel = channels - channel_4_idx;
+
+    char4 output_values        = 0;
+
+    if (remain_channel >= 4) {
+        int offset      = buffer_offset;
+        output_values.x = *(input_ptr + offset);
+        offset += stride;
+        output_values.y = *(input_ptr + offset);
+        offset += stride;
+        output_values.z = *(input_ptr + offset);
+        offset += stride;
+        output_values.w = *(input_ptr + offset);
+    } else if (remain_channel == 3) {
+        int offset      = buffer_offset;
+        output_values.x = *(input_ptr + offset);
+        offset += stride;
+        output_values.y = *(input_ptr + offset);
+        offset += stride;
+        output_values.z = *(input_ptr + offset);
+    } else if (remain_channel == 2) {
+        int offset      = buffer_offset;
+        output_values.x = *(input_ptr + offset);
+        offset += stride;
+        output_values.y = *(input_ptr + offset);
+    } else if (remain_channel == 1) {
+        int offset      = buffer_offset;
+        output_values.x = *(input_ptr + offset);
+    }
+
+    write_imagei(output, (int2)(image_width_idx, image_height_idx),
+                 convert_int4(output_values));
+}

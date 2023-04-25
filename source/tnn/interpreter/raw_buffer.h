@@ -74,6 +74,7 @@ RawBuffer ConvertHalfHandle(RawBuffer &buf);
 RawBuffer ConvertFloatToBFP16(RawBuffer &buf);
 RawBuffer ConvertHalfToBFP16(RawBuffer &buf);
 std::shared_ptr<float> GetFloatFromRawBuffer(const RawBuffer &raw_buffer);
+std::shared_ptr<int> GetIntFromRawBuffer(const RawBuffer &raw_buffer);
 
 }  // namespace TNN_NS
 

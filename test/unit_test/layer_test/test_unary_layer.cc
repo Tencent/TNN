@@ -68,8 +68,14 @@ void UnaryLayerTest::RunUnaryTest(std::string type_str) {
         param->quantized = false;
         int8_allowed_diff_ = 0;
         auto interpreter = GenerateInterpreter(type_str, {input_dims}, param, nullptr, 1, {data_type});
-        DataFormat data_format = dim_count != 5 ? DATA_FORMAT_NCHW : DATA_FORMAT_NCDHW;
-        Run(interpreter, precision, data_format, data_format);
+        DataFormat cpu_data_format = dim_count != 5 ? DATA_FORMAT_NCHW : DATA_FORMAT_NCDHW;
+        DataFormat dev_data_format;
+        if (DEVICE_OPENCL == dev) {
+            dev_data_format = DATA_FORMAT_NHC4W4;
+        } else {
+            dev_data_format = cpu_data_format;
+        }
+        Run(interpreter, precision, cpu_data_format, dev_data_format);
         return;
     }
 

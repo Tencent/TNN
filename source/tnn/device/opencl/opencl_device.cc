@@ -87,6 +87,9 @@ Status OpenCLDevice::Allocate(void** handle, BlobMemorySizeInfo& desc) {
         if (DATA_TYPE_INT32 == desc.data_type) {
             data_type = CL_SIGNED_INT32;
         }
+        if (DATA_TYPE_INT8 == desc.data_type) {
+            data_type = CL_SIGNED_INT8;
+        }
         int w = desc.dims[0];
         int h = desc.dims[1];
         cl_int error;
