@@ -110,6 +110,12 @@ public:
     // @brief copy interpreter
     virtual std::shared_ptr<AbstractModelInterpreter> Copy();
 
+    // @brief set cache if there is one
+    virtual Status SetCache(std::string &cache);
+
+    // &brief get cache if there is one
+    virtual Status GetCache(std::string &cache);
+
 private:
     // @brief get layer interpreter by layer type
     static safe_map<LayerType, std::shared_ptr<AbstractLayerInterpreter>>& LayerInterpreterMap();
@@ -128,7 +134,15 @@ protected:
     ;
 
 protected:
-    uint32_t version_magic_number = 0;
+    uint32_t version_magic_number_ = 0;
+    std::string cache_buf_;
+};
+
+class IRModelInterpreter : public ModelInterpreter {
+public:
+    IRModelInterpreter() {};
+    ~IRModelInterpreter() {};
+    Status InterpretMd5(const std::string& content);
 };
 
 }  // namespace TNN_NS

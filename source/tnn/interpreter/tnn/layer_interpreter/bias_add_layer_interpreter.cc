@@ -28,7 +28,7 @@ Status BiasAddLayerInterpreter::InterpretResource(Deserializer& deserializer, La
     return TNN_OK;
 }
 
-Status BiasAddLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status BiasAddLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     return TNN_OK;
 }
 

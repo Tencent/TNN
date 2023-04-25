@@ -31,7 +31,7 @@ Status OneHotLayerInterpreter::InterpretResource(Deserializer &deserializer, Lay
     return TNN_OK;
 }
 
-Status OneHotLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status OneHotLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     auto layer_param = dynamic_cast<OneHotLayerParam *>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

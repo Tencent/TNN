@@ -34,7 +34,7 @@ Status FlattenLayerInterpreter::InterpretResource(Deserializer& deserializer, La
     return TNN_OK;
 }
 
-Status FlattenLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status FlattenLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto* layer_param = static_cast<FlattenLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

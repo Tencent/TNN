@@ -28,7 +28,7 @@ Status HistogramLayerInterpreter::InterpretResource(Deserializer &deserializer, 
     return TNN_OK;
 }
 
-Status HistogramLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status HistogramLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     auto layer_param = dynamic_cast<HistogramLayerParam *>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

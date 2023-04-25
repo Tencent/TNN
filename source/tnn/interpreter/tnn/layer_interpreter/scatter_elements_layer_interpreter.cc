@@ -29,7 +29,7 @@ Status ScatterElementsLayerInterpreter::InterpretResource(Deserializer &deserial
     return TNN_OK;
 }
 
-Status ScatterElementsLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status ScatterElementsLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     CAST_OR_RET_ERROR(layer_param, ScatterElementsLayerParam, "invalid scatter elements param to save", param);
     output_stream << layer_param->axis << " " << layer_param->op << " ";
     return TNN_OK;

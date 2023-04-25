@@ -51,7 +51,7 @@ Status NormalizeLayerInterpreter::InterpretResource(Deserializer& deserializer, 
     return TNN_OK;
 }
 
-Status NormalizeLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status NormalizeLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<NormalizeLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

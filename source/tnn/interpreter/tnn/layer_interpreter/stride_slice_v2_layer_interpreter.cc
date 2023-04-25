@@ -73,6 +73,10 @@ Status StrideSliceV2LayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int 
         }
     }
     layer_param->strides = strides;
+    
+    GET_INT_1_OR_DEFAULT(layer_param->begins_index, -1);
+    GET_INT_1_OR_DEFAULT(layer_param->ends_index, -1);
+    
     return TNN_OK;
 }
 
@@ -80,7 +84,7 @@ Status StrideSliceV2LayerInterpreter::InterpretResource(Deserializer& deserializ
     return TNN_OK;
 }
 
-Status StrideSliceV2LayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status StrideSliceV2LayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<StrideSliceV2LayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
@@ -106,6 +110,10 @@ Status StrideSliceV2LayerInterpreter::SaveProto(std::ofstream& output_stream, La
     for (const auto& stride : strides) {
         output_stream << stride << " ";
     }
+    
+    output_stream << layer_param->begins_index << " ";
+    output_stream << layer_param->ends_index << " ";
+    
     return TNN_OK;
 }
 

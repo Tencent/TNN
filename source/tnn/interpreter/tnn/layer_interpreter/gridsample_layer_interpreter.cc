@@ -30,7 +30,7 @@ Status GridSampleLayerInterpreter::InterpretResource(Deserializer& deserializer,
     return TNN_OK;
 }
 
-Status GridSampleLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status GridSampleLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, GridSampleLayerParam, "invalid grid sample layer param to save", param);
     output_stream << layer_param->mode << " ";
     output_stream << layer_param->pad_type << " ";

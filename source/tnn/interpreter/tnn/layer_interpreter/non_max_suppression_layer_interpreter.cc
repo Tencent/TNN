@@ -37,7 +37,7 @@ Status NonMaxSuppressionLayerInterpreter::InterpretResource(Deserializer& deseri
     return TNN_OK;
 }
 
-Status NonMaxSuppressionLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status NonMaxSuppressionLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto* layer_param = static_cast<NonMaxSuppressionLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
