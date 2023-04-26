@@ -173,6 +173,8 @@ namespace TNN_NS {
 
         // will also handle the tensors
         Status addNode(const std::shared_ptr<Node> &pattern, bool creat_tensors = true);
+        
+        Status reorderNodeAfter(const std::string target_node_name, const std::string source_node_name);
 
         // create node of specified type, Node name is set to the first output tensor_name, will also handle the tensors by addNode function if out_tensors not specified.
         Status createNode(const LayerType &type, const std::vector<std::string> &in_names, const std::vector<std::string> &out_names, 
@@ -185,8 +187,12 @@ namespace TNN_NS {
         const std::vector<std::weak_ptr<const Node>> allNodes() const;
 
         Status rewrite(std::shared_ptr<Graph> &pattern, graph_generator generator);
+        
+        void embed(std::shared_ptr<Graph> g, const std::shared_ptr<AnchorGraph> anchor, std::string name_prefx) ;
 
         void dump(std::ostream &os) const;
+        
+        void updateTnnNetStructure();
 
         // will create a placeholder node if tensor not found.
         std::shared_ptr<Node> getNodeOrCreatePlaceHolder(const std::string &tensor_name);
@@ -213,7 +219,6 @@ namespace TNN_NS {
 
         Status buildNodeTensorIndex(const std::shared_ptr<Node> );
 
-        void embed(std::shared_ptr<Graph> g, const std::shared_ptr<AnchorGraph> anchor, std::string name_prefx) ;
 
         Status topologicalSort();
 
@@ -232,7 +237,7 @@ namespace TNN_NS {
         // following members are used to manage the ordering of outputs
         std::vector<std::string> output_order;
 
-        // following members are managed by the reBuidlTensorIndex function
+        // following members are managed by the reBuildTensorIndex function
         std::unordered_map<std::string, std::shared_ptr<Tensor>> tensor_map;
         std::map<std::string, std::shared_ptr<Node>> tensor_2_node;
         std::map<std::string, std::vector<Edge*>> tensor_2_edge;

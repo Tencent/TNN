@@ -378,6 +378,36 @@ namespace TNN_NS {
         RETURN_ON_NEQ(buildNodeTensorIndex(n), TNN_OK);
         return TNN_OK;
     }
+    
+    Status Graph::reorderNodeAfter(const std::string target_node_name, const std::string reorder_node_name) {
+        if (tensor_2_node.find(target_node_name) == tensor_2_node.end()) {
+            ERRORV("unable to find Target Node [%s].", msg, target_node_name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        if (tensor_2_node.find(reorder_node_name) == tensor_2_node.end()) {
+            ERRORV("unable to find Source Node [%s].", msg, reorder_node_name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+        std::shared_ptr<Node> target_node  = tensor_2_node.find(target_node_name)->second;
+        std::shared_ptr<Node> reorder_node = tensor_2_node.find(reorder_node_name)->second;
+
+        auto reorder_node_iter = std::find(nodes.begin(), nodes.end(), reorder_node);
+        if (reorder_node_iter == nodes.end()) {
+            ERRORV("unable to find Node [%s] in graph.nodes.", msg, reorder_node_name.c_str());
+            return Status(TNNERR_COMMON_ERROR, msg);
+        }
+
+        // Get Node to be Reordered, erase the node from nodes()
+        std::shared_ptr<Node> node_to_reorder = *reorder_node_iter;
+        nodes.erase(reorder_node_iter);
+
+        // Find out target position and insert.
+        auto target_node_iter = std::find(nodes.begin(), nodes.end(), target_node);
+        auto pos_to_insert = target_node_iter == nodes.end() ? nodes.begin() : std::next(target_node_iter, 1);     
+        nodes.insert(pos_to_insert, node_to_reorder); 
+
+        return TNN_OK;
+    }
 
     Status Graph::createNode(const LayerType &type, const std::vector<std::string> &in_names, 
                             const std::vector<std::string> &out_names, const std::vector<std::shared_ptr<Tensor>> out_tensors) {
@@ -399,7 +429,7 @@ namespace TNN_NS {
         for(auto & in : out_names) {
             auto src = getNodeByTensorName(in);
             if (src) {
-                ERRORV("specified output alread exists.", msg);
+                ERRORV("specified output: %s alread exists.", msg, in.c_str());
                 return Status(TNNERR_COMMON_ERROR, msg);
             }
         }
@@ -552,6 +582,7 @@ namespace TNN_NS {
         }
         return TNN_OK;
     }
+
     Status Graph::sanityCheck() {
         for(auto &n : placeholders) {
             RETURN_ON_FAIL(n->sanityCheck());
@@ -572,6 +603,14 @@ namespace TNN_NS {
                 return Status(TNNERR_COMMON_ERROR, msg);
             }
         }
+
+        // TODO
+        // TODO: by doxu@tencent.com on 2022.09.14
+        // Temporary Close Graph IsConnectedCheck.
+        // Because some Constant Input may not need to be connected in the new graph.
+        // In Multi-Head Attention Plugin
+        // Add Back Connectivity Check in the future.
+        /*
         // Check if the graph is a connected graph
         AnchorGraph* anchor_ptr = dynamic_cast<AnchorGraph*>(this);
         bool connected;
@@ -584,6 +623,7 @@ namespace TNN_NS {
             ERRORV("the graph is not connected.", msg);
             return Status(TNNERR_COMMON_ERROR, msg);
         }
+        */
         return TNN_OK;
     }
 
@@ -642,9 +682,12 @@ namespace TNN_NS {
 
         for(auto &n : placeholders) {
             RAISE_ON_ERROR(n->sanityCheck());
-            if (n->output_edges.size() > 0) {
-                names.push_back(n->info->outputs[0]);
-            }
+            // TODO: Temp Loose restrict for 'inputs', allow node with no OPs using it to be recoginized as 'input' as well.
+            // TODO: FIXME in future.
+            names.emplace_back(n->info->outputs[0]);
+            //if (n->output_edges.size() > 0) {
+            //    names.insert(n->info->outputs[0]);
+            //}
         }
         return getTensorsByNames(names);
     }
@@ -800,7 +843,27 @@ namespace TNN_NS {
         }
 
     }
-
+        
+    void Graph::updateTnnNetStructure() {
+        if (tnn_structure) {
+            // add new blobs to tnn_structure
+            for (auto &n : nodes) {
+                for (auto &name : n->info->outputs) {
+                    tnn_structure->blobs.insert(name);
+                }
+            }
+ 
+            // update net_structure
+            std::vector<std::shared_ptr<LayerInfo>> new_layers;
+            for (auto &n : nodes) {
+                // ignore const layers, which are added in fromIntepreted function accourding to const_map.
+                if (n->info->type != LAYER_CONST) {
+                    new_layers.push_back(n->info);
+                }
+            }
+            tnn_structure->layers = new_layers;
+        }
+    }
 
     // output based reverse BFS with Priority Que 
     // Priorities:
