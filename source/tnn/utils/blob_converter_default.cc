@@ -218,6 +218,16 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
                         param.scale.data(), param.bias.data(), channel, hw);
             }
         }
+    } else if (desc.data_type == DATA_TYPE_INT64) {
+        if (image.GetMatType() == NC_INT64) {
+            memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * sizeof(int64_t));
+            return TNN_OK;
+        }
+    } else if (desc.data_type == DATA_TYPE_UINT8) {
+        if (image.GetMatType() == RESERVED_UINT8_TEST) {
+            memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * sizeof(uint8_t));
+            return TNN_OK;
+        }
     }
 
     if (image.GetMatType() == NCHW_FLOAT) {
@@ -248,7 +258,8 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
         }
     } else {
         FREE_INT8_TEMP_DATA();
-        return Status(TNNERR_PARAM_ERR, "DefaultBlobConverterAcc::ConvertToMatAsync, convert type not support yet");
+        return Status(TNNERR_PARAM_ERR, "DefaultBlobConverterAcc::ConvertToMatAsync, convert type not support yet: " +
+                                        std::to_string(desc.data_type) + " to " + std::to_string(image.GetMatType()));
     }
 
     // reverse channel before convert if needed
@@ -274,6 +285,21 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
 
     FREE_INT8_TEMP_DATA();
     return ret;
+}
+
+static bool NeedDoScaleBias(const MatConvertParam &param) {
+    for (auto s : param.scale) {
+        if (s != 1.0f) {
+            return true;
+        }
+    }
+    for (auto b : param.bias) {
+        if (b != 0.0f) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 Status DefaultBlobConverterAcc::ConvertFromMatFunc(Mat& image, float* blob_data,
@@ -355,10 +381,22 @@ Status DefaultBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertPa
             memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims) * 2);
             return TNN_OK;
         }
+    } else if (desc.data_type == DATA_TYPE_HALF) {
+        if (image_src.GetMatType() == RESERVED_FP16_TEST) {
+            memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims) * 2);
+            return TNN_OK;
+        }
     } else if (desc.data_type == DATA_TYPE_INT32) {
         if (image_src.GetMatType() == NC_INT32) {
             memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims) * sizeof(int32_t));
             return TNN_OK;
+        }
+    } else if (desc.data_type == DATA_TYPE_UINT8) {
+        if (image_src.GetMatType() == RESERVED_UINT8_TEST) {
+            memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims));
+            return TNN_OK;
+        } else {
+            return Status(TNNERR_PARAM_ERR, "reserve type uint8 only can be convert to uint8 blob");
         }
     }
 

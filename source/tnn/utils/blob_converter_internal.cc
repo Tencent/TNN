@@ -21,21 +21,6 @@
 
 namespace TNN_NS {
 
-bool NeedDoScaleBias(const MatConvertParam& param) {
-    for (auto s : param.scale) {
-        if (s != 1.0f) {
-            return true;
-        }
-    }
-    for (auto b : param.bias) {
-        if (b != 0.0f) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 BlobConverter::BlobConverter(Blob* blob) {
     blob_ = blob;
     impl_ = BlobConverterManager::Shared()->CreateBlobConverterAcc(blob);
@@ -103,7 +88,7 @@ Status BlobConverter::CheckScaleBiasInParam(Mat& image, MatConvertParam& param, 
     }
     // 非图像类的Mat channel和scale/bias长度与不匹配时，如果scale全1，bias全0，会默认调整，否则报错
     if ((image.GetMatType() == NCHW_FLOAT || image.GetMatType() == RESERVED_BFP16_TEST ||
-         image.GetMatType() == RESERVED_FP16_TEST || image.GetMatType() == RESERVED_INT8_TEST ||
+         image.GetMatType() == RESERVED_FP16_TEST || image.GetMatType() == RESERVED_INT8_TEST || image.GetMatType() == RESERVED_UINT8_TEST ||
          image.GetMatType() == NC_INT32) && (channel > param.scale.size() || channel > param.bias.size())) {
         if (!NeedDoScaleBias(param)) {
             param.scale = std::vector<float>(channel, 1.0f);
@@ -117,6 +102,21 @@ Status BlobConverter::CheckScaleBiasInParam(Mat& image, MatConvertParam& param, 
     }
 
     return TNN_OK;
+}
+
+bool BlobConverter::NeedDoScaleBias(MatConvertParam &param) {
+    for (auto s : param.scale) {
+        if (s != 1.0f) {
+            return true;
+        }
+    }
+    for (auto b : param.bias) {
+        if (b != 0.0f) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 std::shared_ptr<BlobConverterManager>& BlobConverterManager::Shared() {

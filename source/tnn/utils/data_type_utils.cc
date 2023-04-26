@@ -33,6 +33,8 @@ int DataTypeUtils::GetBytesSize(DataType data_type) {
         return 8;
     } else if (data_type == DATA_TYPE_UINT32) {
         return 4;
+    } else if (data_type == DATA_TYPE_UINT8) {
+        return 1;
     } else {
         LOGE("GetBytes Undefined \n");
         return -1;
@@ -52,6 +54,10 @@ std::string DataTypeUtils::GetDataTypeString(DataType data_type) {
         return "int64";
     } else if (data_type == DATA_TYPE_INT32) {
         return "int32";
+    } else if (data_type == DATA_TYPE_INT64) {
+        return "int64";
+    } else if (data_type == DATA_TYPE_UINT8) {
+        return "uint8";
     } else {
         return "";
     }

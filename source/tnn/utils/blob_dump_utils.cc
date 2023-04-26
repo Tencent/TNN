@@ -58,6 +58,10 @@ Status DumpDeviceBlob(Blob* blob, Context* context, std::string fname_prefix) {
     void* command_queue;
     context->GetCommandQueue(&command_queue);
 
+    return DumpDeviceBlob(blob, command_queue, fname_prefix);
+}
+
+Status DumpDeviceBlob(Blob* blob, void* command_queue, std::string fname_prefix) {
     auto blob_desc = blob->GetBlobDesc();
     MatType mat_type = NCHW_FLOAT;
     auto data_type = blob_desc.data_type;

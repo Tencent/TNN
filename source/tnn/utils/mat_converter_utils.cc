@@ -161,7 +161,7 @@ int GetMatElementSize(Mat* mat) {
         return 1;
     } else if (RESERVED_BFP16_TEST == mat_type || RESERVED_FP16_TEST == mat_type) {
         return 2;
-    } else if (RESERVED_INT8_TEST == mat_type) {
+    } else if (RESERVED_INT8_TEST == mat_type || RESERVED_UINT8_TEST == mat_type) {
         return 1;
     } else {
         return 0;

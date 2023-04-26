@@ -55,6 +55,8 @@ std::string MatTypeToString(MatType mat_type) {
         return "RESERVED_FP16_TEST";
     } else if (RESERVED_INT8_TEST == mat_type) {
         return "RESERVED_INT8_TEST";
+    } else if (RESERVED_UINT8_TEST == mat_type) {
+        return "RESERVED_UINT8_TEST";
     } else {
         return "INVALID Mat Type";
     }

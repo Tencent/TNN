@@ -12,27 +12,18 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef TNN_SOURCE_TNN_UTILS_BLOB_DUMP_UTILS_H_
-#define TNN_SOURCE_TNN_UTILS_BLOB_DUMP_UTILS_H_
-
+#include <sstream>
 #include <string>
-
-#include "tnn/core/blob.h"
-#include "tnn/core/context.h"
-#include "tnn/core/status.h"
-
-#define DUMP_INPUT_BLOB 0
-#define DUMP_OUTPUT_BLOB 0
+#include "tnn/core/macro.h"
+#include "tnn/utils/string_utils.h"
 
 namespace TNN_NS {
 
-#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
-extern PUBLIC std::string g_tnn_dump_directory;
-#endif
-
-Status DumpDeviceBlob(Blob* dst, Context* context, std::string fname_prefix);
-Status DumpDeviceBlob(Blob* dst, void* command_queue, std::string fname_prefix);
+bool EndsWith(const std::string& str, const std::string suffix) {
+    if (suffix.length() > str.length()) {
+        return false;
+    }
+    return (str.rfind(suffix) == (str.length() - suffix.length()));
+}
 
 }  // namespace TNN_NS
-
-#endif  // TNN_SOURCE_TNN_UTILS_BLOB_DUMP_UTILS_H_
