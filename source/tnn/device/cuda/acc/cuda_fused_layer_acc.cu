@@ -270,6 +270,7 @@ Status CudaFusedLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
             LOGE("Error: fused ffn not supported data type: %d\n", inputs[0]->GetBlobDesc().data_type);
             return Status(TNNERR_LAYER_ERR, "Error: fused ffn not supported data type");
         }
+#if 0
     } else if (fused_param_->type == FusionType_Attention) {
         if (inputs.size() < 2 || outputs.size() != 1) {
             LOGE("Error: fused attention io size error\n");
@@ -403,6 +404,7 @@ Status CudaFusedLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         flash_attention_fp16_->forward(input, output, batch_size, head_num, size_per_head, seq_len,
                                      context_->GetStream());
 
+#endif  //#if 0
     } else {
         LOGE("Error: not supported fusion type: %d\n", (int)(fused_param_->type));
         return Status(TNNERR_PARAM_ERR, "Error: not supported fusion type");

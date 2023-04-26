@@ -55,12 +55,14 @@ endif()
 file(GLOB CUDA_SRCS *.cc *.h *.cu acc/*.cc acc/*.h acc/*.cu acc/compute/*.h acc/compute/*.cuh acc/compute/*.cu)
 message(${CUDA_SRCS})
 
-file(GLOB FUSED_ATTENTION_SRCS acc/compute/trt_fused_multihead_attention/*.cpp acc/compute/trt_fused_multihead_attention/*.cu acc/compute/trt_unfused_multihead_attention/*.cu)
-file(GLOB ATTENTION_FLASH_SRCS acc/compute/trt_multihead_flash_attention/*.cpp acc/compute/trt_multihead_flash_attention/*.h acc/compute/trt_multihead_flash_attention/fmha_flash_attention/include/*.h acc/compute/trt_multihead_flash_attention/fmha_flash_attention/src/*.cpp)
-message(${ATTENTION_FLASH_SRCS})
+# Attention Plugin has 100mb + Volume, too big
+#file(GLOB FUSED_ATTENTION_SRCS acc/compute/trt_fused_multihead_attention/*.cpp acc/compute/trt_fused_multihead_attention/*.cu acc/compute/trt_unfused_multihead_attention/*.cu)
+#file(GLOB ATTENTION_FLASH_SRCS acc/compute/trt_multihead_flash_attention/*.cpp acc/compute/trt_multihead_flash_attention/*.h acc/compute/trt_multihead_flash_attention/fmha_flash_attention/include/*.h acc/compute/trt_multihead_flash_attention/fmha_flash_attention/src/*.cpp)
+#message(${ATTENTION_FLASH_SRCS})
 #file(GLOB ATTENTION_CROSS_SRCS acc/compute/trt_multihead_cross_attention/*.cpp acc/compute/trt_multihead_cross_attention/*.cu)
 # message(${FUSED_ATTENTION_SRCS})
-set(CUDA_SRCS ${CUDA_SRCS} ${FUSED_ATTENTION_SRCS} ${ATTENTION_FLASH_SRCS} ${ATTENTION_CROSS_SRCS})
+#set(CUDA_SRCS ${CUDA_SRCS} ${FUSED_ATTENTION_SRCS} ${ATTENTION_FLASH_SRCS} ${ATTENTION_CROSS_SRCS})
+set(CUDA_SRCS ${CUDA_SRCS})
 
 add_library(TNNCuda OBJECT ${CUDA_SRCS})
 

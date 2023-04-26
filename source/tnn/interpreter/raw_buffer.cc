@@ -231,7 +231,7 @@ RawBuffer ConvertFloatToHalf(RawBuffer &buf) {
         RawBuffer buf_fp16(data_count * sizeof(fp16_t));
         ConvertFromFloatToHalf(buf.force_to<float *>(), buf_fp16.force_to<void *>(), data_count);
         buf_fp16.SetDataType(DATA_TYPE_HALF);
-        buf_bfp16.SetBufferDims(buf.GetBufferDims());
+        buf_fp16.SetBufferDims(buf.GetBufferDims());
         return buf_fp16;
     } else {
         return buf;
