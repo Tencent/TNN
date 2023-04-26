@@ -16,25 +16,20 @@
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(Ceil, LAYER_CEIL);
+DECLARE_TENSORRT_LAYER_BUILDER(LeakyRelu, LAYER_LEAKY_RELU);
 
-ILayer* CeilTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+ILayer* LeakyReluTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
-
-    if (tensor->getType()==nvinfer1::DataType::kINT32) {
-        ILayer* identity_layer = network->addIdentity(*tensor);
-        return identity_layer;
-    }
-
-    IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kCEIL);
+    auto paramlist = dynamic_cast<LeakyReluLayerParam*>(param_);
+    IActivationLayer* layer = network->addActivation(*tensor, nvinfer1::ActivationType::kLEAKY_RELU);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
+        layer->setAlpha(paramlist->alpha);
     }
-
     return layer;
 }
 
-REGISTER_TENSORRT_LAYER_BUILDER(Ceil, LAYER_CEIL);
+REGISTER_TENSORRT_LAYER_BUILDER(LeakyRelu, LAYER_LEAKY_RELU);
 
 }  //  namespace TNN_NS

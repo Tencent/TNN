@@ -1,6 +1,6 @@
 // Tencent is pleased to support the open source community by making TNN available.
 //
-// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+// Copyright (C) 2022 THL A29 Limited, a Tencent company. All rights reserved.
 //
 // Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -18,11 +18,23 @@
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_LAYER_BUILDER(Permute, LAYER_PERMUTE);
+DECLARE_TENSORRT_LAYER_BUILDER(PermuteV2, LAYER_PERMUTEV2);
 
-ILayer* PermuteTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    auto paramlist = dynamic_cast<PermuteLayerParam*>(param_);
+ILayer* PermuteV2TRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto paramlist = dynamic_cast<PermuteV2LayerParam*>(param_);
+    if (paramlist==nullptr) {
+        LOGE("Error: Unsupported Permute Param, missing param.orders.");
+    }
+ 
     Permutation permute;
+    
+    int nb_dims = GetInputITensors()[0]->getDimensions().nbDims;
+    if (paramlist->dim0 < 0) paramlist->dim0 += nb_dims;
+    if (paramlist->dim1 < 0) paramlist->dim1 += nb_dims;
+        
+    paramlist->orders.resize(nb_dims);
+    std::iota(paramlist->orders.begin(), paramlist->orders.end(), 0);
+    std::swap(paramlist->orders[paramlist->dim0], paramlist->orders[paramlist->dim1]);
     for (int i = 0; i < paramlist->orders.size(); ++i) {
         permute.order[i] = paramlist->orders[i];
     }
@@ -44,7 +56,7 @@ ILayer* PermuteTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     return layer;
 }
 
-REGISTER_TENSORRT_LAYER_BUILDER(Permute, LAYER_PERMUTE);
+REGISTER_TENSORRT_LAYER_BUILDER(PermuteV2, LAYER_PERMUTEV2);
 
 }  //  namespace TNN_NS
 

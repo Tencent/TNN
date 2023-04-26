@@ -45,13 +45,24 @@ ILayer* ConstantOfShapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network
     }
     ISliceLayer* broadcast_layer = network->addSlice(*unsqueeze->getOutput(0), starts,
         nvinfer1::Dims{}, strides);
+    broadcast_layer->setName((layer_name_+"_constant_of_shape_slice").c_str());
 
     if (broadcast_layer != nullptr) {
         broadcast_layer->setName(layer_name_.c_str());   
         broadcast_layer->setInput(2, *input_tensors[0]);
     }
 
-    return broadcast_layer;
+    ILayer* layer = broadcast_layer;
+                
+    DataType out_dtype = output_blobs_[0]->GetBlobDesc().data_type;
+    if (out_dtype==DATA_TYPE_FLOAT || out_dtype==DATA_TYPE_HALF) {
+        ILayer* cast_layer = network->addIdentity(*(broadcast_layer->getOutput(0)));
+        cast_layer->setName((layer_name_+"_2fp").c_str());
+        cast_layer->setOutputType(0, ConvertToTRTDataType(out_dtype));
+        layer = cast_layer;
+    }
+
+    return layer;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(ConstantOfShape, LAYER_CONSTANT_OF_SHAPE);

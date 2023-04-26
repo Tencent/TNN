@@ -16,6 +16,7 @@
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 #include "tnn/network/tensorrt/dimension_expr.h"
 #include "tnn/network/tensorrt/utils.h"
+#include "NvInfer.h"
 
 namespace TNN_NS {
 
@@ -110,53 +111,55 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
     auto paramlist = dynamic_cast<ConvLayerParam*>(param_);
     auto resource = dynamic_cast<ConvLayerResource*>(resource_);
 
+    nvinfer1::ITensor* weight_tensor = nullptr;
+    if (input_blobs_.size() > 1) {
+        auto weight_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
+        weight_tensor = std::dynamic_pointer_cast<TensorRTTensor>(weight_foreign_tensor)->GetTensor();
+        auto dims = weight_tensor->getDimensions();
+        paramlist->kernels[0] = dims.d[3];
+        paramlist->kernels[1] = dims.d[2];
+	if (paramlist->pad_type == 3) {
+            paramlist->input_channel = dims.d[0] / paramlist->group;
+            paramlist->output_channel = dims.d[1] * paramlist->group;
+	} else {
+            paramlist->input_channel = dims.d[1];
+            paramlist->output_channel = dims.d[0];
+	}
+    }
     auto in_blob_name = input_blobs_[0]->GetBlobDesc().name;
     bool following_a_concat_layer =
         m_network->m_concat_blob_names.find(in_blob_name) != m_network->m_concat_blob_names.end();
 
     auto pads = paramlist->pads;
-    bool symmetric = (pads[0] == pads[1]) && (pads[2] == pads[3]);
-    if ((symmetric && paramlist->kernels[0] == 7 && paramlist->kernels[1] == 7 && following_a_concat_layer) ||
-        (symmetric && paramlist->kernels[0] == 1 && paramlist->kernels[1] == 41) ||
-        (symmetric && paramlist->kernels[0] == 1 && paramlist->kernels[1] == 5)) {
+    bool symmetric_and_definite = (pads[0] == pads[1]) && (pads[2] == pads[3]) &&
+                                  (input_blobs_[0]->GetBlobDesc().dims.size() > 0);
+    if ((symmetric_and_definite) &&
+        ((paramlist->kernels[0] == 7 && paramlist->kernels[1] == 7 && following_a_concat_layer) ||
+         (paramlist->kernels[0] == 1 && paramlist->kernels[1] == 41) ||
+         (paramlist->kernels[0] == 1 && paramlist->kernels[1] == 5))) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     }
 
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
-    bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetInt8Mode();
 
     Weights kernelWeights;
     Weights biasWeights;
     ILayer* last_layer;
-    if (int8) {
-        float weight_scale_value = *(resource->scale_handle.force_to<float*>());
-        float input_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
-            input_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        std::vector<int> dims;
-        dims.push_back(paramlist->output_channel);
-        dims.push_back(input_blobs_[0]->GetBlobDesc().dims[1] / paramlist->group);
-        dims.push_back(paramlist->kernels[1]);
-        dims.push_back(paramlist->kernels[0]);
-        last_layer = AddInt8WeightQDQLayers(network, &(resource->filter_handle), kernelWeights,
-            paramlist->bias ? &(resource->bias_handle) : nullptr, biasWeights,
-            1 / (weight_scale_value / input_scale_value), dims);
-    } else {
-        kernelWeights = ConvertToWeights(&(resource->filter_handle));
-        if (paramlist->bias) {
-            biasWeights = ConvertToWeights(&(resource->bias_handle));
-        } else {
-            biasWeights = ConvertToWeights(nullptr, true, resource->filter_handle.GetDataType());
-        }
-    }
+
+   kernelWeights = ConvertToWeights(&(resource->filter_handle));
+   if (paramlist->bias) {
+       biasWeights = ConvertToWeights(&(resource->bias_handle));
+   } else {
+       biasWeights = ConvertToWeights(nullptr, true, resource->filter_handle.GetDataType());
+   }
 
     Dims kernelSize = ConvertToTRTDimsReverse(paramlist->kernels);
     IConvolutionLayer* conv_layer;
     if (paramlist->pad_type == -1 || (pads[0] == pads[1] && pads[2] == pads[3])) {
         conv_layer = network->addConvolutionNd(*input_tensor, paramlist->output_channel, kernelSize,
             kernelWeights, biasWeights);
-        if (int8) conv_layer->setInput(1, *(last_layer->getOutput(0)));
         if (conv_layer != nullptr) {
             conv_layer->setName(layer_name_.c_str());
             conv_layer->setStrideNd(ConvertToTRTDimsReverse(paramlist->strides));
@@ -173,7 +176,6 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
         ITensor* pad_tensor = padding_layer->getOutput(0);
         conv_layer = network->addConvolutionNd(*pad_tensor, paramlist->output_channel, kernelSize,
             kernelWeights, biasWeights);
-        if (int8) conv_layer->setInput(1, *(last_layer->getOutput(0)));
         if(conv_layer != NULL) {
             conv_layer->setName(layer_name_.c_str());
             conv_layer->setStrideNd(ConvertToTRTDimsReverse(paramlist->strides));
@@ -182,11 +184,10 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
         }
     }
 
-    last_layer = conv_layer;
-
-    if (int8) {
-        conv_layer->setPrecision(nvinfer1::DataType::kINT8);
+    if (input_blobs_.size() > 1) {
+        conv_layer->setInput(1, *weight_tensor);
     }
+    last_layer = conv_layer;
 
     IActivationLayer* activation_layer;
     if (paramlist->activation_type == ActivationType_ReLU) {
@@ -200,13 +201,6 @@ ILayer* ConvolutionTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* netwo
     } else if (paramlist->activation_type != ActivationType_None) {
         LOGE("Error: Unsupport reshape type(%d)", paramlist->activation_type);
         return nullptr;
-    }
-
-    if (int8) {
-        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
-            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        return AddInt8OutputQDQLayers(network, last_layer->getOutput(0), output_foreign_tensor,
-            output_scale_value, 1 / output_scale_value);
     }
 
     return last_layer;

@@ -13,8 +13,12 @@
 // specific language governing permissions and limitations under the License.
 
 #include <string.h>
+#include <map>
+#include <numeric>
+#include <set>
 #include <string>
 #include <stdio.h>
+
 
 #include "tnn/network/tensorrt/utils.h"
 #include "tnn/network/tensorrt/shape_tensor.h"
@@ -22,6 +26,11 @@
 #include "tnn/utils/data_type_utils.h"
 
 namespace TNN_NS {
+
+static std::map<std::string, std::string> global_gpu_type_map = {
+    {"GeForce_RTX_3090", "NVIDIA_GeForce_RTX_3090"},
+    {"NVIDIA_GeForce_RTX_3090", "NVIDIA_GeForce_RTX_3090"},
+};
 
 std::string GetGpuType(int gpu_id) {
     cudaDeviceProp prop;
@@ -36,7 +45,13 @@ std::string GetGpuType(int gpu_id) {
         }
         prop.name[i] = '_';
     }
-    return std::string(prop.name);
+
+    std::string gpu_type = std::string(prop.name);
+    if (global_gpu_type_map.count(gpu_type) > 0) {
+        return global_gpu_type_map[gpu_type];
+    } else {
+        return gpu_type;
+    }
 }
 
 std::string GetGpuArch(int gpu_id) {
@@ -54,7 +69,7 @@ std::string GetCudaVersion() {
 #error CUDART_VERSION Undefined!
 #else
     version_num = CUDART_VERSION;
-#endif 
+#endif
 
     char ss[50];
     sprintf(ss, "%02d", version_num / 1000);
@@ -69,7 +84,7 @@ std::string GetTrtVersion() {
 #error NV_TENSORRT_MAJOR Undefined!
 #else
     version_num = NV_TENSORRT_MAJOR * 100 + NV_TENSORRT_MINOR * 10 + NV_TENSORRT_PATCH;
-#endif 
+#endif
 
     char ss[50];
     sprintf(ss, "%3d", version_num);
@@ -85,6 +100,8 @@ DataType ConvertTRTDataType(nvinfer1::DataType type) {
             return DATA_TYPE_HALF;
         case nvinfer1::DataType::kINT32 :
             return DATA_TYPE_INT32;
+        case nvinfer1::DataType::kINT8 :
+            return DATA_TYPE_INT8;
         default:
             return DATA_TYPE_FLOAT;
     }
@@ -100,6 +117,8 @@ DataFormat ConvertTRTDataFormat(nvinfer1::TensorFormat format) {
             return DATA_FORMAT_NC4HW4;
         case nvinfer1::TensorFormat::kCHW16 :
             return DATA_FORMAT_NC16HW16;
+        case nvinfer1::TensorFormat::kCHW32 :
+            return DATA_FORMAT_NC32HW32;
         default:
             return DATA_FORMAT_NCHW;
     }
@@ -150,17 +169,36 @@ nvinfer1::Dims ConvertToTRTDynamicDims(nvinfer1::Dims max_dims, nvinfer1::Dims m
     return trt_dims;
 }
 
+nvinfer1::ILayer* ConstantLayer(nvinfer1::INetworkDefinition* network, float data, size_t dim_size) {
+    nvinfer1::Dims const_dim;
+    const_dim.nbDims = dim_size;
+    for (int i = 0; i < dim_size; i++)
+        const_dim.d[i] = 1;
+
+    nvinfer1::Weights const_weight;
+    const_weight.type = nvinfer1::DataType::kFLOAT;
+    float* weight_data = (float*)malloc(sizeof(float));
+    *weight_data = data;
+    const_weight.values = (void*)weight_data;
+    const_weight.count = 1;
+
+    nvinfer1::ILayer* constant_layer = network->addConstant(const_dim, const_weight);
+    return constant_layer;
+}
+
 nvinfer1::DataType ConvertToTRTDataType(DataType type) {
     switch (type) {
         case DATA_TYPE_FLOAT:
             return nvinfer1::DataType::kFLOAT;
-        case DATA_TYPE_HALF: 
+        case DATA_TYPE_HALF:
             return nvinfer1::DataType::kHALF;
-        case DATA_TYPE_INT32: 
+        case DATA_TYPE_INT32:
             return nvinfer1::DataType::kINT32;
+        case DATA_TYPE_INT8:
+            return nvinfer1::DataType::kINT8;
         default:
             return nvinfer1::DataType::kFLOAT;
-    } 
+    }
 }
 
 nvinfer1::ILayer* ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* network, RawBuffer *buf,
@@ -202,7 +240,7 @@ nvinfer1::ILayer* ConvertWeightToConstLayer(nvinfer1::INetworkDefinition* networ
         }
     }
 
-    nvinfer1::ILayer* constant_layer = network->addConstant(weightDims, const_weight); 
+    nvinfer1::ILayer* constant_layer = network->addConstant(weightDims, const_weight);
     return constant_layer;
 }
 
@@ -214,6 +252,38 @@ nvinfer1::ILayer* AddReshapeToNetwork(nvinfer1::INetworkDefinition* network, nvi
         shuffle_layer->setReshapeDimensions(ConvertToTRTDims(reshape_dims));
     }
     return shuffle_layer;
+}
+
+nvinfer1::ILayer* AddUnSqueezeToNetwork(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor* input_tensor,
+    const std::vector<int>& axes, const char* layer_name) {
+    const auto dims = shapeOf(*input_tensor);
+    const std::set<int> axesSet(axes.begin(), axes.end());
+
+    std::vector<int> subscripts(dims.size());
+    std::iota(subscripts.begin(), subscripts.end(), 0);
+    for (const auto& axis : axesSet)
+    {
+        subscripts.insert(subscripts.begin() + axis, dims.size());
+    }
+
+    const auto newDims = interlace(network, dims, shapeVector(1), ShapeTensor(1, std::move(subscripts)));
+    nvinfer1::IShuffleLayer* unsqueezeLayer = addShuffle(network, *input_tensor, newDims);
+    return unsqueezeLayer;
+}
+
+nvinfer1::ILayer* AddSqueezeToNetwork(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor* input_tensor,
+    const std::vector<int>& axes, const char* layer_name) {
+    const auto dims = shapeOf(*input_tensor);
+
+    std::vector<int> subscripts(dims.size());
+    std::iota(subscripts.begin(), subscripts.end(), 0);
+    auto p = std::remove_if(subscripts.begin(), subscripts.end(),
+        [axes](int x) { return std::find(axes.begin(), axes.end(), x) != axes.end(); });
+    subscripts.resize(p - subscripts.begin());
+
+    auto newDims = gather(network, dims, ShapeTensor(1, std::move(subscripts)));
+    nvinfer1::IShuffleLayer* squeezeLayer = addShuffle(network, *input_tensor, newDims);
+    return squeezeLayer;
 }
 
 nvinfer1::Weights ConvertToWeights(RawBuffer *buf, bool zero_weight, DataType recommend_type) {
@@ -279,6 +349,21 @@ void BroadcastTensors(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor*&
     BroadcastTensor(network, t1, maxDims);
     BroadcastTensor(network, t2, maxDims);
     BroadcastTensor(network, t3, maxDims);
+}
+
+bool CheckBroadcastDimsCorrect(nvinfer1::ITensor* input_tensor1, nvinfer1::ITensor* input_tensor2) {
+    if(input_tensor1->getDimensions().nbDims != input_tensor2->getDimensions().nbDims) {
+        return false;
+    }
+    int nbDims = input_tensor1->getDimensions().nbDims;
+    for(int i = 0; i < nbDims; ++i) {
+        auto input_dims1 = input_tensor1->getDimensions().d[i];
+        auto input_dims2 = input_tensor2->getDimensions().d[i];
+        if(input_dims1 > 1 && input_dims2 > 1 && input_dims1 != input_dims2) {
+            return false;
+        }
+    }
+    return true;
 }
 
 }  //  namespace TNN_NS

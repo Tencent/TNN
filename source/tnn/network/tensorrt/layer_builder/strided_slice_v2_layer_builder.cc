@@ -84,11 +84,24 @@ ILayer* StrideSliceV2TRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     }
 
     if (input_tensors.size() >= 2) {
-        begins = ShapeTensor(*input_tensors[1], 0);
-    }
-
-    if (input_tensors.size() >= 3) {
-        ends = ShapeTensor(*input_tensors[2], 0);
+        if (input_tensors.size() >= 3) {
+            begins = ShapeTensor(*input_tensors[1], 0);
+            ends = ShapeTensor(*input_tensors[2], 0);
+        } else {
+            if ((param->begins_index != -1 && param->ends_index != -1) ||
+                (param->begins_index == -1 && param->ends_index == -1)) {
+                LOGE("StridedSliceV2LayerBuilder: Unable to determine whether input 1 is begins or ends.");
+                return nullptr;
+            }
+            if (param->begins_index != -1) {
+                begins = ShapeTensor(*input_tensors[param->begins_index], 0);
+                ends = ShapeTensor(1, std::move(end_dim));
+            }
+            if (param->ends_index != -1) {
+                begins = ShapeTensor(1, std::move(begin_dim));
+                ends = ShapeTensor(*input_tensors[param->ends_index], 0);
+            }
+        }
     }
 
     std::vector<int> newAxes;
