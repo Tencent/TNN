@@ -49,14 +49,14 @@ std::string MatTypeToString(MatType mat_type) {
         return "NCHW_FLOAT";
     } else if (NC_INT32 == mat_type) {
         return "NC_INT32";
-    } else if (RESERVED_BFP16_TEST == mat_type) {
-        return "RESERVED_BFP16_TEST";
-    } else if (RESERVED_FP16_TEST == mat_type) {
-        return "RESERVED_FP16_TEST";
-    } else if (RESERVED_INT8_TEST == mat_type) {
-        return "RESERVED_INT8_TEST";
-    } else if (RESERVED_UINT8_TEST == mat_type) {
-        return "RESERVED_UINT8_TEST";
+    } else if (NCHW_BFP16 == mat_type) {
+        return "NCHW_BFP16";
+    } else if (NCHW_HALF == mat_type) {
+        return "NCHW_HALF";
+    } else if (NC_INT8 == mat_type) {
+        return "NC_INT8";
+    } else if (NC_UINT8 == mat_type) {
+        return "NC_UINT8";
     } else {
         return "INVALID Mat Type";
     }

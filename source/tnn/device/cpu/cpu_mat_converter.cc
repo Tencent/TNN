@@ -97,7 +97,7 @@ Status CpuMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void* c
         } else {
             return Status(TNNERR_PARAM_ERR, "interpolation type not support yet");
         }
-    } else if (src.GetMatType() == RESERVED_BFP16_TEST) {
+    } else if (src.GetMatType() == NCHW_BFP16) {
         ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");
     } else {
         ret = Status(TNNERR_PARAM_ERR, "convert type not support yet");

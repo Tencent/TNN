@@ -68,7 +68,7 @@ Status DumpDeviceBlob(Blob* blob, void* command_queue, std::string fname_prefix)
 
 #ifdef DUMP_RAW_INT8
     if(blob_desc.data_type == DATA_TYPE_INT8) {
-        mat_type = RESERVED_INT8_TEST;
+        mat_type = NC_INT8;
     }
 #endif
     if(blob_desc.data_type == DATA_TYPE_INT32) {

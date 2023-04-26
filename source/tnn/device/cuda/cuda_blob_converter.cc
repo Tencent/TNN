@@ -72,7 +72,7 @@ Status CudaBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param
                 ScaleBias((__half*)blob_data, (float*)image.GetData(), stream, scale_ptr_, bias_ptr_,
                     DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1), hw);
             }
-        } else if (image.GetMatType() == RESERVED_FP16_TEST) {
+        } else if (image.GetMatType() == NCHW_HALF) {
             if (desc.data_type == DATA_TYPE_FLOAT) {
                 ScaleBias((float*)blob_data, reinterpret_cast<__half*>(image.GetData()), stream, scale_ptr_, bias_ptr_,
                     DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1), hw);
@@ -110,7 +110,7 @@ Status CudaBlobConverterAcc::ConvertToMatAsync(Mat& image, MatConvertParam param
             }
             cudaMemcpyAsync(image.GetData(), image_ptr_, DimsVectorUtils::Count(dims) * sizeof(float),
                 cudaMemcpyDeviceToHost, stream);
-        } else if (image.GetMatType() == RESERVED_FP16_TEST) {
+        } else if (image.GetMatType() == NCHW_HALF) {
             if (desc.data_type == DATA_TYPE_FLOAT) {
                 //ScaleBias((float*)blob_data, reinterpret_cast<__half*>(image_ptr_), stream, scale_ptr_, bias_ptr_,
                 //    DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1), hw);
@@ -181,7 +181,7 @@ Status CudaBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam par
         if (image.GetMatType() == NCHW_FLOAT) {
             ScaleBias((float*)image.GetData(), blob_data, stream, scale_ptr_, bias_ptr_, 
                 DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1), hw);
-        } else if (image.GetMatType() == RESERVED_FP16_TEST) {
+        } else if (image.GetMatType() == NCHW_HALF) {
             desc.data_type = DATA_TYPE_HALF;
             blob_->SetBlobDesc(desc);
             ScaleBias(reinterpret_cast<__half*>(image_ptr_), reinterpret_cast<__half*>(blob_data), stream, scale_ptr_, bias_ptr_, 
@@ -204,7 +204,7 @@ Status CudaBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam par
                 param.reverse_channel);
         } else if (image.GetMatType() == NGRAY) {
             GrayToBlob(nchw, (unsigned char*)image.GetData(), blob_data, stream, param.scale[0], param.bias[0]);
-        } else if (image.GetMatType() == RESERVED_UINT8_TEST) {
+        } else if (image.GetMatType() == NC_UINT8) {
             desc.data_type = DATA_TYPE_UINT8;
             blob_->SetBlobDesc(desc);
             cudaMemcpyAsync(blob_data, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(uint8_t),
@@ -220,7 +220,7 @@ Status CudaBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam par
                 cudaMemcpyHostToDevice, stream);
             ScaleBias((float*)image_ptr_, blob_data, stream, scale_ptr_, bias_ptr_, 
                 DimsFunctionUtils::GetDim(dims, 0), DimsFunctionUtils::GetDim(dims, 1), hw);
-        } else if (image.GetMatType() == RESERVED_FP16_TEST) {
+        } else if (image.GetMatType() == NCHW_HALF) {
             desc.data_type = DATA_TYPE_HALF;
             blob_->SetBlobDesc(desc);
             cudaMemcpyAsync(blob_data, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(fp16_t), 
@@ -252,7 +252,7 @@ Status CudaBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam par
             cudaMemcpyAsync(image_ptr_, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(unsigned char),
                 cudaMemcpyHostToDevice, stream);
             GrayToBlob(nchw, (unsigned char*)image_ptr_, blob_data, stream, param.scale[0], param.bias[0]);
-        } else if (image.GetMatType() == RESERVED_UINT8_TEST) {
+        } else if (image.GetMatType() == NC_UINT8) {
             desc.data_type = DATA_TYPE_UINT8;
             blob_->SetBlobDesc(desc);
             cudaMemcpyAsync(blob_data, image.GetData(), DimsVectorUtils::Count(dims) * sizeof(uint8_t), 

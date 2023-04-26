@@ -133,9 +133,9 @@ Status FileReader::Read(std::map<std::string, std::shared_ptr<Mat>>& mat_map, co
             } else if (DATA_TYPE_INT32 == data_type) {
                 mat_type = NC_INT32;
             } else if (DATA_TYPE_INT8 == data_type) {
-                mat_type = RESERVED_INT8_TEST;
+                mat_type = NC_INT8;
             } else if (DATA_TYPE_UINT8 == data_type) {
-                mat_type = RESERVED_UINT8_TEST;
+                mat_type = NC_UINT8;
             } else {
                 LOGE("FileReader::Read dont support data type:%d\n", data_type);
                 f_stream.close();

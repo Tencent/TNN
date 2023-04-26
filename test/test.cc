@@ -462,9 +462,9 @@ namespace test {
                 mat_type = NC_INT32;
                 data_type = DATA_TYPE_INT32;
             } else if (format_type == 4) {
-                mat_type = RESERVED_INT8_TEST;
+                mat_type = NC_INT8;
             } else if (format_type == 5) {
-                mat_type = RESERVED_UINT8_TEST;
+                mat_type = NC_UINT8;
             }
 
             if (blob_desc.data_type == DATA_TYPE_INT32) {
@@ -475,7 +475,7 @@ namespace test {
                 mat_type = NC_INT64;
             } else if (blob_desc.data_type == DATA_TYPE_HALF) {
                 data_type = DATA_TYPE_HALF;
-                mat_type = RESERVED_FP16_TEST;
+                mat_type = NCHW_HALF;
             }
 
             // check whether mat need to update
@@ -541,11 +541,11 @@ namespace test {
                         reinterpret_cast<float*>(mat_data)[i] = (float)(rand() % 256) / 128.0f;
                     } else if (mat_type == NC_INT32) {
                         reinterpret_cast<int32_t*>(mat_data)[i] = rand() % 2;
-                    } else if (mat_type == RESERVED_INT8_TEST) {
+                    } else if (mat_type == NC_INT8) {
                         reinterpret_cast<int8_t*>(mat_data)[i] = (rand() % 256) - 128;
-                    } else if (mat_type == RESERVED_UINT8_TEST) {
+                    } else if (mat_type == NC_UINT8) {
                         reinterpret_cast<uint8_t*>(mat_data)[i] = rand() % 256;
-                    } else if (mat_type == RESERVED_FP16_TEST) {
+                    } else if (mat_type == NCHW_HALF) {
                         reinterpret_cast<fp16_t*>(mat_data)[i] = fp16_t((rand() % 256) / 128.0f);
                     } else {
                         reinterpret_cast<uint8_t*>(mat_data)[i] = (rand() % 256);
@@ -559,15 +559,15 @@ namespace test {
                         input_stream >> reinterpret_cast<float*>(mat_data)[i];
                     } else if (mat_type == NC_INT32) {
                         input_stream >> reinterpret_cast<int32_t*>(mat_data)[i];
-                    } else if (mat_type == RESERVED_FP16_TEST) {
+                    } else if (mat_type == NCHW_HALF) {
                         float val;
                         input_stream >> val;
                         reinterpret_cast<fp16_t*>(mat_data)[i] = (fp16_t)val;
-                    } else if (mat_type == RESERVED_INT8_TEST) {
+                    } else if (mat_type == NC_INT8) {
                         int val;
                         input_stream >> val;
                         reinterpret_cast<int8_t*>(mat_data)[i] = (int8_t)val;
-                    } else if (mat_type == RESERVED_UINT8_TEST) {
+                    } else if (mat_type == NC_UINT8) {
                         int val;
                         input_stream >> val;
                         reinterpret_cast<uint8_t*>(mat_data)[i] = (uint8_t)val;
@@ -634,7 +634,7 @@ namespace test {
             if(is_input && !FLAGS_sc.empty()) {
                 SetScaleOrBias(param.scale, FLAGS_sc);
             } else {
-                if (mat_type == RESERVED_INT8_TEST || mat_type == RESERVED_UINT8_TEST) {
+                if (mat_type == NC_INT8 || mat_type == NC_UINT8) {
                     std::fill(param.scale.begin(), param.scale.end(), 1.0f);
                 } else if(IsImageMat(mat_type)) {
                     std::fill(param.scale.begin(), param.scale.end(), 1.0f / 255.0f);
@@ -649,7 +649,7 @@ namespace test {
             if(is_input && !FLAGS_bi.empty()) {
                 SetScaleOrBias(param.bias, FLAGS_bi);
             } else {
-                if (mat_type == RESERVED_INT8_TEST || mat_type == RESERVED_UINT8_TEST) {
+                if (mat_type == NC_INT8 || mat_type == NC_UINT8) {
                     std::fill(param.bias.begin(), param.bias.end(), 0);
                 } else if(IsImageMat(mat_type)) {
                     std::fill(param.bias.begin(), param.bias.end(), 0);
@@ -721,17 +721,17 @@ namespace test {
 
             auto mat  = output.second;
             int data_count     = DimsVectorUtils::Count(mat->GetDims());
-            if (mat->GetMatType() == NC_INT32 ) {
+            if (mat->GetMatType() == NC_INT32) {
                 int * data = reinterpret_cast<int*>(mat->GetData());
                 for (int c = 0; c < data_count; ++c) {
                     f << data[c] << std::endl;
                 }
-            } else if (mat->GetMatType() == NC_INT64 ) {
+            } else if (mat->GetMatType() == NC_INT64) {
                 int64_t * data = reinterpret_cast<int64_t*>(mat->GetData());
                 for (int c = 0; c < data_count; ++c) {
                     f << data[c] << std::endl;
                 }
-            } else if (mat->GetMatType() == RESERVED_FP16_TEST) {
+            } else if (mat->GetMatType() == NCHW_HALF) {
                 fp16_t * data = reinterpret_cast<fp16_t*>(mat->GetData());
                 for (int c = 0; c < data_count; ++c) {
                     f << std::fixed << std::setprecision(6) << float(data[c]) << std::endl;

@@ -159,9 +159,9 @@ int GetMatElementSize(Mat* mat) {
         return 4;
     } else if (N8UC3 == mat_type || N8UC4 == mat_type || NGRAY == mat_type || NNV21 == mat_type || NNV12 == mat_type) {
         return 1;
-    } else if (RESERVED_BFP16_TEST == mat_type || RESERVED_FP16_TEST == mat_type) {
+    } else if (NCHW_BFP16 == mat_type || NCHW_HALF == mat_type) {
         return 2;
-    } else if (RESERVED_INT8_TEST == mat_type || RESERVED_UINT8_TEST == mat_type) {
+    } else if (NC_INT8 == mat_type || NC_UINT8 == mat_type) {
         return 1;
     } else {
         return 0;
