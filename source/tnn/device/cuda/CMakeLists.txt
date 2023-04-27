@@ -17,7 +17,8 @@ include_directories($ENV{CUDNN_ROOT_DIR}/include)
 set(TARGET_ARCH "-gencode arch=compute_75,code=sm_75 \
                  -gencode arch=compute_70,code=sm_70 \
                  -gencode arch=compute_61,code=sm_61 \
-                 -gencode arch=compute_60,code=sm_60")
+                 -gencode arch=compute_60,code=sm_60 \
+                 -gencode arch=compute_53,code=sm_53")
 
 message(${TARGET_ARCH})
 
