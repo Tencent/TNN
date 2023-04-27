@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <math.h>
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
 #include "tnn/utils/dims_utils.h"
 
@@ -36,8 +37,8 @@ __global__ void gridsample_kernel(const float* input_data, const float* grid_dat
         float iy = (grid_ptr[2*index+1] + 1) * input_height * 0.5 - 0.5;
         // get corner pixel values from (x, y)
         // for 4d, we use north-east-south-west
-        int ix_nw = static_cast<int>(std::floorf(ix));
-        int iy_nw = static_cast<int>(std::floorf(iy));
+        int ix_nw = static_cast<int>(floorf(ix));
+        int iy_nw = static_cast<int>(floorf(iy));
 
         int ix_ne = ix_nw + 1;
         int iy_ne = iy_nw;
