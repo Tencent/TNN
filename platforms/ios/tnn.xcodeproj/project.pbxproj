@@ -63,7 +63,6 @@
 		36289E792987F4770091FDA9 /* graph_matcher.h in Headers */ = {isa = PBXBuildFile; fileRef = 36289E612987F4770091FDA9 /* graph_matcher.h */; };
 		36289E7A2987F4770091FDA9 /* net_optimizer_fuse_conv_activation.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36289E622987F4770091FDA9 /* net_optimizer_fuse_conv_activation.cc */; };
 		36289E7B2987F4770091FDA9 /* net_optimizer_fuse_conv_activation.h in Headers */ = {isa = PBXBuildFile; fileRef = 36289E632987F4770091FDA9 /* net_optimizer_fuse_conv_activation.h */; };
-		36289E7C2987F4770091FDA9 /* optimizer_const.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36289E642987F4770091FDA9 /* optimizer_const.cc */; };
 		36289E7F2987F4940091FDA9 /* swish_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36289E7D2987F4940091FDA9 /* swish_layer.cc */; };
 		36289E802987F4940091FDA9 /* glu_layer.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36289E7E2987F4940091FDA9 /* glu_layer.cc */; };
 		36289E822987F4AA0091FDA9 /* glu_layer_interpreter.cc in Sources */ = {isa = PBXBuildFile; fileRef = 36289E812987F4AA0091FDA9 /* glu_layer_interpreter.cc */; };
@@ -664,7 +663,6 @@
 		9D4A4E002994B46500407FE5 /* net_optimizer_insert_int8_reformat.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D4A44FE2994B46200407FE5 /* net_optimizer_insert_int8_reformat.h */; };
 		9D4A4E012994B46500407FE5 /* net_optimizer_fuse_conv_add.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D4A44FF2994B46200407FE5 /* net_optimizer_fuse_conv_add.cc */; };
 		9D4A4E022994B46500407FE5 /* net_optimizer_convert_matmul_to_conv.h in Headers */ = {isa = PBXBuildFile; fileRef = 9D4A45002994B46200407FE5 /* net_optimizer_convert_matmul_to_conv.h */; };
-		9D4A4E032994B46500407FE5 /* optimizer_const.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D4A45012994B46200407FE5 /* optimizer_const.cc */; };
 		9D4A4E042994B46500407FE5 /* net_optimizer_remove_layers.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D4A45022994B46200407FE5 /* net_optimizer_remove_layers.cc */; };
 		9D4A4E052994B46500407FE5 /* net_optimizer_manager.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9D4A45032994B46200407FE5 /* net_optimizer_manager.cc */; };
 		9D4A4E7B2994B46600407FE5 /* coreml_network.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9D4A457E2994B46200407FE5 /* coreml_network.mm */; };
@@ -2318,7 +2316,6 @@
 		36289E612987F4770091FDA9 /* graph_matcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = graph_matcher.h; sourceTree = "<group>"; };
 		36289E622987F4770091FDA9 /* net_optimizer_fuse_conv_activation.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_fuse_conv_activation.cc; sourceTree = "<group>"; };
 		36289E632987F4770091FDA9 /* net_optimizer_fuse_conv_activation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_optimizer_fuse_conv_activation.h; sourceTree = "<group>"; };
-		36289E642987F4770091FDA9 /* optimizer_const.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = optimizer_const.cc; sourceTree = "<group>"; };
 		36289E7D2987F4940091FDA9 /* swish_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = swish_layer.cc; sourceTree = "<group>"; };
 		36289E7E2987F4940091FDA9 /* glu_layer.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = glu_layer.cc; sourceTree = "<group>"; };
 		36289E812987F4AA0091FDA9 /* glu_layer_interpreter.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = glu_layer_interpreter.cc; sourceTree = "<group>"; };
@@ -2922,7 +2919,6 @@
 		9D4A44FE2994B46200407FE5 /* net_optimizer_insert_int8_reformat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_optimizer_insert_int8_reformat.h; sourceTree = "<group>"; };
 		9D4A44FF2994B46200407FE5 /* net_optimizer_fuse_conv_add.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_fuse_conv_add.cc; sourceTree = "<group>"; };
 		9D4A45002994B46200407FE5 /* net_optimizer_convert_matmul_to_conv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = net_optimizer_convert_matmul_to_conv.h; sourceTree = "<group>"; };
-		9D4A45012994B46200407FE5 /* optimizer_const.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = optimizer_const.cc; sourceTree = "<group>"; };
 		9D4A45022994B46200407FE5 /* net_optimizer_remove_layers.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_remove_layers.cc; sourceTree = "<group>"; };
 		9D4A45032994B46200407FE5 /* net_optimizer_manager.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = net_optimizer_manager.cc; sourceTree = "<group>"; };
 		9D4A457E2994B46200407FE5 /* coreml_network.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = coreml_network.mm; sourceTree = "<group>"; };
@@ -4640,7 +4636,6 @@
 				36289E4D2987F4770091FDA9 /* net_optimizer_convert_matmul_to_conv.h */,
 				36289E622987F4770091FDA9 /* net_optimizer_fuse_conv_activation.cc */,
 				36289E632987F4770091FDA9 /* net_optimizer_fuse_conv_activation.h */,
-				36289E642987F4770091FDA9 /* optimizer_const.cc */,
 				9E9758522865CC3F0094339C /* net_optimizer_dynamic_range_dequant.cc */,
 				9E9758512865CC3F0094339C /* net_optimizer_dynamic_range_dequant.h */,
 				EC12EC7E25E67549007ADDE4 /* net_optimizer_cbam_fused_pooling.cc */,
@@ -5527,7 +5522,6 @@
 				9D4A44FE2994B46200407FE5 /* net_optimizer_insert_int8_reformat.h */,
 				9D4A44FF2994B46200407FE5 /* net_optimizer_fuse_conv_add.cc */,
 				9D4A45002994B46200407FE5 /* net_optimizer_convert_matmul_to_conv.h */,
-				9D4A45012994B46200407FE5 /* optimizer_const.cc */,
 				9D4A45022994B46200407FE5 /* net_optimizer_remove_layers.cc */,
 				9D4A45032994B46200407FE5 /* net_optimizer_manager.cc */,
 			);
@@ -8478,7 +8472,6 @@
 				ECCDCF4C25E10B9D00D7D297 /* cast_layer_interpreter.cc in Sources */,
 				9D32FF2B24557EED002DCDAB /* hdrguide_layer_interpreter.cc in Sources */,
 				36289EB72987F5660091FDA9 /* arm_group_norm_fp16_layer.cc in Sources */,
-				36289E7C2987F4770091FDA9 /* optimizer_const.cc in Sources */,
 				ECCDCEAD25DF536000D7D297 /* cpu_log_sigmoid_layer_acc.cc in Sources */,
 				9E12F1432865BCD00089E089 /* arm_conv_layer_depthwise.cc in Sources */,
 				9EA794CE2869BD3900E61ED7 /* arm_expand_layer_acc.cc in Sources */,
@@ -9760,7 +9753,6 @@
 				9D4A501C2994B46700407FE5 /* metal_sigmoid_layer_acc.mm in Sources */,
 				9D4A4EA52994B46600407FE5 /* coreml_hard_sigmoid_layer.cc in Sources */,
 				9D4A53EF2994B46B00407FE5 /* x86_sqrt_layer_acc.cc in Sources */,
-				9D4A4E032994B46500407FE5 /* optimizer_const.cc in Sources */,
 				9D4A50D72994B46700407FE5 /* metal_pow_layer_acc.metal in Sources */,
 				9D4A510A2994B46800407FE5 /* cpu_reformat_layer_acc.cc in Sources */,
 				9D4A4D592994B46500407FE5 /* unary_op_layer_interpreter.cc in Sources */,
