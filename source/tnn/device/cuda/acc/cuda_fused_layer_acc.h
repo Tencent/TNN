@@ -38,16 +38,16 @@ protected:
     std::shared_ptr<FfnLayer<half>> ffn_layer_fp16_;
 
     bool fp16_run_fused_attention_ = true;
-    std::shared_ptr<BaseAttentionLayer<float>> attention_fp32_;
-    std::shared_ptr<BaseAttentionLayer<half>> attention_fp16_;
+    //std::shared_ptr<BaseAttentionLayer<float>> attention_fp32_;
+    //std::shared_ptr<BaseAttentionLayer<half>> attention_fp16_;
 
     bool fp16_run_flash_attention_ = true;
-    std::shared_ptr<FlashAttentionLayer<float>> flash_attention_fp32_;
-    std::shared_ptr<FlashAttentionLayer<half>> flash_attention_fp16_;
+    //std::shared_ptr<FlashAttentionLayer<float>> flash_attention_fp32_;
+    //std::shared_ptr<FlashAttentionLayer<half>> flash_attention_fp16_;
     
     bool fp16_run_cross_attention_ = true;
-    std::shared_ptr<CrossAttentionLayer<float>> cross_attention_fp32_;
-    std::shared_ptr<CrossAttentionLayer<half>> cross_attention_fp16_;
+    //std::shared_ptr<CrossAttentionLayer<float>> cross_attention_fp32_;
+    //std::shared_ptr<CrossAttentionLayer<half>> cross_attention_fp16_;
 
     Status PrepareResource(RawBuffer &buf);
     Status PrepareFp32Resource(RawBuffer &buf);

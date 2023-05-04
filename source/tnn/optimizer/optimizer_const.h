@@ -94,6 +94,12 @@ static const std::string kNetOptimizerFuseCrossAttention =
 static const std::string kNetOptimizerFuseFlashAttention =
     "net_optimizer_fuse_flash_attention";
 
+static const std::string kNetOptimizerFuseSplitGELU =
+    "net_optimizer_fuse_split_gelu";
+
+static const std::string kNetOptimizerFuseGroupNormSwish =
+    "net_optimizer_fuse_group_norm_swish";
+
 }
 
 #endif // TNN_SOURCE_TNN_OPTIMIZER_OPTIMIZER_CONST_H_
