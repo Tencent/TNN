@@ -39,7 +39,20 @@ static bool NeedDoScaleBias(MatConvertParam &param) {
             return true;
         }
     }
+    return false;
+}
 
+static bool NeedDoScaleBias(const MatConvertParam &param) {
+    for (auto s : param.scale) {
+        if (s != 1.0f) {
+            return true;
+        }
+    }
+    for (auto b : param.bias) {
+        if (b != 0.0f) {
+            return true;
+        }
+    }
     return false;
 }
 
