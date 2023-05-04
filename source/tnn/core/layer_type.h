@@ -251,6 +251,8 @@ enum LayerType {
     LAYER_BLOB_SCALE                                        = 600,
     LAYER_FUSED                                             = 601,
     LAYER_EFFECTIVE_TRANSFORMER                             = 602,
+    LAYER_FUSED_SPLIT_GELU                                  = 603,
+    LAYER_FUSED_GROUP_NORM_SWISH                            = 604,
 
     LAYER_INT8_RANGE                                        = 700,
     LAYER_TRT_ENGINE                                        = 701,

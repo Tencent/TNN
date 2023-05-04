@@ -112,7 +112,7 @@ void permute(void *in, void *out, size_t outter, size_t inner) {
 }
 
 void RawBuffer::Reshape(DimsVector& new_dims) {
-    printf("Reshape dims_ %d new_dims: %d \n", DimsVectorUtils::Count(dims_), DimsVectorUtils::Count(new_dims));
+    //printf("Reshape dims_ %d new_dims: %d \n", DimsVectorUtils::Count(dims_), DimsVectorUtils::Count(new_dims));
     if(DimsVectorUtils::Count(dims_) == DimsVectorUtils::Count(new_dims)) {
         dims_ = new_dims;
     } else {

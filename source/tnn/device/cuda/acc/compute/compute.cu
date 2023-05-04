@@ -1199,6 +1199,77 @@ void FlashAttentionLayer<T>::initializeSeqlens(int32_t b, int32_t s, void* cu_se
 }
 
 template class FlashAttentionLayer<half>;
+
+template<typename T>
+void CrossAttentionLayer<T>::forward(T* devQ,
+                         T* devKV,
+                         T* output,
+                         int32_t batch_size,
+                         int32_t head_num, 
+                         int32_t size_per_head, 
+                         int32_t seq_len_q,
+                         int32_t seq_len_kv,
+                         cudaStream_t stream) {
+    constexpr int32_t seqLenKvPadded = 128;
+    if (batch_size != mOptBatchSize) {
+        allocateSeqlens(batch_size);
+    }
+    if (batch_size != mOptBatchSize || seq_len_q != mOptSeqLenQ ||seq_len_kv != mOptSeqLenKV)
+    {
+        mOptSeqLenQ = seq_len_q;
+        mOptSeqLenKV = seq_len_kv;
+        initializeSeqlens(batch_size, seq_len_q, mCuSeqLenQ.get(), stream);
+        initializeSeqlens(batch_size, seq_len_kv, mCuSeqLenKV.get(), stream);
+    }
+    runFMHCAKernel(devQ, devKV, mCuSeqLenQ.get(), mCuSeqLenKV.get(), output, mSM, mKernels,
+            mOptBatchSize, head_num, size_per_head, mOptSeqLenQ, seqLenKvPadded, stream);
+}
+
+template<typename T>
+void CrossAttentionLayer<T>::createMHARunner()
+{
+    mKernels = getFMHCACubinKernels(MHA_DATA_TYPE_FP16, mSM); 
+}
+
+
+template<typename T>
+void CrossAttentionLayer<T>::allocateSeqlens(int32_t maxBatchSize)
+{
+    // allocate seqlens buffer
+    if ((!mCuSeqLenQ || !mCuSeqLenKV) && maxBatchSize)
+    {
+        void* cudaMemQ{nullptr};
+        void* cudaMemKV{nullptr};
+        cudaMalloc(&cudaMemQ, sizeof(int32_t) * (maxBatchSize + 1));
+        cudaMalloc(&cudaMemKV, sizeof(int32_t) * (maxBatchSize + 1));
+        make_cuda_shared(mCuSeqLenQ, cudaMemQ);
+        make_cuda_shared(mCuSeqLenKV, cudaMemKV);
+    }
+
+    mMaxBatchSize = maxBatchSize;
+}
+
+template<typename T>
+void CrossAttentionLayer<T>::initializeSeqlens(int32_t b, int32_t s, void* cu_seqlens_d, cudaStream_t stream)
+{
+    if (!b || !s)
+    {
+        return;
+    }
+
+    std::vector<int32_t> cuSeqLens(b + 1, 0);
+    // Compute the prefix sum of the seqlen
+    for (int32_t it = 0; it < b; it++)
+    {
+        cuSeqLens[it + 1] = cuSeqLens[it] + s;
+    }
+
+    cudaMemcpyAsync(
+        cu_seqlens_d, cuSeqLens.data(), sizeof(int32_t) * cuSeqLens.size(), cudaMemcpyHostToDevice, stream);
+    mOptBatchSize = b;
+}
+
+template class CrossAttentionLayer<half>;
 #endif  // end #if 0
 
 }  // namespace TNN_NS

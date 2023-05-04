@@ -25,10 +25,14 @@
 #include <cuda_fp16.h>
 
 #include "tnn/device/cuda/utils.cuh"
-//#include "tnn/device/cuda/acc/compute/trt_fused_multihead_attention/qkvToContext.h"
-//#include "tnn/device/cuda/acc/compute/trt_multihead_flash_attention/fmha_flash_attention/include/fmha_flash_attention.h"
-//#include "tnn/device/cuda/acc/compute/trt_multihead_flash_attention/fmha.h"
-//#include "tnn/device/cuda/acc/compute/trt_unfused_multihead_attention/unfused_multihead_attention.h"
+#if 0
+#include "tnn/device/cuda/acc/compute/trt_fused_multihead_attention/qkvToContext.h"
+#include "tnn/device/cuda/acc/compute/trt_multihead_cross_attention/fmha_cross_attention/include/fmha_cross_attention.h"
+#include "tnn/device/cuda/acc/compute/trt_multihead_cross_attention/fmhca.h"
+#include "tnn/device/cuda/acc/compute/trt_multihead_flash_attention/fmha_flash_attention/include/fmha_flash_attention.h"
+#include "tnn/device/cuda/acc/compute/trt_multihead_flash_attention/fmha.h"
+#include "tnn/device/cuda/acc/compute/trt_unfused_multihead_attention/unfused_multihead_attention.h"
+#endif // end of #if 0
 
 namespace TNN_NS {
 
@@ -107,7 +111,7 @@ public:
     virtual ~BaseAttentionLayer() = default;
 }; // Class BaseAttentionLayer
 
-#if 0  // Fused Attention has 100mb+ volume
+#if 0
 template<typename T>
 class FusedAttentionLayer : public BaseAttentionLayer<T> {
 public:
@@ -238,6 +242,46 @@ private:
     int mSM;
     cuda_shared_ptr<void> mCuSeqLen;
     FusedMultiHeadFlashAttentionKernel const* mKernels;
+
+    std::string const mLayerName;
+    std::string mNamespace;
+}; // Class FlashAttentionLayer
+
+template<typename T>
+class CrossAttentionLayer {
+public:
+    CrossAttentionLayer(int sm) {
+        mSM = sm;
+        mOptBatchSize = 0;
+        mOptSeqLenQ = 0;
+        mOptSeqLenKV = 0;
+        mMaxBatchSize = 0;
+        mCuSeqLenQ = nullptr;
+        mCuSeqLenKV = nullptr;
+    }
+    void forward(T* devQ,
+                 T* devKV,
+                 T* output,
+                 int32_t batch_size,
+                 int32_t head_num, 
+                 int32_t size_per_head, 
+                 int32_t seq_len_q,
+                 int32_t seq_len_kv,
+                 cudaStream_t stream);
+    void createMHARunner();
+    void allocateSeqlens(int32_t maxBatchSize);
+    void initializeSeqlens(int32_t b, int32_t s, void* cu_seqlens_d, cudaStream_t stream = 0);
+    ~CrossAttentionLayer(){};
+private:
+    int32_t mOptBatchSize;
+    int32_t mOptSeqLenQ;
+    int32_t mOptSeqLenKV;
+    int32_t mMaxBatchSize;
+    DataType mDataType; //{DataType::kFLOAT};
+    int mSM;
+    cuda_shared_ptr<void> mCuSeqLenQ;
+    cuda_shared_ptr<void> mCuSeqLenKV;
+    FusedMultiHeadCrossAttentionKernel const* mKernels;
 
     std::string const mLayerName;
     std::string mNamespace;

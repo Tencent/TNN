@@ -161,7 +161,9 @@ void AnchorGraph::formalize(Graph *g) {
     //     2.here we do not modify the original Graph, Nodes and Edges.
     //     3.the AnchorGraph do not use marked_outputs.
 
+    std::vector<std::string> output_order_ = output_order;
     *dynamic_cast<Graph*>(this) = Graph();
+    setOutputsOrder(output_order_);
     tnn_structure = g->tnn_structure;
     tnn_resource = g->tnn_resource;
 

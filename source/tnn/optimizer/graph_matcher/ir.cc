@@ -146,7 +146,6 @@ namespace TNN_NS {
         auto validOutput = [&](const std::string &name) -> bool {
             return std::find(info->outputs.begin(), info->outputs.end(), name) != info->outputs.end();
         };
-
         for(size_t i=0;i<output_edges.size();i++) {
             NODE_TEST(validOutput(output_edges[i]->tensor_name));
             NODE_TEST(output_edges[i]->src == this);
@@ -721,6 +720,7 @@ namespace TNN_NS {
     } 
 
     Status Graph::setOutputsOrder(std::vector<std::string> tensor_names) {
+        /*
         std::set<std::string> names_set(tensor_names.begin(), tensor_names.end());
         if (names_set.size() != tensor_names.size()) {
             ERRORV("setOutputsOrder got dulicated tensor names", msg);
@@ -738,11 +738,13 @@ namespace TNN_NS {
                 return Status(TNNERR_COMMON_ERROR, msg);
             }
         }
+        */
         output_order = tensor_names;
         return TNN_OK;
     } 
 
     Status Graph::rewrite(std::shared_ptr<Graph> &pattern, graph_generator generator) {
+        //TNN_NS::Logger::instance().set_verbose_level("D");
         try { 
             RAISE_ON_ERROR(sanityCheck());
 
@@ -883,7 +885,6 @@ namespace TNN_NS {
         std::list<std::shared_ptr<Node>> pool;
         std::vector<std::shared_ptr<Node>> sorted;
         sorted.reserve(nodes.size());
-
         for(auto &n : placeholders) {
             for(auto &name : n->info->outputs) 
                 known_names.insert(name);
@@ -1006,6 +1007,7 @@ namespace TNN_NS {
 
         std::map<std::string, std::string> out_mapping;
         for(size_t i=0;i<anchor->outputs().size();i++) {
+            DEBUG("out_mapping from (anchor->outputs) %s -> (outputs) %s ", anchor->outputs()[i]->name.c_str(), outputs()[i]->name.c_str());
             out_mapping[anchor->outputs()[i]->name] = outputs()[i]->name;
         }
 
@@ -1092,6 +1094,7 @@ namespace TNN_NS {
         for(auto & e : out_edges) {
             Node * old_node = e->src;
             Node * new_node = getNodeByTensorName(out_mapping[e->tensor_name]).get();
+            DEBUG("out_mapping from %s -> %s ", e->tensor_name.c_str(), out_mapping[e->tensor_name].c_str());
             old_node->output_edges.erase(std::remove_if(old_node->output_edges.begin(), old_node->output_edges.end(), [&](Edge * cur){
                                             return cur->dst == e->dst;
                                         }), old_node->output_edges.end());

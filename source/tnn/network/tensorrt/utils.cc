@@ -17,6 +17,8 @@
 #include <numeric>
 #include <set>
 #include <string>
+#include <set>
+#include <numeric>
 #include <stdio.h>
 
 
@@ -364,6 +366,30 @@ bool CheckBroadcastDimsCorrect(nvinfer1::ITensor* input_tensor1, nvinfer1::ITens
         }
     }
     return true;
+}
+
+nvinfer1::ITensor* unsqueezeTensor(nvinfer1::INetworkDefinition* network,
+    nvinfer1::ITensor& tensor, const std::vector<int>& axes) {
+    const auto dims = shapeOf(tensor);
+    const std::set<int> axesSet(axes.begin(), axes.end());
+
+    // Ensure that result fits maximum allowed dimensions.
+    if (dims.size() + axesSet.size() > nvinfer1::Dims::MAX_DIMS)
+    {
+        return nullptr;
+    }
+
+    // Compute interlacing subscripts.
+    std::vector<int> subscripts(dims.size());
+    std::iota(subscripts.begin(), subscripts.end(), 0);
+    for (const auto& axis : axesSet)
+    {
+        subscripts.insert(subscripts.begin() + axis, dims.size());
+    }
+
+    const auto newDims = interlace(network, dims, shapeVector(1), ShapeTensor(1, std::move(subscripts)));
+    nvinfer1::IShuffleLayer* unsqueezeLayer = addShuffle(network, tensor, newDims);
+    return unsqueezeLayer->getOutput(0);
 }
 
 }  //  namespace TNN_NS

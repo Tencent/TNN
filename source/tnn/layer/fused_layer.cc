@@ -37,7 +37,8 @@ Status FusedLayer::InferOutputDataType() {
     } else if (layer_param->type == FusionType_AddBiasResidualLayerNorm ||
                layer_param->type == FusionType_FFN ||
                layer_param->type == FusionType_Attention ||
-               layer_param->type == FusionType_Flash_Attention) {
+               layer_param->type == FusionType_Flash_Attention ||
+               layer_param->type == FusionType_Cross_Attention) {
         output_blobs_[0]->GetBlobDesc().data_type = input_blobs_[0]->GetBlobDesc().data_type;
     } else {
         LOGE("Error: FusedLayer fusion type not supported yet: %d.\n", (int)layer_param->type);
@@ -84,6 +85,7 @@ Status FusedLayer::InferOutputShape(bool ignore_error) {
     } else if (layer_param->type == FusionType_AddBiasResidualLayerNorm ||
                layer_param->type == FusionType_FFN ||
                layer_param->type == FusionType_Attention || 
+               layer_param->type == FusionType_Cross_Attention ||
                layer_param->type == FusionType_Flash_Attention) {
         Blob* input_blob = input_blobs_[0];
         Blob* output_blob = output_blobs_[0];

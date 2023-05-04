@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/layer/elementwise_layer.h"
+#include <cmath>
 
 namespace TNN_NS {
 DECLARE_LAYER_WITH_FUNC(Pow, LAYER_POWER,

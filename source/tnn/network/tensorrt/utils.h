@@ -71,6 +71,9 @@ void BroadcastTensors(nvinfer1::INetworkDefinition* network, nvinfer1::ITensor*&
 
 bool CheckBroadcastDimsCorrect(nvinfer1::ITensor* input_tensor1, nvinfer1::ITensor* input_tensor2);
 
+nvinfer1::ITensor* unsqueezeTensor(nvinfer1::INetworkDefinition* network,
+    nvinfer1::ITensor& tensor, const std::vector<int>& axes);
+
 }  //  namespace TNN_NS
 
 #endif  //  TNN_SOURCE_TNN_NETWORK_TENSORRT_UTILS_H_

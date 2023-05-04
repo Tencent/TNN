@@ -287,6 +287,8 @@ static std::map<std::string, LayerType> global_layer_type_map = {
 
     {"Fused", LAYER_FUSED},
     {"EffectiveTransformer", LAYER_EFFECTIVE_TRANSFORMER},
+    {"SplitGELU", LAYER_FUSED_SPLIT_GELU},
+    {"FusedGroupNormSwish", LAYER_FUSED_GROUP_NORM_SWISH},
 
     {"InplaceCopy", LAYER_INPLACE_COPY},
     {"InplaceSliceCopy", LAYER_INPLACE_SLICE_COPY},

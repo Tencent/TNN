@@ -98,13 +98,15 @@ namespace optimizer {
             RETURN_ON_FAIL(rewriter.Rewrite(patten));
         }
 
+        //TNN_NS::Logger::instance().set_verbose_level("I");
+
         return TNN_OK;
     }
 
     std::vector<FlashAttentionPatternInfo> NetOptimizerFuseFlashAttention::GetAttentionPattens() {
         std::vector<FlashAttentionPatternInfo> pattens;
 
-        // FlashAttention
+        // SD v1.4 & v2.0 FlashAttention
         {
             FlashAttentionPatternInfo flash_attention_patten;
 
@@ -192,6 +194,109 @@ namespace optimizer {
                     %ac_permute                 = Permute(%ac_reshape)
                     %ac_hidden_size             = Mul(%ac_per_head_size)
                     %ac_permute_reshape_shape = Concat(%ac_batch, %ac_seqlen, %ac_hidden_size)
+                    %ac_permute_reshape = ReshapeTorch(%ac_permute, %ac_permute_reshape_shape)
+                    %o_linear_mm = MatMul(%ac_permute_reshape)
+                    return (%o_linear_mm, %remove_shape) 
+            )";
+
+            flash_attention_patten.nb_inputs        = 2;
+            flash_attention_patten.nb_outputs       = 2;
+            flash_attention_patten.shape_node_name  = "@q_reshape_shape";
+            flash_attention_patten.output_node_name = "@o_linear_mm";
+            pattens.push_back(flash_attention_patten);
+        }
+
+        // SD v1.5 FlashAttention
+        {
+            FlashAttentionPatternInfo flash_attention_patten;
+
+            flash_attention_patten.graph_str = R"(
+                graph(%in, %num_heads):
+                    %q_linear_mm          = MatMul(%in)
+                    %q_batch_shape        = Shape(%q_linear_mm)
+                    %q_batch_gather       = Gather(%q_batch_shape)
+                    %q_batch              = Unsqueeze(%q_batch_gather)
+                    %q_seqlen_shape        = Shape(%q_linear_mm)
+                    %q_seqlen_gather       = Gather(%q_seqlen_shape)
+                    %q_seqlen              = Unsqueeze(%q_seqlen_gather)
+                    %q_hidden_size_shape       = Shape(%q_linear_mm)
+                    %q_hidden_size_gather      = Gather(%q_hidden_size_shape)
+                    %q_hidden_size             = Unsqueeze(%q_hidden_size_gather)
+                    %q_per_head_size        = Div(%q_hidden_size)
+                    %q_per_head_size_floor  = Floor(%q_per_head_size)
+                    %q_reshape_shape      = Concat(%q_batch, %q_seqlen, %num_heads, %q_per_head_size_floor)
+                    %q_reshape            = ReshapeTorch(%q_linear_mm, %q_reshape_shape)
+                    %q_permute            = Permute(%q_reshape)
+                    %q_batch_mul_heads  = Mul(%q_batch)
+                    %q_reshape_batch_mul_heads_shape = Concat(%q_batch_mul_heads, %q_seqlen, %q_per_head_size_floor)
+                    %q_reshape_batch_mul_heads = ReshapeTorch(%q_permute, %q_reshape_batch_mul_heads_shape)
+                    %k_linear_mm          = MatMul(%in)
+                    %v_linear_mm          = MatMul(%in)
+                    %k_batch_shape        = Shape(%k_linear_mm)
+                    %k_batch_gather       = Gather(%k_batch_shape)
+                    %k_batch              = Unsqueeze(%k_batch_gather)
+                    %k_seqlen_shape        = Shape(%k_linear_mm)
+                    %k_seqlen_gather       = Gather(%k_seqlen_shape)
+                    %k_seqlen              = Unsqueeze(%k_seqlen_gather) 
+                    %k_hidden_size_shape         = Shape(%k_linear_mm)
+                    %k_hidden_size_gather        = Gather(%k_hidden_size_shape)
+                    %k_hidden_size               = Unsqueeze(%k_hidden_size_gather) 
+                    %k_per_head_size             = Div(%k_hidden_size)
+                    %k_per_head_size_floor       = Floor(%k_per_head_size)
+                    %k_reshape_shape      = Concat(%k_batch, %k_seqlen, %num_heads, %k_per_head_size_floor)
+                    %k_reshape            = ReshapeTorch(%k_linear_mm, %k_reshape_shape)
+                    %k_permute            = Permute(%k_reshape)                   
+                    %k_batch_mul_heads  = Mul(%k_batch)
+                    %k_reshape_batch_mul_heads_shape = Concat(%k_batch_mul_heads, %k_seqlen, %k_per_head_size_floor)
+                    %k_reshape_batch_mul_heads = ReshapeTorch(%k_permute, %k_reshape_batch_mul_heads_shape)
+                    %v_batch_shape        = Shape(%v_linear_mm)
+                    %v_batch_gather       = Gather(%v_batch_shape)
+                    %v_batch              = Unsqueeze(%v_batch_gather) 
+                    %v_seqlen_shape        = Shape(%v_linear_mm)
+                    %v_seqlen_gather       = Gather(%v_seqlen_shape)
+                    %v_seqlen              = Unsqueeze(%v_seqlen_gather)
+                    %v_hidden_size_shape         = Shape(%v_linear_mm)
+                    %v_hidden_size_gather        = Gather(%v_hidden_size_shape)
+                    %v_hidden_size               = Unsqueeze(%v_hidden_size_gather) 
+                    %v_per_head_size             = Div(%v_hidden_size)
+                    %v_per_head_size_floor       = Floor(%v_per_head_size)
+                    %v_reshape_shape      = Concat(%v_batch, %v_seqlen, %num_heads, %v_per_head_size_floor)
+                    %v_reshape            = ReshapeTorch(%v_linear_mm, %v_reshape_shape)
+                    %v_permute            = Permute(%v_reshape)                   
+                    %v_batch_mul_heads  = Mul(%v_batch)
+                    %v_reshape_batch_mul_heads_shape = Concat(%v_batch_mul_heads, %v_seqlen, %v_per_head_size_floor)
+                    %v_reshape_batch_mul_heads = ReshapeTorch(%v_permute, %v_reshape_batch_mul_heads_shape)
+                    %q_remove_batch_shape = Shape(%q_reshape_batch_mul_heads)
+                    %q_remove_batch_gather = Gather(%q_remove_batch_shape)
+                    %q_remove_batch = Unsqueeze(%q_remove_batch_gather)
+                    %q_remove_seqlen_shape = Shape(%q_reshape_batch_mul_heads)
+                    %q_remove_seqlen_gather = Gather(%q_remove_seqlen_shape)
+                    %q_remove_seqlen = Unsqueeze(%q_remove_seqlen_gather)
+                    %k_remove_hidden_size_shape = Shape(%k_reshape_batch_mul_heads)
+                    %k_remove_hidden_size_gather = Gather(%k_remove_hidden_size_shape)
+                    %k_remove_hidden_size = Unsqueeze(%k_remove_hidden_size_gather)
+                    %remove_shape = Concat(%q_remove_batch, %q_remove_seqlen, %k_remove_hidden_size)
+                    %k_permute_trans      = PermuteV2(%k_reshape_batch_mul_heads)
+                    %attn_score           = MatMul(%q_reshape_batch_mul_heads, %k_permute_trans)
+                    %attn_score_mul       = Mul(%attn_score)
+                    %attn_score_softmax   = SoftmaxCaffe(%attn_score_mul)
+                    %attn_context         = MatMul(%attn_score_softmax, %v_reshape_batch_mul_heads)
+                    %ac_batch_mul_heads_shape       = Shape(%attn_context)
+                    %ac_batch_mul_heads_gather      = Gather(%ac_batch_mul_heads_shape)
+                    %ac_batch_mul_heads             = Unsqueeze(%ac_batch_mul_heads_gather)
+                    %ac_seqlen_shape      = Shape(%attn_context)
+                    %ac_seqlen_gather     = Gather(%ac_seqlen_shape)
+                    %ac_seqlen            = Unsqueeze(%ac_seqlen_gather)
+                    %ac_per_head_size_shape       = Shape(%attn_context)
+                    %ac_per_head_size_gather      = Gather(%ac_per_head_size_shape)
+                    %ac_per_head_size             = Unsqueeze(%ac_per_head_size_gather)
+                    %ac_batch                   = Div(%ac_batch_mul_heads)
+                    %ac_batch_floor             = Floor(%ac_batch)
+                    %ac_reshape_shape           = Concat(%ac_batch_floor, %num_heads, %ac_seqlen, %ac_per_head_size)
+                    %ac_reshape                 = ReshapeTorch(%attn_context, %ac_reshape_shape)
+                    %ac_permute                 = Permute(%ac_reshape)
+                    %ac_hidden_size             = Mul(%ac_per_head_size)
+                    %ac_permute_reshape_shape = Concat(%ac_batch_floor, %ac_seqlen, %ac_hidden_size)
                     %ac_permute_reshape = ReshapeTorch(%ac_permute, %ac_permute_reshape_shape)
                     %o_linear_mm = MatMul(%ac_permute_reshape)
                     return (%o_linear_mm, %remove_shape) 
@@ -292,6 +397,7 @@ namespace optimizer {
             auto attention_node = g->getNodeByTensorName(attention_out_names[0]);
             attention_node->createParam<FusedLayerParam>();
             auto attention_node_param                     = attention_node->param<FusedLayerParam>();
+            attention_node_param->attention_size_per_head = per_head_size;
             attention_node_param->type                    = FusionType_Flash_Attention;
             attention_node->info->param              = attention_node_param;
             status = attention_node->createResource<FusedLayerResource>();
@@ -299,15 +405,25 @@ namespace optimizer {
                 return nullptr;
             }
 
-            //Shape
+            //Shape, only for output, this is not used, only for the number of outputs keep the same
             std::vector<std::string> shape_in_names = {in_names[0]};
+            std::vector<std::string> shape_output_names_fake = {out_names[1] + "_fake"};
+            status = g->createNode(LAYER_SHAPE, shape_in_names, shape_output_names_fake);
+            if (status != TNN_OK) {
+                return nullptr;
+            }
+            auto new_input_shape_node_fake         = g->getNodeByTensorName(out_names[1] + "_fake");
+            new_input_shape_node_fake->info->param = std::make_shared<LayerParam>();
+            g->markOutput(out_names[1] + "_fake");
+
+            //Shape
             std::vector<std::string> shape_output_names = {out_names[1]};
             status = g->createNode(LAYER_SHAPE, shape_in_names, shape_output_names);
             if (status != TNN_OK) {
                 return nullptr;
             }
-            g->markOutput(out_names[1]);
-
+            auto new_input_shape_node         = g->getNodeByTensorName(out_names[1]);
+            new_input_shape_node->info->param = std::make_shared<LayerParam>();
 
             //Reshape
             std::vector<std::string> attention_out_reshape_in_names = {attention_out_names[0], shape_output_names[0]};
@@ -326,13 +442,15 @@ namespace optimizer {
             attention_out_matmul_node->createParam<MatMulLayerParam>();
             auto attention_out_matmul_param = attention_out_matmul_node->param<MatMulLayerParam>(); 
             attention_out_matmul_param->weight_position = 1;
-            attention_out_matmul_node->info->param = qkv_matmul_param;
+            attention_out_matmul_node->info->param = attention_out_matmul_param;
             status = attention_out_matmul_node->createResource<MatMulLayerResource>();
             auto attention_out_matmul_resource = attention_out_matmul_node->resource<MatMulLayerResource>();
             attention_out_matmul_resource->weight = matmul_o->weight;
             g->markOutput(out_names[0]);
-
-            std::vector<std::string> output_order = {out_names[0], out_names[1]};
+            //new
+            //std::vector<std::string> output_order = {out_names[1], out_names[0]};
+            //old
+            std::vector<std::string> output_order = {out_names[0], out_names[1] + "_fake"};
             g->setOutputsOrder(output_order);
 
             return g;

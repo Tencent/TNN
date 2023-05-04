@@ -52,6 +52,28 @@ bool FusedTRTPluginLayerBuilder::supportsFormatCombination(
                         && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR);
             }
         }
+    } else if (layer_param->type == FusionType_Flash_Attention) {
+        if (pos == 0 || pos >= nbInputs) {
+            // TODO: ADD FLOAT
+            //return ((inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF)
+            return (inOut[pos].type == nvinfer1::DataType::kHALF
+                    && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
+                    && inOut[pos].type == inOut[0].type);
+        } else {
+                return (inOut[pos].type == nvinfer1::DataType::kINT32
+                        && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR);
+        }
+    } else if (layer_param->type == FusionType_Cross_Attention) {
+        if (pos == 0 || pos == 1 || pos >= nbInputs) {
+            // TODO: ADD FLOAT
+            //return ((inOut[pos].type == nvinfer1::DataType::kFLOAT || inOut[pos].type == nvinfer1::DataType::kHALF)
+            return (inOut[pos].type == nvinfer1::DataType::kHALF
+                    && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
+                    && inOut[pos].type == inOut[0].type);
+        } else {
+                return (inOut[pos].type == nvinfer1::DataType::kINT32
+                        && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR);
+        }
     }
 
     return false;
@@ -183,6 +205,8 @@ ILayer* FusedTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) no
         return nullptr;
     } else if (layer_param->type == FusionType_AddBiasResidualLayerNorm ||
                layer_param->type == FusionType_FFN ||
+               layer_param->type == FusionType_Flash_Attention ||
+               layer_param->type == FusionType_Cross_Attention ||
                layer_param->type == FusionType_Attention) {
         return TensorRTPluginLayerBuilder::AddToNetwork(network);
     } else {
@@ -195,7 +219,19 @@ ILayer* FusedTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) no
 
 DimsExprs FusedTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
         int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
-    return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
+    auto layer_param = dynamic_cast<FusedLayerParam*>(param_);
+    if (layer_param->type == FusionType_Flash_Attention) {
+        nvinfer1::DimsExprs out;
+        out.nbDims = 4;
+        //std::cout<<"PengFusedLayer inputs_0 size:"<<inputs[0].nbDims<<std::endl;
+        out.d[0] = inputs[0].d[0];
+        out.d[1] = inputs[0].d[1];
+        out.d[2] = inputs[0].d[2];
+        out.d[3] = inputs[0].d[4];
+        return out;
+    } else {
+        return TensorRTPluginLayerBuilder::getOutputDimensions(index, inputs, nbInputs, exprBuilder);
+    }
 }
 
 const char* FusedPluginCreator::getPluginName() const noexcept {

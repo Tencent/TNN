@@ -131,17 +131,41 @@ Status CudaFusedLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 
         int sm_version = -1;
         RETURN_ON_FAIL(device_->GetCurrentSMVersion(sm_version));
+        /*
         if (fused_param_->attention_size_per_head != 64 ||
             (sm_version!=-1 && sm_version!=70 && sm_version!=72 && sm_version!=75 && sm_version!=80 && sm_version!=86)) {
+            std::cout<<"run_flash_attention = Flase size_per_head="<<fused_param_->attention_size_per_head<<" sm_version ="<<sm_version<<std::endl;
             fp16_run_flash_attention_ = false;
         }
-
-       if (fp16_run_fused_attention_) {
+        */
+        if (fp16_run_flash_attention_) {
             flash_attention_fp16_ = std::make_shared<FlashAttentionLayer<half>>(
                                       sm_version);
             flash_attention_fp16_->allocateSeqlens(128); //TODO: set a better maxBatchSize
             flash_attention_fp16_->createMHARunner();
-       }
+        }
+    } else if (fused_param_->type == FusionType_Cross_Attention) {
+        auto resource = dynamic_cast<FusedLayerResource*>(resource_);
+        if (!resource) {
+            LOGE("Error: fused attention resource is nil\n");
+            return Status(TNNERR_LAYER_ERR, "Error: fused attention resource is nil");
+        }
+
+        int sm_version = -1;
+        RETURN_ON_FAIL(device_->GetCurrentSMVersion(sm_version));
+        /*
+        if (fused_param_->attention_size_per_head != 64 ||
+            (sm_version!=-1 && sm_version!=70 && sm_version!=72 && sm_version!=75 && sm_version!=80 && sm_version!=86)) {
+            std::cout<<"run_cross_attention = Flase size_per_head="<<fused_param_->attention_size_per_head<<" sm_version ="<<sm_version<<std::endl;
+            fp16_run_cross_attention_ = false;
+        }
+        */
+        if (fp16_run_cross_attention_) {
+            cross_attention_fp16_ = std::make_shared<CrossAttentionLayer<half>>(
+                                      sm_version);
+            cross_attention_fp16_->allocateSeqlens(128); //TODO: set a better maxBatchSize
+            cross_attention_fp16_->createMHARunner();
+        }
 #endif  // end of #if 0
     } else {
         LOGE("Error: not supported fusion type: %d\n", (int)(fused_param_->type));
@@ -368,7 +392,7 @@ Status CudaFusedLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
             return Status(TNNERR_LAYER_ERR, "Error: fused attention not supported data type");
         }
     } else if (fused_param_->type == FusionType_Flash_Attention) {
-        if (inputs.size() != 1 || outputs.size() != 1) {
+        if (inputs.size() != 2 || outputs.size() != 1) {
             LOGE("Error: flash attention io size error\n");
             return Status(TNNERR_LAYER_ERR, "Error: flash attention io size error");
         }
@@ -389,19 +413,39 @@ Status CudaFusedLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
         int seq_len    = DimsFunctionUtils::GetDim(dims, 1);
         int head_num   = DimsFunctionUtils::GetDim(dims, 2);
         int size_per_head   = DimsFunctionUtils::GetDim(dims, 3);
-        //int token_num   = rt_token_num > 0 ? rt_token_num : DimsVectorUtils::Count(dims, 0, 2);
         int hidden_size = DimsVectorUtils::Count(dims, 2);
 
-        int data_count = batch_size * seq_len * hidden_size;
-        //workspace size is the same as trt_fused_attention
-        //TODO: double check the size
-        if (fp16_run_flash_attention_) {
-            context_->SetWorkspaceSize(data_count * 7 * DataTypeUtils::GetBytesSize(DATA_TYPE_HALF) + (2*batch_size + 1) * sizeof(int));
-        } else {
-            int dtype_byte_size = DataTypeUtils::GetBytesSize(inputs[0]->GetBlobDesc().data_type);
-            context_->SetWorkspaceSize(data_count * 8 * dtype_byte_size + batch_size * head_num * seq_len * seq_len * sizeof(int));
-        }
         flash_attention_fp16_->forward(input, output, batch_size, head_num, size_per_head, seq_len,
+                                     context_->GetStream());
+
+    } else if (fused_param_->type == FusionType_Cross_Attention) {
+        if (inputs.size() != 3 || outputs.size() != 1) {
+            LOGE("Error: cross attention io size error\n");
+            return Status(TNNERR_LAYER_ERR, "Error: cross attention io size error");
+        }
+
+        if (inputs[0]->GetBlobDesc().data_type != DATA_TYPE_HALF ||
+            inputs[1]->GetBlobDesc().data_type != DATA_TYPE_HALF) {
+            LOGE("Error: cross attention not supported data type, input_0: %d, input_1: %d\n", 
+                 inputs[0]->GetBlobDesc().data_type, inputs[1]->GetBlobDesc().data_type);
+            return Status(TNNERR_LAYER_ERR, "Error: cross attention not supported data type");
+        }
+
+        Blob *output_blob = outputs[0];
+        half *input_0 = static_cast<half*>(inputs[0]->GetHandle().base);
+        half *input_1 = static_cast<half*>(inputs[1]->GetHandle().base);
+        half *output = static_cast<half*>(output_blob->GetHandle().base);
+
+        auto dims = output_blob->GetBlobDesc().dims;
+        auto qv_dims = inputs[1]->GetBlobDesc().dims;
+
+        int batch_size = DimsFunctionUtils::GetDim(dims, 0);
+        int q_seq_len    = DimsFunctionUtils::GetDim(dims, 1);
+        int kv_seq_len   = DimsFunctionUtils::GetDim(qv_dims, 1);
+        int head_num   = DimsFunctionUtils::GetDim(dims, 2);
+        int size_per_head   = DimsFunctionUtils::GetDim(dims, 3);
+        int hidden_size = DimsVectorUtils::Count(dims, 2);
+        cross_attention_fp16_->forward(input_0, input_1, output, batch_size, head_num, size_per_head, q_seq_len, kv_seq_len,
                                      context_->GetStream());
 
 #endif  //#if 0

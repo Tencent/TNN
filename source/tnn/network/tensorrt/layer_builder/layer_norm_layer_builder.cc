@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
@@ -46,7 +47,38 @@ nvinfer1::DataType LayerNormTRTPluginLayerBuilder::getOutputDataType(int index, 
 }
 
 ILayer* LayerNormTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    auto layer_param = dynamic_cast<LayerNormLayerParam*>(param_);
+    if (!layer_param) {
+        LOGE("LayerNormTRTPluginLayerBuilder: Unable to get layer param.");
+        return nullptr;
+    }
+
+    float epsilon = layer_param->eps;
+
+    std::vector<ITensor*> input_tensors;
+    for (int i = 0; i < input_blobs_.size(); i++) {
+        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[i])->GetForeignTensor();
+        input_tensors.push_back(std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor());
+    }
+    auto* input = input_tensors[0];
+    auto* scale = input_tensors[1];
+    auto* bias = input_tensors[2];
+    int axis = input->getDimensions().nbDims - layer_param->reduce_dims_size;
+    uint32_t axesMask{0};
+
+    // Populate axesMask with axis values
+    for (int32_t i = axis; i < input->getDimensions().nbDims; i++)
+    {
+        axesMask |= 1 << i;
+    }
+
+    // Broadcast scale and bias to input size
+    BroadcastTensors(network, input, scale);
+    BroadcastTensors(network, input, bias);
+
+    auto* layer = network->addNormalization(*input, *scale, *bias, axesMask);
+    layer->setEpsilon(epsilon);
+    return layer;
 }
 
 DimsExprs LayerNormTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
