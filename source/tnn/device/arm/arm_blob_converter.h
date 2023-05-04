@@ -51,6 +51,7 @@ public:
                                           ArmBlobConvertFunc cvt_func);
 
 private:
+    bool NeedDoScaleBias(MatConvertParam& param);
     Status ReverseInputImageChannel(Mat& image, const BlobDesc& desc, const DimsVector& dims, const int hw);
     Status ReverseOutImageChannel(Mat& image, const BlobDesc& desc, const DimsVector& dims, const int hw);
 

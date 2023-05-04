@@ -279,6 +279,21 @@ Status ArmBlobConverterAcc::ConvertFromMat(Mat &image, MatConvertParam param, vo
     return ConvertFromMatAsync(image, param, command_queue);
 }
 
+bool ArmBlobConverterAcc::NeedDoScaleBias(MatConvertParam &param) {
+    for (auto s : param.scale) {
+        if (s != 1.0f) {
+            return true;
+        }
+    }
+    for (auto b : param.bias) {
+        if (b != 0.0f) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 DECLARE_BLOB_CONVERTER_CREATER(Arm);
 REGISTER_BLOB_CONVERTER(Arm, DEVICE_ARM);
 
