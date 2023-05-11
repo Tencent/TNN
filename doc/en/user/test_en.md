@@ -44,8 +44,6 @@ Required Parameters：
     - blank(default) - end TNNTest without saving Output, not recommended
     - ${YOUR_OUTPUT_NAME}.txt - absolute path for output.txt file，TNNTest will write all network results to this file
 
-```
-TNNTest
 Frequently Used Parameters：
   -pr Network Precision
     - AUTO(default) - automatically select precision depends on target device, may be either float32 or float16 depending on target device type
@@ -76,7 +74,7 @@ It can also be used as a benchmark tool. When you use it, you need to formulate 
 ### 2.  NPU
 The HiAI so libraries needs to be pushed to the phone，and which 
 
-## II. Example
+## III. Example
 ### 1. CUDA TNNTest Example
 ```
 ./scripts/build_cuda_linux/test/TNNTest \
