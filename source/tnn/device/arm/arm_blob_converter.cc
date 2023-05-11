@@ -205,7 +205,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam para
     auto hw         = DimsVectorUtils::Count(dims, 2);
     auto handle_ptr = GetBlobHandlePtr(blob_->GetHandle());
     auto c_r4       = ROUND_UP(channel, 4);
-    if (desc.data_type == DATA_TYPE_INT8 && (image.GetMatType() != NC_INT8 && image_src.GetMatType() != RESERVED_INT8_TEST)) {
+    if (desc.data_type == DATA_TYPE_INT8 && (image.GetMatType() != NC_INT8 && image.GetMatType() != RESERVED_INT8_TEST)) {
         if (fused_int8_scale.size() < c_r4) {
             fused_int8_scale.resize(c_r4);
             fused_int8_bias.resize(c_r4);
