@@ -205,7 +205,7 @@ Status ArmBlobConverterAcc::ConvertFromMatAsync(Mat& image, MatConvertParam para
     auto hw         = DimsVectorUtils::Count(dims, 2);
     auto handle_ptr = GetBlobHandlePtr(blob_->GetHandle());
     auto c_r4       = ROUND_UP(channel, 4);
-    if (desc.data_type == DATA_TYPE_INT8 && image.GetMatType() != NC_INT8) {
+    if (desc.data_type == DATA_TYPE_INT8 && (image.GetMatType() != NC_INT8 && image_src.GetMatType() != RESERVED_INT8_TEST)) {
         if (fused_int8_scale.size() < c_r4) {
             fused_int8_scale.resize(c_r4);
             fused_int8_bias.resize(c_r4);
@@ -1207,6 +1207,10 @@ REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_BFP16, CVT_DIR_MAT
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_BFP16,          DATA_TYPE_BFP16, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<bfp16_t, bfp16_t>))
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_HALF,           DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<fp16_t,float>))
 REGISTER_ARM_BLOB_CONVERT_FUNC(NC_INT8,             DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertInt8MatToInt8Blob)
+// DEPRECATED MAT TYPES, TO BE REMOVED IN THE FUTURE
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_BFP16_TEST, DATA_TYPE_BFP16, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<bfp16_t, bfp16_t>))
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_FP16_TEST,  DATA_TYPE_FLOAT, CVT_DIR_MAT2BLOB, (ConvertFloatMatToFloatBlob<fp16_t,float>))
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_INT8_TEST,  DATA_TYPE_INT8,  CVT_DIR_MAT2BLOB, ConvertInt8MatToInt8Blob)
 
 #if TNN_ARM82
 static Status ConvertN8UC4ToHalfBlob(Mat& image, char* handle_ptr, const MatConvertParam& param, const DimsVector& dims,
@@ -1293,6 +1297,9 @@ REGISTER_ARM_BLOB_CONVERT_FUNC(NNV12,               DATA_TYPE_HALF,  CVT_DIR_MAT
 REGISTER_ARM_BLOB_CONVERT_FUNC(NNV21,               DATA_TYPE_HALF,  CVT_DIR_MAT2BLOB, ConvertNNV21ToHalfBlob)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_HALF,  CVT_DIR_MAT2BLOB, ConvertFloatMatToHalfBlob<float>)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_HALF,           DATA_TYPE_HALF,  CVT_DIR_MAT2BLOB, ConvertFloatMatToHalfBlob<fp16_t>)
+// DEPRECATED MAT TYPES, TO BE REMOVED IN THE FUTURE
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_FP16_TEST,  DATA_TYPE_HALF,  CVT_DIR_MAT2BLOB, ConvertFloatMatToHalfBlob<fp16_t>)
+
 #endif
 
 static Status ConvertInt8BlobToN8UC4(Mat& image, char* handle_ptr, const MatConvertParam& param, const DimsVector& dims,
@@ -1415,6 +1422,10 @@ REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_BFP16, CVT_DIR_BLO
 REGISTER_ARM_BLOB_CONVERT_FUNC(NC_INT32,            DATA_TYPE_INT32, CVT_DIR_BLOB2MAT, ConvertInt32BlobToInt32Mat)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_BFP16,          DATA_TYPE_BFP16, CVT_DIR_BLOB2MAT, (ConvertFloatBlobToFloatMat<bfp16_t, bfp16_t>))
 REGISTER_ARM_BLOB_CONVERT_FUNC(NC_INT8,             DATA_TYPE_INT8,  CVT_DIR_BLOB2MAT, ConvertInt8BlobToInt8Mat)
+// DEPRECATED MAT TYPES, TO BE REMOVED IN THE FUTURE
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_BFP16_TEST, DATA_TYPE_BFP16, CVT_DIR_BLOB2MAT, (ConvertFloatBlobToFloatMat<bfp16_t, bfp16_t>))
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_INT8_TEST,  DATA_TYPE_INT8,  CVT_DIR_BLOB2MAT, ConvertInt8BlobToInt8Mat)
+
 
 #if TNN_ARM82
 static Status ConvertHalfBlobToN8UC4(Mat& image, char* handle_ptr, const MatConvertParam& param, const DimsVector& dims,
@@ -1471,6 +1482,8 @@ REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC4,               DATA_TYPE_HALF,  CVT_DIR_BLO
 REGISTER_ARM_BLOB_CONVERT_FUNC(N8UC3,               DATA_TYPE_HALF,  CVT_DIR_BLOB2MAT, ConvertHalfBlobToN8UC3)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_FLOAT,          DATA_TYPE_HALF,  CVT_DIR_BLOB2MAT, ConvertHalfBlobToFloatMat<float>)
 REGISTER_ARM_BLOB_CONVERT_FUNC(NCHW_HALF,           DATA_TYPE_HALF,  CVT_DIR_BLOB2MAT, ConvertHalfBlobToFloatMat<fp16_t>)
+// DEPRECATED MAT TYPES, TO BE REMOVED IN THE FUTURE
+REGISTER_ARM_BLOB_CONVERT_FUNC(RESERVED_FP16_TEST,  DATA_TYPE_HALF,  CVT_DIR_BLOB2MAT, ConvertHalfBlobToFloatMat<fp16_t>)
 #endif
 
 }  // namespace TNN_NS

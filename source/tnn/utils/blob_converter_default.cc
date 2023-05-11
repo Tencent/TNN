@@ -188,7 +188,7 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
     hw             = hw == 0 ? 1 : hw;
 
     if (desc.data_type == DATA_TYPE_INT8) {
-        if (image.GetMatType() == NC_INT8) {
+        if (image.GetMatType() == NC_INT8 || image.GetMatType() == RESERVED_INT8_TEST) {
             memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims));
             return TNN_OK;
         } else {
@@ -202,7 +202,7 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
             blob_data = real_blob_data;
         }
     } else if (desc.data_type == DATA_TYPE_BFP16) {
-        if (image.GetMatType() == NCHW_BFP16) {
+        if (image.GetMatType() == NCHW_BFP16 || image.GetMatType() == RESERVED_BFP16_TEST) {
             memcpy(image.GetData(), blob_data, DimsVectorUtils::Count(dims) * 2);
             return TNN_OK;
         }
@@ -252,7 +252,7 @@ Status DefaultBlobConverterAcc::ConvertToMatAsync(Mat &image, MatConvertParam pa
             BlobToGray(blob_data + n * hw, reinterpret_cast<uint8_t *>(image.GetData()) + n * hw, param.scale[0],
                        param.bias[0], hw);
         }
-    } else if (image.GetMatType() == NCHW_BFP16) {
+    } else if (image.GetMatType() == NCHW_BFP16 || image.GetMatType() == RESERVED_BFP16_TEST) {
         for (int n = 0; n < DimsVectorUtils::Count(dims); n++) {
             reinterpret_cast<bfp16_t *>(image.GetData())[n] = blob_data[n];
         }
@@ -346,11 +346,11 @@ Status DefaultBlobConverterAcc::ConvertFromMatFunc(Mat& image, float* blob_data,
             BGRToBlob(reinterpret_cast<uint8_t *>(bgr.GetData()) + n * 3 * hw, blob_data + n * 3 * hw,
                       param.scale.data(), param.bias.data(), hw);
         }
-    } else if (image.GetMatType() == NCHW_BFP16) {
+    } else if (image.GetMatType() == NCHW_BFP16 || image.GetMatType() == RESERVED_BFP16_TEST) {
         for (int n = 0; n < DimsVectorUtils::Count(dims); n++) {
             blob_data[n] = float(reinterpret_cast<bfp16_t *>(image.GetData())[n]);
         }
-    } else if (image.GetMatType() == NCHW_HALF) {
+    } else if (image.GetMatType() == NCHW_HALF || image.GetMatType() == RESERVED_FP16_TEST) {
         for (int n = 0; n < DimsVectorUtils::Count(dims); n++) {
             blob_data[n] = (float)(reinterpret_cast<fp16_t *>(image.GetData())[n]);
         }
@@ -371,18 +371,18 @@ Status DefaultBlobConverterAcc::ConvertFromMatAsync(Mat &image_src, MatConvertPa
     void * blob_ptr = reinterpret_cast<void*>(((char*)blob_->GetHandle().base) + blob_->GetHandle().bytes_offset);
     auto blob_data = reinterpret_cast<float*>(blob_ptr);
     if (desc.data_type == DATA_TYPE_INT8) {
-        if (image_src.GetMatType() == NC_INT8) {
+        if (image_src.GetMatType() == NC_INT8 || image_src.GetMatType() == RESERVED_INT8_TEST) {
             memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims));
             return TNN_OK;
         } else
             blob_data = new float[dims[0] * dims[1] * hw];
     } else if (desc.data_type == DATA_TYPE_BFP16) {
-        if (image_src.GetMatType() == NCHW_BFP16) {
+        if (image_src.GetMatType() == NCHW_BFP16 || image_src.GetMatType() == RESERVED_BFP16_TEST) {
             memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims) * 2);
             return TNN_OK;
         }
     } else if (desc.data_type == DATA_TYPE_HALF) {
-        if (image_src.GetMatType() == NCHW_HALF) {
+        if (image_src.GetMatType() == NCHW_HALF || image_src.GetMatType() == RESERVED_FP16_TEST) {
             memcpy(blob_data, image_src.GetData(), DimsVectorUtils::Count(dims) * 2);
             return TNN_OK;
         }

@@ -46,7 +46,8 @@ Status X86Device::Allocate(void** handle, MatType mat_type, DimsVector dims) {
     desc.dims = dims;
     desc.device_type = DEVICE_X86;
     desc.data_format = DATA_FORMAT_NCHW;
-    if (mat_type == NCHW_FLOAT || mat_type == NCHW_BFP16 || mat_type == NC_INT8 || mat_type == NC_UINT8) {
+    if (mat_type == NCHW_FLOAT || mat_type == NCHW_BFP16 || mat_type == NC_INT8 || mat_type == NC_UINT8 ||
+        mat_type == RESERVED_BFP16_TEST || mat_type == RESERVED_INT8_TEST) {
         desc.data_type   = DATA_TYPE_FLOAT;
         auto size_info   = Calculate(desc);
         return Allocate(handle, size_info);
@@ -55,7 +56,7 @@ Status X86Device::Allocate(void** handle, MatType mat_type, DimsVector dims) {
         desc.data_type   = DATA_TYPE_INT8;
         auto size_info   = Calculate(desc);
         return Allocate(handle, size_info);
-    } else if (mat_type == NCHW_HALF) {
+    } else if (mat_type == NCHW_HALF || mat_type == RESERVED_FP16_TEST) {
         desc.data_type   = DATA_TYPE_HALF;
         auto size_info   = Calculate(desc);
         return Allocate(handle, size_info);

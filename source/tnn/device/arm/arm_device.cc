@@ -75,12 +75,12 @@ Status ArmDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
     desc.data_format = DATA_FORMAT_NCHW;
     if (mat_type == NCHW_FLOAT) {
         desc.data_type = DATA_TYPE_FLOAT;
-    } else if (mat_type == NCHW_BFP16) {
+    } else if (mat_type == NCHW_BFP16 || mat_type == RESERVED_BFP16_TEST) {
         desc.data_type = DATA_TYPE_BFP16;
-    } else if (mat_type == NCHW_HALF) {
+    } else if (mat_type == NCHW_HALF || mat_type == RESERVED_FP16_TEST) {
         desc.data_type = DATA_TYPE_HALF;
     } else if (mat_type == N8UC3 || mat_type == N8UC4 || mat_type == NGRAY || mat_type == NNV21 || mat_type == NNV12 ||
-               mat_type == NC_INT8) {
+               mat_type == NC_INT8 || mat_type == RESERVED_INT8_TEST) {
         // round up to support special case like: N8UC4 with dims[1] = 3
         desc.dims[1]   = ROUND_UP(desc.dims[1], 4);
         desc.data_type = DATA_TYPE_INT8;

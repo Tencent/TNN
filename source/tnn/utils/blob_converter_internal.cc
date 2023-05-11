@@ -89,6 +89,7 @@ Status BlobConverter::CheckScaleBiasInParam(Mat& image, MatConvertParam& param, 
     // 非图像类的Mat channel和scale/bias长度与不匹配时，如果scale全1，bias全0，会默认调整，否则报错
     if ((image.GetMatType() == NCHW_FLOAT || image.GetMatType() == NCHW_BFP16 ||
          image.GetMatType() == NCHW_HALF || image.GetMatType() == NC_INT8 || image.GetMatType() == NC_UINT8 ||
+         image.GetMatType() == RESERVED_BFP16_TEST || image.GetMatType() == RESERVED_FP16_TEST || image.GetMatType() == RESERVED_INT8_TEST ||
          image.GetMatType() == NC_INT32) && (channel > param.scale.size() || channel > param.bias.size())) {
         if (!NeedDoScaleBias(param)) {
             param.scale = std::vector<float>(channel, 1.0f);
