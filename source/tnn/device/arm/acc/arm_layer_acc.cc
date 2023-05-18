@@ -124,8 +124,7 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
                 memcpy(GetBlobHandlePtr(blob->GetHandle()), buffer->force_to<void *>(), buffer->GetBytesSize());
             } else {
                 if (buff_dtype == DATA_TYPE_FLOAT && blob_dtype == DATA_TYPE_HALF) {
-                    ConvertFromFloatToHalf(buffer->force_to<float *>(),
-                                           GetBlobHandlePtr(blob->GetHandle()),
+                    ConvertFromFloatToHalf(buffer->force_to<float *>(), GetBlobHandlePtr(blob->GetHandle()),
                                            buffer->GetBytesSize() / sizeof(float));
                 } else if (buff_dtype == DATA_TYPE_HALF && blob_dtype == DATA_TYPE_FLOAT) {
                     ConvertFromHalfToFloat(buffer->force_to<void *>(),
@@ -164,6 +163,20 @@ Status ArmLayerAcc::RawBuffer2ArmBlob(RawBuffer *buffer, std::shared_ptr<Blob> &
                 } else {
                     PackHalfBlob(reinterpret_cast<fp16_t *>(GetBlobHandlePtr(blob->GetHandle())), tmp_buff_ptr, batch,
                                  channel, hw);
+                }
+            } else {
+                LOGE("RawBuffer2ArmBlob:: unsupported blob data type: %d\n", blob_dtype);
+                return Status(TNNERR_PARAM_ERR, "RawBuffer2ArmBlob:: unsupported blob data type");
+            }
+        } else if (buff_dtype == DATA_TYPE_INT32) {
+            auto src_ptr = buffer->force_to<int32_t *>();
+            if (blob_dtype == DATA_TYPE_INT32) {
+                if (blob_fmt == DATA_FORMAT_NCHW) {
+                    memcpy(reinterpret_cast<float *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr,
+                           buff_count * sizeof(int32_t));
+                } else {
+                    PackInt32Blob(reinterpret_cast<int32_t *>(GetBlobHandlePtr(blob->GetHandle())), src_ptr, batch,
+                                  channel, hw);
                 }
             } else {
                 LOGE("RawBuffer2ArmBlob:: unsupported blob data type: %d\n", blob_dtype);

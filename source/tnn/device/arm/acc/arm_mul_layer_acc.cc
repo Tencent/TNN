@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/arm/acc/arm_mul_layer_acc.h"
+
 #include "tnn/utils/dims_function_utils.h"
 #include "tnn/utils/omp_utils.h"
 
@@ -53,16 +54,21 @@ Status ArmMulLayerAcc::ExecInt32(const std::vector<Blob *> &inputs, const std::v
     }
 
     auto dims = output->GetBlobDesc().dims;
-    int count = DimsFunctionUtils::GetDim(dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(dims, 1), 4) * DimsVectorUtils::Count(dims, 2);
+    int count = DimsFunctionUtils::GetDim(dims, 0) * ROUND_UP(DimsFunctionUtils::GetDim(dims, 1), 4) *
+                DimsVectorUtils::Count(dims, 2);
 
-    if (broadcast_.GetDataCount() != count) {
-        LOGE("Error: mismatch input and broadcast shape\n");
-        return Status(TNNERR_LAYER_ERR, "Unsupported int32 mul layer's input and broadcast shape");
-    }
-
-    // only support inputs.size() == 1
-    if (inputs.size() != 1) {
-        return Status(TNNERR_UNSUPPORT_NET, "INPUT > 1 NOT IMPLEMENT FOR INT32");
+    if (inputs.size() == 1) {
+        if (broadcast_.GetDataCount() != count) {
+            LOGE("Error: mismatch input and broadcast shape\n");
+            return Status(TNNERR_LAYER_ERR, "Unsupported int32 mul layer's input and broadcast shape");
+        }
+    } else if (inputs.size() == 2) {
+        if (!(DimsVectorUtils::Equal(inputs[1]->GetBlobDesc().dims, dims))) {
+            LOGE("Error: mismatch input and output shape\n");
+            return Status(TNNERR_LAYER_ERR, "Unsupported int32 mul layer's inputs shape");
+        }
+    } else {
+        return Status(TNNERR_UNSUPPORT_NET, "INPUT > 2 NOT IMPLEMENT FOR INT32");
     }
 
     if (!(DimsVectorUtils::Equal(inputs[0]->GetBlobDesc().dims, dims))) {
@@ -72,7 +78,9 @@ Status ArmMulLayerAcc::ExecInt32(const std::vector<Blob *> &inputs, const std::v
 
     auto output_ptr = reinterpret_cast<int32_t *>(GetBlobHandlePtr(output->GetHandle()));
     auto input0_ptr = reinterpret_cast<int32_t *>(GetBlobHandlePtr(inputs[0]->GetHandle()));
-    auto input1_ptr = broadcast_.force_to<int32_t *>();
+    auto input1_ptr = (inputs.size() == 1) ? broadcast_.force_to<int32_t *>()
+                                           : reinterpret_cast<int32_t *>(GetBlobHandlePtr(inputs[1]->GetHandle()));
+    ;
 
     OMP_PARALLEL_FOR_
     for (int i = 0; i < count; i += 4) {
@@ -81,7 +89,7 @@ Status ArmMulLayerAcc::ExecInt32(const std::vector<Blob *> &inputs, const std::v
         vst1q_s32(output_ptr + i, res);
 #else
         for (int j = 0; j < 4; ++j) {
-            output_ptr[i+j] = input0_ptr[i+j] * input1_ptr[i+j];
+            output_ptr[i + j] = input0_ptr[i + j] * input1_ptr[i + j];
         }
 #endif
     }
