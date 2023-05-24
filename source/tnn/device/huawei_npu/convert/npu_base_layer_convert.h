@@ -38,13 +38,13 @@ class OperatorInfo {
 public:
     OperatorInfo();
     explicit OperatorInfo(std::shared_ptr<ge::Operator> op);
-    OperatorInfo(std::shared_ptr<ge::Operator> op, vector<int> shape);
+    OperatorInfo(std::shared_ptr<ge::Operator> op, std::vector<int> shape);
 
     virtual ~OperatorInfo();
 
     shared_ptr<ge::Operator> GetOperator();
     std::vector<int> GetShape();
-    void SetShape(vector<int> shape);
+    void SetShape(std::vector<int> shape);
     void SetOperator(std::shared_ptr<ge::Operator> op);
 
 private:
