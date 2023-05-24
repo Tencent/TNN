@@ -117,12 +117,12 @@ private:
 
     Status HiAIModelInit(std::string model_path, NetworkConfig &net_config, ModelConfig &model_config,
                          DefaultModelInterpreter *interpreter, InputShapesMap inputs_shape,
-                         InputShapesMap &cpu_inputs_shape);
+                         InputShapesMap &cpu_inputs_shape, InputDataTypeMap &cpu_inputs_data_type);
 
     Status IRInitLayers(NetworkConfig &net_config, DefaultModelInterpreter *interpreter, InputShapesMap &inputs_shape);
 
     Status InitSubNetwork(NetworkConfig &net_config, ModelConfig &model_config, DefaultModelInterpreter *interpreter,
-                          InputShapesMap &cpu_inputs_shape);
+                          InputShapesMap &cpu_inputs_shape, InputDataTypeMap &cpu_inputs_data_type);
 
     Status ConvertLayers(NetResource *net_resource);
 

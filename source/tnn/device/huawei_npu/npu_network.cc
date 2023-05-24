@@ -89,7 +89,7 @@ Status NpuNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, Ab
     // hiai model init
     InputShapesMap cpu_inputs_shape;
     tnn_ret = HiAIModelInit(model_path, net_config, model_config, default_interpreter, input_shapes_map_temp,
-                            cpu_inputs_shape);
+                            cpu_inputs_shape, inputs_data_type);
     if (tnn_ret != TNN_OK) {
         return tnn_ret;
     }
@@ -156,7 +156,7 @@ Status NpuNetwork::InitContext(NetworkConfig &net_config) {
 
 Status NpuNetwork::HiAIModelInit(std::string model_path, NetworkConfig &net_config, ModelConfig &model_config,
                                  DefaultModelInterpreter *interpreter, InputShapesMap inputs_shape,
-                                 InputShapesMap &cpu_inputs_shape) {
+                                 InputShapesMap &cpu_inputs_shape, InputDataTypeMap &cpu_inputs_data_type) {
     // hiai variables
     std::vector<std::shared_ptr<hiai::AiModelDescription>> model_desc;
     auto model_builder                = std::make_shared<hiai::AiModelBuilder>(client_);
@@ -179,7 +179,7 @@ Status NpuNetwork::HiAIModelInit(std::string model_path, NetworkConfig &net_conf
                 *sub_network_interp_->GetNetStructure() = *interpreter->GetNetStructure();
                 *sub_network_interp_->GetNetResource()  = *interpreter->GetNetResource();
 
-                ir_ret = InitSubNetwork(net_config, model_config, sub_network_interp_.get(), cpu_inputs_shape);
+                ir_ret = InitSubNetwork(net_config, model_config, sub_network_interp_.get(), cpu_inputs_shape, cpu_inputs_data_type);
                 if (ir_ret != TNN_OK) {
                     return ir_ret;
                 }
@@ -273,7 +273,8 @@ Status NpuNetwork::IRInitLayers(NetworkConfig &net_config, DefaultModelInterpret
 }
 
 Status NpuNetwork::InitSubNetwork(NetworkConfig &net_config, ModelConfig &model_config,
-                                  DefaultModelInterpreter *interpreter, InputShapesMap &cpu_inputs_shape) {
+                                  DefaultModelInterpreter *interpreter, InputShapesMap &cpu_inputs_shape,
+                                  InputDataTypeMap &cpu_inputs_data_type) {
     // from here load cpu
     sub_network_                 = std::make_shared<DefaultNetwork>();
     NetworkConfig cpu_net_config = net_config;
@@ -283,13 +284,11 @@ Status NpuNetwork::InitSubNetwork(NetworkConfig &net_config, ModelConfig &model_
     NpuUtils::SplitNetwork(cpu_count_, interpreter->GetNetStructure(), visited_, global_operator_map_);
     cpu_inputs_shape = interpreter->GetNetStructure()->inputs_shape_map;
     if (cpu_inputs_shape.empty()) {
-        LOGE(
-            "ERROR: When split the network,  the arm can not find input in the huawei_npu visited "
-            "layers\n");
+        LOGE("ERROR: When split the network,  the arm can not find input in the huawei_npu visited layers.\n");
         return Status(TNNERR_LAYER_ERR,
                       "ERROR: When split the network,  the arm can not find input in the huawei_npu visited layers");
     }
-    Status ret = sub_network_->InitWrapper(cpu_net_config, model_config, interpreter, cpu_inputs_shape, cpu_inputs_shape);
+    Status ret = sub_network_->InitWrapper(cpu_net_config, model_config, interpreter, cpu_inputs_shape, cpu_inputs_shape, cpu_inputs_data_type);
     if (ret != TNN_OK) {
         return ret;
     }
