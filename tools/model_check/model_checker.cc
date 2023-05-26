@@ -321,9 +321,9 @@ Status ModelChecker::RunModelCheckerOutput() {
         DataType data_type = DATA_TYPE_FLOAT;
         if (mat_type == NC_INT32) {
             data_type = DATA_TYPE_INT32;
-        } else if(mat_type == NC_INT8) {
+        } else if(mat_type == NC_INT8 || mat_type == RESERVED_INT8_TEST) {
             data_type = DATA_TYPE_INT8;
-        } else if(mat_type == NC_UINT8) {
+        } else if(mat_type == NC_UINT8 || mat_type == RESERVED_UINT8_TEST) {
             data_type = DATA_TYPE_UINT8;
         }
         
