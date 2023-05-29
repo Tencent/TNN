@@ -72,7 +72,7 @@ namespace optimizer {
             Status GetHeadSize(std::shared_ptr<AnchorGraph> in, const AttentionPattenInfo &info);
             Status GetQScaling(std::shared_ptr<AnchorGraph> in, const AttentionPattenInfo &info);
             MatMulLayerResource *GetWeight(std::shared_ptr<AnchorGraph> in, const std::string &mm_node_name);
-            EltwiseLayerResource *GetBias(std::shared_ptr<tnn::AnchorGraph> in, const std::string &add_node_name);
+            EltwiseLayerResource *GetBias(std::shared_ptr<TNN_NS::AnchorGraph> in, const std::string &add_node_name);
 
             std::vector<std::string> GetInputs(std::shared_ptr<Graph> g, const AttentionPattenInfo &info);
             std::vector<std::string> GetOutputs(std::shared_ptr<AnchorGraph> in, const AttentionPattenInfo &info);
@@ -560,7 +560,7 @@ namespace optimizer {
         return matmul_res;
     }
 
-    EltwiseLayerResource *AttentionRewriter::GetBias(std::shared_ptr<tnn::AnchorGraph> in, const std::string &add_node_name) {
+    EltwiseLayerResource *AttentionRewriter::GetBias(std::shared_ptr<TNN_NS::AnchorGraph> in, const std::string &add_node_name) {
         auto add_node = in->getNodeByTensorName(add_node_name);
         if (!add_node) {
             WARN("node of interest not found");

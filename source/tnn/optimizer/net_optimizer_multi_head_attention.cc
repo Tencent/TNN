@@ -425,7 +425,7 @@ namespace optimizer {
         // Input Attention Mask: [Batch, Sequence Length]
         // Cast to Int32:        [Batch, Sequence Length]
         // Get Padding Idx:      [Batch+1]  for dense mode, [2*batch+1] for sparse mode
-        auto subgraph_to_replace = std::make_shared<tnn::Graph>();
+        auto subgraph_to_replace = std::make_shared<TNN_NS::Graph>();
 
         std::string in_attn_mask_name         = "in_attn_mask";
         std::string attn_mask_int32_name      = "opt_mha_attn_mask_int32";
@@ -503,7 +503,7 @@ namespace optimizer {
         for (int i=0; i<matched_huggingface_bert_patterns.size(); i++) {
             std::shared_ptr<AnchorGraph> matched_pattern = matched_huggingface_bert_patterns[i];
 
-            auto subgraph_to_replace = std::make_shared<tnn::Graph>();
+            auto subgraph_to_replace = std::make_shared<TNN_NS::Graph>();
 
             auto in_x_name                = "in_x";
             auto in_attn_padding_idx_name = "opt_mha_attn_mask_cumsum";    // Cumsum of Attention Mask Already been replace by cumsum in this step.
