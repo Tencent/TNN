@@ -16,6 +16,8 @@
 
 namespace TNN_NS {
 
+#if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 85
+
 DECLARE_TENSORRT_LAYER_BUILDER(NonZero, LAYER_NONZERO);
 
 ILayer* NonZeroTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
@@ -31,5 +33,7 @@ ILayer* NonZeroTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(NonZero, LAYER_NONZERO);
+
+#endif
 
 }  //  namespace TNN_NS

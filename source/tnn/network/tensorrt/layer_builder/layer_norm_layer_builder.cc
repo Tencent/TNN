@@ -47,6 +47,7 @@ nvinfer1::DataType LayerNormTRTPluginLayerBuilder::getOutputDataType(int index, 
 }
 
 ILayer* LayerNormTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
+#if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 86
     auto layer_param = dynamic_cast<LayerNormLayerParam*>(param_);
     if (!layer_param) {
         LOGE("LayerNormTRTPluginLayerBuilder: Unable to get layer param.");
@@ -79,6 +80,9 @@ ILayer* LayerNormTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network
     auto* layer = network->addNormalization(*input, *scale, *bias, axesMask);
     layer->setEpsilon(epsilon);
     return layer;
+#else
+    return TensorRTPluginLayerBuilder::AddToNetwork(network);
+#endif
 }
 
 DimsExprs LayerNormTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
