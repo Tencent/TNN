@@ -115,6 +115,10 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     {
         // use mutex to protect net_resource and net_structure in multi-thread
         std::unique_lock<std::mutex> lck(optimize_mtx_);
+        cudaDeviceProp props;
+        CUDA_CHECK(cudaGetDeviceProperties(&props, device_id_));
+        int sm_version = props.major * 10 + props.minor;
+        net_config.extra["gpu_sm"] = std::to_string(sm_version);
         ret = optimizer::NetOptimizerManager::Optimize(net_structure, net_resource, net_config);
         if (ret != TNN_OK) {
             return ret;
