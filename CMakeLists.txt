@@ -407,11 +407,11 @@ endif()
 if(TNN_HUAWEI_NPU_ENABLE)
     if(ANDROID_ABI STREQUAL "armeabi-v7a")
         link_directories(
-                third_party/huawei_npu/hiai_ddk_latest/armeabi-v7a/
+                third_party/huawei_npu/hiai_ddk_latest/ddk/ai_ddk_lib/lib/
         )
     else()
         link_directories(
-                third_party/huawei_npu/hiai_ddk_latest/arm64-v8a/
+                third_party/huawei_npu/hiai_ddk_latest/ddk/ai_ddk_lib/lib64/
         )
     endif()
     add_subdirectory(source/tnn/device/huawei_npu)

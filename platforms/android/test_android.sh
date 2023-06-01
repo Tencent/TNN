@@ -70,7 +70,7 @@ function android_test() {
         echo "Run Huawei Npu"
         $ADB shell "mkdir -p $ANDROID_DIR/lib"
         $ADB push $WORK_DIR/../../third_party/huawei_npu/cpp_lib/$ABI/* $ANDROID_DIR/lib
-        $ADB push $WORK_DIR/../../third_party/huawei_npu/hiai_ddk_latest/$ABI/* $ANDROID_DIR/lib
+        $ADB push $WORK_DIR/../../third_party/huawei_npu/hiai_ddk_latest/ddk/ai_ddk_lib/lib64/* $ANDROID_DIR/lib
         if [ -n "$INPUT_PATH" ]
         then
           $ADB shell "cd $ANDROID_DIR; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ANDROID_DIR}/lib:$ANDROID_DIR; ./TNNTest -dt=${DEVICE} -nt=HUAWEI_NPU -mp=./test.tnnproto -ip=input.txt -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT"
