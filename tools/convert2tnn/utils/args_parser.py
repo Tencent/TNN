@@ -72,6 +72,17 @@ def parse_args():
                                       'or \'-align output\'; '
                                       'if the model is not align, you can use \'-align all\' '
                                       'to address the first unaligned layer')
+    onnx2tnn_parser.add_argument('-align_cuda',
+                                 dest='align_cuda',
+                                 default='',
+                                 action='store',
+                                 required=False,
+                                 choices=[None, 'output'],
+                                 nargs='?',
+                                 type=str,
+                                 help='align the onnx model with tnn model on cuda device. '
+                                      'e.g., if you want to align the last output on cuda device, you can use \'-align_cuda\' '
+                                      'or \'-align_cuda output\' ')
     onnx2tnn_parser.add_argument('-align_batch',
                                  dest='align_batch',
                                  default=False,

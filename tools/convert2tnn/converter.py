@@ -42,8 +42,11 @@ def main():
         half = args.half
         int8 = args.int8
         align = args.align
+        align_cuda = args.align_cuda
         if align is None:
             align = 'output'
+        if align_cuda is None:
+            align_cuda = 'output'
         align_batch = args.align_batch
         input_file = args.input_file_path
         ref_file = args.refer_file_path
@@ -57,7 +60,7 @@ def main():
             for item in args.input_names:
                 input_names += (item + " ")
         try:
-            onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, align_batch, input_file, ref_file, input_names,
+            onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, align_cuda, align_batch, input_file, ref_file, input_names,
                              debug_mode=debug_mode)
             if int8:
                 dynamic_range_quantization.quantization(onnx_path, "onnx", output_dir, optimize)

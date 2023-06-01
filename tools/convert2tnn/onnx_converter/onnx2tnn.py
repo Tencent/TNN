@@ -55,7 +55,7 @@ def check_input_names(input_names: str, onnx_input_info: dict):
         sys.exit(return_code.CONVERT_FAILED)
 
 
-def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align='', align_batch=False,
+def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align='', align_cuda='', align_batch=False,
             input_path=None, refer_path=None, input_names: str = None, is_ssd=False, debug_mode: bool = False):
     """
     执行 onnx 转换为 tnn 的转换指令
@@ -133,8 +133,26 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         tnn_model_name = onnx_base_name[:-len('.onnx')] + model_suffix
     tnn_proto_path = os.path.join(output_dir, tnn_proto_name)
     tnn_model_path = os.path.join(output_dir, tnn_model_name)
-
-    if align == 'output' or align_batch is True:
+    
+    # if align == 'output' or align_batch is True:
+    #     if input_names is None:
+    #         align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path,
+    #                                 debug_mode=debug_mode, align_batch=align_batch)
+    #     else:
+    #         align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, input_names,
+    #                                 debug_mode=debug_mode, align_batch=align_batch)
+    # elif align == 'all':
+    #     is_align_all = (align == 'all')
+    #     align_model.align_all(onnx_path, tnn_proto_path,
+    #                                       is_align_all, input_names, input_path, refer_path)
+    if align_cuda == 'output':
+        if input_names is None:
+            align_model.align_model_cuda(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path,
+                                    debug_mode=debug_mode, align_batch=align_batch)
+        else:
+            align_model.align_model_cuda(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path, input_names,
+                                    debug_mode=debug_mode, align_batch=align_batch)
+    elif align == 'output' or align_batch is True:
         if input_names is None:
             align_model.align_model(onnx_path, tnn_proto_path, tnn_model_path, input_path, refer_path,
                                     debug_mode=debug_mode, align_batch=align_batch)

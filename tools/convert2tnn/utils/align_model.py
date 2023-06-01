@@ -21,7 +21,7 @@ from utils.run_onnx_model import OnnxRunner
 from types import *
 from converter import logging
 from functools import reduce
-
+#import convert2tnn 
 
 import linecache
 import math
@@ -53,6 +53,30 @@ def run_tnn_model_check(proto_path, model_path, input_path, reference_output_pat
 
     return
 
+def run_tnn_model_check_cuda(proto_path, model_path, input_path, reference_output_path, is_tflite=False, align_batch=False):
+    import utils
+    convert2tnn_dir = os.path.dirname(utils.__file__) 
+    model_check_path = convert2tnn_dir + "/../build/model_check"
+    checker.check_file_exist(model_check_path)
+    command = model_check_path + " -e -p  " + proto_path + " -m " + \
+        model_path + " -i " + input_path + " -f " + reference_output_path + " -d CUDA"
+    if align_batch:
+        command += " -b "
+
+    logging.debug(command)
+    ret = cmd.run(command)
+    if os.path.exists("cos_dis_result.txt"):
+        f = open("cos_dis_result.txt",encoding = "utf-8")
+        print('cos distance = ', f.read())
+        f.close()
+        os.remove("cos_dis_result.txt")
+
+    if ret == 0:
+        print_align_message(is_tflite)
+    else:
+        print_not_align_message(None, is_tflite)
+
+    return
 
 def get_input_from_file(path: str) -> dict:
     input_dict: dict = {}
@@ -453,6 +477,73 @@ def update_original_input_shape(original_input_info: dict, specify_input_info:di
         if specify_shape_datatype is not None:
             original_shape_datatype["shape"] = specify_shape_datatype["shape"]
 
+def align_model_cuda(original_model_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str = None,
+                refer_path: str = None, specify_input_args: str = None, is_tflite: bool = False, debug_mode: bool = False, align_batch: bool = False) -> bool:
+    """
+    对 onnx 模型和 tnn 模型进行对齐.
+    当前支持模型: 单输入,单输出;单输入,多输出;
+    :param original_model_path:
+    :param tnn_proto_path:
+    :param tnn_model_path:
+    :return:
+    """
+    logging.info("{}  align model (tflite or ONNX vs TNN) on CUDA device,please wait a moment {}\n" .format("-" * 10, "-" * 10))
+
+    checker.check_file_exist(tnn_proto_path)
+    checker.check_file_exist(tnn_model_path)
+    # list = {  "input name1":{
+    #                           {"shape": [n, c,...]},
+    #                           {"data_type": 0}
+    #                        },
+    #           "input name22": {
+    #                            {"shape": [n, c,...]},
+    #                            {"data_type": 0}
+    #                         }
+    # get original input info
+    if is_tflite:
+        original_input_info = get_input_shape_from_tflite(original_model_path)
+    else:
+        original_input_info = get_input_shape_from_onnx(original_model_path)
+    # get tnn input info
+    tnn_input_info = get_input_shape_from_tnn(tnn_proto_path)
+    # check input
+    if specify_input_args is not None:
+        specify_input_info = parse_specify_input_args(specify_input_args)
+        update_original_input_shape(original_input_info, specify_input_info)
+
+    if is_tflite:
+        check_input_lite_info(original_input_info, tnn_input_info)
+    else:
+       check_input_info(original_input_info, tnn_input_info)
+    if input_file_path is None:
+        # generate data
+        input_path = data.gene_random_data(original_input_info)
+    else:
+        if os.path.exists(input_file_path):
+            input_path = input_file_path
+        else:
+            logging.error("Invalid input_file_path")
+            sys.exit(return_code.ALIGN_FAILED)
+    if refer_path is None:
+        if is_tflite == True:
+            reference_output_path = run_tflite(original_model_path, input_path, original_input_info)
+        else:
+            reference_output_path = run_onnx(original_model_path, input_path, original_input_info)
+    else:
+        if os.path.exists(refer_path):
+            reference_output_path = refer_path
+        else:
+            logging.error("Invalid refer_path")
+            sys.exit(return_code.ALIGN_FAILED)
+
+    logging.info("Run tnn model_check for CUDA...")
+    run_tnn_model_check_cuda(tnn_proto_path, tnn_model_path, input_path, reference_output_path, is_tflite, align_batch)
+    if debug_mode is False:
+        if input_file_path is None and os.path.exists(input_path):
+            data.clean_temp_data(os.path.dirname(input_path))
+        if refer_path is None and os.path.exists(reference_output_path):
+            data.clean_temp_data(reference_output_path)
+    return True
 
 def align_model(original_model_path: str, tnn_proto_path: str, tnn_model_path: str, input_file_path: str = None,
                 refer_path: str = None, specify_input_args: str = None, is_tflite: bool = False, debug_mode: bool = False, align_batch: bool = False) -> bool:

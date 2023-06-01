@@ -4,7 +4,8 @@ CURRENT_DIR=$(pwd)
 CLEAN=""
 BUILD_DIR=build
 BIN_DIR=bin
-
+export CUDNN_ROOT_DIR=/usr/local/cudnn-8.3.2
+export TENSORRT_ROOT_DIR=/usr/local/TensorRT-8.4.0.6
 function usage() {
     echo "usage: ./build.sh [-c]"
     echo "options:"
@@ -35,11 +36,13 @@ function build_model_check_and_tnn_converter_and_onnx2tnn() {
         -DCMAKE_BUILD_TYPE=DEBUG \
         -DDEBUG:BOOL="ON" \
         -DTNN_CPU_ENABLE:BOOL="ON" \
+        -DTNN_CUDA_ENABLE:BOOL="ON" \
+        -DTNN_TENSORRT_ENABLE:BOOL="ON" \
         -DTNN_MODEL_CHECK_ENABLE:BOOL="ON" \
         -DTNN_CONVERTER_ENABLE:BOOL="ON" \
         -DTNN_ONNX2TNN_ENABLE:BOOL="ON" \
         -DTNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE:BOOL="ON" \
-        -DTNN_BUILD_SHARED="OFF"
+        -DTNN_BUILD_SHARED="ON"
 
     make -j4
 
