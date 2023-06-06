@@ -33,6 +33,12 @@ if(TNN_OPENCL_ENABLE)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/device/opencl)
 endif()
 
+if(TNN_SNPE_ENABLE)
+    message(STATUS "Build TNN Qualcomm SNPE DSP")
+    target_link_libraries(TNN SNPE)
+    include_directories(${PROJECT_SOURCE_DIR}/source/tnn/device/snpe)
+endif()
+
 if(TNN_HUAWEI_NPU_ENABLE)
     message(STATUS "Build TNN NPU")
     target_link_libraries(TNN hiai hiai_ir hiai_ir_build)

@@ -35,6 +35,8 @@ DeviceType ConvertDeviceType(std::string device_type) {
         return DEVICE_X86;
     } else if ("NAIVE" == device_type) {
         return DEVICE_NAIVE;
+    } else if ("DSP" == device_type) {
+        return DEVICE_DSP;
     } else if ("HUAWEI_NPU" == device_type) {
         return DEVICE_HUAWEI_NPU;
     } else if ("RKNPU" == device_type) {

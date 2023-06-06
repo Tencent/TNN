@@ -5,7 +5,7 @@ ADB=adb
 ANDROID_DIR=/data/local/tmp/tnn-test
 
 TEST_PROTO_PATH=
-#DEVIVE: ARM/OPENCL/HUAWEI_NPU
+#DEVIVE: ARM/OPENCL/HUAWEI_NPU/SNPE
 DEVICE="ARM"
 WARM_UP_COUNT=0
 ITERATOR_COUNT=1
@@ -21,19 +21,26 @@ function usage() {
     echo "        -32   Build 32 bit."
     echo "        -c    Clean up build folders."
     echo "        -d    run with specified device"
-    echo "        -t    ARM/OPENCL/HUAWEI_NPU specify the platform to run (default: ARM)"
+    echo "        -t    ARM/OPENCL/HUAWEI_NPU/SNPE specify the platform to run (default: ARM)"
     echo "        -m    tnnproto"
     echo "        -i    input file"
 }
 
 function android_test() {
 
+    if [ "$DEVICE" == "SNPE" ]
+    then
+        export SNPE="ON"
+    else
+        export SNPE="OFF"
+    fi
     if [ "$DEVICE" == "HUAWEI_NPU" ]
     then
         export HUAWEI_NPU="ON"
     else
         export HUAWEI_NPU="OFF"
     fi
+
     if $NEED_CLEAN
     then
         rm -r build32 build64
@@ -56,16 +63,42 @@ function android_test() {
         fi
         if [ -n "$INPUT_PATH" ]
         then
-            echo "input path"
+            echo "push input file to android device"
             $ADB push ${INPUT_PATH} ${ANDROID_DIR}/input.txt
         fi
-        TEST_MODEL_PATH=${TEST_PROTO_PATH/proto/model}
-        $ADB push ${TEST_PROTO_PATH} ${ANDROID_DIR}/test.tnnproto
-        $ADB push ${TEST_MODEL_PATH} ${ANDROID_DIR}/test.tnnmodel
+        if [ "$DEVICE" == "SNPE" ]
+        then
+            # TEST_PROTO_PATH is path to SNPE .dlc model file
+            $ADB push ${TEST_PROTO_PATH} ${ANDROID_DIR}/test.dlc
+        else
+            TEST_MODEL_PATH=${TEST_PROTO_PATH/proto/model}
+            $ADB push ${TEST_PROTO_PATH} ${ANDROID_DIR}/test.tnnproto
+            $ADB push ${TEST_MODEL_PATH} ${ANDROID_DIR}/test.tnnmodel
+        fi
     fi
 
     $ADB shell "echo "${DEVICE}" > $ANDROID_DIR/test.log"
-    if [ "$DEVICE" == "HUAWEI_NPU" ]
+
+    if [ "$DEVICE" == "SNPE" ]
+    then
+        # push SNPE libraries to android device
+        $ADB shell "mkdir -p $ANDROID_DIR/lib"
+        if [ "$ABI" == "armeabi-v7a" ]
+        then
+            echo "Run Qualcomm SNPE armv7 32-bit"
+            $ADB push $WORK_DIR/../../third_party/snpe/lib/arm-android-clang8.0/* $ANDROID_DIR/lib
+        else
+            echo "Run Qualcomm SNPE armv8 64-bit"
+            $ADB push $WORK_DIR/../../third_party/snpe/lib/aarch64-android-clang8.0/* $ANDROID_DIR/lib
+        fi
+        # run SNPE TNNTest on android device
+        if [ -n "$INPUT_PATH" ]
+        then
+          $ADB shell "cd $ANDROID_DIR; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ANDROID_DIR}/lib:$ANDROID_DIR; ./TNNTest -mt=SNPE -dt=DSP -nt=SNPE -mp=./test.dlc -ip=input.txt -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT"
+        else
+          $ADB shell "cd $ANDROID_DIR; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ANDROID_DIR}/lib:$ANDROID_DIR; ./TNNTest -mt=SNPE -dt=DSP -nt=SNPE -mp=./test.dlc -op=${DEVICE}_output.data -wc=$WARM_UP_COUNT -ic=$ITERATOR_COUNT"
+        fi
+    elif [ "$DEVICE" == "HUAWEI_NPU" ]
     then
         echo "Run Huawei Npu"
         $ADB shell "mkdir -p $ANDROID_DIR/lib"

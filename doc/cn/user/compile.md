@@ -239,7 +239,7 @@ cd <path_to_tnn>/scripts
 |TNN_METAL_ENABLE| OFF | 代码source/device/metal编译开关，代码包含metal加速指令。|
 |TNN_OPENCL_ENABLE| OFF | 代码source/device/opencl编译开关，代码包含opencl加速指令。|
 |TNN_CUDA_ENABLE| OFF | 代码source/device/cuda编译开关，当前适配TensorRT实现，后续会迁入更多加速代码实现。|
-|TNN_DSP_ENABLE| OFF | 代码source/device/dsp编译开关，当前适配snpe实现。|
+|TNN_SNPE_ENABLE| OFF | 代码source/device/snpe编译开关，当前适配Qualcomm SNPE DSP实现。|
 |TNN_ATLAS_ENABLE| OFF | 代码source/device/atlas编译开关，当前适配华为atlas加速框架。|
 |TNN_HUAWEI_NPU_ENABLE| OFF | 代码source/device/huawei_npu编译开关，当前适配HiAI加速框架。|
 |TNN_RK_NPU_ENABLE| OFF | 代码source/device/rknpu编译开关，当前适配rknpu_ddk加速框架。|

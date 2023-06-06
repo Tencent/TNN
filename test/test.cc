@@ -236,9 +236,10 @@ namespace test {
         printf("    -op \"<path>\"          \t%s \n", output_path_message);
         printf("    -dl \"<device list>\"   \t%s \n", device_list_message);
         printf("    -th \"<thread umber>\"  \t%s \n", cpu_thread_num_message);
-        printf("    -it \"<input type>\"    \t%s \n", input_format_message);
+        printf("    -if \"<input type>\"    \t%s \n", input_format_message);
         printf("    -pr \"<precision >\"    \t%s \n", precision_message);
         printf("    -is \"<input shape>\"   \t%s \n", input_shape_message);
+        printf("    -it \"<input data type>\"    \t%s \n", input_data_type_message);
         printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
         printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
         printf("    -et \"<enable tune>\t%s \n", enable_tune_message);

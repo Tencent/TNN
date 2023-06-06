@@ -272,7 +272,7 @@ ninja
 |TNN_METAL_ENABLE| OFF | Code source/device/metal compilation switch, the code contains metal acceleration instructions.|
 |TNN_OPENCL_ENABLE| OFF | Code source/device/opencl compilation switch, the code contains opencl acceleration instructions.|
 |TNN_CUDA_ENABLE| OFF | Code source/device/cuda compilation switch, the code contains cuda acceleration instructions, currently only a small part of the implementation has been migrated.|
-|TNN_DSP_ENABLE| OFF | Code source/device/dsp compilation switch, currently adapted to snpe implementation.|
+|TNN_SNPE_ENABLE| OFF | Code source/device/snpe compilation switch, currently adapted to Qualcomm SNPE dsp implementation.|
 |TNN_ATLAS_ENABLE| OFF | The code source/device/atlas compilation switch is currently adapted to Huawei's atlas acceleration framework.|
 |TNN_HUAWEI_NPU_ENABLE| OFF | The code source/device/huawei_npu compilation switch is currently adapted to the HiAI acceleration framework.|
 |TNN_RK_NPU_ENABLE| OFF | The code source/device/rknpu compilation switch is currently adapted to the rknpu_ddk acceleration framework.|
