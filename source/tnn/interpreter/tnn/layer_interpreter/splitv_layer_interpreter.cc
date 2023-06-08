@@ -29,7 +29,7 @@ Status SplitVLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, 
     p->slices.clear();
     GET_INT_N_INTO_VEC(p->slices, slice_count);
     
-    GET_INT_1_OR_DEFAULT(p->is_split_specified, 0);
+    GET_INT_1_OR_DEFAULT(p->is_split_specified, 1);
 
     return TNN_OK;
 }
