@@ -13,12 +13,12 @@ jobs:
     outputs:
       CONDITION: ${{ steps.preflight.outputs.CONDITION }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Preflight
       id: preflight
       run: |
-        echo ::set-output name=CONDITION::0
-        ./scripts/.ci/preflight.sh x86 || ret=$? && echo $ret && echo ::set-output name=CONDITION::$ret
+        echo "CONDITION=0" >> $GITHUB_OUTPUT
+        ./scripts/.ci/preflight.sh x86 || ret=$? && echo $ret && echo "CONDITION=$ret" >> $GITHUB_OUTPUT
 
   linux-gcc:
     needs: [setup]
