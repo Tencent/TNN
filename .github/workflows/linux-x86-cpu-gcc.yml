@@ -9,7 +9,7 @@ on:
 
 jobs:
   setup:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     outputs:
       CONDITION: ${{ steps.preflight.outputs.CONDITION }}
     steps:
@@ -23,7 +23,7 @@ jobs:
   linux-gcc:
     needs: [setup]
     if: ${{ needs.setup.outputs.CONDITION != '11' }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
     - name: build
