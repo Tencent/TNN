@@ -25,7 +25,7 @@ jobs:
     if: ${{ needs.setup.outputs.CONDITION != '11' }}
     runs-on: macos-11
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: protobuf
       run: brew install protobuf opencv3
     - name: build

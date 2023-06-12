@@ -25,6 +25,6 @@ jobs:
     if: ${{ needs.setup.outputs.CONDITION != '11' }}
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: build
       run: ./scripts/build_framework_ios.sh
