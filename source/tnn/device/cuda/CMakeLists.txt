@@ -19,7 +19,8 @@ message(${CMAKE_CUDA_COMPILER_VERSION})
 set(TARGET_ARCH "-gencode arch=compute_75,code=sm_75 \
                  -gencode arch=compute_70,code=sm_70 \
                  -gencode arch=compute_61,code=sm_61 \
-                 -gencode arch=compute_60,code=sm_60")
+                 -gencode arch=compute_60,code=sm_60 \
+                 -gencode arch=compute_53,code=sm_53")
 
 if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0)
     string(APPEND TARGET_ARCH " -gencode=arch=compute_80,code=sm_80")

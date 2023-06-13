@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <math.h>
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
 #include "tnn/utils/dims_utils.h"
 #include <cmath>
