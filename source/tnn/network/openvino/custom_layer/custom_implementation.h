@@ -12,6 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#ifndef TNN_NETWORK_OPENVINO_CUSTOM_OPENVINO_IMPLEMENTAION_
+#define TNN_NETWORK_OPENVINO_CUSTOM_OPENVINO_IMPLEMENTAION_
+
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -19,19 +22,15 @@
 #include <string>
 #include <vector>
 
-#include <ie_blob.h>
-#include <ie_iextension.h>
-#include <ie_layouts.h>
-
-#include <tnn/core/status.h>
-#include <tnn/network/openvino/openvino_network.h>
+#include <ie/ie_blob.h>
+#include <ie/ie_layouts.h>
+#include <ie/ie_iextension.h>
 #include <ngraph/ngraph.hpp>
 #include <ngraph/opsets/opset.hpp>
 
+#include "tnn/core/status.h"
+#include "tnn/network/openvino/openvino_network.h"
 #include "tnn/network/openvino/utils.h"
-
-#ifndef TNN_DEVICE_OPENVINO_CUSTOM_OPENVINO_IMPLEMENTAIO_
-#define TNN_DEVICE_OPENVINO_CUSTOM_OPENVINO_IMPLEMENTAIO_
 
 namespace TNN_NS {
 
@@ -326,7 +325,7 @@ public:
 #define DECLARE_CUSTOM_OP(type)                                                                                        \
     class Custom##type##Op : public TNN_NS::CustomOpenvinoOp {                                                         \
     public:                                                                                                            \
-        static constexpr ngraph::NodeTypeInfo type_info{"Custom" #type, 0};                                            \
+        static constexpr ngraph::NodeTypeInfo type_info{"Custom" #type, nullptr, nullptr};                             \
         const ngraph::NodeTypeInfo& get_type_info() const {                                                            \
             return type_info;                                                                                          \
         }                                                                                                              \
@@ -338,4 +337,4 @@ public:
         }                                                                                                              \
     }
 
-#endif
+#endif  // #ifdef TNN_NETWORK_OPENVINO_CUSTOM_OPENVINO_IMPLEMENTAION_

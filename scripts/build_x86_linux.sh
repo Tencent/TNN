@@ -52,21 +52,21 @@ clone_openvino() {
         git clone --recursive https://github.com/openvinotoolkit/openvino.git
     fi
     cd openvino
-    # openvino release tag 2023.0.0 : b4452d5
+    # to commit of openvino release tag 2023.0.0 : b4452d5
     git reset --hard b4452d5
     git submodule update --init --recursive
     #sed -i '152 i /*' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
     #sed -i '157 i */' inference-engine/src/mkldnn_plugin/nodes/reduce.cpp
 
-    # 编译静态库
-    if [ "${OPENVINO_BUILD_SHARED}" = "OFF" ]
-    then
-        sed -i '152,152s/SHARED/STATIC/g' inference-engine/src/inference_engine/CMakeLists.txt
-        sed -i 's/SHARED/STATIC/g' inference-engine/src/legacy_api/CMakeLists.txt
-        sed -i 's/SHARED/STATIC/g' inference-engine/src/transformations/CMakeLists.txt
-        sed -i 's/SHARED/STATIC/g' inference-engine/src/low_precision_transformations/CMakeLists.txt
-        sed -i 's/SHARED/STATIC/g' ngraph/src/ngraph/CMakeLists.txt
-    fi
+    # 编译静态库, deprecated
+    #if [ "${OPENVINO_BUILD_SHARED}" = "OFF" ]
+    #then
+    #    sed -i '152,152s/SHARED/STATIC/g' inference-engine/src/inference_engine/CMakeLists.txt
+    #    sed -i 's/SHARED/STATIC/g' inference-engine/src/legacy_api/CMakeLists.txt
+    #    sed -i 's/SHARED/STATIC/g' inference-engine/src/transformations/CMakeLists.txt
+    #    sed -i 's/SHARED/STATIC/g' inference-engine/src/low_precision_transformations/CMakeLists.txt
+    #    sed -i 's/SHARED/STATIC/g' ngraph/src/ngraph/CMakeLists.txt
+    #fi
 }
 
 build_openvino() {
@@ -83,6 +83,8 @@ build_openvino() {
         -DENABLE_TBB_RELEASE_ONLY=OFF \
         -DTHREADING=TBB_AUTO \
         -DNGRAPH_COMPONENT_PREFIX="deployment_tools/ngraph/" \
+        -DENABLE_INTEL_GPU=OFF \
+        -DENABLE_SYSTEM_OPENCL=OFF \
         -DENABLE_MYRIAD=OFF \
         -DENABLE_CLDNN=OFF \
         -DENABLE_GNA=OFF \
@@ -110,18 +112,6 @@ copy_openvino_libraries() {
 
     cd ${BUILD_DIR}
 
-    if [ -d ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib64/ ]
-    then
-        mkdir -p ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib64/libngraph${LIB_EXT} ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib/
-    fi
-
-    # if [ -d ${OPENVINO_INSTALL_PATH}/lib64/ ]
-    # then
-    #     mkdir -p ${OPENVINO_INSTALL_PATH}/lib
-    #     cp ${OPENVINO_INSTALL_PATH}/lib64/libpugixml.a ${OPENVINO_INSTALL_PATH}/lib/
-    # fi
-
     if [ ! -d ${TNN_INSTALL_DIR} ] 
     then
         mkdir -p ${TNN_INSTALL_DIR}
@@ -137,19 +127,10 @@ copy_openvino_libraries() {
         mkdir -p ${TNN_INSTALL_DIR}/lib
     fi
 
-    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${TNN_INSTALL_DIR}/lib
-    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/plugins.xml ${BUILD_DIR}/
-    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libMKLDNNPlugin.so ${TNN_INSTALL_DIR}/lib/
-    cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/external/tbb/lib/* ${TNN_INSTALL_DIR}/lib/
-
-
     if [ "${OPENVINO_BUILD_SHARED}" = "ON" ]
     then
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_legacy${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/inference_engine/lib/intel64/libinference_engine_lp_transformations${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
-        cp ${OPENVINO_INSTALL_PATH}/deployment_tools/ngraph/lib/libngraph${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/runtime/lib/intel64/libopenvino.so ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/runtime/3rdparty/tbb/lib/libtbb.so ${TNN_INSTALL_DIR}/lib/
     fi
 }
 
@@ -188,7 +169,7 @@ cmake ${TNN_ROOT_PATH} \
 -DTNN_OPENVINO_BUILD_SHARED=${OPENVINO_BUILD_SHARED} \
 
 echo "Building TNN ..."
-make -j7
+make -j10
 
 if [ 0 -ne $? ]
 then

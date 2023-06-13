@@ -5,14 +5,14 @@
 
 #include <vector>
 
-#include <inference_engine.hpp>
+#include <ie/inference_engine.hpp>
 
 #include "tnn/core/abstract_network.h"
-#include "tnn/core/default_network.h"
 #include "tnn/core/blob.h"
 #include "tnn/core/blob_manager.h"
 #include "tnn/core/common.h"
 #include "tnn/core/context.h"
+#include "tnn/core/default_network.h"
 #include "tnn/core/macro.h"
 #include "tnn/interpreter/net_resource.h"
 #include "tnn/interpreter/net_structure.h"
