@@ -398,6 +398,33 @@ if(TNN_HUAWEI_NPU_ENABLE)
     add_subdirectory(source/tnn/device/huawei_npu)
     set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNNPU>")
 endif()
+if(TNN_ATLAS_ENABLE)
+    add_subdirectory(source/tnn/device/atlas)
+    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNAtlas>")
+    include_directories(${CMAKE_SOURCE_DIR}/source/tnn/device/atlas)
+    set(ASCEND_PATH $ENV{DDK_PATH})
+    if (NOT DEFINED ENV{DDK_PATH})
+        set(ASCEND_PATH "/usr/local/Ascend/ascend-toolkit/latest")
+        message(STATUS "set default ASCEND_PATH: ${ASCEND_PATH}")
+    else ()
+        message(STATUS "env ASCEND_PATH: ${ASCEND_PATH}")
+    endif()
+    set(ACL_LIB_PATH $ENV{NPU_HOST_LIB})
+    if (NOT DEFINED ENV{NPU_HOST_LIB})
+        set(ACL_LIB_PATH "/usr/local/Ascend/ascend-toolkit/latest/lib64")
+        message(STATUS "set default ACL_LIB_PATH: ${ACL_LIB_PATH}")
+    else ()
+        message(STATUS "env ACL_LIB_PATH: ${ACL_LIB_PATH}")
+    endif()
+    # Header path
+    include_directories(
+        ${ASCEND_PATH}/acllib/include/
+        )
+    # add host lib path
+    link_directories(
+        ${ACL_LIB_PATH}
+        )
+endif()
 
 if(TNN_RK_NPU_ENABLE)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)

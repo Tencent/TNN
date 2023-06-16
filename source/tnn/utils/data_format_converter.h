@@ -37,6 +37,8 @@ public:
 
     // @brief convert weights from [n][c][h][w] to [n][c/4][h][w][4]
     // @param data_tyep data type info
+    static Status ConvertFromNCHWToNHWCFloat(float *src, float *dst, int num, int channel, int height, int width);
+    static Status ConvertFromNHWCToNCHWFloat(float *src, float *dst, int num, int channel, int height, int width);
     static Status ConvertFromNCHWToNCHW4Float(float *src, float *dst, int num, int channel, int height, int width, bool transpose = false);
     static Status ConvertFromNCHWToNCHW4Half(short *src, short *dst, int num, int channel, int height, int width, bool transpose = false);
     static Status ConvertFromNCHWToNHWC4Int8(int8_t *src, int8_t *dst, int num, int channel, int hw);
@@ -52,6 +54,8 @@ public:
 
     static Status ConvertFromInt8ToFloatNHWC4(int8_t *src, float *dst, float *scale, int scale_len, int num,
                                               int channel, int height, int width);
+    static Status ConvertFromInt64ToFloatNCHW(int64_t *src, float *dst, int num, int channel, int height, int width);
+    static Status ConvertFromInt64NHWCToFloatNCHW(int64_t *src, float *dst, int num, int channel, int height, int width);
 
     enum CVT_DIR { NHWC2NCHW, NCHW2NHWC };
 

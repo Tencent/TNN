@@ -298,6 +298,15 @@ namespace test {
             } else {
                 config.params.push_back(model_path);
             }
+        } else if (config.model_type == MODEL_TYPE_ATLAS){
+            std::ifstream model_stream(FLAGS_mp, std::ios::binary);
+            if (!model_stream.is_open() || !model_stream.good()) {
+                config.params.push_back("");
+                return config;
+            }
+            std::stringstream model_content;
+            model_content << model_stream.rdbuf();
+            config.params.push_back(model_content.str());
         } else {
             config.params.push_back(FLAGS_mp);
         }
@@ -365,6 +374,9 @@ namespace test {
                 data_type = DATA_TYPE_INT32;
             } else if (format_type == 4) {
                 mat_type = RESERVED_INT8_TEST;
+            } else if (format_type == 5) {
+                mat_type = NC_INT64;
+                data_type = DATA_TYPE_INT64;
             }
 
             if (blob_desc.data_type == DATA_TYPE_INT32) {
@@ -393,6 +405,8 @@ namespace test {
                         reinterpret_cast<float*>(mat_data)[i] = (float)(rand() % 256) / 128.0f;
                     } else if (mat_type == NC_INT32) {
                         reinterpret_cast<int32_t*>(mat_data)[i] = rand() % 2;
+                    } else if (mat_type == NC_INT64) {
+                        reinterpret_cast<int64_t*>(mat_data)[i] = 1;
                     } else if (mat_type == RESERVED_INT8_TEST) {
                         reinterpret_cast<int8_t*>(mat_data)[i] = (rand() % 256) - 128;
                     } else {
@@ -407,6 +421,8 @@ namespace test {
                         input_stream >> reinterpret_cast<float*>(mat_data)[i];
                     } else if (mat_type == NC_INT32) {
                         input_stream >> reinterpret_cast<int32_t*>(mat_data)[i];
+                    } else if (mat_type == NC_INT64) {
+                        input_stream >> reinterpret_cast<int64_t*>(mat_data)[i];                                         
                     } else if (mat_type == RESERVED_INT8_TEST) {
                         int val;
                         input_stream >> val;
