@@ -385,6 +385,12 @@ namespace test {
             } else {
                 config.params.push_back(model_path);
             }
+        } else if (config.model_type == MODEL_TYPE_ATLAS){
+            std::ifstream model_stream(FLAGS_mp, std::ios::binary);
+            if (!model_stream.is_open() || !model_stream.good()) {
+                config.params.push_back("");
+                return config;
+            }
         } else if (config.model_type == MODEL_TYPE_TORCHSCRIPT) {
             config.params.push_back(std::string(FLAGS_mp));
         } else if (config.model_type == MODEL_TYPE_TORCHSCRIPT_BIN) {
@@ -464,8 +470,10 @@ namespace test {
                 data_type = DATA_TYPE_INT32;
             } else if (format_type == 4) {
                 mat_type = NC_INT8;
+                data_type = DATA_TYPE_INT8;
             } else if (format_type == 5) {
                 mat_type = NC_UINT8;
+                data_type = DATA_TYPE_UINT8;
             }
 
             if (blob_desc.data_type == DATA_TYPE_INT32) {
@@ -542,6 +550,8 @@ namespace test {
                         reinterpret_cast<float*>(mat_data)[i] = (float)(rand() % 256) / 128.0f;
                     } else if (mat_type == NC_INT32) {
                         reinterpret_cast<int32_t*>(mat_data)[i] = rand() % 2;
+                    } else if (mat_type == NC_INT64) {
+                        reinterpret_cast<int64_t*>(mat_data)[i] = rand() % 2;
                     } else if (mat_type == NC_INT8) {
                         reinterpret_cast<int8_t*>(mat_data)[i] = (rand() % 256) - 128;
                     } else if (mat_type == NC_UINT8) {
@@ -560,6 +570,8 @@ namespace test {
                         input_stream >> reinterpret_cast<float*>(mat_data)[i];
                     } else if (mat_type == NC_INT32) {
                         input_stream >> reinterpret_cast<int32_t*>(mat_data)[i];
+                    } else if (mat_type == NC_INT64) {
+                        input_stream >> reinterpret_cast<int64_t*>(mat_data)[i];                                         
                     } else if (mat_type == NCHW_HALF) {
                         float val;
                         input_stream >> val;

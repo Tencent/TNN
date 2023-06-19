@@ -43,6 +43,8 @@ DeviceType ConvertDeviceType(std::string device_type) {
         return DEVICE_RK_NPU;
     } else if ("APPLE_NPU" == device_type) {
         return DEVICE_APPLE_NPU;
+    }else if ("ATLAS" == device_type) {
+        return DEVICE_ATLAS;
     } else if ("ZIXIAO" == device_type) {
         return DEVICE_ZIXIAO;
     } else {
@@ -61,6 +63,8 @@ ModelType ConvertModelType(std::string model_type) {
         return MODEL_TYPE_NCNN;
     } else if ("RKCACHE" == model_type) {
         return MODEL_TYPE_RKCACHE;
+    } else if ("ATLAS" == model_type) {
+        return MODEL_TYPE_ATLAS;
     } else if ("TS" == model_type) {
         return MODEL_TYPE_TORCHSCRIPT;
     } else if ("TSB" == model_type) {
@@ -85,6 +89,8 @@ NetworkType ConvertNetworkType(std::string network_type) {
         return NETWORK_TYPE_RK_NPU;
     } else if ("TRT" == network_type) {
         return NETWORK_TYPE_TENSORRT;
+    } else if ("ATLAS" == network_type) {
+        return NETWORK_TYPE_ATLAS;
     } else if ("TORCH" == network_type) {
         return NETWORK_TYPE_TNNTORCH;
     } else if ("ZIXIAO" == network_type) {

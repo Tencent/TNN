@@ -189,6 +189,36 @@ Status MatUtils::CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* co
     MAT_CONVERTER_PREPARATION(src.GetDeviceType());
     return converter->CvtColor(src, dst, type, command_queue);
 }
+Status MatUtils::GetMatByteSize(Mat& src, int& byte_size) {
+    int N = src.GetBatch();
+    int C = src.GetChannel();
+    int H = src.GetHeight();
+    int W = src.GetWidth();
+    MatType mat_type = src.GetMatType();
+    if (NCHW_FLOAT == mat_type) {
+        byte_size = DimsVectorUtils::Count(src.GetDims()) * sizeof(float);
+    } else if (N8UC3 == mat_type) {
+        byte_size = N * 3 * W * H;
+    } else if (N8UC4 == mat_type) {
+        byte_size = N * 4 * W * H;
+    } else if (NGRAY == mat_type) {
+        byte_size = N * 1 * W * H;
+    } else if (NNV12 == mat_type || NNV21 == mat_type) {
+        if (H % 2 != 0 || W %2 != 0) {
+            LOGE("invaild width or height for YUV (need to be even): %d x %d\n", H, W);
+            return Status(TNNERR_PARAM_ERR, "invaild width or height for YUV");
+        }
+        byte_size = N * 3 * W * H / 2;
+    } else if (NC_INT32 == mat_type) {
+        byte_size = DimsVectorUtils::Count(src.GetDims()) * sizeof(int);
+    } else if (NC_INT64 == mat_type) {
+        byte_size = DimsVectorUtils::Count(src.GetDims()) * sizeof(int64_t);
+    } else {
+        LOGE("not support this mat type: %d\n", mat_type);
+        return Status(TNNERR_PARAM_ERR, "not support this mat type");
+    }
+    return TNN_OK;
+}
 
 Status MatUtils::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue) {
     auto ret = CheckSrcAndDstMat(src, dst, true, true, true);
