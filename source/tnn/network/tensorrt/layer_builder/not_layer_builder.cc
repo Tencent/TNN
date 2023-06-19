@@ -21,6 +21,15 @@ DECLARE_TENSORRT_LAYER_BUILDER(Not, LAYER_NOT);
 ILayer* NotTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+
+    nvinfer1::DataType in_dtype = tensor->getType();
+    if (in_dtype != nvinfer1::DataType::kBOOL) {
+        ILayer* cast_layer = network->addIdentity(*tensor);
+        cast_layer->setName((layer_name_+"_input_2bool").c_str());
+        cast_layer->setOutputType(0, nvinfer1::DataType::kBOOL);
+        tensor = cast_layer->getOutput(0);
+    }
+
     IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kNOT);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());

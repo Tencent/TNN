@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
@@ -38,7 +39,34 @@ nvinfer1::DataType GeluTRTPluginLayerBuilder::getOutputDataType(int index, const
 }
 
 ILayer* GeluTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
-    return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
+    auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+
+    ILayer* layer;
+    ITensor* tensor = input_tensor;
+    int dim_size = input_tensor->getDimensions().nbDims;
+    
+    layer = ConstantLayer(network, 0.707106793288165f, dim_size);
+    layer = network->addElementWise(*tensor, *(layer->getOutput(0)), ElementWiseOperation::kPROD);
+    tensor = layer->getOutput(0);
+    
+    layer = network->addUnary(*tensor, UnaryOperation::kERF);
+    tensor = layer->getOutput(0);
+
+    layer = ConstantLayer(network, 1.f, dim_size);
+    layer = network->addElementWise(*tensor, *(layer->getOutput(0)), ElementWiseOperation::kSUM);
+    tensor = layer->getOutput(0);
+
+    layer = ConstantLayer(network, 0.5, dim_size);
+    layer = network->addElementWise(*tensor, *(layer->getOutput(0)), ElementWiseOperation::kPROD);
+    tensor = layer->getOutput(0);
+
+    layer = network->addElementWise(*tensor, *input_tensor, ElementWiseOperation::kPROD);
+
+    if (layer != nullptr) {
+        layer->setName(layer_name_.c_str());
+    }
+    return layer;
 }
 
 DimsExprs GeluTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,

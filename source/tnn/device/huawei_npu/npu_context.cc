@@ -24,6 +24,10 @@ Status NpuContext::GetCommandQueue(void** command_queue) {
     return TNN_OK;
 }
 
+Status NpuContext::SetCommandQueue(void* command_queue) {
+    return TNN_OK;
+}
+
 Status NpuContext::OnInstanceForwardBegin() {
     return TNN_OK;
 }

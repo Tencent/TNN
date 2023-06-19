@@ -72,7 +72,7 @@ Status InnerProductLayerInterpreter::InterpretResource(Deserializer& deserialize
     return TNN_OK;
 }
 
-Status InnerProductLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status InnerProductLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     InnerProductLayerParam* layer_param = dynamic_cast<InnerProductLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

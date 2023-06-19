@@ -21,6 +21,10 @@
 
 namespace TNN_NS {
 
+//@brief create foreignBlob with blob descript only
+ForeignBlob::ForeignBlob(BlobDesc desc): Blob(desc, true) {
+}
+
 //@brief create foreignBlob with blob only
 ForeignBlob::ForeignBlob(Blob* blob): Blob(blob->GetBlobDesc(), blob->GetHandle()) {
     foreign_tensor_ = std::make_shared<ForeignTensor>();
@@ -43,10 +47,17 @@ std::shared_ptr<ForeignTensor> ForeignBlob::GetForeignTensor() {
 }
 
 //@brief set the ForeignTensor
-Status ForeignBlob::SetForeignTensor(std::shared_ptr<ForeignTensor> foreign_tensor) {
+Status ForeignBlob::SetForeignTensor(std::shared_ptr<ForeignTensor> foreign_tensor, bool replace) {
     foreign_tensor_ = foreign_tensor;
+    if (replace) {
+        is_replaced_ = true;
+    }
     return TNN_OK;
 }
 
+//@brief get replace flag
+bool ForeignBlob::GetReplaceFlag() {
+    return is_replaced_;
+}
 
 }  // namespace TNN_NS

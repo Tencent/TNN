@@ -19,78 +19,63 @@
 #include <cub/block/block_radix_sort.cuh>
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/device/cuda/utils.cuh"
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
 DECLARE_CUDA_ACC(LayerNorm, LAYER_LAYER_NORM);
 
-template<int THREAD_PER_BLOCK, typename T, typename Acc>
-__global__ void layer_norm_kernel(const T * input, T* output, const T *scale,
-        const T *bias, const int size, const int batch_size, const float eps) {
-    __shared__ Acc ssum1[THREAD_PER_BLOCK/32];
-    __shared__ Acc ssum2[THREAD_PER_BLOCK/32];
-    __shared__ Acc mean;
-    __shared__ Acc var;
+// Special Float2 Structure for LayerNorm, to calculate sum and variance sum within one CUB Reduction Call.
+// v1 for sum, v2 for variance sum.
+struct LNFloat2 {
+    float v1; float v2;
+    __device__ __host__ inline LNFloat2(const float a, const float b) : v1(a), v2(b) {}
+    __device__ __host__ inline LNFloat2() : v1(0.), v2(0.) {}
+    __device__ __host__ inline LNFloat2(const float& other): v1(other), v2(other * other) {}
+    __device__ __host__ inline LNFloat2(const __half& other): v1(float(other)), v2(float(other) * float(other)) {}
+    __device__ __host__ inline LNFloat2 operator+(const LNFloat2 &other) { return {v1 + other.v1, v2 + other.v2}; }
+    __device__ __host__ inline LNFloat2 &operator+=(const LNFloat2 &other) { v1 += other.v1; v2 += other.v2; return *this; }
+};
 
-    const int block_offset = blockIdx.x * size;
-    const T *ptr = input + block_offset;
-    T *dst = output + block_offset;
-
-    Acc thread_sum1 = 0.f;
-    Acc thread_sum2 = 0.f;
-
-    for (int i = threadIdx.x; i < size; i+=THREAD_PER_BLOCK) {
-        float value = get_float_value<T>(ptr[i]);
-        thread_sum1 += value;
-        thread_sum2 += value * value;
+struct LNFloat2CustomSum {
+    template <typename T>
+    CUB_RUNTIME_FUNCTION __device__ __host__ __forceinline__
+    T operator()(const T &a, const T &b) const {
+        return a + b;
     }
-
-    thread_sum1 += __shfl_down_sync(0xffffffff, thread_sum1, 16, 32);
-    thread_sum1 += __shfl_down_sync(0x0000ffff, thread_sum1, 8, 16);
-    thread_sum1 += __shfl_down_sync(0x000000ff, thread_sum1, 4, 8);
-    thread_sum1 += __shfl_down_sync(0x0000000f, thread_sum1, 2, 4);
-    thread_sum1 += __shfl_down_sync(0x00000003, thread_sum1, 1, 2);
-
-    thread_sum2 += __shfl_down_sync(0xffffffff, thread_sum2, 16, 32);
-    thread_sum2 += __shfl_down_sync(0x0000ffff, thread_sum2, 8, 16);
-    thread_sum2 += __shfl_down_sync(0x000000ff, thread_sum2, 4, 8);
-    thread_sum2 += __shfl_down_sync(0x0000000f, thread_sum2, 2, 4);
-    thread_sum2 += __shfl_down_sync(0x00000003, thread_sum2, 1, 2);
-
-    if (threadIdx.x % 32 == 0) {
-        ssum1[threadIdx.x / 32] = thread_sum1;
-        ssum2[threadIdx.x / 32] = thread_sum2;
+    
+    CUB_RUNTIME_FUNCTION __device__ __host__ __forceinline__
+    LNFloat2 operator()(const LNFloat2 &a, const LNFloat2 &b) const {
+        return {a.v1 + b.v1, a.v2 + b.v2};
     }
-    __syncthreads();
+};
 
-    if (threadIdx.x < blockDim.x / 32) {
-        thread_sum1 = ssum1[threadIdx.x];
-        thread_sum2 = ssum2[threadIdx.x];
-    } else {
-        thread_sum1 = 0;
-        thread_sum2 = 0;
-    }
-    thread_sum1 += __shfl_down_sync(0x0000000f, thread_sum1, 2, 4);
-    thread_sum1 += __shfl_down_sync(0x00000003, thread_sum1, 1, 2);
-
-    thread_sum2 += __shfl_down_sync(0x0000000f, thread_sum2, 2, 4);
-    thread_sum2 += __shfl_down_sync(0x00000003, thread_sum2, 1, 2);
-
-    if (threadIdx.x == 0) {
-        mean = thread_sum1 / size;
-        var = (thread_sum2 / size - mean * mean);
-        var = 1.0 / sqrt(var + eps);
-    }
-    __syncthreads();
-
-    #pragma unroll(4)
-    for (int i = threadIdx.x; i < size; i += THREAD_PER_BLOCK) {
-        float k = get_float_value<T>(scale[i]) * var;
-        float b = - mean * k + get_float_value<T>(bias[i]);
-        dst[i] = convert_float_value<T>((get_float_value<T>(ptr[i]) * k + b));
+// Step 1: Set offset for CUB reduce kernel if necessary
+__global__ void ln_set_reduce_offset_kernel(int *offset, const int channels, const int channel_area) {
+    CUDA_KERNEL_LOOP(index, channels+1) {
+        offset[index] = index * channel_area;
     }
 }
+
+// Step 4: Calculate Output with scale, bias and calculated mean, var.
+template<typename T>
+__global__ void ln_mul_add_kernel(const T *input, T *output, const T *scale, const T *bias,
+                                  const LNFloat2 *mean_var,
+                                  const int count, const float eps) {
+    int offset = blockIdx.x * blockDim.x + threadIdx.x;
+    int total_offset = blockIdx.y * count + offset;
+    if (offset < count) {
+        const float* mean_var_float = reinterpret_cast<const float*>(mean_var);
+        float mean = mean_var_float[blockIdx.y * 2 + 0] / float(count);
+        float var  = mean_var_float[blockIdx.y * 2 + 1] / float(count) - mean * mean;
+        var = 1.0 / sqrt(var + eps);
+        float k = float(scale[offset]) * var;
+        float b = - mean * k + float(bias[offset]);
+        output[total_offset] = T(float(input[total_offset]) * k + b);
+    }
+}
+
 
 Status CudaLayerNormLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
@@ -98,6 +83,11 @@ Status CudaLayerNormLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     if (ret != TNN_OK) {
         return ret;
     }
+
+    // Create TempBuffer in Init Stage for LayerNorm
+    CreateTempBuf(sizeof(LNFloat2) * 4); // Buffer 0 for Stored Mean & Var
+    CreateTempBuf(sizeof(LNFloat2) * 4); // Buffer 1 for Cub::Reduce Offsets
+    CreateTempBuf(sizeof(LNFloat2) * 4); // Buffer 2 for Cub::Reduce Tempspace
 
     return TNN_OK;
 }
@@ -121,7 +111,6 @@ Status CudaLayerNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     }
 
     const int channel_dim_size = (int)dims_input.size() - reduce_dim_size;
-
     const int channels = DimsVectorUtils::Count(dims_input, 0, channel_dim_size);
     const int channel_area = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims, channel_dim_size);
     if (0 == channels || 0 == channel_area) {
@@ -134,20 +123,57 @@ Status CudaLayerNormLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
     void *scale_data  = scale_blob->GetHandle().base;
     void *bias_data   = bias_blob->GetHandle().base;
 
-    const int THREAD_PER_BLOCK = 128;
+    const int THREAD_PER_BLOCK = 1024;
+    int num_blocks = (channel_area - 1) / THREAD_PER_BLOCK + 1;
     dim3 griddim;
-    griddim.x = channels;
+    griddim.x = num_blocks;
+    griddim.y = channels; // batch_size
+
+    // Re-Allocate Temp Buffer if size of existing one is not enough.
+    ResizeTempBuf(0, sizeof(LNFloat2) * channels); // Buffer for stored mean & var
+    ResizeTempBuf(1, sizeof(int) * (channels + 1)); // Buffer for temp offsets
+    LNFloat2* temp0_ptr = static_cast<LNFloat2*>(tempbufs_[0].ptr);
+    int* offsets_ptr = static_cast<int*>(tempbufs_[1].ptr);
+    LNFloat2CustomSum tuple2_custom_sum;
+
+    // Step 1: Set offsets for CUB Reduction kernel if necessary
+    ln_set_reduce_offset_kernel<<<1, 256, 0, context_->GetStream()>>>(offsets_ptr, channels, channel_area);
 
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
-        layer_norm_kernel<THREAD_PER_BLOCK, float, float><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>((float*)input_data,
-            (float *)output_data, (float *)scale_data, (float *)bias_data, channel_area, channels, layer_param->eps);
+        // Step 2: Determine temporary device storage requirements for CUB reduction, allocate if necessary
+        size_t curr_cub_temp_bytes = 0;
+        CubDebug(cub::DeviceSegmentedReduce::Reduce(nullptr, curr_cub_temp_bytes, (float*)input_data, temp0_ptr,
+                                                    channels, offsets_ptr, offsets_ptr + 1, tuple2_custom_sum, LNFloat2(0), context_->GetStream()));
+        ResizeTempBuf(2, curr_cub_temp_bytes); // Buffer for Cub TempSpace
+
+        // Step 3: Call CUB Reduction for a second time, Run mean var sum-reduction
+        CubDebug(cub::DeviceSegmentedReduce::Reduce(tempbufs_[2].ptr, curr_cub_temp_bytes, (float*)input_data, temp0_ptr,
+                                                    channels, offsets_ptr, offsets_ptr + 1, tuple2_custom_sum, LNFloat2(0), context_->GetStream()));
+
+        // Step 4: LayerNorm Multiple & Add with Reduced Mean & Var
+        ln_mul_add_kernel<float><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>
+            ((float*)input_data, (float *)output_data, (float *)scale_data, (float *)bias_data,
+             temp0_ptr, channel_area, layer_param->eps);
     } else if (input_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
-        layer_norm_kernel<THREAD_PER_BLOCK, __half, float><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>((__half*)input_data,
-            (__half *)output_data, (__half *)scale_data, (__half *)bias_data, channel_area, channels, layer_param->eps);
+        // Step 2: Determine temporary device storage requirements for CUB reduction, allocate if necessary
+        size_t curr_cub_temp_bytes = 0;
+        CubDebug(cub::DeviceSegmentedReduce::Reduce(nullptr, curr_cub_temp_bytes, (__half*)input_data, temp0_ptr,
+                                                    channels, offsets_ptr, offsets_ptr + 1, tuple2_custom_sum, LNFloat2(0), context_->GetStream()));
+        ResizeTempBuf(2, curr_cub_temp_bytes); // Buffer for Cub TempSpace
+
+        // Step 3: Call CUB Reduction for a second time, Run mean var sum-reduction
+        CubDebug(cub::DeviceSegmentedReduce::Reduce(tempbufs_[2].ptr, curr_cub_temp_bytes, (__half*)input_data, temp0_ptr,
+                                                    channels, offsets_ptr, offsets_ptr + 1, tuple2_custom_sum, LNFloat2(0), context_->GetStream()));
+
+        // Step 4: LayerNorm Multiple & Add with Reduced Mean & Var
+        ln_mul_add_kernel<__half><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>
+            ((__half*)input_data, (__half *)output_data, (__half *)scale_data, (__half *)bias_data,
+             temp0_ptr, channel_area, layer_param->eps);
     } else {
-        LOGE("Error: layer acc dont support datatype: %d\n", input_blob->GetBlobDesc().data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: layer acc don't support datatype");
+        LOGE("Error: LayerNorm layer acc does not support datatype: %d\n", input_blob->GetBlobDesc().data_type);
+        return Status(TNNERR_MODEL_ERR, "Error: LayerNorm layer acc does not support current datatype");
     }
+
     return TNN_OK;
 }
 

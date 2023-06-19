@@ -83,7 +83,7 @@ bool AnchorGraph::matchUp(const Node *node, Node* probe, int recursion, bool sil
     return true;   
 }
 
-std::vector<const Node *> AnchorGraph::allStructualMatchedNodes(const Node * pattern_sibling_node) {
+std::set<const Node *> AnchorGraph::allStructualMatchedNodes(const Node * pattern_sibling_node) {
     struct Path {
         const Node * n;
         std::stack<LayerType> types;
@@ -119,7 +119,7 @@ std::vector<const Node *> AnchorGraph::allStructualMatchedNodes(const Node * pat
         }
     }
 
-    std::vector<const Node *> res;
+    std::set<const Node *> res;
     // BFS to find all matched Nodes
     while(!start_points.empty()) {
         Path path = start_points.front(); start_points.pop();
@@ -131,7 +131,7 @@ std::vector<const Node *> AnchorGraph::allStructualMatchedNodes(const Node * pat
         DEBUG("%s", ss.str().c_str());
 
         if (path.types.empty()) {
-            res.push_back(path.n);
+            res.insert(path.n);
             continue;
         }
 
@@ -161,7 +161,9 @@ void AnchorGraph::formalize(Graph *g) {
     //     2.here we do not modify the original Graph, Nodes and Edges.
     //     3.the AnchorGraph do not use marked_outputs.
 
+    std::vector<std::string> output_order_ = output_order;
     *dynamic_cast<Graph*>(this) = Graph();
+    setOutputsOrder(output_order_);
     tnn_structure = g->tnn_structure;
     tnn_resource = g->tnn_resource;
 
@@ -403,7 +405,8 @@ void match(const std::shared_ptr<Graph> graph, const std::shared_ptr<Graph> patt
                 for(auto &n : possible_outs) { ss << "[" << n->name() << "],"; }
                 DEBUG("%s", ss.str().c_str());
 
-                for(auto &candidate : possible_outs) {
+
+		        for(auto &candidate : possible_outs) {
                     res->backTrace(getRecursion(cur.output_id));
                     if (res->matchUp(candidate, pattern_outs[cur.output_id], getRecursion(cur.output_id))) {
                         que.push(DFSState(cur.output_id +1, candidate));

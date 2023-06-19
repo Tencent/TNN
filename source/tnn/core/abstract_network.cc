@@ -29,6 +29,11 @@ Status AbstractNetwork::ShareCommandQueue(AbstractNetwork *network) {
     return Status(TNNERR_COMMON_ERROR, "Subclass of AbstractNetwork must implement this func ShareCommandQueue");
 }
 
+Status AbstractNetwork::ShareNetResource(AbstractNetwork *network) {
+    LOGE("Subclass of AbstractNetwork must implement this func ShareNetResource\n");
+    return Status(TNNERR_COMMON_ERROR, "Subclass of AbstractNetwork must implement this func ShareNetResource");
+}
+
 Status AbstractNetwork::SetCpuNumThreads(int num_threads) {
     return TNN_OK;
 }
@@ -67,6 +72,58 @@ void NetworkImplManager::RegisterNetworkImplFactory(NetworkType type, AbstractNe
         auto &impl_map = NetworkImplManager::GetNetworkImplFactoryMap();
         impl_map[type] = std::shared_ptr<AbstractNetworkImplFactory>(factory);
     }
+}
+
+
+Status AbstractNetwork::InitWrapper(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
+        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type, bool enable_const_folder) {
+    Status ret = Init(net_config, model_config, interpreter, min_inputs_shape, max_inputs_shape, inputs_data_type, enable_const_folder);
+    if(ret != TNN_OK) {
+        return ret;
+    }
+
+    BlobMap inputs;
+    ret = GetAllInputBlobs(inputs);
+    if (ret != TNN_OK) {
+        LOGE("ERROR: get input blobs failed");
+        return ret;
+    }
+
+    // init min max shapes
+    for(auto iter : inputs) {
+        max_inputs_shape_[iter.first] = iter.second->GetBlobDesc().dims;
+        if(min_inputs_shape.count(iter.first) > 0) {
+            min_inputs_shape_[iter.first] = min_inputs_shape[iter.first];
+        } else {
+            min_inputs_shape_[iter.first] = iter.second->GetBlobDesc().dims;
+        }
+    }
+
+    return ret;
+}
+
+Status AbstractNetwork::ReshapeWrapper(const InputShapesMap &inputs) {
+    for(auto iter : inputs) {
+        auto name = iter.first;
+        auto dims = iter.second;
+        if(min_inputs_shape_.count(name) > 0) {
+            auto min_dims = min_inputs_shape_[name];
+            auto max_dims = max_inputs_shape_[name];
+            if(min_dims.size() != dims.size()) {
+                return Status(TNNERR_PARAM_ERR, "input shape dims error \n");
+            } else {
+                for(int i = 0; i < dims.size(); ++i) {
+                    if((dims[i] > max_dims[i])) {
+                        return Status(TNNERR_PARAM_ERR, "input shape dims error \n");
+                    }
+                }
+            }
+        } else {
+            return Status(TNNERR_PARAM_ERR, "input shape dims error \n");
+        }
+    }
+
+    return Reshape(inputs);
 }
 
 }  // namespace TNN_NS

@@ -40,5 +40,6 @@ Status CudaReshapeLayerAcc::Forward(const std::vector<Blob *> &inputs, const std
 }
 
 REGISTER_CUDA_ACC(Reshape, LAYER_RESHAPE);
+REGISTER_CUDA_ACC(Reshape, LAYER_RESHAPETORCH);
 
 }  // namespace TNN_NS

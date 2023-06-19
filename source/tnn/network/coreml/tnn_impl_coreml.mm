@@ -36,9 +36,23 @@ Status TNNImplCoreML::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     return Status(TNNERR_NET_ERR, "Error: CoreML do not supprt get model input shapes");
 }
 
+Status TNNImplCoreML::GetModelInputDataTypeMap(InputDataTypeMap& data_type_map) {
+    return Status(TNNERR_NET_ERR, "Error: CoreML do not supprt get model input data types");
+}
+
+Status TNNImplCoreML::GetModelInputNames(std::vector<std::string>& input_names) {
+    return Status(TNNERR_NET_ERR, "Error: CoreML do not supprt get model input names");
+}
+
+Status TNNImplCoreML::GetModelOutputNames(std::vector<std::string>& output_names) {
+    return Status(TNNERR_NET_ERR, "Error: CoreML do not supprt get model output names");
+
+}
+
 std::shared_ptr<Instance> TNNImplCoreML::CreateInst(NetworkConfig& net_config,
-                                               Status& status,
-                                               InputShapesMap inputs_shape) {
+                                                    Status& status,
+                                                    InputShapesMap inputs_shape,
+                                                    InputDataTypeMap inputs_data_type) {
     auto instance = std::make_shared<Instance>(net_config, model_config_);
     status        = instance->Init(nullptr, inputs_shape);
 
@@ -50,10 +64,11 @@ std::shared_ptr<Instance> TNNImplCoreML::CreateInst(NetworkConfig& net_config,
 
 
 std::shared_ptr<Instance> TNNImplCoreML::CreateInst(NetworkConfig& net_config,
-                                               Status& status,
-                                               InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+                                                    Status& status,
+                                                    InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape,
+                                                    InputDataTypeMap inputs_data_type) {
     auto instance = std::make_shared<Instance>(net_config, model_config_);
-    status        = instance->Init(nullptr, min_inputs_shape, max_inputs_shape);
+    status        = instance->Init(nullptr, min_inputs_shape, max_inputs_shape, inputs_data_type);
 
     if (status != TNN_OK) {
         return nullptr;

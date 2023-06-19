@@ -84,5 +84,6 @@ Status CpuSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::
 }
 
 REGISTER_CPU_ACC(SplitV, LAYER_SPLITV);
+REGISTER_CPU_ACC(SplitV, LAYER_SPLITTORCH);
 
 }  // namespace TNN_NS

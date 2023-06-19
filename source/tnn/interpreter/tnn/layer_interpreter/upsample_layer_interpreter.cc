@@ -58,7 +58,7 @@ DECLARE_LAYER_INTERPRETER(Upsample, LAYER_UPSAMPLE);
         return TNN_OK;
     }
 
-    Status UpsampleLayerInterpreter::SaveProto(std::ofstream& output_stream,
+    Status UpsampleLayerInterpreter::SaveProto(std::ostream& output_stream,
                                                LayerParam* param) {
         UpsampleLayerParam* layer_param =
             dynamic_cast<UpsampleLayerParam*>(param);

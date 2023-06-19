@@ -25,6 +25,7 @@
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
 #include "tnn/network/tensorrt/tensorrt_tensor.h"
 #include "tnn/network/tensorrt/tensorrt_blob_manager.h"
+#include "NvInferPlugin.h"
 
 namespace TNN_NS {
 
@@ -33,13 +34,19 @@ public:
     void log(nvinfer1::ILogger::Severity severity, const char* msg) noexcept override {
         // suppress info-level messages
 #ifndef DEBUG
-        if (severity == Severity::kINFO || severity == Severity::kVERBOSE) return;
+        if (severity == Severity::kINFO || severity == Severity::kVERBOSE || severity == Severity::kWARNING) return;
 #endif
         const char * skips[] = {
             "INVALID_ARGUMENT: Cannot find binding of given name",
             "Unused Input:",
             "Detected invalid timing cache",
             "unused or used only at compile-time",
+            "Subnormal FP16 values detected",
+            "following issues when converted to FP16",
+            "Values less than smallest positive FP16 Subnormal value detected",
+            "from a network created with NetworkDefinitionCreationFlag::kEXPLICIT_BATCH flag",
+            "required to use ViltModel. Please upgrade torch.",
+            "please modify the weights or retrain with regularization"
         };
 
         std::string msg_str = std::string(msg);
@@ -76,9 +83,10 @@ public:
     // @param net_resource network resource info
     // @param inputs_shape_map modify input shape, if empty, it will use the
     // shape in proto
+	// @param inputs_data_type modify input data type, by default float.
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config,
         AbstractModelInterpreter* interpreter, InputShapesMap min_inputs_shape,
-        InputShapesMap max_inputs_shape, bool enable_const_folder);
+        InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type, bool enable_const_folder);
 
     // @brief network forward
     virtual Status Forward();
@@ -94,7 +102,7 @@ public:
     virtual void OnSharedForwardMemoryChanged(void *memory);
 
     // @brief get network forward for all blob memory size
-    virtual Status GetForwardMemorySize(int &memory_size);
+    virtual Status GetForwardMemorySize(size_t &memory_size);
 
     // @brief set forward memory when share memory mode is set from external
     virtual Status SetForwardMemory(void *memory);
@@ -103,7 +111,7 @@ public:
 
     std::string GetCacheFileName(std::vector<std::string> params_md5, BlobMap input_map,
         BlobMap output_map, const InputShapesMap &min_inputs_shape, int device_id,
-        bool int8_mode, bool use_fp16, bool enable_const_folder);
+        bool int8_mode, bool use_fp16, bool enable_const_folder, std::string cache_path);
 
     std::set<std::string> m_concat_blob_names;
 
@@ -123,9 +131,13 @@ private:
 
     Status CheckConstBlobs();
 
+    void CheckExplicitPrecision(NetStructure *net_structure);
+
     bool int8_mode;
+    bool explicit_int8_mode;
     bool test_mode;
     int m_max_batchsize;
+    nvinfer1::IBuilder* m_trt_builder;
     nvinfer1::ICudaEngine* m_trt_engine;
     nvinfer1::IExecutionContext* m_trt_context;
     static TRTLogger m_trt_logger;

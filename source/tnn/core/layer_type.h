@@ -66,6 +66,7 @@ enum LayerType {
     LAYER_QUANTIZEV2       = 46,
     LAYER_LSTM             = 47,
     // Quantization related layers
+    LAYER_QUANTIZE                                          = 48,
     LAYER_QUANTIZEDPOOLING                                  = 49,
     LAYER_DEQUANTIZE                                        = 50,
     LAYER_QUANTIZEDRESHAPE                                  = 51,
@@ -191,6 +192,7 @@ enum LayerType {
     LAYER_POOLING_3D                                        = 202,
     LAYER_CONVOLUTION_1D                                    = 203,
     LAYER_POOLING_1D                                        = 204,
+    LAYER_DECONVOLUTION_1D                                  = 205,
 
     LAYER_HDRGUIDE                                          = 302,
     LAYER_PIXEL_SHUFFLE                                     = 303,
@@ -227,10 +229,30 @@ enum LayerType {
     LAYER_LESS                                              = 334,
     LAYER_NON_MAX_SUPPRESSION                               = 335,
     LAYER_SCATTER                                           = 336,
+    LAYER_SPLITTORCH                                        = 337,
+    LAYER_PERMUTEV2                                         = 338,
+    LAYER_CLONE                                             = 339,
+    LAYER_RESHAPETORCH                                      = 340,
+    LAYER_NORM                                              = 341,
+    LAYER_CLAMPMIN                                          = 342,
+    LAYER_EXPANDAS                                          = 343,
+    LAYER_FLATTENTORCH                                      = 344,
+    LAYER_OR                                                = 345,
+    LAYER_XOR                                               = 346,
+    LAYER_ROLL                                              = 347,
+    LAYER_CUMSUM                                            = 348,
+    LAYER_MOD                                               = 349,
+    LAYER_GATHERELEMENTS                                    = 350,
+    LAYER_LINSPACE                                          = 351,
+    
     LAYER_SWISH                                             = 401,
     LAYER_GLU                                               = 402,
 
     LAYER_BLOB_SCALE                                        = 600,
+    LAYER_FUSED                                             = 601,
+    LAYER_EFFECTIVE_TRANSFORMER                             = 602,
+    LAYER_FUSED_SPLIT_GELU                                  = 603,
+    LAYER_FUSED_GROUP_NORM_SWISH                            = 604,
 
     LAYER_INT8_RANGE                                        = 700,
     LAYER_TRT_ENGINE                                        = 701,
@@ -241,6 +263,10 @@ enum LayerType {
     // TNN Graph Matcher related LAYER_TYPES
     LAYER_DUMMY_TYPE                                        = 1000,
     LAYER_ANY_TYPE                                          = 1001,
+
+    // Torch Inplace Op
+    LAYER_INPLACE_COPY                                      = 2000,
+    LAYER_INPLACE_SLICE_COPY                                = 2001,
 };
 
 LayerType GlobalConvertLayerType(std::string layer_type_str);

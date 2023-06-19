@@ -19,11 +19,12 @@
 
 namespace TNN_NS {
 
-DECLARE_LAYER(Expand, LAYER_EXPAND);
+DECLARE_LAYER_WITH_FUNC(Expand, LAYER_EXPAND,
+                        virtual Status FillLayerParamWithConstantResource(););
 
 Status ExpandLayer::InferOutputDataType() {
     BaseLayer::InferOutputDataType();
-
+    
     if (const_resource_) {
         const auto iter = const_resource_->find(input_blobs_[0]->GetBlobDesc().name);
         if (iter != const_resource_->end()) {
@@ -43,10 +44,36 @@ Status ExpandLayer::InferOutputShape(bool ignore_error) {
     Blob* input_blob = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
     auto input_dims = input_blob->GetBlobDesc().dims;
-    auto shape_dims = layer_param->shape;
+    std::vector<int> shape_dims;
+    shape_dims = layer_param->shape;
+    
     auto output_dims = DimsFunctionUtils::Expand(input_dims, shape_dims, nullptr);
     output_blob->GetBlobDesc().dims = output_dims;
     return TNN_OK;
+}
+
+Status ExpandLayer::FillLayerParamWithConstantResource() {
+    Status status = TNN_OK;
+    auto layer_param = dynamic_cast<ExpandLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+    
+    //根据const resource更新维度信息
+    if (input_blobs_.size() >= 2) {
+        auto shape_blob_name = input_blobs_[1]->GetBlobDesc().name;
+        if (const_resource_ != nullptr && const_resource_->find(shape_blob_name) != const_resource_->end()) {
+            auto shape_buffer = (*const_resource_)[shape_blob_name];
+            auto dim_count = shape_buffer->GetDataCount();
+            auto dim_data = (int *)shape_buffer->force_to<int *>();
+            DimsVector dims;
+            for (int i=0; i<dim_count; i++) {
+                dims.push_back(dim_data[i]);
+            }
+            if (layer_param->shape.size()==0) {
+                layer_param->shape = dims;
+            }
+        }
+    }
+    return status;
 }
 
 REGISTER_LAYER(Expand, LAYER_EXPAND);

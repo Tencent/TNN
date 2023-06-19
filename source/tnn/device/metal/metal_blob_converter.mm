@@ -51,6 +51,7 @@ protected:
     Status AllocateComputePipeline(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob,
                                    void *command_queue);
     bool CheckDeviceAndMat(DeviceType device_type, MatType mat_type);
+    bool NeedDoScaleBias(MatConvertParam& param);
     std::shared_ptr<Mat> buffer_mat_ = nullptr;
 };
 
@@ -63,10 +64,26 @@ bool MetalBlobConverterAcc::CheckDeviceAndMat(DeviceType device_type, MatType ma
     bool device_supported = (device_type == DEVICE_METAL || device_type == DEVICE_ARM || 
             device_type == DEVICE_X86 || device_type == DEVICE_NAIVE);
 
-    bool mat_supported = (mat_type == N8UC4 || mat_type == N8UC3 || mat_type == NGRAY||
-            mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32);
+    bool mat_supported = (mat_type == N8UC4 || mat_type == N8UC3 || mat_type == NGRAY ||
+            mat_type == NCHW_FLOAT || mat_type == NCHW_BFP16 || mat_type == NC_INT32 ||
+            mat_type == RESERVED_BFP16_TEST);
 
     return device_supported && mat_supported;
+}
+
+bool MetalBlobConverterAcc::NeedDoScaleBias(MatConvertParam &param) {
+    for (auto s : param.scale) {
+        if (s != 1.0f) {
+            return true;
+        }
+    }
+    for (auto b : param.bias) {
+        if (b != 0.0f) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *mat, Blob *blob, bool is_mat_to_blob) {
@@ -93,7 +110,7 @@ Status MetalBlobConverterAcc::AllocateBufferParam(MatConvertParam param, Mat *ma
         bias_texture_buffer  = is_mat_to_blob ? 1.0    : 1.0 / 255.0f;
     }
 
-    if (mat_type == NCHW_FLOAT || mat_type == NGRAY || mat_type == RESERVED_BFP16_TEST || mat_type == NC_INT32) {
+    if (mat_type == NCHW_FLOAT || mat_type == NGRAY || mat_type == NCHW_BFP16 || mat_type == NC_INT32 || mat_type == RESERVED_BFP16_TEST) {
         // scale and bias should at least have channel elements, so we use another buffer instead of metal_param
         if (param.scale.size() < metal_param.channel || param.bias.size() < metal_param.channel) {
             // invalid scale and bias
@@ -247,7 +264,7 @@ Status MetalBlobConverterAcc::AllocateComputePipeline(MatConvertParam param, Mat
                 LOGD("data_converter_nc4hw4_2_nchw_float_v2\n");
             }
         }
-    } else if (mat_type == RESERVED_BFP16_TEST) {
+    } else if (mat_type == NCHW_BFP16 || mat_type == RESERVED_BFP16_TEST) {
         if (is_mat_to_blob) {
             if (blob_data_format == DATA_FORMAT_NCHW) {
                 func_name = @"data_converter_nchw_half2ftype";
@@ -427,7 +444,7 @@ Status MetalBlobConverterAcc::ConvertToMatCommon(Mat &output_mat, Blob *input_bl
 
         [command_buffer waitUntilCompleted];
         memcpy(output_mat.GetData(), output_mtl_buffer.contents, count * bytes_size);
-    } else if (mat_type == NGRAY ||mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
+    } else if (mat_type == NGRAY ||mat_type == NCHW_FLOAT || mat_type == NCHW_BFP16 || mat_type == RESERVED_BFP16_TEST) {
         auto input_buffer_blob          = dynamic_cast<Blob *>(input_blob);
         id<MTLBuffer> output_mtl_buffer = nil;
 
@@ -723,7 +740,7 @@ Status MetalBlobConverterAcc::ConvertFromMatCommon(Mat &input_mat, Blob *output_
                 [command_buffer waitUntilScheduled];
             }
             return TNN_OK;
-        } else if (mat_type == NGRAY || mat_type == NCHW_FLOAT || mat_type == RESERVED_BFP16_TEST) {
+        } else if (mat_type == NGRAY || mat_type == NCHW_FLOAT || mat_type == NCHW_BFP16 || mat_type == RESERVED_BFP16_TEST) {
             // For Buffer input
 
             id<MTLBuffer> input_buffer = nil;

@@ -23,7 +23,9 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <iostream>
 #include <string>
+#include <thread>
 
 #include "test/flags.h"
 #include "test/test_utils.h"
@@ -38,6 +40,7 @@
 #include "tnn/utils/cpu_utils.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
+#include "tnn/utils/device_utils.h"
 #include "tnn/utils/omp_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
@@ -50,9 +53,9 @@ namespace TNN_NS {
 namespace test {
 
     int Run(int argc, char* argv[]) {
-        // parse command line params
-        if (!ParseAndCheckCommandLine(argc, argv))
+        if (!TNN_NS::test::ParseAndCheckCommandLine(argc, argv))
             return -1;
+
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
         g_tnn_dump_directory = FLAGS_op;
 #endif
@@ -66,105 +69,137 @@ namespace test {
         NetworkConfig network_config = GetNetworkConfig();
 
         InputShapesMap input_shape = GetInputShapesMap();
+        InputDataTypeMap input_data_type = GetInputDataTypeMap();
 
         srand(102);
 
         TNN net;
         Status ret = net.Init(model_config);
         model_config.params.clear();
-        if (CheckResult("init tnn", ret)) {
-            auto instance = net.CreateInst(network_config, ret, input_shape);
-            if (!CheckResult("create instance", ret)) {
-                return ret;
-            }
-            instance->SetCpuNumThreads(std::max(FLAGS_th, 1));
 
-            //get blob
-            BlobMap input_blob_map;
-            BlobMap output_blob_map;
-            void* command_queue;
-            instance->GetAllInputBlobs(input_blob_map);
-            instance->GetAllOutputBlobs(output_blob_map);
-            instance->GetCommandQueue(&command_queue);
-
-            //create mat and converter
-            MatMap input_mat_map = CreateBlobMatMap(input_blob_map, FLAGS_it);
-            InitInputMatMap(input_mat_map);
-            auto input_converters_map = CreateBlobConverterMap(input_blob_map);
-            auto input_params_map = CreateConvertParamMap(input_mat_map, true);
-
-            //mat format NCHW_FLOAT
-            MatMap output_mat_map = CreateBlobMatMap(output_blob_map, 0);
-            auto output_converters_map = CreateBlobConverterMap(output_blob_map);
-            auto output_params_map = CreateConvertParamMap(output_mat_map, false);
-
-            for (int i = 0; i < FLAGS_wc; ++i) {
-                for(auto element : input_converters_map) {
-                    auto name = element.first;
-                    auto blob_converter = element.second;
-                    blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
-                }
-                ret = instance->ForwardAsync(nullptr);
-                for(auto element : output_converters_map) {
-                    auto name = element.first;
-                    auto blob_converter = element.second;
-                    blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
-                }
-            }
-#if TNN_PROFILE
-            instance->StartProfile();
-#endif
-
-            std::string model_name = FLAGS_mp;
-            if(FLAGS_mp.find_last_of("/") != -1) {
-                model_name = FLAGS_mp.substr(FLAGS_mp.find_last_of("/") + 1); 
-            }   
- 
-            Timer timer(model_name + " - " + FLAGS_dt);
-
-            for (int i = 0; i < FLAGS_ic; ++i) {
-                timer.Start();
-                for(auto element : input_converters_map) {
-                    auto name = element.first;
-                    auto blob_converter = element.second;
-                    ret = blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
-                    if (!CheckResult("ConvertFromMat", ret)) {
-                        return ret;
-                    }
-                }
-#if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
-                ret = instance->Forward();
-#else
-                ret = instance->ForwardAsync(nullptr);
-#endif
-                if (!CheckResult("Forward", ret)) {
+        auto instance_run = [&]() -> int {
+            if (CheckResult("init tnn", ret)) {
+                auto instance = net.CreateInst(network_config, ret, input_shape, input_data_type);
+                if (!CheckResult("create instance", ret)) {
                     return ret;
                 }
-                for(auto element : output_converters_map) {
-                    auto name = element.first;
-                    auto blob_converter = element.second;
-                    ret = blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
-                    if (!CheckResult("ConvertToMat", ret)) {
-                        return ret;
+                instance->SetCpuNumThreads(std::max(FLAGS_th, 1));
+
+                //get blob
+                BlobMap input_blob_map;
+                BlobMap output_blob_map;
+                void* command_queue;
+                instance->GetAllInputBlobs(input_blob_map);
+                instance->GetAllOutputBlobs(output_blob_map);
+                instance->GetCommandQueue(&command_queue);
+
+                //create mat and converter
+                MatMap input_mat_map;
+                CreateBlobMatMap(input_blob_map, FLAGS_if, input_mat_map);
+                InitInputMatMap(input_mat_map);
+                auto input_converters_map = CreateBlobConverterMap(input_blob_map);
+                auto input_params_map = CreateConvertParamMap(input_mat_map, true);
+
+                //mat format NCHW_FLOAT
+                MatMap output_mat_map;
+                CreateBlobMatMap(output_blob_map, 0, output_mat_map);
+                auto output_converters_map = CreateBlobConverterMap(output_blob_map);
+                auto output_params_map = CreateConvertParamMap(output_mat_map, false);
+
+                for (int i = 0; i < FLAGS_wc; ++i) {
+                    for(auto element : input_converters_map) {
+                        auto name = element.first;
+                        auto blob_converter = element.second;
+                        blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
+                    }
+                    ret = instance->ForwardAsync(nullptr);
+
+                    bool is_update = CreateBlobMatMap(output_blob_map, 0, output_mat_map);
+                    if (is_update) {
+                        output_converters_map = CreateBlobConverterMap(output_blob_map);
+                        output_params_map = CreateConvertParamMap(output_mat_map, false);
+                    }
+
+                    for(auto element : output_converters_map) {
+                        auto name = element.first;
+                        auto blob_converter = element.second;
+                        blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
                     }
                 }
-                timer.Stop();
-            }
-#if TNN_PROFILE
-            instance->FinishProfile(true);
-#endif
-            if (!FLAGS_op.empty()) {
-                WriteOutput(output_mat_map);
-            }
+    #if TNN_PROFILE
+                instance->StartProfile();
+    #endif
 
-            timer.Print();
+                std::string model_name = FLAGS_mp;
+                if(FLAGS_mp.find_last_of("/") != -1) {
+                    model_name = FLAGS_mp.substr(FLAGS_mp.find_last_of("/") + 1); 
+                }   
+    
+                Timer timer(model_name + " - " + FLAGS_dt);
 
-            FreeMatMapMemory(input_mat_map);
-            FreeMatMapMemory(output_mat_map);
-            return 0;
-        } else {
-            return ret;
+                for (int i = 0; i < FLAGS_ic; ++i) {
+                    timer.Start();
+                    for(auto element : input_converters_map) {
+                        auto name = element.first;
+                        auto blob_converter = element.second;
+                        ret = blob_converter->ConvertFromMatAsync(*input_mat_map[name], input_params_map[name], command_queue);
+                        if (!CheckResult("ConvertFromMat", ret)) {
+                            return ret;
+                        }
+                    }
+    #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
+                    ret = instance->Forward();
+    #else
+                    ret = instance->ForwardAsync(nullptr);
+    #endif
+                    if (!CheckResult("Forward", ret)) {
+                        return ret;
+                    }
+
+                    bool is_update = CreateBlobMatMap(output_blob_map, 0, output_mat_map);
+                    if (is_update) {
+                        output_converters_map = CreateBlobConverterMap(output_blob_map);
+                        output_params_map = CreateConvertParamMap(output_mat_map, false);
+                    }
+
+                    for(auto element : output_converters_map) {
+                        auto name = element.first;
+                        auto blob_converter = element.second;
+                        ret = blob_converter->ConvertToMat(*output_mat_map[name], output_params_map[name], command_queue);
+                        if (!CheckResult("ConvertToMat", ret)) {
+                            return ret;
+                        }
+                    }
+                    timer.Stop();
+                }
+    #if TNN_PROFILE
+                instance->FinishProfile(true);
+    #endif
+                if (!FLAGS_op.empty()) {
+                    WriteOutput(output_mat_map);
+                }
+
+                timer.Print();
+
+                return 0;
+            } else {
+                return ret;
+            }
+        };
+
+        int test_thread_num = TNN_NS::FLAGS_tt;
+        std::vector<std::thread> threads_list;
+        for (int i = 0; i < test_thread_num; i++) {
+            std::thread t(instance_run);
+            threads_list.push_back(std::move(t));
         }
+        for (auto &t : threads_list) {
+            if (t.joinable()) {
+                t.join();
+            }
+        }
+
+        return 0;
     }
 
     bool ParseAndCheckCommandLine(int argc, char* argv[]) {
@@ -201,14 +236,16 @@ namespace test {
         printf("    -op \"<path>\"          \t%s \n", output_path_message);
         printf("    -dl \"<device list>\"   \t%s \n", device_list_message);
         printf("    -th \"<thread umber>\"  \t%s \n", cpu_thread_num_message);
-        printf("    -it \"<input type>\"    \t%s \n", input_format_message);
+        printf("    -if \"<input type>\"    \t%s \n", input_format_message);
         printf("    -pr \"<precision >\"    \t%s \n", precision_message);
         printf("    -is \"<input shape>\"   \t%s \n", input_shape_message);
+        printf("    -it \"<input data type>\"    \t%s \n", input_data_type_message);
         printf("    -fc \"<format for compare>\t%s \n", output_format_cmp_message);
         printf("    -nt \"<network type>\t%s \n", output_format_cmp_message);
         printf("    -et \"<enable tune>\t%s \n", enable_tune_message);
         printf("    -sc \"<input scale>\t%s \n", scale_message);
         printf("    -bi \"<input bias>\t%s \n", bias_message);
+        printf("    -tt \"<number>\"        \t%s \n", test_thread_num_message);
     }
 
     void SetCpuAffinity() {
@@ -235,26 +272,76 @@ namespace test {
         InputShapesMap input_shape;
         if(!FLAGS_is.empty()) {
             std::string input_shape_message(FLAGS_is);
-            std::string delimiter = "[";
-            std::vector<int> input_dim;
-            std::ptrdiff_t p1 = 0, p2;
-            p2 = input_shape_message.find(delimiter, p1);
-            std::string input_name = input_shape_message.substr(p1, p2 -p1);
-            p1 = p2 + 1;
-            delimiter = ",";
-            while (true) {
-                p2 = input_shape_message.find(delimiter, p1);
-                if (p2 != std::string::npos) {
-                    input_dim.push_back(atoi(input_shape_message.substr(p1, p2 - p1).c_str()));
-                    p1 = p2 + 1;
-                } else {
-                    input_dim.push_back(atoi(input_shape_message.substr(p1, input_shape_message.length() - 1 - p1).c_str()));
-                    break;
-                }
+            std::vector<std::string> input_shape_strs;
+            std::string delimiter = ";";
+
+            size_t pos = 0;
+            std::string token;
+            while ((pos = input_shape_message.find(delimiter)) != std::string::npos) {
+                token = input_shape_message.substr(0, pos);
+                input_shape_strs.push_back(token);
+                input_shape_message.erase(0, pos + delimiter.length());
             }
-            input_shape[input_name] = input_dim;
+            if (input_shape_message.length() != 0) {
+                input_shape_strs.push_back(input_shape_message);
+            }
+
+            for(auto input_shape_str : input_shape_strs)
+            {
+                std::string delimiter = ":";
+                std::vector<int> input_dim;
+                std::ptrdiff_t p1 = 0, p2;
+                p2 = input_shape_str.find(delimiter, p1);
+                std::string input_name = input_shape_str.substr(p1, p2 -p1);
+                p1 = p2 + 1;
+                delimiter = ",";
+                while (true) {
+                    p2 = input_shape_str.find(delimiter, p1);
+                    if (p2 != std::string::npos) {
+                        input_dim.push_back(atoi(input_shape_str.substr(p1, p2 - p1).c_str()));
+                        p1 = p2 + 1;
+                    } else {
+                        input_dim.push_back(atoi(input_shape_str.substr(p1, input_shape_str.length() - p1).c_str()));
+                        break;
+                    }
+                }
+                input_shape[input_name] = input_dim;
+            }
         }
         return input_shape;
+    }
+
+    InputDataTypeMap GetInputDataTypeMap() {
+        InputDataTypeMap input_data_type;
+        if(!FLAGS_it.empty()) {
+            std::string input_data_type_message(FLAGS_it);
+            std::vector<std::string> input_data_type_strs;
+            std::string delimiter = ";";
+
+            size_t pos = 0;
+            std::string token;
+            while ((pos = input_data_type_message.find(delimiter)) != std::string::npos) {
+                token = input_data_type_message.substr(0, pos);
+                input_data_type_strs.push_back(token);
+                input_data_type_message.erase(0, pos + delimiter.length());
+            }
+            if (input_data_type_message.length() != 0) {
+                input_data_type_strs.push_back(input_data_type_message);
+            }
+
+            for (auto input_data_type_str : input_data_type_strs) {
+                std::string delimiter = ":";
+                std::ptrdiff_t p1 = 0, p2;
+                p2 = input_data_type_str.find(delimiter, p1);
+                std::string input_name = input_data_type_str.substr(p1, p2-p1);
+                p1 = p2 + 1;
+                
+                delimiter = ";";
+                p2 = input_data_type_str.find(delimiter, p1);
+                input_data_type[input_name] = static_cast<DataType>(std::stoi(input_data_type_str.substr(p1, p2-p1)));
+            }
+        }
+        return input_data_type;
     }
 
     ModelConfig GetModelConfig() {
@@ -304,6 +391,11 @@ namespace test {
                 config.params.push_back("");
                 return config;
             }
+        } else if (config.model_type == MODEL_TYPE_TORCHSCRIPT) {
+            config.params.push_back(std::string(FLAGS_mp));
+        } else if (config.model_type == MODEL_TYPE_TORCHSCRIPT_BIN) {
+            // config.params.push_back(std::string(FLAGS_mp));
+            std::ifstream model_stream(FLAGS_mp, std::ios::binary);
             std::stringstream model_content;
             model_content << model_stream.rdbuf();
             config.params.push_back(model_content.str());
@@ -320,9 +412,13 @@ namespace test {
 
         config.enable_tune_kernel = FLAGS_et;
 #if defined(__ANDROID__)
-        config.cache_path = "/data/local/tmp/";
+	if(FLAGS_cp.empty()) {
+            config.cache_path = "/data/local/tmp/";
+	} else {
+            config.cache_path = FLAGS_cp;
+	}
 #else
-        config.cache_path = "";
+        config.cache_path = FLAGS_cp;
 #endif
 
         // Device Type: ARM, OPENECL, ...
@@ -331,7 +427,7 @@ namespace test {
         // use model type instead, may change later for same model type with
         // different network type
         if (config.device_type == DEVICE_CUDA) {
-            config.network_type = NETWORK_TYPE_TENSORRT;
+            config.network_type = ConvertNetworkType(FLAGS_nt);
         } else {
             config.network_type = ConvertNetworkType(FLAGS_nt);
         }
@@ -352,8 +448,8 @@ namespace test {
         }
     }
 
-    MatMap CreateBlobMatMap(BlobMap& blob_map, int format_type) {
-        MatMap mat_map;
+    bool CreateBlobMatMap(BlobMap& blob_map, int format_type, MatMap &mat_map) {
+        bool is_update = false;
         for (auto iter : blob_map) {
             auto name = iter.first;
             Blob* device_blob = iter.second;
@@ -373,49 +469,102 @@ namespace test {
                 mat_type = NC_INT32;
                 data_type = DATA_TYPE_INT32;
             } else if (format_type == 4) {
-                mat_type = RESERVED_INT8_TEST;
+                mat_type = NC_INT8;
+                data_type = DATA_TYPE_INT8;
             } else if (format_type == 5) {
-                mat_type = NC_INT64;
-                data_type = DATA_TYPE_INT64;
+                mat_type = NC_UINT8;
+                data_type = DATA_TYPE_UINT8;
             }
 
             if (blob_desc.data_type == DATA_TYPE_INT32) {
+                data_type = DATA_TYPE_INT32;
                 mat_type = NC_INT32;
+            } else if (blob_desc.data_type == DATA_TYPE_INT64) {
+                data_type = DATA_TYPE_INT64;
+                mat_type = NC_INT64;
+            } else if (blob_desc.data_type == DATA_TYPE_HALF) {
+                data_type = DATA_TYPE_HALF;
+                mat_type = NCHW_HALF;
             }
 
-            int bytes = DimsVectorUtils::Count(blob_desc.dims) * DataTypeUtils::GetBytesSize(data_type);
-            void* mat_data = malloc(bytes);
-            auto mat = std::make_shared<Mat>(DEVICE_NAIVE, mat_type, blob_desc.dims, mat_data);
+            // check whether mat need to update
+            if (mat_map.find(name) != mat_map.end()) {
+                if (mat_map[name]->GetMatType() == mat_type &&
+                    DimsVectorUtils::Equal(mat_map[name]->GetDims(), blob_desc.dims)) continue;
+            }
+
+            auto device_type = GetConcreteDeviceType(DEVICE_GROUP_CPU);
+            auto mat = std::make_shared<Mat>(device_type, mat_type, blob_desc.dims);
             mat_map[name] = mat;
+            is_update = true;
         }
-        return mat_map;
+        return is_update;
     }
 
 
     void InitInputMatMap(MatMap& mat_map) {
+        std::map<std::string, std::string> input_file_map;
+        if(!FLAGS_im.empty()) {
+            std::string input_map_message(FLAGS_im);
+            std::vector<std::string> input_map_strs;
+            std::string delimiter = ";";
+
+            size_t pos = 0;
+            std::string token;
+            while ((pos = input_map_message.find(delimiter)) != std::string::npos) {
+                token = input_map_message.substr(0, pos);
+                input_map_strs.push_back(token);
+                input_map_message.erase(0, pos + delimiter.length());
+            }
+            if (input_map_message.length() != 0) {
+                input_map_strs.push_back(input_map_message);
+            }
+
+            for(auto input_map_str : input_map_strs)
+            {
+                std::string delimiter = ":";
+                std::ptrdiff_t p1 = 0, p2;
+                p2 = input_map_str.find(delimiter, p1);
+                std::string input_name = input_map_str.substr(p1, p2 -p1);
+                std::string input_file = input_map_str.substr(p2 + 1);
+                LOGD("input_name:%s input_file: %s\n", input_name.c_str(), input_file.c_str());
+                input_file_map[input_name] = input_file;
+            }
+        }
+
         for (auto iter : mat_map) {
             auto name = iter.first;
             auto mat = iter.second;
             void* mat_data = mat->GetData();
             int data_count     = DimsVectorUtils::Count(mat->GetDims());
             auto mat_type = mat->GetMatType();
-            if (FLAGS_ip.empty()) {
+            std::string input_file = "";
+            if (input_file_map.find(name) != input_file_map.end()) {
+                input_file = input_file_map[name];
+            } else {
+                input_file = FLAGS_ip;
+            }
+            if (input_file.empty()) {
                 for (int i = 0; i < data_count; i++) {
                     if (mat_type == NCHW_FLOAT) {
                         reinterpret_cast<float*>(mat_data)[i] = (float)(rand() % 256) / 128.0f;
                     } else if (mat_type == NC_INT32) {
                         reinterpret_cast<int32_t*>(mat_data)[i] = rand() % 2;
                     } else if (mat_type == NC_INT64) {
-                        reinterpret_cast<int64_t*>(mat_data)[i] = 1;
-                    } else if (mat_type == RESERVED_INT8_TEST) {
+                        reinterpret_cast<int64_t*>(mat_data)[i] = rand() % 2;
+                    } else if (mat_type == NC_INT8) {
                         reinterpret_cast<int8_t*>(mat_data)[i] = (rand() % 256) - 128;
+                    } else if (mat_type == NC_UINT8) {
+                        reinterpret_cast<uint8_t*>(mat_data)[i] = rand() % 256;
+                    } else if (mat_type == NCHW_HALF) {
+                        reinterpret_cast<fp16_t*>(mat_data)[i] = fp16_t((rand() % 256) / 128.0f);
                     } else {
                         reinterpret_cast<uint8_t*>(mat_data)[i] = (rand() % 256);
                     }
                 }
             } else {
-                LOGD("input path: %s\n", FLAGS_ip.c_str());
-                std::ifstream input_stream(FLAGS_ip);
+                LOGD("input path: %s\n", input_file.c_str());
+                std::ifstream input_stream(input_file);
                 for (int i = 0; i < data_count; i++) {
                     if (mat_type == NCHW_FLOAT) {
                         input_stream >> reinterpret_cast<float*>(mat_data)[i];
@@ -423,10 +572,18 @@ namespace test {
                         input_stream >> reinterpret_cast<int32_t*>(mat_data)[i];
                     } else if (mat_type == NC_INT64) {
                         input_stream >> reinterpret_cast<int64_t*>(mat_data)[i];                                         
-                    } else if (mat_type == RESERVED_INT8_TEST) {
+                    } else if (mat_type == NCHW_HALF) {
+                        float val;
+                        input_stream >> val;
+                        reinterpret_cast<fp16_t*>(mat_data)[i] = (fp16_t)val;
+                    } else if (mat_type == NC_INT8) {
                         int val;
                         input_stream >> val;
                         reinterpret_cast<int8_t*>(mat_data)[i] = (int8_t)val;
+                    } else if (mat_type == NC_UINT8) {
+                        int val;
+                        input_stream >> val;
+                        reinterpret_cast<uint8_t*>(mat_data)[i] = (uint8_t)val;
                     } else {
                         int val;
                         input_stream >> val;
@@ -490,12 +647,14 @@ namespace test {
             if(is_input && !FLAGS_sc.empty()) {
                 SetScaleOrBias(param.scale, FLAGS_sc);
             } else {
-                if (mat_type == RESERVED_INT8_TEST) {
+                if (mat_type == NC_INT8 || mat_type == NC_UINT8) {
                     std::fill(param.scale.begin(), param.scale.end(), 1.0f);
                 } else if(IsImageMat(mat_type)) {
                     std::fill(param.scale.begin(), param.scale.end(), 1.0f / 255.0f);
-                } else if(dims[1] > 4) {
-                    param.scale = std::vector<float>(dims[1], 1);
+                } else if(dims.empty() || dims.size()<2) {
+                    param.scale = std::vector<float>(1, 1);
+                } else if(dims.size()>=2 && dims[1] > 4) {
+                    param.scale = std::vector<float>(dims[1], 1.0f);
                 }
             }
 
@@ -503,11 +662,13 @@ namespace test {
             if(is_input && !FLAGS_bi.empty()) {
                 SetScaleOrBias(param.bias, FLAGS_bi);
             } else {
-                if (mat_type == RESERVED_INT8_TEST) {
+                if (mat_type == NC_INT8 || mat_type == NC_UINT8) {
                     std::fill(param.bias.begin(), param.bias.end(), 0);
                 } else if(IsImageMat(mat_type)) {
                     std::fill(param.bias.begin(), param.bias.end(), 0);
-                } else if(dims[1] > 4) {
+                } else if(dims.empty() || dims.size()<2) {
+                    param.bias  = std::vector<float>(1, 0);
+                } else if(dims.size()>=2 && dims[1] > 4) {
                     param.bias  = std::vector<float>(dims[1], 0);
                 }
             }
@@ -519,7 +680,16 @@ namespace test {
 
 
     void WriteOutput(MatMap& outputs) {
-        std::ofstream f(FLAGS_op);
+	std::stringstream thread_id_stream;
+        thread_id_stream << std::this_thread::get_id();
+	std::string thread_id = thread_id_stream.str();
+        std::string output_file_name;
+	if(FLAGS_tt > 1) {
+            output_file_name = FLAGS_op + thread_id; 
+	} else {
+	    output_file_name = FLAGS_op;
+	}
+	std::ofstream f(output_file_name);
         LOGD("the output path: %s\n", FLAGS_op.c_str());
         if (!FLAGS_fc) {
             LOGD("output path: %s\n", FLAGS_op.c_str());
@@ -548,13 +718,36 @@ namespace test {
                 LOGD("the output shape: %s\n", shape.c_str());
             }
         }
+        f << std::endl;
         for (auto output : outputs) {
+            {
+                f << output.first;
+                auto mat      = output.second;
+                DimsVector dims = mat->GetDims();
+                f << " mat_type: " << mat->GetMatType() ;
+                f << " dims: " << dims.size();
+                for (auto dim : dims) {
+                    f << " " << dim;
+                }
+                f << std::endl;
+            }
+
             auto mat  = output.second;
             int data_count     = DimsVectorUtils::Count(mat->GetDims());
-            if (mat->GetMatType() == NC_INT32 ) {
+            if (mat->GetMatType() == NC_INT32) {
                 int * data = reinterpret_cast<int*>(mat->GetData());
                 for (int c = 0; c < data_count; ++c) {
                     f << data[c] << std::endl;
+                }
+            } else if (mat->GetMatType() == NC_INT64) {
+                int64_t * data = reinterpret_cast<int64_t*>(mat->GetData());
+                for (int c = 0; c < data_count; ++c) {
+                    f << data[c] << std::endl;
+                }
+            } else if (mat->GetMatType() == NCHW_HALF) {
+                fp16_t * data = reinterpret_cast<fp16_t*>(mat->GetData());
+                for (int c = 0; c < data_count; ++c) {
+                    f << std::fixed << std::setprecision(6) << float(data[c]) << std::endl;
                 }
             } else {
                 float* data = reinterpret_cast<float*>(mat->GetData());
@@ -564,12 +757,6 @@ namespace test {
             }
         }
         f.close();
-    }
-
-    void FreeMatMapMemory(MatMap& mat_map) {
-        for(auto iter : mat_map) {
-            free(iter.second->GetData());
-        }
     }
 
 }  // namespace test

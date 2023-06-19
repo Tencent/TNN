@@ -1,4 +1,5 @@
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/device/cuda/utils.cuh"
 #include "tnn/utils/dims_utils.h"
 #include <limits>
 #include <cuda.h>

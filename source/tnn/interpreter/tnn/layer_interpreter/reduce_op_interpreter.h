@@ -30,7 +30,7 @@ public:
         return TNN_OK;
     }
 
-    Status SaveProto(std::ofstream &output_stream, LayerParam *param);
+    Status SaveProto(std::ostream &output_stream, LayerParam *param);
     virtual Status SaveResource(Serializer &serializer, LayerParam *param, LayerResource *resource) {
         return TNN_OK;
     }
