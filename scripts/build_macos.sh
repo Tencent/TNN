@@ -117,7 +117,6 @@ copy_openvino_libraries() {
         mkdir -p ${TNN_INSTALL_DIR}/lib
     fi
 
-
     if [ "${OPENVINO_BUILD_SHARED}" = "ON" ]
     then
         cp ${OPENVINO_INSTALL_PATH}/runtime/lib/intel64/Release/libopenvino${LIB_EXT} ${TNN_INSTALL_DIR}/lib/

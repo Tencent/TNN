@@ -34,10 +34,10 @@ if(TNN_OPENVINO_ENABLE)
     endif()
 
     add_library(openvino ${LINK_TYPE} IMPORTED)
-    add_library(tbb ${LINK_TYPE} IMPORTED)
+    #add_library(tbb ${LINK_TYPE} IMPORTED)
 
-    set_target_properties(openvino PROPERTIES IMPORTED_LOCATION $ENV{OPENVINO_ROOT_DIR}/runtime/lib/intel64/${LIB_PFX}openvino${LIB_EXT})
-    set_target_properties(tbb PROPERTIES IMPORTED_LOCATION $ENV{OPENVINO_ROOT_DIR}/runtime/3rdparty/tbb/lib/libtbb.so)
+    set_target_properties(openvino PROPERTIES IMPORTED_LOCATION $ENV{OPENVINO_ROOT_DIR}/runtime/lib/intel64/Release/${LIB_PFX}openvino${LIB_EXT})
+    #set_target_properties(tbb PROPERTIES IMPORTED_LOCATION $ENV{OPENVINO_ROOT_DIR}/runtime/3rdparty/tbb/lib/libtbb.so)
 
     target_link_libraries(TNN openvino tbb)
 endif()
