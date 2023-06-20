@@ -120,8 +120,8 @@ copy_openvino_libraries() {
 
     if [ "${OPENVINO_BUILD_SHARED}" = "ON" ]
     then
-        cp ${OPENVINO_INSTALL_PATH}/runtime/lib/intel64/Runtime/libopenvino${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
-        #cp ${OPENVINO_INSTALL_PATH}/runtime/3rdparty/tbb/lib/Runtime/libtbb${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        cp ${OPENVINO_INSTALL_PATH}/runtime/lib/intel64/Release/libopenvino${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
+        #cp ${OPENVINO_INSTALL_PATH}/runtime/3rdparty/tbb/lib/Release/libtbb${LIB_EXT} ${TNN_INSTALL_DIR}/lib/
     fi
 }
 
