@@ -21,6 +21,42 @@
 
 namespace TNN_NS {
 
+zdl::DlSystem::Runtime_t SelectSNPERuntime(std::string prefered_runtime) {
+    zdl::DlSystem::Runtime_t runtime = zdl::DlSystem::Runtime_t::CPU;
+
+    if (!zdl::SNPE::SNPEFactory::isRuntimeAvailable(zdl::DlSystem::Runtime_t::CPU) &&
+        !zdl::SNPE::SNPEFactory::isRuntimeAvailable(zdl::DlSystem::Runtime_t::GPU)) {
+        LOGE("Error: SNPE cannot run on both CPU and GPU, perhaps you are not running on a Qualcomm Snapdragon SoC.\n");
+    }
+
+    if (prefered_runtime == "CPU") {
+        if (zdl::SNPE::SNPEFactory::isRuntimeAvailable(zdl::DlSystem::Runtime_t::CPU)) {
+            LOGI("Run TNN SNPE on Selected CPU device.\n");
+            return zdl::DlSystem::Runtime_t::CPU;
+        }
+    }
+    if (prefered_runtime == "GPU") {
+        if (zdl::SNPE::SNPEFactory::isRuntimeAvailable(zdl::DlSystem::Runtime_t::GPU)) {
+            LOGI("Run TNN SNPE on Selected GPU device.\n");
+            return zdl::DlSystem::Runtime_t::GPU;
+        }
+    }
+    if (prefered_runtime == "DSP") {
+        if (zdl::SNPE::SNPEFactory::isRuntimeAvailable(zdl::DlSystem::Runtime_t::DSP)) {
+            LOGI("Run TNN SNPE on Selected DSP device.\n");
+            return zdl::DlSystem::Runtime_t::DSP;
+        }
+    }
+
+    // Else Select GPU -> CPU
+    if (zdl::SNPE::SNPEFactory::isRuntimeAvailable(zdl::DlSystem::Runtime_t::GPU)) {
+        LOGI("Run TNN SNPE on GPU device.\n");
+        return zdl::DlSystem::Runtime_t::GPU;
+    }
+
+    return runtime;
+}
+
 size_t CalcSizeFromDims(const zdl::DlSystem::Dimension* dims,
                         size_t rank,
                         size_t element_size) {
@@ -38,7 +74,6 @@ size_t CalcSizeFromDims(const zdl::DlSystem::Dimension* dims,
 std::unique_ptr<zdl::SNPE::SNPE> SetBuilderOptions(std::unique_ptr<zdl::DlContainer::IDlContainer>& container,
                                                    zdl::DlSystem::Runtime_t runtime,
                                                    zdl::DlSystem::RuntimeList runtime_list,
-                                                   zdl::DlSystem::UDLBundle udlbundle,
                                                    bool use_user_supplied_buffers,
                                                    zdl::DlSystem::PlatformConfig platform_config,
                                                    bool use_caching,
@@ -52,7 +87,6 @@ std::unique_ptr<zdl::SNPE::SNPE> SetBuilderOptions(std::unique_ptr<zdl::DlContai
 
     snpe = snpeBuilder.setOutputLayers(outputs)
                .setRuntimeProcessorOrder(runtime_list)
-               .setUdlBundle(udlbundle)
                .setUseUserSuppliedBuffers(use_user_supplied_buffers)
                .setPlatformConfig(platform_config)
                .setInitCacheMode(use_caching)
@@ -173,6 +207,18 @@ void CreateOutputBufferMap(zdl::DlSystem::UserBufferMap& output_map,
     for (const char* name : output_names) {
         CreateUserBuffer(output_map, output_blobmap, application_buffers,
                          snpe_userbacked_buffers, snpe, name, is_tf8_buffer);
+    }
+}
+
+// WARNING: SNPE UDO not fully TESTED.
+void LoadUdoPackages(const std::string& package_dir) {
+    std::vector<std::string> udo_package_names = {"Selu"};
+
+    for (const auto & name : udo_package_names) {
+        std::string full_regpkg_path = package_dir + "/libUdoTNN" + name + "ImplCpu.so";
+        if (zdl::SNPE::SNPEFactory::addOpPackage(full_regpkg_path) == false) {
+            LOGE("Fail to Add Op Package %s.\n", full_regpkg_path.c_str());
+        }
     }
 }
 

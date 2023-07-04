@@ -31,10 +31,11 @@
 
 namespace TNN_NS {
 
+zdl::DlSystem::Runtime_t SelectSNPERuntime(std::string prefered_runtime = "GPU");
+
 std::unique_ptr<zdl::SNPE::SNPE> SetBuilderOptions(std::unique_ptr<zdl::DlContainer::IDlContainer>& container,
                                                    zdl::DlSystem::Runtime_t runtime,
                                                    zdl::DlSystem::RuntimeList runtime_list,
-                                                   zdl::DlSystem::UDLBundle udlbundle,
                                                    bool use_user_supplied_buffers,
                                                    zdl::DlSystem::PlatformConfig platform_config,
                                                    bool use_caching,
@@ -53,6 +54,8 @@ void CreateOutputBufferMap(zdl::DlSystem::UserBufferMap& output_map,
                            std::vector<std::unique_ptr<zdl::DlSystem::IUserBuffer>>& snpe_userbacked_buffers,
                            std::unique_ptr<zdl::SNPE::SNPE>& snpe,
                            bool is_tf8_buffer);
+
+void LoadUdoPackages(const std::string& package_dir = "/data/local/tmp/tnn-test/lib");
 
 }  // namespace TNN_NS
 

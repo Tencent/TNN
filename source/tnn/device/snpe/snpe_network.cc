@@ -44,24 +44,22 @@ Status SnpeNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config,
         zdl::SNPE::SNPEFactory::getLibraryVersion();
     LOGD("Run TNN SNPE with SPNE Version: %s\n", version.asString().c_str());
     
-    zdl::DlSystem::Runtime_t runtime = zdl::DlSystem::Runtime_t::GPU;
+    zdl::DlSystem::Runtime_t runtime = SelectSNPERuntime();
     if (!zdl::SNPE::SNPEFactory::isRuntimeAvailable(runtime)) {
-        LOGE("DSP Runtime not avaliable!\n");
+        LOGE("SNPE Runtime not avaliable!\n");
         return TNNERR_DEVICE_NOT_SUPPORT;
     }
 
+    //LoadUdoPackages();
+    
     zdl::DlSystem::PlatformConfig platform_config;
     zdl::DlSystem::RuntimeList runtime_list;
-    zdl::DlSystem::UDLFactoryFunc udl_func = nullptr;  // ?? check
-    zdl::DlSystem::UDLBundle udlbundle;
     zdl::DlSystem::StringList outputs;
-    for(int i = 1; i < model_config.params.size(); i++) {
+    for (int i = 1; i < model_config.params.size(); i++) {
         outputs.append(model_config.params[i].c_str());
     }
-    udlbundle.cookie = (void *)0xdeadbeaf;
-    udlbundle.func   = udl_func;  // 0xdeadbeaf to test cookie
 
-    snpe_ = SetBuilderOptions(container, runtime, runtime_list, udlbundle, true,
+    snpe_ = SetBuilderOptions(container, runtime, runtime_list, true,
                               platform_config, false, outputs);
     if (snpe_ == nullptr) {
         LOGE("Build snpe falied, API SetBuilderOptions() return nullptr.\n");

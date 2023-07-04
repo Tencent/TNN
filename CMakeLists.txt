@@ -406,12 +406,13 @@ endif()
 
 if(TNN_SNPE_ENABLE)
     if(ANDROID_ABI STREQUAL "armeabi-v7a")
-        link_directories(third_party/snpe/lib/arm-android-clang8.0/)
+        # SNPE 2.11+ no longer support ARMv7
+        message(STATUS "TNN SNPE not available on Android ARMv7")
     else()
-        link_directories(third_party/snpe/lib/aarch64-android-clang8.0/)
+        link_directories(third_party/snpe/lib/aarch64-android/)
+        add_subdirectory(source/tnn/device/snpe)
+        set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNSNPE>")
     endif()
-    add_subdirectory(source/tnn/device/snpe)
-    set(TARGET_OBJECTS ${TARGET_OBJECTS} "$<TARGET_OBJECTS:TNNSNPE>")
 endif()
 
 if(TNN_HUAWEI_NPU_ENABLE)
