@@ -108,8 +108,8 @@ c) 如果需要执行OCR demo，需要将tnn_sdk_sample.h中的宏HAS_OPENCV设�
 
 ### 运行环境要求
 
-1. Android Studio 3.5 或以上
-2. NDK version >= 18, <= 21
+1. Android Studio 3.5 或以上, Android Studio 2022.2.1 测试可运行
+2. NDK version >= 18,
 NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，不建议使用。
 
 ### 运行步骤

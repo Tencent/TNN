@@ -108,8 +108,8 @@
 ## II. Introduction to Android Demo
 ### Environment requirements
 
-1. Android Studio 3.5 or above
-2. NDK version >= 18, <= 21
+1. Android Studio 3.5 or above, tested on Android Studio 2022.2.1
+2. NDK version >= 18
 NDK 22 and 23 are not suggested, because they may report error when link third party lib, eg. opencv, hiai.
 
 ### Steps
