@@ -43,6 +43,8 @@ public class ImageFaceDetectFragment extends BaseFragment {
     private ToggleButton mHuaweiNPUswitch;
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
+    // add for qualcomm SNPE
+    private boolean mUseSNPE = false;
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -51,6 +53,9 @@ public class ImageFaceDetectFragment extends BaseFragment {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
+        if (mUseSNPE) {
+            System.loadLibrary("SNPE");
+        }
         String modelPath = initModel();
         NpuEnable = mFaceDetector.checkNpu(modelPath);
     }
@@ -58,10 +63,11 @@ public class ImageFaceDetectFragment extends BaseFragment {
     private String initModel() {
         String targetDir =  getActivity().getFilesDir().getAbsolutePath();
 
-        //copy detect model to sdcard
+        //copy detect model to sdcard, .dlc is Qualcomm SNPE model format
         String[] modelPathsDetector = {
                 "version-slim-320_simplified.tnnmodel",
                 "version-slim-320_simplified.tnnproto",
+                "version-slim-320_simplified.dlc",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
@@ -177,6 +183,8 @@ public class ImageFaceDetectFragment extends BaseFragment {
         int device = 0;
         if (mUseHuaweiNpu) {
             device = 2;
+        } else if(mUseSNPE) {
+            device = 3;
         } else if(mUseGPU) {
             device = 1;
         }

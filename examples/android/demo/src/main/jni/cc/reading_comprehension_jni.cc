@@ -18,7 +18,7 @@
 #import "bert_tokenizer.h"
 
 static std::shared_ptr<TNN_NS::TNNSDKSample> gResponder;
-static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu
+static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu, 3 is qualcomm SNPE
 
 JNIEXPORT JNICALL jint TNN_READING_COMPREHENSION(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint computeUnitType){
 
@@ -26,11 +26,17 @@ JNIEXPORT JNICALL jint TNN_READING_COMPREHENSION(init)(JNIEnv *env, jobject thiz
     gResponder = std::make_shared<TNN_NS::TNNSDKSample>();
     std::string protoContent, modelContent, vocabContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/tiny-bert-squad.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/tiny-bert-squad.tnnmodel");
+
+    gComputeUnitType = computUnitType;
+    if (gComputeUnitType == 3) { // Qualcomm SNPE use SNPE .dlc model
+        protoContent = "-";  // protoContent just not empty.
+        modelContent = fdLoadFile(modelPathStr + "/tiny-bert-squad.dlc");
+    } else {
+        protoContent = fdLoadFile(modelPathStr + "/tiny-bert-squad.tnnproto");
+        modelContent = fdLoadFile(modelPathStr + "/tiny-bert-squad.tnnmodel");
+    }
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
     TNN_NS::Status status = TNN_NS::TNN_OK;
-    gComputeUnitType = computeUnitType;
 
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
     option->compute_units = TNN_NS::TNNComputeUnitsCPU;
@@ -47,13 +53,13 @@ JNIEXPORT JNICALL jint TNN_READING_COMPREHENSION(init)(JNIEnv *env, jobject thiz
         gResponder->setNpuModelPath(modelPathStr + "/");
         gResponder->setCheckNpuSwitch(false);
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
-
         LOGE("tiny bert does not support NPU");
         return -1;
+    } else if (gComputeUnitType == 3) { // Qualcomm SNPE
+        option->compute_units = TNN_NS::TNNComputeUnitsSNPE;
     } else {
         option->compute_units = TNN_NS::TNNComputeUnitsCPU;
     }
-
     status = gResponder->Init(option);
 
     if (status != TNN_NS::TNN_OK) {

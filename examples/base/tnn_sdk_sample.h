@@ -121,11 +121,13 @@ typedef enum {
     // run on gpu, if failed run on cpu
     TNNComputeUnitsGPU              = 0x0100,
     // run on huawei_npu, if failed run on cpu
-    TNNComputeUnitsHuaweiNPU  = 0x0300,
+    TNNComputeUnitsHuaweiNPU        = 0x0300,
     // run on huawei_npu, if failed run on cpu
-    TNNComputeUnitsAppleNPU     = 0x0301,
+    TNNComputeUnitsAppleNPU         = 0x0301,
+    // run on Qualcomm SNPE (gpu by default, dsp in the future), if failed run on cpu
+    TNNComputeUnitsSNPE             = 0x0302,
     // run on cpu Naive
-    TNNComputeUnitsNaive             = 0x0400,
+    TNNComputeUnitsNaive            = 0x0400,
 } TNNComputeUnits;
 
 struct RGBA{

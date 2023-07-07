@@ -12,7 +12,7 @@
 static std::shared_ptr<TNN_NS::FaceDetectAligner> gAligner;
 
 static jclass clsFaceInfo;
-static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu
+static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu, 3 is qualcomm SNPE
 static int target_width = 128;
 static int target_height = 128;
 
@@ -44,11 +44,17 @@ std::shared_ptr<TNN_NS::BlazeFaceDetector> CreateBlazeFaceDetector(JNIEnv *env, 
     auto predictor = std::make_shared<TNN_NS::BlazeFaceDetector>();
     std::string proto_content, model_content, lib_path = "";
     modelPathStr = jstring2string(env, modelPath);
-    proto_content = fdLoadFile(modelPathStr + "/blazeface.tnnproto");
-    model_content = fdLoadFile(modelPathStr + "/blazeface.tnnmodel");
+    
+    gComputeUnitType = computUnitType;
+    if (gComputeUnitType == 3) { // Qualcomm SNPE use SNPE .dlc model
+        protoContent = "-";  // protoContent just not empty.
+        model_content = fdLoadFile(modelPathStr + "/blazeface.dlc");
+    } else {
+        proto_content = fdLoadFile(modelPathStr + "/blazeface.tnnproto");
+        model_content = fdLoadFile(modelPathStr + "/blazeface.tnnmodel");
+    }
     LOGI("proto content size %d model content size %d", proto_content.length(),
          model_content.length());
-    gComputeUnitType = computUnitType;
 
     TNN_NS::Status status = TNN_NS::TNN_OK;
     auto option = std::make_shared<TNN_NS::BlazeFaceDetectorOption>();
@@ -56,18 +62,18 @@ std::shared_ptr<TNN_NS::BlazeFaceDetector> CreateBlazeFaceDetector(JNIEnv *env, 
 
     if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        status = predictor->Init(option);
     } else if (gComputeUnitType == 2) {
         //add for huawei_npu store the om file
         LOGI("the device type  %d device huawei_npu", gComputeUnitType);
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         predictor->setNpuModelPath(modelPathStr + "/");
         predictor->setCheckNpuSwitch(false);
-        status = predictor->Init(option);
+    } else if (gComputeUnitType == 3) { // Qualcomm SNPE
+        option->compute_units = TNN_NS::TNNComputeUnitsSNPE;
     } else {
         option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-        status = predictor->Init(option);
     }
+    status = predictor->Init(option);
 
     if (status != TNN_NS::TNN_OK) {
         LOGE("detector init failed %d", (int) status);

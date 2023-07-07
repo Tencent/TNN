@@ -21,7 +21,7 @@
 #include <android/bitmap.h>
 
 static std::shared_ptr<TNN_NS::UltraFaceDetector> gDetector;
-static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu
+static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu, 3 is qualcomm SNPE
 static jclass clsFaceInfo;
 static jmethodID midconstructorFaceInfo;
 static jfieldID fidx1;
@@ -40,10 +40,16 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
     gDetector = std::make_shared<TNN_NS::UltraFaceDetector>();
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnmodel");
-    LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
+
     gComputeUnitType = computUnitType;
+    if (gComputeUnitType == 3) { // Qualcomm SNPE use SNPE .dlc model
+        protoContent = "-";  // protoContent just not empty.
+        modelContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.dlc");
+    } else {
+        protoContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnproto");
+        modelContent = fdLoadFile(modelPathStr + "/version-slim-320_simplified.tnnmodel");
+    }
+    LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
 
     TNN_NS::Status status = TNN_NS::TNN_OK;
     auto option = std::make_shared<TNN_NS::UltraFaceDetectorOption>();
@@ -56,17 +62,17 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
     option->input_height= height;
     if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        status = gDetector->Init(option);
     } else if (gComputeUnitType == 2) {
         //add for huawei_npu store the om file
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
-        status = gDetector->Init(option);
+    } else if (gComputeUnitType == 3) { // Qualcomm SNPE
+        option->compute_units = TNN_NS::TNNComputeUnitsSNPE;
     } else {
 	    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-    	status = gDetector->Init(option);
     }
+    status = gDetector->Init(option);
 
     if (status != TNN_NS::TNN_OK) {
         LOGE("detector init failed %d", (int)status);
@@ -225,6 +231,8 @@ JNIEXPORT JNICALL jobjectArray TNN_FACE_DETECTOR(detectFromImage)(JNIEnv *env, j
         device = "gpu";
     } else if (gComputeUnitType == 2) {
         device = "huawei_npu";
+    } else if (gComputeUnitType == 3) {
+        device = "snpe";
     }
     sprintf(temp, " device: %s \ntime:", device.c_str());
     std::string computeUnitTips(temp);

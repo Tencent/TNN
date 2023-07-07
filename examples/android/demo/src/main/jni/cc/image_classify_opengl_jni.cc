@@ -22,7 +22,7 @@
 static std::shared_ptr<TNN_NS::OpenGLDirectMemAdapter> gAdapter;
 #endif
 static std::shared_ptr<TNN_NS::ImageClassifier> gDetector;
-static int gComputeUnitType = 1;
+static int gComputeUnitType = 1; // 0 is cpu, 1 is gpu, 2 is huawei_npu, 3 is qualcomm SNPE
 
 JNIEXPORT JNICALL jint TNN_CLASSIFY_OPENGL(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint width, jint height, jint computeUnitType)
 {
@@ -35,11 +35,12 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY_OPENGL(init)(JNIEnv *env, jobject thiz, jstr
     gDetector = std::make_shared<TNN_NS::ImageClassifier>();
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
+    
+    gComputeUnitType = computUnitType;
     protoContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnproto");
     modelContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
     TNN_NS::Status status = TNN_NS::TNN_OK;
-    gComputeUnitType = computeUnitType;
 
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
     option->compute_units = TNN_NS::TNNComputeUnitsCPU;

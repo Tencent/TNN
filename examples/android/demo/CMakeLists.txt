@@ -22,6 +22,8 @@ include_directories(${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/kannarotate-andr
 include_directories(${BASE_SRC}/)
 include_directories(${UTILS_SRC}/)
 include_directories(${CMAKE_SOURCE_DIR}/src/main/jni/cc/)
+include_directories(${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/SNPE/include)
+include_directories(${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/SNPE/include/SNPE)
 include_directories(${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/hiai_ddk/include)
 
 set(CMAKE_BUILD_TYPE Release)
@@ -33,6 +35,7 @@ if(ANDROID_ABI STREQUAL "arm64-v8a")
 endif()
 set(TNN_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(TNN_HUAWEI_NPU_ENABLE OFF CACHE BOOL "" FORCE)
+set(TNN_SNPE_ENABLE OFF CACHE BOOL "" FORCE)
 set(TNN_CPU_ENABLE ON CACHE BOOL "" FORCE)
 set(TNN_OPENCV_ENABLE OFF CACHE BOOL "" FORCE)
 set(SHARING_MEM_WITH_OPENGL OFF CACHE BOOL "" FORCE)
@@ -57,6 +60,18 @@ if(TNN_OPENCV_ENABLE)
             PROPERTIES
             IMPORTED_LOCATION
             ${OPENCV_ANDROID_SDK_PATH}/sdk/native/libs/${ANDROID_ABI}/libopencv_java3.so)
+endif()
+
+if(TNN_SNPE_ENABLE)
+    if(ANDROID_ABI STREQUAL "arm64-v8a")
+        add_library(SNPE
+            SHARED
+            IMPORTED)
+        set_target_properties(SNPE
+            PROPERTIES
+            IMPORTED_LOCATION
+            ${CMAKE_SOURCE_DIR}/src/main/jni/thirdparty/snpe/lib/aarch64-android/libSNPE.so)
+    endif()
 endif()
 
 if(TNN_HUAWEI_NPU_ENABLE)
@@ -124,6 +139,12 @@ endif()
 
 if(TNN_OPENCV_ENABLE)
     target_link_libraries(tnn_wrapper opencv)
+endif()
+
+if(TNN_SNPE_ENABLE)
+    if(ANDROID_ABI STREQUAL "arm64-v8a")
+        target_link_libraries(tnn_wrapper SNPE)
+    endif()
 endif()
 
 if(TNN_HUAWEI_NPU_ENABLE)

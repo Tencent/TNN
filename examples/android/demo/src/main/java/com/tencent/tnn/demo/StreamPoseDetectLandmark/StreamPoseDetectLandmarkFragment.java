@@ -64,6 +64,8 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
     private ToggleButton mHuaweiNPUswitch;
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
+    // add for qualcomm SNPE
+    private boolean mUseSNPE = false;
 
     private boolean mDeviceSwitched = false;
     private int detector_type = 0; // 0 : big, 1 : middle, 2 : small
@@ -75,6 +77,9 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
+        if (mUseSNPE) {
+            System.loadLibrary("SNPE");
+        }
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
         String modelPath = initModel();
@@ -88,10 +93,13 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
         String[] modelPathsDetector = {
                 "pose_detection.tnnproto",
                 "pose_detection.tnnmodel",
+                "pose_detection.dlc",
                 "pose_landmark_upper_body.tnnproto",
                 "pose_landmark_upper_body.tnnmodel",
+                "pose_landmark_upper_body.dlc",
                 "pose_landmark_full_body.tnnproto",
                 "pose_landmark_full_body.tnnmodel",
+                "pose_landmark_full_body.dlc",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
@@ -310,6 +318,8 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
                     int device = 0;
                     if (mUseHuaweiNpu) {
                         device = 2;
+                    } else if (mUseSNPE) {
+                        device = 3;
                     } else if (mUseGPU) {
                         device = 1;
                     }
@@ -353,6 +363,8 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
                                 int device = 0;
                                 if (mUseHuaweiNpu) {
                                     device = 2;
+                                } else if (mUseSNPE) {
+                                    device = 3;
                                 } else if (mUseGPU) {
                                     device = 1;
                                 }
@@ -378,6 +390,8 @@ public class StreamPoseDetectLandmarkFragment extends BaseFragment {
                                     monitorResult += "opencl\n";
                                 } else if (mUseHuaweiNpu) {
                                     monitorResult += "huawei_npu\n";
+                                } else if (mUseSNPE) {
+                                    monitorResult += "snpe\n";
                                 } else {
                                     monitorResult += "arm\n";
                                 }
