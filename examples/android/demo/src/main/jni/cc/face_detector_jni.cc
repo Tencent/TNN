@@ -76,7 +76,7 @@ JNIEXPORT JNICALL jint TNN_FACE_DETECTOR(init)(JNIEnv *env, jobject thiz, jstrin
 
     if (status != TNN_NS::TNN_OK) {
         LOGE("detector init failed %d", (int)status);
-        return -1;
+        return status;
     }
 
     if (clsFaceInfo == NULL)

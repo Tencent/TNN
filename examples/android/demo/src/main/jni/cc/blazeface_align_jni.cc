@@ -47,7 +47,7 @@ std::shared_ptr<TNN_NS::BlazeFaceDetector> CreateBlazeFaceDetector(JNIEnv *env, 
     
     gComputeUnitType = computUnitType;
     if (gComputeUnitType == 3) { // Qualcomm SNPE use SNPE .dlc model
-        protoContent = "-";  // protoContent just not empty.
+        proto_content = "-";  // protoContent just not empty.
         model_content = fdLoadFile(modelPathStr + "/blazeface.dlc");
     } else {
         proto_content = fdLoadFile(modelPathStr + "/blazeface.tnnproto");

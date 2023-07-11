@@ -29,7 +29,7 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring mod
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
     
-    gComputeUnitType = computUnitType;
+    gComputeUnitType = computeUnitType;
     if (gComputeUnitType == 3) { // Qualcomm SNPE use SNPE .dlc model
         protoContent = "-";  // protoContent just not empty.
         modelContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.dlc");

@@ -38,7 +38,7 @@ JNIEXPORT JNICALL jint TNN_HAIR_SEGMENTATION(init)(JNIEnv *env, jobject thiz, js
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
     
-    gComputeUnitType = computUnitType;
+    gComputeUnitType = computeUnitType;
     if (gComputeUnitType == 3) { // Qualcomm SNPE use SNPE .dlc model
         protoContent = "-";  // protoContent just not empty.
         modelContent = fdLoadFile(modelPathStr + "/segmentation.dlc");

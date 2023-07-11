@@ -36,7 +36,7 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY_OPENGL(init)(JNIEnv *env, jobject thiz, jstr
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
     
-    gComputeUnitType = computUnitType;
+    gComputeUnitType = computeUnitType;
     protoContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnproto");
     modelContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
