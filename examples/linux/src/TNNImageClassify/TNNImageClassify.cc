@@ -50,7 +50,11 @@ int main(int argc, char** argv) {
         option->proto_content = proto_content;
         option->model_content = model_content;
         option->library_path = "";
+#if defined(_ATLAS_)
+        option->compute_units = TNN_NS::TNNComputeUnitsAtlas;
+#else
         option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+#endif
         // if enable openvino, set option compute_units to openvino
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
         #if defined(_CUDA_) || defined(_OPENCL_)
@@ -77,23 +81,24 @@ int main(int argc, char** argv) {
     char img_buff[256];
     char *input_imgfn = img_buff;
     strncpy(input_imgfn, FLAGS_i.c_str(), 256);
-    printf("Classify is about to start, and the picture is %s\n",input_imgfn);
 
     int image_width, image_height, image_channel;
     unsigned char *data = stbi_load(input_imgfn, &image_width, &image_height, &image_channel, 3);
     if (!data) {
         fprintf(stderr, "ImageClassifier open file %s failed.\n", input_imgfn);
     }
-
     std::vector<int> nchw = {1, image_channel, image_height, image_width};
 
     //Init
     std::shared_ptr<TNNSDKOutput> sdk_output = predictor->CreateSDKOutput();
     CHECK_TNN_STATUS(predictor->Init(option));
-    //Predict
-    auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
-    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
 
+#if defined(_ATLAS_)
+        auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ATLAS, TNN_NS::N8UC3, nchw, data);
+#else
+        auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, nchw, data);
+#endif
+    CHECK_TNN_STATUS(predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), sdk_output));
     int class_id = -1;
     if (sdk_output && dynamic_cast<ImageClassifierOutput *>(sdk_output.get())) {
         auto classfy_output = dynamic_cast<ImageClassifierOutput *>(sdk_output.get());

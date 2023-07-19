@@ -564,10 +564,14 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #if TNN_SDK_USE_NCNN_MODEL
         config.model_type = TNN_NS::MODEL_TYPE_NCNN;
 #else
-        config.model_type = TNN_NS::MODEL_TYPE_TNN;
-#endif
+#if defined(_ATLAS_)
+        config.model_type = TNN_NS::MODEL_TYPE_ATLAS;
+        config.params.push_back(option->model_content);
+#else
+        config.model_type = TNN_NS::MODEL_TYPE_RAPIDNET;
         config.params = {option->proto_content, option->model_content, model_path_str_};
-
+#endif 
+#endif
         auto net = std::make_shared<TNN_NS::TNN>();
         status   = net->Init(config);
         if (status != TNN_NS::TNN_OK) {
@@ -602,6 +606,8 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
     }
     else if (option->compute_units == TNNComputeUnitsNaive) {
         device_type_ = TNN_NS::DEVICE_NAIVE;
+    }else if (option->compute_units == TNNComputeUnitsAtlas) {
+        device_type_ = TNN_NS::DEVICE_ATLAS;
     }
     
     //创建实例instance
@@ -624,6 +630,9 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         }
         else if (device_type_ == TNN_NS::DEVICE_CUDA) {
             network_config.network_type = NETWORK_TYPE_TENSORRT;
+        }
+        else if (device_type_ == TNN_NS::DEVICE_ATLAS) {
+            network_config.network_type = NETWORK_TYPE_ATLAS;
         }
         std::shared_ptr<TNN_NS::Instance> instance;
         if (device_type_ == TNN_NS::DEVICE_CUDA && !(option->max_input_shapes.empty()))

@@ -124,6 +124,8 @@ typedef enum {
     TNNComputeUnitsHuaweiNPU  = 0x0300,
     // run on huawei_npu, if failed run on cpu
     TNNComputeUnitsAppleNPU     = 0x0301,
+    // run on atlas
+    TNNComputeUnitsAtlas        = 0x0302,
     // run on cpu Naive
     TNNComputeUnitsNaive             = 0x0400,
 } TNNComputeUnits;

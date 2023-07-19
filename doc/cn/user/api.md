@@ -63,7 +63,7 @@ TNN_NS::Status error;
 auto net_instance = tnn.CreateInst(config, error);
 ```
 
-TNN网络构建需配置NetworkConfig，device_type可配置`DEVICE_ARM`， `DEVICE_OPENCL`， `DEVICE_METAL`， `DEVICE_X86`， `DEVICE_CUDA`, `DEVICE_HUAWEI_NPU`, `DEVICE_RK_NPU`等多种加速方式，通过CreateInst接口完成网络的构建。
+TNN网络构建需配置NetworkConfig，device_type可配置`DEVICE_ARM`， `DEVICE_OPENCL`， `DEVICE_METAL`， `DEVICE_X86`， `DEVICE_CUDA`, `DEVICE_HUAWEI_NPU`, `DEVICE_RK_NPU`,`DEVICE_ATLAS`等多种加速方式，通过CreateInst接口完成网络的构建。
 
 
 ### 步骤3. 输入设定
@@ -143,7 +143,7 @@ struct PUBLIC ModelConfig {
 
 ModelConfig参数说明：
 
-- `model_type`: TNN当前开源版本仅支持传入`MODEL_TYPE_TNN`， `MODEL_TYPE_NCNN`, `MODEL_TYPE_COREML` 模型格式。  
+- `model_type`: TNN当前开源版本仅支持传入`MODEL_TYPE_TNN`， `MODEL_TYPE_NCNN`, `MODEL_TYPE_COREML`, `MODEL_TYPE_ATLAS`模型格式。  
 - `params`: TNN模型需传入proto文件内容以及model文件路径。NCNN模型需传入param文件内容以及bin文件路径, COREML模型需传入coreml 模型所在目录路径。
 
 
@@ -181,7 +181,7 @@ struct PUBLIC NetworkConfig {
 
 NetworkConfig参数说明：  
 
-- `device_type`: 默认为`DEVICE_ARM`。 当前已支持 `DEVICE_NAIVE`、`DEVICE_ARM`、`DEVICE_X86`、`DEVICE_OPENCL`、`DEVICE_METAL`、`DEVICE_CUDA`、`DEVICE_HUAWEI_NPU`、`DEVICE_RK_NPU`。  
+- `device_type`: 默认为`DEVICE_ARM`。 当前已支持 `DEVICE_NAIVE`、`DEVICE_ARM`、`DEVICE_X86`、`DEVICE_OPENCL`、`DEVICE_METAL`、`DEVICE_CUDA`、`DEVICE_HUAWEI_NPU`、`DEVICE_RK_NPU`、`DEVICE_ATLAS`。  
 - `device_id`: 默认为0，多个设备支持通过`device_id`选择，当前仅`DEVICE_CUDA`需配置此参数指定gpu id。  
 - `data_format`: 默认为tnn自动选择blob数据排布方式进行加速，可通过此参数设定特定blob数据排布进行加速。  
 - `network_type`: 默认根据`device_type`自动选择网络类型，可指定构建网络类型。  

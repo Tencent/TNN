@@ -40,6 +40,7 @@ Required Parameters：
     - TRT - run NVidia TensorRT
     - TORCH - run Pytorch TorchScript Network
     - ZIXIAO - run ZIXIAO Network
+    - ATLAS - run HUAWEI ATLAS NPU
   -op Output File Location
     - blank(default) - end TNNTest without saving Output, not recommended
     - ${YOUR_OUTPUT_NAME}.txt - absolute path for output.txt file，TNNTest will write all network results to this file
