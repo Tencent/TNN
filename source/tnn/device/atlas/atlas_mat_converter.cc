@@ -210,12 +210,7 @@ Status AtlasMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         resize_config = nullptr;
     }
 
-    LOGD("Stream ID: 0x%lx\n", atlas_cmd_queue->stream);
-    acl_ret = aclrtSynchronizeStream(atlas_cmd_queue->stream);
-    if (ACL_ERROR_NONE != acl_ret) {
-        LOGE("aclrtSynchronizeStream failed, ret = %d\n", acl_ret);
-        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aclrtSynchronizeStream failed");
-    }
+    aclrtSynchronizeStream(atlas_cmd_queue->stream);
 
     ret = ProcessOutput(dst);
     if (TNN_OK != ret) {
@@ -268,12 +263,7 @@ Status AtlasMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* com
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acldvppVpcResizeAsync failed");
     }
 
-    LOGD("Stream ID: 0x%lx\n", atlas_cmd_queue->stream);
-    acl_ret = aclrtSynchronizeStream(atlas_cmd_queue->stream);
-    if (ACL_ERROR_NONE != acl_ret) {
-        LOGE("aclrtSynchronizeStream failed, ret = %d\n", acl_ret);
-        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aclrtSynchronizeStream failed");
-    }
+    aclrtSynchronizeStream(atlas_cmd_queue->stream);
 
     ret = ProcessOutput(dst);
     if (TNN_OK != ret) {
@@ -410,13 +400,7 @@ Status AtlasMatConverterAcc::PrepareOutput(Mat& mat, int pad_value) {
     if (1 != batch) {
         LOGE("atlas mat convert not support multi batch (batch is %d)!\n", batch);
         return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat resize not support multi batch");
-    }
-
-    MatType mat_type = mat.GetMatType();
-    if (NNV12 != mat_type && NNV21 != mat_type) {
-        LOGE("atlas mat convert output only support NV12 or NV21!\n");
-        return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat convert not support this mat type");
-    }
+    } 
 
     aclError acl_ret;
     Status tnn_ret;

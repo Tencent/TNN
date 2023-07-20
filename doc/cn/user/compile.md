@@ -227,7 +227,41 @@ cd <path_to_tnn>/scripts
 ```
 ./build_macos.sh
 ```
+## 九、ATLAS环境编译
 
+### 1. 环境要求
+#### 依赖库
+  - cmake（使用3.1及以上版本）
+  - 交叉编译需要安装编译工具链
+  - ubuntu: aarch64: sudo apt-get install g++-aarch64-linux-gnu  gcc-aarch64-linux-gnu
+  - other linux: 下载arm toolchain: https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
+  - CANN环境依赖:
+    toolkit软件包: wget https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/6.0.0.alpha003/Ascend-cann-toolkit_6.0.0.alpha003_linux-aarch64.run
+    kernel包: wget https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/6.0.0.alpha003/Ascend-cann-kernels-310p_6.0.0.alpha003_linux.run 
+    chmod a+x Ascend-cann-toolkit_6.0.0.alpha003_linux-aarch64.run && chmod a+x Ascend-cann-kernels-310p_6.0.0.alpha003_linux.run
+    ./Ascend-cann-toolkit_6.0.0.alpha003_linux-aarch64.run --install  # 默认安装路径:/usr/local/Ascend/ascend-toolkit
+    ./Ascend-cann-kernels-310p_6.0.0.alpha003_linux.run --install
+
+### 2. 编译步骤
+1）切换到脚本目录
+```
+cd <path_to_tnn>/scripts
+```
+2）编辑`build_atlas.sh`修改配置选项 
+```
+ SHARED_LIB="ON"                # ON表示编译动态库，OFF表示编译静态库
+ ARM="ON"                       # ON表示编译带有Arm CPU版本的库
+ OPENMP="ON"                    # ON表示打开OpenMP
+ #ARM64:
+ CC=aarch64-linux-gnu-gcc       # 指定C编译器
+ CXX=aarch64-linux-gnu-g++      # 指定C++编译器
+ TARGET_ARCH=aarch64            # 指定指令架构
+
+```
+3）执行编译脚本
+```
+./build_atlas.sh
+```
 ## 编译参数option说明
 
 |Option|默认值|说明|

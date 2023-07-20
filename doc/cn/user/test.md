@@ -40,6 +40,7 @@ TNNTest
     - TRT - 运行英伟达 TensorRT
     - TORCH - 运行 Pytorch TorchScript 网络
     - ZIXIAO - 运行紫霄网络
+    - ATLAS - 运行华为ATLAS NPU
   -op 输出文件位置
     - 空(默认) - 不输出网络运行结果，一般不推荐
     - ${YOUR_OUTPUT_NAME}.txt - 输出文件的绝对或相对路径，指定输出文件后，TNNTest 会将网络所有输出写到该文件中
