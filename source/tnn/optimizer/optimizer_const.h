@@ -58,9 +58,6 @@ static const std::string kNetOptimizerQDQ =
 static const std::string kNetOptimizerContextMarker =
     "net_optimizer_context_marker";
 
-static const std::string kNetOptimizerMultiHeadAttention =
-    "net_optimizer_multi_head_attention";
-
 static const std::string kNetOptimizerEffectiveTransformer =
     "net_optimizer_effective_transformer";
 
