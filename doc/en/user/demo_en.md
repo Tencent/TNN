@@ -539,6 +539,48 @@ NDK 22 and 23 are not suggested, because they may report error when link third p
    ocr-detector demo
    ./demo_cuda_ocrdetecor
    ```
+##### Atlas
+* Environment Requirements  
+   - Cmake (>=3.1)
+   - Install arm toolchain
+   - ubuntu: aarch64: sudo apt-get install g++-aarch64-linux-gnu  gcc-aarch64-linux-gnu  
+   - other linux: download toolchains from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
+   - CANN environment dependencies:
+    toolkit package: wget https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/6.0.0.alpha003/Ascend-cann-toolkit_6.0.0.alpha003_linux-aarch64.run
+    kernel package: wget https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/6.0.0.alpha003/Ascend-cann-kernels-310p_6.0.0.alpha003_linux.run 
+    chmod a+x Ascend-cann-toolkit_6.0.0.alpha003_linux-aarch64.run && chmod a+x Ascend-cann-kernels-310p_6.0.0.alpha003_linux.run
+    ./Ascend-cann-toolkit_6.0.0.alpha003_linux-aarch64.run --install  # Default installation path:/usr/local/Ascend/ascend-toolkit
+    ./Ascend-cann-kernels-310p_6.0.0.alpha003_linux.run --install
+* Comiple  
+   Move to `examples/linux/atlas` directory:
+   ```
+   cd <path_to_tnn>/examples/linux/atlas
+   ```
+   execute `build_atlas.sh`
+   ```
+   sh build_atlas.sh
+   ```
+* Execute  
+   Move to `examples/linux/atlas/build_atlas` directory, when execued without any parameters, demo executables will print usage message:
+    ```
+   cd build_atlas
+   ./demo_atlas_imageclassify
+   >Parameter -m and -p should be set 
+   >usage:
+   >./demo_arm_linux_imageclassify [-h] [-p] tnnproto [-m] ommodel [-i] <input>
+   >     -h, <help>      print a usage message.
+   >     -p, <proto>     (required) tnn proto file path
+   >     -m, <model>     (required) om model file path
+   >     -i, <input>     (required) input file path
+   >     -l, <label>     (optional) label file path. Default is: ../../../assets/synset.txt
+   ```
+   `-p` and `-m` are used for the tnnproto and om odel file paths, respectively; `-i` is for specifying the classification label file path. `-h` option is for printing the usage message. Examples for executing each demo is shown below:
+   ```
+   cd build_atlas
+
+   image-classification demo
+   ./demo_atlas_imageclassify -p ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto -m ../../../../model/SqueezeNet/squeezenet_v1.0.om -i ../../../assets/tiger_cat.jpg
+
 ### FAQ
 
 #### Demo Execution Questions

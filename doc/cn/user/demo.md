@@ -534,6 +534,48 @@ NDK 22和23在链接第三方动态库可能会出错，例如opencv，hiai，�
    文本识别 demo
    ./demo_cuda_ocrdetecor
    ```
+##### Atlas
+* 环境要求
+   - Cmake (>= 3.1)
+   - 交叉编译需要安装编译工具链
+   - ubuntu: aarch64: sudo apt-get install g++-aarch64-linux-gnu      gcc-aarch64-linux-gnu  
+   - other linux: 下载 arm toolchain: https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
+  - CANN环境依赖:
+    toolkit软件包: wget https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/6.0.0.alpha003/Ascend-cann-toolkit_6.0.0.alpha003_linux-aarch64.run
+    kernel包: wget https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/6.0.0.alpha003/Ascend-cann-kernels-310p_6.0.0.alpha003_linux.run 
+    chmod a+x Ascend-cann-toolkit_6.0.0.alpha003_linux-aarch64.run && chmod a+x Ascend-cann-kernels-310p_6.0.0.alpha003_linux.run
+    ./Ascend-cann-toolkit_6.0.0.alpha003_linux-aarch64.run --install  # 默认安装路径:/usr/local/Ascend/ascend-toolkit
+    ./Ascend-cann-kernels-310p_6.0.0.alpha003_linux.run --install
+* 编译  
+   进入 `examples/linux/atlas` 目录
+   ```
+   cd <path_to_tnn>/examples/linux/atlas
+   ```
+   执行 `build_atlas.sh`
+   ```
+   sh build_aarch64_linux.sh
+   ```
+* 执行  
+   进入 `examples/linux/cross/build_atlas` 目录，当不使用任何参数执行demo文件时，会打印demo用法信息，以图形分类demo为例:
+   ```
+   cd build_atlas
+   ./demo_atlas_imageclassify
+   >Parameter -m and -p should be set 
+   >usage:
+   >./demo_arm_linux_imageclassify [-h] [-p] tnnproto [-m] ommodel [-i] <input>
+   >     -h, <help>      print a usage message.
+   >     -p, <proto>     (required) tnn proto file path
+   >     -m, <model>     (required) om model file path
+   >     -i, <input>     (required) input file path
+   >     -l, <label>     (optional) label file path. Default is: ../../../assets/synset.txt
+   ```
+   `-p`和`-m`选项分别用于指定demo使用的tnnproto和ommodel文件的路径；`-i`选项用于指定输入图片的路径；`-l`选项用于指定分类标签文件的路径。`-h`选项打印帮助信息。各个demo的示例用法如下所示:
+   ```
+   cd build_atlas
+
+   图形分类 demo
+   ./demo_atlas_imageclassify -p ../../../../model/SqueezeNet/squeezenet_v1.1.tnnproto -m ../../../../model/SqueezeNet/squeezenet_v1.0.om -i ../../../assets/tiger_cat.jpg
+   ```
 
 ### 常见问题
 

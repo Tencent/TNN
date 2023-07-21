@@ -64,7 +64,7 @@ TNN_NS::Status error;
 auto net_instance = tnn.CreateInst(config, error);
 ```
 
-TNN network construction needs configure the NetworkConfig parameter，and device_type could be set as `DEVICE_ARM`， `DEVICE_OPENCL`， `DEVICE_METAL`， `DEVICE_X86`， `DEVICE_CUDA`, `DEVICE_HUAWEI_NPU`, `DEVICE_RK_NPU` or other acceleration method，the construction of the network is completed through CreateInst interface.
+TNN network construction needs configure the NetworkConfig parameter，and device_type could be set as `DEVICE_ARM`， `DEVICE_OPENCL`， `DEVICE_METAL`， `DEVICE_X86`， `DEVICE_CUDA`, `DEVICE_HUAWEI_NPU`, `DEVICE_RK_NPU`、`DEVICE_ATLAS` or other acceleration method，the construction of the network is completed through CreateInst interface.
 
 ```cpp
 config.network_type = TNN_NS::NETWORK_TYPE_HUAWEI_NPU;
@@ -146,7 +146,7 @@ struct PUBLIC ModelConfig {
 
 ModelConfig parameters：  
 
-- `model_type`: The current open source version of TNN only supports importing `MODEL_TYPE_TNN`, `MODEL_TYPE_NCNN`, `MODEL_TYPE_COREML` model formats.  
+- `model_type`: The current open source version of TNN only supports importing `MODEL_TYPE_TNN`, `MODEL_TYPE_NCNN`, `MODEL_TYPE_COREML`、`DEVICE_ATLAS` model formats.  
 - `params`: The TNN model needs to pass in the content of the proto file and the path of the model file. The NCNN model needs to input the content of the param file and the path of the bin file, and the COREML model needs to input the directory path where the coreml model is located.  
 
 ```cpp
@@ -183,7 +183,7 @@ struct PUBLIC NetworkConfig {
 NetworkConfig parameter description:  
 
 - `device_type`:   
-The default is `DEVICE_ARM`. `DEVICE_NAIVE`, `DEVICE_ARM`, `DEVICE_X86`, `DEVICE_OPENCL`, `DEVICE_METAL`, `DEVICE_CUDA`, `DEVICE_HUAWEI_NPU`, `DEVICE_RK_NPU` are currently supported.  
+The default is `DEVICE_ARM`. `DEVICE_NAIVE`, `DEVICE_ARM`, `DEVICE_X86`, `DEVICE_OPENCL`, `DEVICE_METAL`, `DEVICE_CUDA`, `DEVICE_HUAWEI_NPU`, `DEVICE_RK_NPU` 、`DEVICE_ATLAS`are currently supported.  
 - `device_id`: The default value is 0. Multiple devices can be selected by `device_id`. Currently, only `DEVICE_CUDA` needs to configure this parameter to specify the gpu id.  
 - `data_format`: By default, tnn automatically selects the blob data arrangement method for acceleration. You can set a specific blob data arrangement for acceleration through this parameter.  
 - `network_type`: By default, the network type is automatically selected according to the `device_type`, and the network type to be constructed can be specified.  
