@@ -564,13 +564,17 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
 #if TNN_SDK_USE_NCNN_MODEL
         config.model_type = TNN_NS::MODEL_TYPE_NCNN;
 #else
-#if defined(_ATLAS_)
+    #if defined(_ATLAS_)
         config.model_type = TNN_NS::MODEL_TYPE_ATLAS;
         config.params.push_back(option->model_content);
-#else
-        config.model_type = TNN_NS::MODEL_TYPE_RAPIDNET;
+    #else
+        if (option->compute_units == TNNComputeUnitsSNPE) {
+            config.model_type = TNN_NS::MODEL_TYPE_SNPE;
+        } else {
+            config.model_type = TNN_NS::MODEL_TYPE_TNN;
+        }
         config.params = {option->proto_content, option->model_content, model_path_str_};
-#endif 
+    #endif
 #endif
         auto net = std::make_shared<TNN_NS::TNN>();
         status   = net->Init(config);
@@ -604,9 +608,13 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
     else if (option->compute_units == TNNComputeUnitsAppleNPU) {
         device_type_      = TNN_NS::DEVICE_APPLE_NPU;
     }
+    else if (option->compute_units == TNNComputeUnitsSNPE) {
+        device_type_      = TNN_NS::DEVICE_DSP;
+    }
     else if (option->compute_units == TNNComputeUnitsNaive) {
         device_type_ = TNN_NS::DEVICE_NAIVE;
-    }else if (option->compute_units == TNNComputeUnitsAtlas) {
+    }
+    else if (option->compute_units == TNNComputeUnitsAtlas) {
         device_type_ = TNN_NS::DEVICE_ATLAS;
     }
     
@@ -617,7 +625,7 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         network_config.device_type  = device_type_;
         network_config.precision = option->precision;
         network_config.cache_path = option->cache_path;
-        if(device_type_ == TNN_NS::DEVICE_HUAWEI_NPU){
+        if (device_type_ == TNN_NS::DEVICE_HUAWEI_NPU) {
             network_config.network_type = NETWORK_TYPE_HUAWEI_NPU;
         }
         else if (option->compute_units == TNNComputeUnitsAppleNPU) {
@@ -633,6 +641,11 @@ TNN_NS::Status TNNSDKSample::Init(std::shared_ptr<TNNSDKOption> option) {
         }
         else if (device_type_ == TNN_NS::DEVICE_ATLAS) {
             network_config.network_type = NETWORK_TYPE_ATLAS;
+        } 
+        else if (device_type_ == TNN_NS::DEVICE_DSP) {
+            // Qualcomm SNPE DSP only right now.
+            network_config.network_type = NETWORK_TYPE_SNPE;
+            network_config.precision    = PRECISION_HIGH;
         }
         std::shared_ptr<TNN_NS::Instance> instance;
         if (device_type_ == TNN_NS::DEVICE_CUDA && !(option->max_input_shapes.empty()))
