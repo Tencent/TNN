@@ -646,6 +646,26 @@ int UnpackInt32Blob(int32_t *dst, int32_t *src, size_t batch, size_t channel, si
     return 0;
 }
 
+int PackInt8Blob(int8_t *dst, int8_t *src, size_t batch, size_t channel, size_t hw) {
+    OMP_PARALLEL_FOR_
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * ROUND_UP(channel, 4) * hw;
+        auto src_ptr_n = src + n * channel * hw;
+        PackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
+int UnpackInt8Blob(int8_t *dst, int8_t *src, size_t batch, size_t channel, size_t hw) {
+    OMP_PARALLEL_FOR_
+    for (int n = 0; n < batch; ++n) {
+        auto dst_ptr_n = dst + n * channel * hw;
+        auto src_ptr_n = src + n * ROUND_UP(channel, 4) * hw;
+        UnpackC4(dst_ptr_n, src_ptr_n, hw, channel);
+    }
+    return 0;
+}
+
 int PackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw) {
     OMP_PARALLEL_FOR_
     for (int n = 0; n < batch; ++n) {

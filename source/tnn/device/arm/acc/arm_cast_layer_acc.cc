@@ -26,9 +26,9 @@ Status ArmCastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
     auto input_data_type = inputs[0]->GetBlobDesc().data_type;
     void *output_data = GetBlobHandlePtr(outputs[0]->GetHandle());
     auto output_data_type = outputs[0]->GetBlobDesc().data_type;
-    
+
     const int ele_size = DataTypeUtils::GetBytesSize(outputs[0]->GetBlobDesc().data_type);
-    
+
     int count = DimsVectorUtils::Count(outputs[0]->GetBlobDesc().dims);
 
     if (outputs[0]->GetBlobDesc().data_format != inputs[0]->GetBlobDesc().data_format) {
@@ -77,7 +77,22 @@ Status ArmCastLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::
             for(int i = 0; i < count; ++i) {
                 output_data_ptr[i] = static_cast<int32_t>(input_data_ptr[i]);
             }
-        } else {
+        }else if (input_data_type == DATA_TYPE_FLOAT &&
+                   output_data_type == DATA_TYPE_INT8) {
+            auto *input_data_ptr = (float *)input_data;
+            auto *output_data_ptr = (int8_t *)output_data;
+            for(int i = 0; i < count; ++i) {
+                output_data_ptr[i] = static_cast<int8_t >(input_data_ptr[i]);
+            }
+        }else if (input_data_type == DATA_TYPE_INT8 &&
+                   output_data_type == DATA_TYPE_FLOAT) {
+            auto *input_data_ptr = (int8_t *)input_data;
+            auto *output_data_ptr = (float *)output_data;
+            for(int i = 0; i < count; ++i) {
+                output_data_ptr[i] = static_cast<float >(input_data_ptr[i]);
+            }
+        }
+        else {
             return Status(TNNERR_LAYER_ERR, "Unsupported data type in cast");
         }
     }

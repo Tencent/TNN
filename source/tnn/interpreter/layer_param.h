@@ -462,6 +462,9 @@ typedef enum {
     // nchw <-> nc4hw4 int32
     NC4HW4INT32_2_NCHWINT32 = 10,
     NCHWINT32_2_NC4HW4INT32 = 11,
+    // nchw <-> nc4hw4 int8
+    NC4HW4INT8_2_NCHWINT8 = 12,
+    NCHWINT8_2_NC4HW4INT8 = 13,
     // to be continued
 } ReformatType;
 
