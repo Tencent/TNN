@@ -2257,6 +2257,12 @@
 		ECEC5D6C24FCE0780044DDF1 /* mat_converter_acc.h in Headers */ = {isa = PBXBuildFile; fileRef = ECEC5D6924FCE0780044DDF1 /* mat_converter_acc.h */; };
 		ECEC5D6D24FCE0780044DDF1 /* mat_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5D6A24FCE0780044DDF1 /* mat_utils.cc */; };
 		ECEC5DA824FFC6FE0044DDF1 /* mat.cc in Sources */ = {isa = PBXBuildFile; fileRef = ECEC5DA724FFC6FD0044DDF1 /* mat.cc */; };
+		F580E8E02A8CF65D005CA266 /* any.h in Headers */ = {isa = PBXBuildFile; fileRef = F580E8DD2A8CF65D005CA266 /* any.h */; };
+		F580E8E22A8CF65D005CA266 /* any.cc in Sources */ = {isa = PBXBuildFile; fileRef = F580E8DE2A8CF65D005CA266 /* any.cc */; };
+		F580E8E82A8CF6B5005CA266 /* any.h in Headers */ = {isa = PBXBuildFile; fileRef = F580E8E62A8CF6B5005CA266 /* any.h */; };
+		F580E8E92A8CF6B5005CA266 /* any.h in Headers */ = {isa = PBXBuildFile; fileRef = F580E8E62A8CF6B5005CA266 /* any.h */; };
+		F580E8EA2A8CF6B5005CA266 /* any.cc in Sources */ = {isa = PBXBuildFile; fileRef = F580E8E72A8CF6B5005CA266 /* any.cc */; };
+		F580E8EB2A8CF6B5005CA266 /* any.cc in Sources */ = {isa = PBXBuildFile; fileRef = F580E8E72A8CF6B5005CA266 /* any.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -4516,6 +4522,10 @@
 		ECEC5D6924FCE0780044DDF1 /* mat_converter_acc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mat_converter_acc.h; sourceTree = "<group>"; };
 		ECEC5D6A24FCE0780044DDF1 /* mat_utils.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat_utils.cc; sourceTree = "<group>"; };
 		ECEC5DA724FFC6FD0044DDF1 /* mat.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mat.cc; sourceTree = "<group>"; };
+		F580E8DD2A8CF65D005CA266 /* any.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = any.h; path = "../../../../../.Trash/TNN-dev-0.4.2/source/tnn/core/any.h"; sourceTree = "<group>"; };
+		F580E8DE2A8CF65D005CA266 /* any.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = any.cc; path = "../../../../../.Trash/TNN-dev-0.4.2/source/tnn/core/any.cc"; sourceTree = "<group>"; };
+		F580E8E62A8CF6B5005CA266 /* any.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = any.h; sourceTree = "<group>"; };
+		F580E8E72A8CF6B5005CA266 /* any.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = any.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -5127,6 +5137,8 @@
 		9D32FC6424557EEB002DCDAB /* core */ = {
 			isa = PBXGroup;
 			children = (
+				F580E8E72A8CF6B5005CA266 /* any.cc */,
+				F580E8E62A8CF6B5005CA266 /* any.h */,
 				EC8BDE0725E3B13D0085CCC2 /* const_folder.cc */,
 				ECEC5DA724FFC6FD0044DDF1 /* mat.cc */,
 				9D32FC7424557EEB002DCDAB /* abstract_device.cc */,
@@ -5459,6 +5471,8 @@
 		9D4A44B42994B46200407FE5 /* core */ = {
 			isa = PBXGroup;
 			children = (
+				F580E8DE2A8CF65D005CA266 /* any.cc */,
+				F580E8DD2A8CF65D005CA266 /* any.h */,
 				9D4A44B52994B46200407FE5 /* layer_type.cc */,
 				9D4A44B62994B46200407FE5 /* abstract_network.cc */,
 				9D4A44B72994B46200407FE5 /* default_network.h */,
@@ -7625,6 +7639,7 @@
 				9D32FC9D24557EEC002DCDAB /* memory_unify_assign_strategy.h in Headers */,
 				9EEED1E72869C659000E6E0B /* coreml_binary_layer.h in Headers */,
 				9E12F14B2865BCD00089E089 /* arm_conv_layer_acc_factory.h in Headers */,
+				F580E8E82A8CF6B5005CA266 /* any.h in Headers */,
 				9D32FF6424557EED002DCDAB /* layer_resource_generator.h in Headers */,
 				9DD1FB3F247CE9BE00800139 /* metal_context.h in Headers */,
 				9E12F13D2865BCD00089E089 /* arm_conv_int8_sdot_layer_common.h in Headers */,
@@ -7844,6 +7859,7 @@
 				9D4A4DB52994B46500407FE5 /* blob_memory_pool.h in Headers */,
 				9D4A4E022994B46500407FE5 /* net_optimizer_convert_matmul_to_conv.h in Headers */,
 				9D4A54162994B46B00407FE5 /* x86_conv_int8_layer_common.h in Headers */,
+				F580E8E92A8CF6B5005CA266 /* any.h in Headers */,
 				9D4A4F4E2994B46600407FE5 /* blob_transfer_utils.h in Headers */,
 				9D4A4F722994B46600407FE5 /* npu_common_utils.h in Headers */,
 				9D4A4DAC2994B46500407FE5 /* memory_mode_state_factory.h in Headers */,
@@ -7988,6 +8004,7 @@
 				9D4A53E42994B46B00407FE5 /* data_packing.h in Headers */,
 				9D4A4DEF2994B46500407FE5 /* ir.h in Headers */,
 				9D4A50CB2994B46700407FE5 /* metal_conv1d_layer_acc.h in Headers */,
+				F580E8E02A8CF65D005CA266 /* any.h in Headers */,
 				9D4A4DCC2994B46500407FE5 /* abstract_network.h in Headers */,
 				9D4A53D02994B46B00407FE5 /* sgemm_fetch_t_16.h in Headers */,
 				9D4A53C02994B46B00407FE5 /* conv_gemm_config.h in Headers */,
@@ -8134,6 +8151,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F580E8EA2A8CF6B5005CA266 /* any.cc in Sources */,
 				6178F34E2590AA8C00B4B153 /* md5.cc in Sources */,
 				3623EFAB2695996E00932B9F /* metal_padv2_layer_acc.mm in Sources */,
 				9D32FCF824557EEC002DCDAB /* elu_layer.cc in Sources */,
@@ -9190,6 +9208,7 @@
 				9D4A54302994B46B00407FE5 /* x86_log_sigmoid_layer_acc.cc in Sources */,
 				9D4A502E2994B46700407FE5 /* metal_tanh_layer_acc.mm in Sources */,
 				9D4A506F2994B46700407FE5 /* metal_gelu_layer_acc.metal in Sources */,
+				F580E8EB2A8CF6B5005CA266 /* any.cc in Sources */,
 				9D4A4D4B2994B46500407FE5 /* hdrguide_layer_interpreter.cc in Sources */,
 				9D4A4FD02994B46700407FE5 /* min_layer.cc in Sources */,
 				9D4A4E832994B46600407FE5 /* Model.proto in Sources */,
@@ -9570,6 +9589,7 @@
 				9D4A4D0E2994B46500407FE5 /* shape_layer_interpreter.cc in Sources */,
 				9D4A537E2994B46A00407FE5 /* x86_arg_max_or_min_layer_acc.cc in Sources */,
 				9D4A50AF2994B46700407FE5 /* metal_reshape_layer_acc.metal in Sources */,
+				F580E8E22A8CF65D005CA266 /* any.cc in Sources */,
 				9D4A4DE62994B46500407FE5 /* net_optimizer_fuse_conv_post.cc in Sources */,
 				9D4A50BA2994B46700407FE5 /* metal_asin_layer_acc.mm in Sources */,
 				9D4A4FD42994B46700407FE5 /* concat_layer.cc in Sources */,

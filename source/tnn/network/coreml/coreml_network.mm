@@ -486,6 +486,10 @@ Status CoreMLNetwork::GetCommandQueue(void **command_queue) {
     return context_->GetCommandQueue(command_queue);
 }
 
+Status CoreMLNetwork::SetCommandQueue(void *command_queue) {
+    return TNN_OK;
+}
+
 Status CoreMLNetwork::Forward() {
     if (!HasAppleNPU()) {
         return Status(TNNERR_COMMON_ERROR, "Apple device dont have NeuralEngine");
