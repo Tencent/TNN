@@ -74,6 +74,10 @@ Status ArmConv1DLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
 
 ArmConv1DLayerAcc::~ArmConv1DLayerAcc() {}
 
+Status ArmConv1DLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return conv_acc_impl_->Reshape(inputs, outputs);
+}
+
 Status ArmConv1DLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     // converted weights are assumed to be packed, and can be freed now
     if (conv_acc_f32_resource_) {
