@@ -45,7 +45,16 @@ TEST_P(LogSoftmaxLayerTest, LogSoftmaxLayer) {
         GTEST_SKIP();
     }
 
-    if (dev != DEVICE_CUDA) {
+    if (dev != DEVICE_CUDA && dev != DEVICE_ARM) {
+        GTEST_SKIP();
+    }
+
+    if (dev == DEVICE_ARM && axis == 0) {
+        // arm do not support axis == 0 now
+        GTEST_SKIP();
+    }
+
+    if (axis >= dim_count) {
         GTEST_SKIP();
     }
 

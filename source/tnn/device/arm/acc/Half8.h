@@ -111,6 +111,11 @@ struct Half4 {
         dst.value = vcvt_f16_f32(exp_ps(vcvt_f32_f16(v.value)));
         return dst;
     }
+    static Half4 log(const Half4& v) {
+        Half4 dst;
+        dst.value = vcvt_f16_f32(log_ps(vcvt_f32_f16(v.value)));
+        return dst;
+    }
 };
 
 struct Half8 {
@@ -672,6 +677,14 @@ struct Half4 {
         float32x4_t v_temp;
         v_temp = vcvt_f32_f16(vreinterpret_f16_s16(v.value));
         v_temp = exp_ps(v_temp);
+        dst.value = vreinterpret_s16_f16(vcvt_f16_f32(v_temp));
+        return dst;
+    }
+    static Half4 log(const Half4& v) {
+        Half4 dst;
+        float32x4_t v_temp;
+        v_temp = vcvt_f32_f16(vreinterpret_f16_s16(v.value));
+        v_temp = log_ps(v_temp);
         dst.value = vreinterpret_s16_f16(vcvt_f16_f32(v_temp));
         return dst;
     }
