@@ -37,7 +37,8 @@ Status CudaConvLayerAcc::Init(Context *context, LayerParam *param, LayerResource
     DimsVector output_dims = outputs[0]->GetBlobDesc().dims;
 
     if (input_dims.size() == 0 || output_dims.size() == 0) {
-        return TNNERR_LAYER_ERR;
+        LOGD("Conv layer acc input_dims or output_dims is 0, can be ignored in dynamic mode\n");
+        return TNN_OK;
     }
 
     Blob *input = inputs[0];

@@ -65,6 +65,8 @@ if(TNN_CUDA_ENABLE)
     set_target_properties(nvinfer_plugin PROPERTIES IMPORTED_LOCATION $ENV{TENSORRT_ROOT_DIR}/lib/libnvinfer_plugin.so)
     set_target_properties(cudnn PROPERTIES IMPORTED_LOCATION $ENV{CUDNN_ROOT_DIR}/lib64/libcudnn.so)
     target_link_libraries(TNN nvinfer nvinfer_plugin cudnn)
+    target_link_options(TNN PRIVATE "LINKER:--no-as-needed")
+    target_link_options(TNN PRIVATE "LINKER:-lcublas,-lcublasLt")
 endif()
 
 if(TNN_RK_NPU_ENABLE)
