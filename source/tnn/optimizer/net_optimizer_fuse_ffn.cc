@@ -39,6 +39,9 @@ namespace optimizer {
     }
 
     bool NetOptimizerFuseFFN::IsSupported(const NetworkConfig &net_config) {
+        // May lead to potential bugs, Closed Right now.
+        return false;
+
         if (net_config.precision == PRECISION_HIGH) {
             return false;
         }
