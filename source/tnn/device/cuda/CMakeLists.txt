@@ -19,6 +19,27 @@ set(TARGET_ARCH "-gencode arch=compute_75,code=sm_75 \
                  -gencode arch=compute_61,code=sm_61 \
                  -gencode arch=compute_60,code=sm_60")
 
+if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0)
+    string(APPEND TARGET_ARCH " -gencode=arch=compute_80,code=sm_80")
+endif()
+
+if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.1)
+    string(APPEND TARGET_ARCH " -gencode=arch=compute_86,code=sm_86")
+endif()
+
+if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.4)
+    string(APPEND TARGET_ARCH " -gencode=arch=compute_87,code=sm_87")
+endif()
+
+if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.8)
+    string(APPEND TARGET_ARCH " -gencode=arch=compute_89,code=sm_89")
+endif()
+
+# ptx forward-compatible for cuda12 or later
+if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0)
+    string(APPEND TARGET_ARCH " -gencode=arch=compute_80,code=compute_80")
+endif()
+
 message(${TARGET_ARCH})
 
 if(TNN_GLIBCXX_USE_CXX11_ABI_ENABLE)
