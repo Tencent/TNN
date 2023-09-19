@@ -12,13 +12,23 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include "tnn/device/arm/acc/arm_gather_layer_acc.h"
 #include "tnn/device/arm/acc/arm_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(Gather, LAYER_GATHER);
+//DECLARE_ARM_ACC(Gather, LAYER_GATHER);
+Status ArmGatherLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                         const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    ArmLayerAcc::Init(context, param, resource, inputs, outputs);
+    auto layer_resource = dynamic_cast<GatherLayerResource*>(resource);
+    rbm_data = RawBufferMMap(layer_resource->data);
+    layer_resource->data = RawBuffer();
+    layer_resource->data.SetBufferDims(rbm_data.GetBufferDims());
+    return TNN_OK;
+}
 
 Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<GatherLayerParam*>(param_);
@@ -33,8 +43,10 @@ Status ArmGatherLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
     DimsVector input_data_dims;
     char *input_data_ptr = nullptr;
     if (layer_param->data_in_resource) {
-        input_data_dims = layer_resource->data.GetBufferDims();
-        input_data_ptr = layer_resource->data.force_to<char*>();
+        //input_data_dims = layer_resource->data.GetBufferDims();
+        //input_data_ptr = layer_resource->data.force_to<char*>();
+        input_data_dims = rbm_data.GetBufferDims();
+        input_data_ptr = rbm_data.force_to<char*>();
     } else {
         input_data_dims = (*(inputs.begin()))->GetBlobDesc().dims;
         input_data_ptr = GetBlobHandlePtr((*(inputs.begin()))->GetHandle());
