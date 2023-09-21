@@ -50,6 +50,9 @@ public:
     //@brief get input shapes map from model
     virtual Status GetModelInputShapesMap(InputShapesMap& shapes_map);
 
+    //@brief get input data types map from model
+    virtual Status GetModelInputDataTypesMap(InputDataTypeMap& data_types_map);
+
     // @brief create an instance
     // @param instance: The instance to be created.
     // @param inputs_shape: modify input shape, or it will use the shape in the

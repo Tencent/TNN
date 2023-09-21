@@ -36,6 +36,10 @@ Status TNNImplCoreML::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     return Status(TNNERR_NET_ERR, "Error: CoreML do not supprt get model input shapes");
 }
 
+Status TNNImplCoreML::GetModelInputDataTypesMap(InputDataTypeMap& data_types_map) {
+    return Status(TNNERR_NET_ERR, "Error: CoreML do not supprt get model input shapes");
+}
+
 std::shared_ptr<Instance> TNNImplCoreML::CreateInst(NetworkConfig& net_config,
                                                Status& status,
                                                InputShapesMap inputs_shape) {
