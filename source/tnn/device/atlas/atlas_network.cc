@@ -21,7 +21,8 @@ AtlasNetwork::~AtlasNetwork() {
 }
 
 Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                          InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder) {
+                          InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type, 
+                          bool enable_const_folder) {
     need_to_deinit = true;
 
     AtlasModelInterpreter *atlas_interpreter = dynamic_cast<AtlasModelInterpreter *>(interpreter);
@@ -129,8 +130,12 @@ Status AtlasNetwork::Init(NetworkConfig &net_config, ModelConfig &model_config, 
     return TNN_OK;
 }
 
-Status AtlasNetwork::GetForwardMemorySize(int &memory_size) {
+Status AtlasNetwork::GetForwardMemorySize(size_t &memory_size) {
     memory_size = model_mem_size_;
+    return TNN_OK;
+}
+
+Status AtlasNetwork::SetCommandQueue(void *command_queue) {
     return TNN_OK;
 }
 

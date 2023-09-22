@@ -38,6 +38,15 @@ public:
     //@brief get input shapes map from model
     virtual Status GetModelInputShapesMap(InputShapesMap& shapes_map);
 
+    //@brief get input data types map from model
+    virtual Status GetModelInputDataTypeMap(InputDataTypeMap& data_type_map);
+
+    //@brief return input names from model
+    virtual Status GetModelInputNames(std::vector<std::string>& input_names);
+
+    //@brief return output names from model
+    virtual Status GetModelOutputNames(std::vector<std::string>& output_names);
+
     // @brief create an instance
     // @param instance: The instance to be created.
     // @param inputs_shape: modify input shape, or it will use the shape in the
@@ -45,7 +54,8 @@ public:
     // @param status code: If successful, returns zero. Otherwise, returns
     // error code.
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
-                                                 InputShapesMap inputs_shape = InputShapesMap());
+                                                 InputShapesMap inputs_shape = InputShapesMap(),
+                                                 InputDataTypeMap inputs_data_type = InputDataTypeMap());
 
     // @brief create an instance
     // @param instance: The instance to be created.
@@ -54,7 +64,7 @@ public:
     // @param status code: If successful, returns zero. Otherwise, returns
     // error code.
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status, InputShapesMap min_inputs_shape,
-                                                 InputShapesMap max_inputs_shape);
+                                                 InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type = InputDataTypeMap());
 
 private:
     std::shared_ptr<AbstractModelInterpreter> interpreter_;

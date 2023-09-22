@@ -28,7 +28,18 @@ Status TNNImplAtlas::DeInit() {
 }
 
 Status TNNImplAtlas::AddOutput(const std::string& layer_name, int output_index) {
-    return TNN_OK;
+    LOGE("Atlas not support this api (AddOutput)\n");
+    return Status(TNNERR_DEVICE_NOT_SUPPORT, "Atlas not support this api (AddOutput)");
+}
+
+Status TNNImplAtlas::GetModelInputNames(std::vector<std::string>& input_names) {
+    LOGE("Atlas not support this api (GetModelInputNames)\n");
+    return Status(TNNERR_DEVICE_NOT_SUPPORT, "Atlas not support this api (GetModelInputNames)");
+}
+
+Status TNNImplAtlas::GetModelOutputNames(std::vector<std::string>& output_names) {
+    LOGE("Atlas not support this api (GetModelOutputNames)\n");
+    return Status(TNNERR_DEVICE_NOT_SUPPORT, "Atlas not support this api (GetModelOutputNames)");
 }
 
 Status TNNImplAtlas::GetModelInputShapesMap(InputShapesMap& shapes_map) {
@@ -36,17 +47,22 @@ Status TNNImplAtlas::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     return Status(TNNERR_DEVICE_NOT_SUPPORT, "Atlas not support this api (GetModelInputShapesMap)");
 }
 
+Status TNNImplAtlas::GetModelInputDataTypeMap(InputDataTypeMap& data_type_map) {
+    LOGE("Atlas not support this api (GetModelInputDataTypeMap)\n");
+    return Status(TNNERR_DEVICE_NOT_SUPPORT, "Atlas not support this api (GetModelInputDataTypeMap)");
+}
+
 std::shared_ptr<Instance> TNNImplAtlas::CreateInst(NetworkConfig& net_config, Status& status,
-                                                   InputShapesMap inputs_shape) {
+                                                   InputShapesMap inputs_shape, InputDataTypeMap inputs_data_type) {
     auto instance = std::make_shared<Instance>(net_config, model_config_);
-    status        = instance->Init(interpreter_, inputs_shape);
+    status        = instance->Init(interpreter_, inputs_shape, inputs_data_type);
     return instance;
 }
 
 std::shared_ptr<Instance> TNNImplAtlas::CreateInst(NetworkConfig& net_config, Status& status,
-                                                   InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+                                                   InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type) {
     auto instance = std::make_shared<Instance>(net_config, model_config_);
-    status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape);
+    status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape, inputs_data_type);
     return instance;
 }
 

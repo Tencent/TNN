@@ -24,7 +24,7 @@ public:
     // @param net_cfg
     // @param net_res
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape,
+                        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type,
                         bool enable_const_folder = true);
 
     // @brief deinit release init create resource
@@ -35,7 +35,7 @@ public:
     //  forward
     //  @return error code: If successful, returns zero. Otherwise, returns
     //  an error code.
-    virtual Status GetForwardMemorySize(int &memory_size);
+    virtual Status GetForwardMemorySize(size_t &memory_size);
 
     //  @brief: set memory used by the tnn instance without forward
     //  memory, the memory size must be at least that returned by
@@ -56,6 +56,7 @@ public:
     virtual Status GetCommandQueue(void **command_queue);
 
     // @brief set tnn command queue
+    virtual Status SetCommandQueue(void *command_queue);
 
     // @brief network infer, it will sync to wait result
     virtual Status Forward();
