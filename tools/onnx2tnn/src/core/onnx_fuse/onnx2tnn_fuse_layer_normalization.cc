@@ -65,6 +65,17 @@ int Onnx2TNN::FuseLayerNormalization(onnx::GraphProto* mutable_graph, std::vecto
                     break;
                 }
                 
+                // Added for ConvNext UperNet 
+                int div_out_count = 0;
+                for (int j = i + 6; j < node_count; j++) {
+                    auto node2 = index_nodes[j].node;
+                    if (node2->input(0) == node6->output(0)) {
+                        div_out_count++;
+                    }  
+                }
+                if (div_out_count > 1)
+                    break;
+                
                 //scale tensor
                 if (weights.find(node7->input(1)) == weights.end()) {
                     break;
