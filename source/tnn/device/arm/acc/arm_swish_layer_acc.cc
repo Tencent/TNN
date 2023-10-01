@@ -20,6 +20,9 @@ typedef struct arm_swish_operator : arm_unary_operator {
     virtual Float4 operator()(const Float4 &v) {
         return v * Float4::sigmoid(v);
     }
+    virtual Float4 fast_op(const Float4& v) {
+        return v * Float4::fast_sigmoid(v);
+    }
 } ARM_SWISH_OP;
 
 DECLARE_ARM_UNARY_ACC_FP16(Swish, ARM_SWISH_OP);
