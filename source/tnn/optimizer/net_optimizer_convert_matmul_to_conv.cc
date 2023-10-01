@@ -38,9 +38,6 @@ namespace optimizer {
     }
 
     bool NetOptimizerConvertMatMulToConv::IsSupported(const NetworkConfig &net_config) {
-        if (net_config.device_type == DEVICE_ARM) {
-            return true;
-        }
         return false;
     }
 

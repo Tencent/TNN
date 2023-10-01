@@ -100,6 +100,11 @@ def parse_args():
                                  action='store_true',
                                  required=False,
                                  help="save model using dynamic range quantization. use int8 save, fp32 interpreting")
+    onnx2tnn_parser.add_argument('-extra_info',
+                                 dest='extra_info',
+                                 action='store',
+                                 required=False,
+                                 help="set additional configuration information")
 
     # convert caff2onnx -pp proto_path -mp model_path -o
     caffe2tnn_parser = subparsers.add_parser('caffe2tnn',

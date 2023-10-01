@@ -56,7 +56,8 @@ def check_input_names(input_names: str, onnx_input_info: dict):
 
 
 def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=False, align='', align_batch=False,
-            input_path=None, refer_path=None, input_names: str = None, is_ssd=False, debug_mode: bool = False):
+            input_path=None, refer_path=None, input_names: str = None, is_ssd=False, debug_mode: bool = False,
+            extra_info: str = None):
     """
     执行 onnx 转换为 tnn 的转换指令
     :parameter:
@@ -92,7 +93,7 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
         
     proto_suffix = '.tnnproto'
     model_suffix = '.tnnmodel'
-    command = "python3 onnx2tnn.py " + onnx_path
+    command = "python3.7 onnx2tnn.py " + onnx_path
     command = command + " -version=" + version
     checker.check_file_exist(onnx_path)
     if optimize is True:
@@ -111,6 +112,10 @@ def convert(onnx_path, output_dir=None, version="v1.0", optimize=True, half=Fals
 
     if input_names is not None:
         command = command + " -input_shape " + input_names
+
+    if extra_info is not None:
+        command = command + " -extra_info " + extra_info
+
     logging.debug("The onnx2tnn command:" + command + "\n")
 
     current_file_dir = os.path.dirname(__file__)

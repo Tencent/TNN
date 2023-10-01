@@ -389,6 +389,19 @@ Example:
 python3 converter.py onnx2tnn ~/mobilenetv3/mobilenetv3-small-c7eb32fe.onnx.opt.onnx -optimize -v=v3.0 -o ~/mobilenetv3/ 
 ```
 
+If you want to convert MatMul in the onnx model to Conv1x1, you can use -extra_info to configure, for example:
+```shell script
+python3 converter.py onnx2tnn \
+    ./matmul.onnx \
+    -optimize \
+    -v=v3.0 \
+    -o ./ \
+    -align \
+    -input_file in.txt \
+    -ref_file ref.txt \
+    -extra_info "optimize:net_optimizer_convert_matmul_to_conv"
+```
+
 - caffe2tnn
 
 caffe format conversion

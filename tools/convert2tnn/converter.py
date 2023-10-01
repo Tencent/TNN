@@ -56,9 +56,10 @@ def main():
             input_names = ""
             for item in args.input_names:
                 input_names += (item + " ")
+        extra_info = args.extra_info
         try:
             onnx2tnn.convert(onnx_path, output_dir, version, optimize, half, align, align_batch, input_file, ref_file, input_names,
-                             debug_mode=debug_mode)
+                             debug_mode=debug_mode, extra_info=extra_info)
             if int8:
                 dynamic_range_quantization.quantization(onnx_path, "onnx", output_dir, optimize)
         except Exception as err:

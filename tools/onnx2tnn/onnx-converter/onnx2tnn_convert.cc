@@ -18,6 +18,7 @@
 
 #include "onnx2tnn.h"
 #include "tnn/core/const_folder.h"
+#include "tnn/optimizer/net_optimizer_manager.h"
 #include "tnn/interpreter/default_model_interpreter.h"
 #include "tnn/interpreter/tnn/model_packer.h"
 #include "tnn/core/blob.h"
@@ -135,11 +136,57 @@ Status parse_input_info(std::string input_info, TNN_NS::InputShapesMap & input_s
     return TNN_NS::TNN_OK;
 }
 
+std::vector<std::string> split_string(const std::string& str, const std::string& delimiter) {
+    size_t pos = 0;
+    std::string s(str);
+    std::string token;
+    std::vector<std::string> sub_strs;
+    while ((pos = s.find(delimiter)) != std::string::npos) {
+        token = s.substr(0, pos);
+        sub_strs.emplace_back(token);
+        s.erase(0, pos + delimiter.length());
+    }
+    if (!s.empty()) {
+        sub_strs.emplace_back(s);
+    }
+
+    return sub_strs;
+}
+
+// This function parses the additional configuration information needed for model conversion,
+// configuration information is expressed in the form of key-value pair.
+// e.g., If you want to convert matmul to conv1x1, extra_info can be configured like this,
+// "optimize:net_optimizer_convert_matmul_to_conv"
+Status parse_extra_info(const std::string& extra_info, std::map<std::string, std::set<std::string>>& extra_map) {
+    extra_map.clear();
+    const auto& extra_list = split_string(extra_info, ";");
+    for (const auto& extra_it: extra_list) {
+        const auto& info = split_string(extra_it, ":");
+        if (info.size() != 2) {
+            LOGE("sub extra info is invalid, %s\n", extra_it.c_str());
+            return Status(TNNERR_INVALID_NETCFG, "invalid extra_info");
+        }
+        const std::string& type = info.at(0);
+        extra_map[type] = {};
+        const auto& config_list = split_string(info.at(1), ",");
+        for (const auto& it: config_list) {
+            if (extra_map.at(type).find(it) == extra_map.at(type).end()) {
+                extra_map.at(type).emplace(it);
+            }
+        }
+    }
+
+    return TNN_OK;
+}
+
 
 //data_type: 0:float 1:half 2:int8 not support now
 int onnx2tnn_convert(std::string onnx_model_path, std::string output_dir, std::string algo_version,
-                     std::string file_time, int data_type, int fixed_input_shape, std::string input_info)
-{
+                     std::string file_time, int data_type, int fixed_input_shape, std::string input_info,
+                     std::string extra_info) {
+    std::map<std::string, std::set<std::string>> extra_map;
+    RETURN_ON_NEQ(parse_extra_info(extra_info, extra_map), TNN_OK);
+
     std::string onnx_model_name;
     std::string onnx_suffix  = ".onnx";
     std::size_t sep_position = onnx_model_path.rfind('/');
@@ -219,7 +266,17 @@ int onnx2tnn_convert(std::string onnx_model_path, std::string output_dir, std::s
             DLog("GetOptimizedNet Error: %s\n", status.description().c_str());
             return status;
         }
-        
+
+        if (extra_map.find("optimize") != extra_map.end()) {
+            const auto& optimizer_string_list = extra_map.at("optimize");
+            for (const auto& it : optimizer_string_list) {
+                auto optimizer = optimizer::NetOptimizerManager::GetNetOptimizerByName(it);
+                if (optimizer) {
+                    RETURN_ON_NEQ(optimizer->Optimize(opt_structure.get(), opt_resource.get()), TNN_OK);
+                }
+            }
+        }
+
         auto packer = std::make_shared<ModelPacker>(opt_structure.get(), opt_resource.get());
         if (packer->Pack(tnn_proto, tnn_model) != 0) {
             DLog("ModelPacker Pack failed!\n");

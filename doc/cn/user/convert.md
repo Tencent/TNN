@@ -403,6 +403,20 @@ python3 converter.py onnx2tnn \
     -ref_file ref.txt
 ```
 
+如果要将 onnx 模型中的 MatMul 转换成 Conv1x1，可以用 -extra_info 来进行配置，例如:
+```shell script
+python3 converter.py onnx2tnn \
+    ./matmul.onnx \
+    -optimize \
+    -v=v3.0 \
+    -o ./ \
+    -align \
+    -input_file in.txt \
+    -ref_file ref.txt \
+    -extra_info "optimize:net_optimizer_convert_matmul_to_conv"
+```
+
+
 - caffe2tnn
 
 Caffe 格式转换
