@@ -199,7 +199,7 @@ Status BinaryFunc(void *out_ptr, void *input0_ptr, void *input1_ptr, DimsVector 
     }
 
     if (dims_broadcast.size()) {
-        type = (dims_broadcast.size() == 1 && dims_broadcast[0] == 1) ? BroadcastTypeSingle : BroadcastTypeChannel;
+        type = (DimsVectorUtils::Count(dims_broadcast) == 1) ? BroadcastTypeSingle : BroadcastTypeChannel;
     }
 
     int count = DimsVectorUtils::Count(dims);
