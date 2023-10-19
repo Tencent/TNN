@@ -36,7 +36,7 @@ Status TNNImplCoreML::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     return Status(TNNERR_NET_ERR, "Error: CoreML do not supprt get model input shapes");
 }
 
-Status TNNImplCoreML::GetModelInputDataTypesMap(InputDataTypeMap& data_types_map) {
+Status TNNImplCoreML::GetModelInputDataTypeMap(InputDataTypeMap& data_types_map) {
     return Status(TNNERR_NET_ERR, "Error: CoreML do not supprt get model input shapes");
 }
 
