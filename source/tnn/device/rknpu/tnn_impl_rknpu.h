@@ -51,7 +51,7 @@ public:
     virtual Status GetModelInputShapesMap(InputShapesMap& shapes_map);
 
     //@brief get input data types map from model
-    virtual Status GetModelInputDataTypesMap(InputDataTypeMap& data_types_map);
+    virtual Status GetModelInputDataTypeMap(InputDataTypeMap& data_types_map);
 
     // @brief create an instance
     // @param instance: The instance to be created.
