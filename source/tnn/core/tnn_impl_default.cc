@@ -69,7 +69,7 @@ Status TNNImplDefault::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     return TNN_OK;
 }
 
-Status TNNImplDefault::GetModelInputDataTypesMap(InputDataTypeMap& data_types_map) {
+Status TNNImplDefault::GetModelInputDataTypeMap(InputDataTypeMap& data_types_map) {
     if (!interpreter_) {
         return Status(TNNERR_NET_ERR, "interpreter is nil");
     }
