@@ -44,7 +44,7 @@ Status TNNImplRknpu::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     return Status(TNNERR_COMMON_ERROR, "RKNPU IMPL can not get model input shapes map");
 }
 
-Status TNNImplRknpu::GetModelInputDataTypesMap(InputDataTypeMap& data_types_map) {
+Status TNNImplRknpu::GetModelInputDataTypeMap(InputDataTypeMap& data_types_map) {
     return Status(TNNERR_COMMON_ERROR, "RKNPU IMPL can not get model input data types map");
 }
 
