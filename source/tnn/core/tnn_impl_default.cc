@@ -67,8 +67,18 @@ Status TNNImplDefault::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     CHECK_PARAM_NULL(default_interpreter);
     shapes_map = default_interpreter->GetNetStructure()->inputs_shape_map;
     return TNN_OK;
-} 
+}
 
+Status TNNImplDefault::GetModelInputDataTypeMap(InputDataTypeMap& data_types_map) {
+    if (!interpreter_) {
+        return Status(TNNERR_NET_ERR, "interpreter is nil");
+    }
+
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
+    CHECK_PARAM_NULL(default_interpreter);
+    data_types_map = default_interpreter->GetNetStructure()->input_data_type_map;
+    return TNN_OK;
+} 
 
 std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, Status& status,
                                                      InputShapesMap inputs_shape) {
