@@ -59,7 +59,7 @@ Status TNN::GetModelInputDataTypeMap(InputDataTypeMap& data_types_map) {
         LOGE("Error: impl_ is nil\n");
         return Status(TNNERR_NET_ERR, "tnn impl_ is nil");
     }
-    return impl_->GetModelInputDataTypesMap(data_types_map);
+    return impl_->GetModelInputDataTypeMap(data_types_map);
 }
 
 std::shared_ptr<Instance> TNN::CreateInst(NetworkConfig& config, Status& status, InputShapesMap inputs_shape) {
