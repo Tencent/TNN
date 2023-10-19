@@ -51,7 +51,7 @@ public:
     Status GetModelInputShapesMap(InputShapesMap& shapes_map);
 
     // return input data types map from model
-    Status GetModelInputDataTypesMap(InputDataTypeMap& data_types_map);
+    Status GetModelInputDataTypeMap(InputDataTypeMap& data_types_map);
 
     // create tnn network instance with network config and inputs shape.
     // if inputs shape not set, use default from model.
