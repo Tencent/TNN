@@ -54,7 +54,7 @@ Status TNN::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     return impl_->GetModelInputShapesMap(shapes_map);
 }
 
-Status TNN::GetModelInputDataTypesMap(InputDataTypeMap& data_types_map) {
+Status TNN::GetModelInputDataTypeMap(InputDataTypeMap& data_types_map) {
      if (!impl_) {
         LOGE("Error: impl_ is nil\n");
         return Status(TNNERR_NET_ERR, "tnn impl_ is nil");
