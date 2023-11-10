@@ -161,7 +161,7 @@ Status ConstFolder::Forward() {
                     std::stringstream ss;
                     ss << "<" << blob->GetBlobDesc().name << "> shape:[";
                     for(int i: blob->GetBlobDesc().dims) {ss <<  i << ","; } ss << "]";
-                    LOGD("ConstFolder save const with name: %s\n", ss.str().c_str());
+                    LOGD("ConstFolder save const with name: %s, dtype=%d\n", ss.str().c_str(), blob->GetBlobDesc().data_type);
                 }
 #endif
                 

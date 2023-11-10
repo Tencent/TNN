@@ -55,13 +55,22 @@ Status CpuLayerAcc::ReloadConstantBlobs(const std::vector<Blob *> &inputs, bool 
         if (const_blob_map.find(name) != const_blob_map.end()) {
             blob = const_blob_map[name];
         }
-        auto status = RawBuffer2Blob(buffer.get(), blob);
+
+        auto buffer_cvt = RawBuffer();
+        if (buffer->GetDataType() == DATA_TYPE_HALF) {
+            buffer_cvt = ConvertHalfHandle(*(buffer.get()));
+        } else {
+            buffer_cvt = *(buffer.get());
+        }
+
+        auto status = RawBuffer2Blob(&buffer_cvt, blob);
         RETURN_ON_NEQ(status, TNN_OK);
 
         blob->SetFlag(DATA_FLAG_CHANGE_NEVER);
         const_blob_map[name] = blob;
         iter->SetHandle(blob->GetHandle());
-        LOGD("Reload constant blob: %s %p\n", name.c_str(), &blob);
+        iter->SetBlobDesc(blob->GetBlobDesc());
+        LOGD("Reload constant blob: %s %p, dtype=%d\n", name.c_str(), &blob, blob->GetBlobDesc().data_type);
     }
     const_blob_map_ = const_blob_map;
     return TNN_OK;

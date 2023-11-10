@@ -19,7 +19,11 @@
 
 namespace TNN_NS {
 
-DECLARE_ARM_ACC(ScatterND, LAYER_SCATTER_ND);
+DECLARE_ARM_ACC_WITH_EXTRA(ScatterND, LAYER_SCATTER_ND,
+    virtual bool UseNaiveConstantBlobs() {
+        return true;
+    }
+);
 
 Status ArmScatterNDLayerAcc::DoForward(const std::vector<Blob*>& inputs, const std::vector<Blob*>& outputs) {
     auto resource = dynamic_cast<ScatterNDLayerResource*>(resource_);
