@@ -36,6 +36,11 @@ Status PadLayer::InferOutputShape(bool ignore_error) {
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
     auto dims         = input_blob->GetBlobDesc().dims;
+    if (dims.size() < 4) {
+        LOGE_IF(!ignore_error, "Error: dims not supported\n");
+        return Status(TNNERR_PARAM_ERR, "Error: dims not supported");
+    }
+
     dims[3] += layer_param->pads[0] + layer_param->pads[1];
     dims[2] += layer_param->pads[2] + layer_param->pads[3];
     dims[1] += layer_param->pads[4] + layer_param->pads[5];

@@ -27,6 +27,9 @@ public:
     virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
+
+protected:
+    virtual bool UseNaiveConstantBlobs() override;
 };
 
 }  // namespace TNN_NS

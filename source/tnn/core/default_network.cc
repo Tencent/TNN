@@ -234,6 +234,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
             cur_layer->InferShapeAhead(inputs, outputs_for_shape, layer_info->param.get(),
                                        net_resource->resource_map[layer_name].get());
+            LOGD("InferShapeAhead Output Shape: [%s]\n", cur_layer->GetOutputBlobs()[0]->GetBlobDesc().description().c_str());
 
             delete cur_layer;
         }

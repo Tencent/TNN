@@ -32,9 +32,14 @@ Status ConvLayer::InferOutputShape(bool ignore_error) {
     ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param_);
     CHECK_PARAM_NULL(conv_param);
 
-    int num    = input_blob->GetBlobDesc().dims[0];
-    int height = input_blob->GetBlobDesc().dims[2];
-    int width  = input_blob->GetBlobDesc().dims[3];
+    if (input_blob->GetBlobDesc().dims.size() == 0) {
+        LOGE_IF(!ignore_error, "Error: dims not supported\n");
+        return Status(TNNERR_PARAM_ERR, "Error: dims not supported");
+    }
+
+    int num    = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, 0, 1);
+    int height = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, 2, 3);
+    int width  = DimsVectorUtils::Count(input_blob->GetBlobDesc().dims, 3, 4);
 
     const int pad_w_begin = conv_param->pads[0];
     const int pad_h_begin = conv_param->pads[2];

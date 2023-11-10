@@ -32,7 +32,7 @@ Status ArmPadV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     auto input_dims  = input_blob->GetBlobDesc().dims;
     auto output_dims = output_blob->GetBlobDesc().dims;
     PadUtils::PadContext pad_context;
-    if (input_dims.size() < 2 || input_dims.size() > 5) {
+    if (input_dims.size() < 2 || input_dims.size() > 6) {
         LOGE("Error: ArmPadV2LayerAcc layer acc does not support input dims size %lu\n", input_dims.size());
         return Status(TNNERR_MODEL_ERR, "Error: ArmPadV2LayerAcc layer acc does not support;");
     }
@@ -62,7 +62,7 @@ Status ArmPadV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
         pad_context.output_width = output_dims[4];
     }
     const auto pads = layer_param->pads;
-    if (pads.size() < 2 || pads.size() > 10) {
+    if (pads.size() < 2 || pads.size() > 12) {
         LOGE("Error: ArmPadV2LayerAcc layer acc does not support pas size %lu\n", pads.size());
         return Status(TNNERR_MODEL_ERR, "Error: ArmPadV2LayerAcc layer acc does not support");
     }
@@ -106,6 +106,9 @@ Status ArmPadV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
             pad_context.pad_b   = pads[8];  // pad height end
             pad_context.pad_r   = pads[9];  // pad width end
             break;
+        }
+        case 12: {
+            pad_context.pads = pads;
         }
     }
 

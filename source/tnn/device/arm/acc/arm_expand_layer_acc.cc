@@ -21,6 +21,10 @@ namespace TNN_NS {
 
 ArmExpandLayerAcc::~ArmExpandLayerAcc() {}
 
+bool ArmExpandLayerAcc::UseNaiveConstantBlobs() {
+    return true;
+}
+
 Status ArmExpandLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto expand_param = dynamic_cast<ExpandLayerParam*>(param_);
     CHECK_PARAM_NULL(expand_param);

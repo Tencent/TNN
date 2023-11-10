@@ -581,7 +581,7 @@ namespace TNN_NS {
             RETURN_ON_FAIL(IsConnectedGraph(this, connected));
         }
         if (!connected) {
-            ERRORV("the graph is not connected.", msg);
+            DEBUGV("the graph is not connected.", msg);
             return Status(TNNERR_COMMON_ERROR, msg);
         }
         return TNN_OK;

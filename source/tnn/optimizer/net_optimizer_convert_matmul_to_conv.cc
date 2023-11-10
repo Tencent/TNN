@@ -74,7 +74,7 @@ namespace optimizer {
         std::shared_ptr<Graph> graph = std::make_shared<Graph>();
         auto status = graph->fromInterpreted(structure, resource);
         if (status != TNN_OK) {
-            LOGE("%s", status.description().c_str());
+            LOGD("%s", status.description().c_str());
             return TNN_OK;
         }
 

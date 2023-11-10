@@ -161,7 +161,12 @@ Status ArmStrideSliceLayerAcc::DoForward(const std::vector<Blob *> &inputs, cons
 REGISTER_ARM_ACC(StrideSlice, LAYER_STRIDED_SLICE)
 REGISTER_ARM_LAYOUT(LAYER_STRIDED_SLICE, DATA_FORMAT_NC4HW4)
 
-DECLARE_ARM_ACC(StrideSliceV2, LAYER_STRIDED_SLICE_V2);
+
+DECLARE_ARM_ACC_WITH_EXTRA(StrideSliceV2, LAYER_STRIDED_SLICE_V2,
+    virtual bool UseNaiveConstantBlobs() {
+        return true;
+    }
+);
 
 static Status FastSliceForHW(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
                              StrideSliceV2LayerParam *param) {

@@ -34,7 +34,7 @@ INSTANTIATE_TEST_SUITE_P(LayerTest, PadV2LayerTest,
                                             // pad_type
                                             testing::Values(0, 1),
                                             // dim size
-                                            testing::Values(3, 4, 5),
+                                            testing::Values(3, 4, 5, 6),
                                             // pad value
                                             testing::Values(-FLT_MAX, 0, 2, FLT_MAX)));
 
@@ -67,8 +67,8 @@ TEST_P(PadV2LayerTest, PadV2Layer) {
     if (!(DEVICE_CUDA == dev || DEVICE_ARM == dev || DEVICE_OPENCL == dev || DEVICE_METAL == dev)) {
         GTEST_SKIP();
     }
-    // arm only support dims size 4
-    if (DEVICE_ARM == dev && dim_count != 4) {
+    // arm only support dims size 4 and 6
+    if (DEVICE_ARM == dev && (dim_count != 4 && dim_count != 6)) {
         GTEST_SKIP();
     }
     // opnecl only support dims size 4
@@ -79,6 +79,20 @@ TEST_P(PadV2LayerTest, PadV2Layer) {
     // metal only support dims size 4
     if (DEVICE_METAL == dev && dim_count != 4) {
         GTEST_SKIP();
+    }
+
+    if (dim_count == 6) {
+        // only arm support dims size 6
+        if (DEVICE_ARM != dev) {
+            GTEST_SKIP();
+        }
+        if (pad_type != 0) {
+            GTEST_SKIP();
+        }
+        // reduce test time
+        if (input_size >= 10) {
+            GTEST_SKIP();
+        }
     }
 
     // param
@@ -93,6 +107,8 @@ TEST_P(PadV2LayerTest, PadV2Layer) {
         param->pads = {0, pad_c, pad_h, pad_w, 0, pad_c, pad_h, pad_w};
     } else if (dim_count == 5) {
         param->pads = {0, pad_c, pad_h, pad_w, pad_w, 0, pad_c, pad_h, pad_w, pad_w};
+    } else if (dim_count == 6) {
+        param->pads = {0, 0, 0, pad_h, 0, pad_w, 0, 0, 0, pad_h, 0, pad_w};
     }
     param->value = value;
 
