@@ -50,13 +50,8 @@ string OnnxOpConverterMultiBrodcast::TNNLayerParam(NodeProto &node, OnnxNetInfo 
 }
 
 bool OnnxOpConverterMultiBrodcast::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
-    const std::string &onnx_op        = node.op_type();
-    std::string name                  = !node.name().empty() ? node.name() : node.output(0);
-    const std::string &tnn_layer_type = TNNOpType(node, net_info);
-
     auto weight_input       = GetWeightInputIndexName(node, net_info);
     auto weight_input_index = get<0>(weight_input);
-    auto weight_name        = get<1>(weight_input);
     if (weight_input_index < 0) {
         return false;
     }

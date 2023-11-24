@@ -53,7 +53,7 @@ int Onnx2TNN::TNNWriteModel() {
             onnx::NodeProto& node      = (onnx::NodeProto&)graph.node(i);
             const std::string& onnx_op = node.op_type();
             const auto& used_const_node = this->onnx_net_info_.used_const_node;
-            if (onnx_op == k_tnn_noop_type || ( onnx_op == "Constant" && used_const_node.find(node.output(0)) == used_const_node.end() )) {
+            if (onnx_op == k_tnn_noop_type || onnx_op == "Constant") {
                 continue;
             }
 
@@ -74,45 +74,12 @@ int Onnx2TNN::TNNWriteModel() {
         
         //写入constant_map
         {
-            std::set<std::string> const_id_set;
-            
-            //写入每层的constant输入（除了已经写入layerresource的，如conv）
-            for (int i = 0; i < graph.node_size(); i++) {
-                onnx::NodeProto& node      = (onnx::NodeProto&)graph.node(i);
-                const std::string& onnx_op = node.op_type();
-                const auto& used_const_node = this->onnx_net_info_.used_const_node;
-                if (onnx_op == k_tnn_noop_type || ( onnx_op == "Constant" && used_const_node.find(node.output(0)) == used_const_node.end() )) {
-                    continue;
-                }
-
-                auto op_converter =
-                    OnnxOpConverterManager::Shared()->GetOnnxOpConverter(onnx_op);
-                if (op_converter == nullptr) {
-                    fprintf(stderr, "get op convert for %s failed\n",onnx_op.c_str());
-                    assert(0);
-                }
-                
-                for (int j = 0; j < (int)node.input_size(); j++) {
-                    const std::string &input_name = node.input(j);
-                    //some op like ConstantOfShape, its input(0) may be const but it is not in layer resource
-                    if ( (j==0 || !op_converter->HasLayerResource(node, onnx_net_info_)) &&
-                        onnx_net_info_.weights_map.find(input_name) != onnx_net_info_.weights_map.end() ) {
-                        const_id_set.insert(input_name);
-                    }
-                }
-            }
-            
-            if (const_id_set.size() < 0) {
-                break;
-            }
-            
             //write version number
             net_writer.PutInt(g_version_magic_number_v2);
             //write const count
-            net_writer.PutInt((int)const_id_set.size());
-            for (auto id : const_id_set) {
-                auto const_tensor = onnx_net_info_.weights_map[id];
-                net_writer.PutString(id);
+            net_writer.PutInt((int)constants_.size());
+            for (const auto [const_tensor_name, const_tensor] : constants_) {
+                net_writer.PutString(const_tensor_name);
                 if (const_tensor.data_type() == TensorProto_DataType_FLOAT ||
                     const_tensor.data_type() == TensorProto_DataType_DOUBLE) {
                     OnnxOpConverter::WriteTensorData(const_tensor, &net_writer, onnx_net_info_.data_type);
