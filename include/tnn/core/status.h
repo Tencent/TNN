@@ -149,7 +149,7 @@ enum StatusCode {
 class PUBLIC Status {
 public:
     ~Status();
-    Status(int code = TNN_OK, std::string message = "OK");
+    Status(int code = TNN_OK, const std::string &message = "OK");
 
     Status &operator=(int code);
 

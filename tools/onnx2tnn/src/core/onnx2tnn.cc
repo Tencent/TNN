@@ -428,14 +428,10 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
 
         if (onnx_op == "Constant") {
             onnx::TensorProto tensor = get_node_attr_tensor(node, "value");
-            // 如果是作为参数存入，则放到weights，否则作为常量存入constants中
-            if (onnx_net_info_.used_const_node.find(node.output(0)) == onnx_net_info_.used_const_node.end()) {
-            weights[node.output(0)]  = tensor;
-                LOGD("const node is used as weight = %s\n", name.c_str());
-            } else {
+            if (onnx_net_info_.used_const_node.find(node.output(0)) != onnx_net_info_.used_const_node.end()) {
                 constants_[node.output(0)]  = tensor;
-                LOGD("const node is used as constant input = %s\n", name.c_str());
             }
+            weights[node.output(0)]  = tensor;
             continue;
         } else if (onnx_op == "Cast") {
             // do nothing

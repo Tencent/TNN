@@ -74,6 +74,34 @@ int Onnx2TNN::TNNWriteModel() {
         
         //写入constant_map
         {
+            //写入每层的constant输入（除了已经写入layerresource的，如conv）
+            for (int i = 0; i < graph.node_size(); i++) {
+                onnx::NodeProto& node      = (onnx::NodeProto&)graph.node(i);
+                const std::string& onnx_op = node.op_type();
+                if (onnx_op == k_tnn_noop_type || onnx_op == "Constant") {
+                    continue;
+                }
+
+                auto op_converter = OnnxOpConverterManager::Shared()->GetOnnxOpConverter(onnx_op);
+                if (op_converter == nullptr) {
+                    fprintf(stderr, "get op convert for %s failed\n",onnx_op.c_str());
+                    assert(0);
+                }
+
+                for (int j = 0; j < node.input_size(); j++) {
+                    const std::string &input_name = node.input(j);
+                    //some op like ConstantOfShape, its input(0) may be const but it is not in layer resource
+                    if ( (j==0 || !op_converter->HasLayerResource(node, onnx_net_info_)) &&
+                        onnx_net_info_.weights_map.find(input_name) != onnx_net_info_.weights_map.end() ) {
+                        constants_[input_name] = onnx_net_info_.weights_map.at(input_name);
+                    }
+                }
+            }
+
+            if (constants_.empty()) {
+                break;
+            }
+
             //write version number
             net_writer.PutInt(g_version_magic_number_v2);
             //write const count
