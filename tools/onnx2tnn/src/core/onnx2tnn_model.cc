@@ -98,10 +98,6 @@ int Onnx2TNN::TNNWriteModel() {
                 }
             }
 
-            if (constants_.empty()) {
-                break;
-            }
-
             //write version number
             net_writer.PutInt(g_version_magic_number_v2);
             //write const count
