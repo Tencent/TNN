@@ -120,7 +120,7 @@ Status BaseLayer::InferOutputDataType() {
     auto const_resource = const_resource_;
     
     // Init base type, will re write in different device acc
-    // output data_type = input_data_tyep as default.
+    // output data_type = input_data_type as default.
     
     int flag = DATA_FLAG_CHANGE_NEVER;
     for (auto iter : input_blobs_) {
