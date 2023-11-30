@@ -87,9 +87,6 @@ private:
 
     OnnxNetInfo onnx_net_info_;
 
-    // 常量
-    TensorProtoMap constants_;
-
 protected:
     //clear empty node like const and noop
     int ClearEmptyNode(std::vector<IndexNode>& index_nodes);

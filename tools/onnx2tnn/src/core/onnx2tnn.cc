@@ -374,6 +374,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     ClearEmptyNode(index_nodes);
 
     // weight node and weight reshape node
+    TensorProtoMap constants;
     TensorProtoMap weights;
     TensorShapeMap weight_shapes;
 
@@ -429,7 +430,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
         if (onnx_op == "Constant") {
             onnx::TensorProto tensor = get_node_attr_tensor(node, "value");
             if (onnx_net_info_.used_const_node.find(node.output(0)) != onnx_net_info_.used_const_node.end()) {
-                constants_[node.output(0)]  = tensor;
+                constants[node.output(0)]  = tensor;
             }
             weights[node.output(0)]  = tensor;
             continue;
@@ -483,6 +484,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
         }
         blob_names.insert(input_name);
     }
+    onnx_net_info_.constants = constants;
     onnx_net_info_.weights_map       = weights;
     onnx_net_info_.weights_shape_map = weight_shapes;
     std::cout << "MCGUO weights.size:" <<  weights.size() << ", weight_shapes.size:" << weight_shapes.size() << std::endl;

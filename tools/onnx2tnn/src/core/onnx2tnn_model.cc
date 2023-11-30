@@ -93,7 +93,7 @@ int Onnx2TNN::TNNWriteModel() {
                     //some op like ConstantOfShape, its input(0) may be const but it is not in layer resource
                     if ( (j==0 || !op_converter->HasLayerResource(node, onnx_net_info_)) &&
                         onnx_net_info_.weights_map.find(input_name) != onnx_net_info_.weights_map.end() ) {
-                        constants_[input_name] = onnx_net_info_.weights_map.at(input_name);
+                        onnx_net_info_.constants[input_name] = onnx_net_info_.weights_map.at(input_name);
                     }
                 }
             }
@@ -101,8 +101,8 @@ int Onnx2TNN::TNNWriteModel() {
             //write version number
             net_writer.PutInt(g_version_magic_number_v2);
             //write const count
-            net_writer.PutInt((int)constants_.size());
-            for (const auto [const_tensor_name, const_tensor] : constants_) {
+            net_writer.PutInt((int)onnx_net_info_.constants.size());
+            for (const auto [const_tensor_name, const_tensor] : onnx_net_info_.constants) {
                 net_writer.PutString(const_tensor_name);
                 if (const_tensor.data_type() == TensorProto_DataType_FLOAT ||
                     const_tensor.data_type() == TensorProto_DataType_DOUBLE) {

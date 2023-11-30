@@ -25,8 +25,8 @@ std::tuple<int, std::string> OnnxOpConverterMultiBrodcast::GetWeightInputIndexNa
     std::map<std::string, onnx::TensorProto>::iterator it;
     for (int j = 0; j < node.input_size(); j++) {
         const std::string &input_name = node.input(j);
-        it                            = net_info.weights_map.find(input_name);
-        if (it != net_info.weights_map.end()) {
+        if (net_info.weights_map.find(input_name) != net_info.weights_map.end()
+            && net_info.constants.find(input_name) == net_info.constants.end()) {
             if (weight_input_count <= 0) {
                 weight_input_index = j;
                 weight_name = input_name;
