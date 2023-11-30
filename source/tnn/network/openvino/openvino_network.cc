@@ -259,7 +259,7 @@ Status OpenVINONetwork_::Reshape(const InputShapesMap &inputs) {
 /*
  * InitLayerBuilders funcion does the following things:
  *  1. Set Blob type accordingly.
- *  2. Set data_tyep accordingly.
+ *  2. Set data_type accordingly.
  *  3. Infer the blob shapes.
  *  4. Check the weights required.
  *  5. Create Layer Builders.
