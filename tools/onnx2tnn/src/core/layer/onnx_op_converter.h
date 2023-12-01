@@ -45,7 +45,6 @@ struct OnnxNetInfo {
     // onnx weight node and weight reshape node
     TensorProtoMap constants;
     TensorProtoMap weights_map;
-    TensorShapeMap weights_shape_map;
     std::set<std::string > used_const_node;
     std::map<std::string, onnx::NodeProto> tensor_generators;
     bool is_3D_model = false;

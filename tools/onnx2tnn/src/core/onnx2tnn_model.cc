@@ -52,7 +52,6 @@ int Onnx2TNN::TNNWriteModel() {
         for (int i = 0; i < graph.node_size(); i++) {
             onnx::NodeProto& node      = (onnx::NodeProto&)graph.node(i);
             const std::string& onnx_op = node.op_type();
-            const auto& used_const_node = this->onnx_net_info_.used_const_node;
             if (onnx_op == k_tnn_noop_type || onnx_op == "Constant") {
                 continue;
             }
