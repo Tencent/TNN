@@ -376,7 +376,6 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     // weight node and weight reshape node
     TensorProtoMap constants;
     TensorProtoMap weights;
-    TensorShapeMap weight_shapes;
 
     for (int j = 0; j < graph.initializer_size(); j++) {
         const onnx::TensorProto& initializer = graph.initializer(j);
@@ -384,11 +383,6 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
         weights[initializer.name()] = initializer;
     }
 
-    for (int j = 0; j < graph.value_info_size(); j++) {
-        const onnx::TensorShapeProto& shape_info = graph.value_info(j).type().tensor_type().shape();
-        LOGD("value_info dim_size = %d\n", shape_info.dim_size());
-        weight_shapes[graph.value_info(j).name()] = shape_info;
-    }
     // initial proxy node
     for (int i = 0; i < graph.node_size(); ++i) {
         const auto& node = graph.node(i);
@@ -486,8 +480,6 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     }
     onnx_net_info_.constants = constants;
     onnx_net_info_.weights_map       = weights;
-    onnx_net_info_.weights_shape_map = weight_shapes;
-    std::cout << "MCGUO weights.size:" <<  weights.size() << ", weight_shapes.size:" << weight_shapes.size() << std::endl;
 
     // onnx_op remove
     RemoveIdentity(mutable_graph, index_nodes, weights, node_reference, blob_names);
@@ -589,11 +581,9 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
             ++it;
         }
     }
-
     onnx_blob_names_                 = blob_names;
     onnx_node_reference_             = node_reference;
     onnx_net_info_.weights_map       = weights;
-    onnx_net_info_.weights_shape_map = weight_shapes;
     return 0;
 }
 

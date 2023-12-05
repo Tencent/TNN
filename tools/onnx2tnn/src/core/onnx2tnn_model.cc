@@ -101,7 +101,8 @@ int Onnx2TNN::TNNWriteModel() {
             net_writer.PutInt(g_version_magic_number_v2);
             //write const count
             net_writer.PutInt((int)onnx_net_info_.constants.size());
-            for (const auto [const_tensor_name, const_tensor] : onnx_net_info_.constants) {
+            for (auto [const_tensor_name, const_tensor] : onnx_net_info_.constants) {
+                const_tensor.set_name(const_tensor_name);
                 net_writer.PutString(const_tensor_name);
                 if (const_tensor.data_type() == TensorProto_DataType_FLOAT ||
                     const_tensor.data_type() == TensorProto_DataType_DOUBLE) {
