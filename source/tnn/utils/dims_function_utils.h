@@ -83,12 +83,14 @@ public:
     static DimsVector ModIndex(DimsVector index, const DimsVector shape);
 
     // @brief Get dim in dims vector, if index is larger than dims size, return 1
-    static int GetDim(const DimsVector dims, const int index); 
+    static int GetDim(const DimsVector &dims, const int index); 
 
     // @brief Get the product of dims between [start_index, end_index), return 1 if the range is invalid
     static int GetDimProduct(const DimsVector dims, const int start_index, const int end_index=-1);
     // @brief step[i]: DimsVectorUtils::Count(dims, i + 1)
     static DimsVector GetDimsStep(const DimsVector& dims);
+
+    static int GetNCHWPackedCount(const DimsVector &dims, const int pack=4);
 
 };
 

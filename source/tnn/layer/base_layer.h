@@ -56,10 +56,12 @@ public:
     void SetLayerName(std::string layer_name);
 
     //@brief get all input blobs
-    virtual std::vector<Blob*> GetInputBlobs();
+    virtual std::vector<Blob*> &GetInputBlobs();
 
     //@brief get all output blobs
-    virtual std::vector<Blob*> GetOutputBlobs();
+    virtual std::vector<Blob*> &GetOutputBlobs();
+
+    AbstractLayerAcc* GetAbstractLayerAcc();
 
     //@brief infer shape ahead for generate resource
     virtual Status InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<Blob*>& output_blobs, LayerParam* param,

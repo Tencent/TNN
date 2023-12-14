@@ -20,22 +20,36 @@ GradOp::GradOp() {}
 
 GradOp::~GradOp() {}
 
-Status GradOp::RegisterGradOp(DeviceType device, LayerType type, std::shared_ptr<GradOp> layer_grad) {
-    GetGradOpMap()[{device, type}] = layer_grad;
+Status GradOp::RegisterGradOpCreator(DeviceType device, LayerType type, GradOpCreator grad_op_creator) {
+    GetGradOpCreatorMap()[{device, type}] = grad_op_creator;
     return TNN_OK;
 }
 
-GradOp *GradOp::GetGradOp(DeviceType device, LayerType type) {
-    auto &layer_grad_map = GetGradOpMap();
-    if (layer_grad_map.count({device, type}) > 0) {
-        return layer_grad_map[{device, type}].get();
+GradOpPtr GradOp::CreateGradOp(DeviceType device, LayerType type) {
+    auto &grad_op_creator_map = GetGradOpCreatorMap();
+    if (grad_op_creator_map.count({device, type}) > 0) {
+        return grad_op_creator_map[{device, type}]();
     }
     return nullptr;
 }
 
-std::map<std::pair<DeviceType, LayerType>, std::shared_ptr<GradOp>> &GradOp::GetGradOpMap() {
-    static std::map<std::pair<DeviceType, LayerType>, std::shared_ptr<GradOp>> layer_grad_map;
-    return layer_grad_map;
+std::map<std::pair<DeviceType, LayerType>, GradOpCreator> &GradOp::GetGradOpCreatorMap() {
+    static std::map<std::pair<DeviceType, LayerType>, GradOpCreator> grad_op_creator_map;
+    return grad_op_creator_map;
 }
+
+// struct GradComputeConext {
+//     std::vector<Blob *> fw_inputs;          
+//     std::vector<Blob *> fw_outputs;
+//     std::vector<RawBuffer *> train_resource;
+
+//     std::vector<Blob *> input_grads;
+//     std::vector<Blob *> output_grads;
+//     std::vector<Blob *> train_resource_grads;
+
+//     std::vector<DimsVector> fw_input_dims;
+//     std::vector<DimsVector> fw_output_dims;
+//     std::vector<DimsVector> train_resource_dims;
+// };
 
 }  // namespace TNN_NS

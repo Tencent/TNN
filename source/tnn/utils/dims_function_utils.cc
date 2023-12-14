@@ -297,7 +297,7 @@ DimsVector DimsFunctionUtils::ModIndex(DimsVector index, const DimsVector shape)
     return index;
 }
 
-int DimsFunctionUtils::GetDim(const DimsVector dims, const int index) {
+int DimsFunctionUtils::GetDim(const DimsVector &dims, const int index) {
     return dims.size() > index ? dims[index] : 1;
 }
 
@@ -312,6 +312,13 @@ DimsVector DimsFunctionUtils::GetDimsStep(const DimsVector& dims) {
         step_dims.push_back(DimsVectorUtils::Count(dims, i+1));
     }
     return step_dims;
+}
+
+static int GetNCHWPackedCount(const DimsVector& dims, const int pack) {
+    int batch   = DimsFunctionUtils::GetDim(dims, 0);  
+    int channel = DimsFunctionUtils::GetDim(dims, 1);
+    int hw      = DimsVectorUtils::Count(dims, 2);
+    return batch * UP_DIV(channel, pack) * hw;
 }
 
 }  // namespace TNN_NS

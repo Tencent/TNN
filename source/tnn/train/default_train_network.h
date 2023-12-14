@@ -40,6 +40,7 @@ public:
     virtual Status GetAllInputBlobs(BlobMap &blobs) override;
 
     virtual Status TrainStep() override;
+    virtual Status ZeroGrad() override;
     virtual Status GetTrainingFeedback(TrainingFeedback &feed_back) override;
 
 protected:

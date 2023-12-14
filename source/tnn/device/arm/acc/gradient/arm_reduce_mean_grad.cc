@@ -19,7 +19,7 @@ namespace TNN_NS {
 DECLARE_ARM_GRAD_OP(ReduceMean, LAYER_REDUCE_MEAN);
 
 Status ArmReduceMeanGradOp::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                      LayerResource *resource, LayerParam *param, Context *context,
+                                      LayerResource *resource, GradientParam *grad_param, Context *context,
                                       const GradOpInfo &grad_info) {
     ON_GRAD_PREPARATION_IOR(1, 1, 0);
 

@@ -16,7 +16,7 @@
 
 namespace TNN_NS {
 
-void PadShape(const int pad_size, const int dim_size, DimsVector &pad_shape, DimsVector in_shape) {
+void PadShape(const int pad_size, const int dim_size, DimsVector &pad_shape, const DimsVector &in_shape) {
     int j = 0;
     for (; j < pad_size; j++) {
         pad_shape[j] = 1;

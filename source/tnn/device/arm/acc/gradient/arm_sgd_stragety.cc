@@ -30,6 +30,10 @@ Status ArmSGDSolverStrategy::ExecUpdate(Blob *grad, RawBuffer *resource, SolverP
         return Status(TNNERR_TRAIN_ERROR, "resource grad dims can not ignore data format");
     }
 
+    if (grad->GetBlobDesc().data_format != DATA_FORMAT_NCHW) {
+        return Status(TNNERR_TRAIN_ERROR, "resource grad dims can not ignore data format");
+    }
+
     float *grad_ptr     = reinterpret_cast<float *>(GetBlobHandlePtr(grad->GetHandle()));
     float *resource_ptr = resource->force_to<float *>();
     auto learning_rate  = param->learning_rate;

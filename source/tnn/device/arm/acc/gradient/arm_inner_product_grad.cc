@@ -96,14 +96,14 @@ static void ExecBiasGrad(int batch, int oc, float *bias_grad, float *output_grad
 }
 
 Status ArmInnerProductGradOp::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                        LayerResource *resource, LayerParam *param, Context *context,
+                                        LayerResource *resource, GradientParam *grad_param, Context *context,
                                         const GradOpInfo &grad_info) {
     ON_GRAD_PREPARATION_IOR(1, 1, 2);
 
     auto arm_context = dynamic_cast<ArmContext *>(context);
     CHECK_PARAM_NULL(arm_context);
 
-    auto inner_product_param = dynamic_cast<InnerProductLayerParam *>(param);
+    auto inner_product_param = dynamic_cast<InnerProductLayerParam *>(grad_param->forward_param);
     CHECK_PARAM_NULL(inner_product_param);
     bool has_bias = inner_product_param->has_bias;
 

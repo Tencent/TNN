@@ -48,7 +48,7 @@ public:
     public:                                                                                                            \
         virtual ~Arm##type_string##GradOp(){};                                                                         \
         virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,                   \
-                              LayerResource *resource, LayerParam *param, Context *context,                            \
+                              LayerResource *resource, GradientParam *grad_param, Context *context,                    \
                               const GradOpInfo &grad_info) {                                                           \
             ON_GRAD_PREPARATION_IOR(1, 1, 0);                                                                          \
             if (!DimsVectorUtils::Equal(input_dims[0], output_dims[0])) {                                              \

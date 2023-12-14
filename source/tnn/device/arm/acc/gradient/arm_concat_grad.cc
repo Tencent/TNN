@@ -20,12 +20,12 @@ namespace TNN_NS {
 DECLARE_ARM_GRAD_OP(Concat, LAYER_CONCAT);
 
 Status ArmConcatGradOp::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                  LayerResource *resource, LayerParam *param, Context *context,
+                                  LayerResource *resource, GradientParam *grad_param, Context *context,
                                   const GradOpInfo &grad_info) {
     int inputs_count = inputs.size() - 2;
     ON_GRAD_PREPARATION_IOR(inputs_count, 1, 0);
 
-    auto concat_param = dynamic_cast<ConcatLayerParam *>(param);
+    auto concat_param = dynamic_cast<ConcatLayerParam *>(grad_param->forward_param);
     CHECK_PARAM_NULL(concat_param);
     const int axis = concat_param->axis;
 

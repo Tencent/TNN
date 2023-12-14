@@ -31,6 +31,8 @@ public:
 
     Status SetTrainableResources(std::vector<RawBuffer *> trainable);
 
+    Status ZeroGrad();
+
 protected:
     virtual Status InferOutputShape(bool ignore_error = false);
 

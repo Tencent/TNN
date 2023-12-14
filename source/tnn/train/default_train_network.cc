@@ -80,6 +80,15 @@ Status DefaultTrainNetwork::TrainStep() {
     return ret;
 }
 
+Status DefaultTrainNetwork::ZeroGrad() {
+    auto solver_layer = dynamic_cast<SolverLayer *>(layers_.back());
+    if (!solver_layer) {
+        LOGE("DefaultTrainNetwork::SetSolverLayerRuntimeInfo ERROR, solver_layer is empty\n");
+        return Status(TNNERR_TRAIN_ERROR, "solver_layer is empty");
+    }
+    return solver_layer->ZeroGrad();
+}
+
 Status DefaultTrainNetwork::GetTrainingFeedback(TrainingFeedback &feed_back) {
     feed_back.loss_name        = loss_name_;
     feed_back.global_step_name = global_step_name_;

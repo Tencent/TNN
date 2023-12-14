@@ -170,6 +170,17 @@ namespace optimizer {
         return TNN_OK;
     }
 
+
+    bool NetOptimizerInsertLossAndGradient::LayerNameExist(
+        const std::vector<std::shared_ptr<LayerInfo>>& layers, const std::string& name) {
+        for (const auto& layer : layers) {
+            if (layer->name == name) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     Status NetOptimizerInsertLossAndGradient::InsertGradientLayers(NetStructure *net_structure,
                                                                    NetResource *net_resource) {
         std::set<std::string> need_grad_layers;
@@ -181,6 +192,9 @@ namespace optimizer {
             auto forward_layer = *iter;
             if (need_grad_layers.find(forward_layer->name) != need_grad_layers.end()) {
                 std::shared_ptr<LayerInfo> grad_layer = CreateGradient(forward_layer.get());
+                if (LayerNameExist(net_structure->layers, grad_layer->name)) {
+                    return Status(TNNERR_TRAIN_ERROR, "layer name already exist");
+                }
 
                 // forward blob gradients
                 grad_layer->inputs.clear();
@@ -214,7 +228,7 @@ namespace optimizer {
                 }
                 grad_layer->inputs.insert(grad_layer->inputs.end(), output_grads.begin(), output_grads.end());
 
-                // resource buffer gradients
+                // resource gradients
                 if (train_config.train_the_whole_model ||
                     (train_config.trainable_layers.find(forward_layer->name) != train_config.trainable_layers.end())) {
                     const auto &resource_map = net_resource->resource_map;
@@ -239,6 +253,7 @@ namespace optimizer {
                     }
                 }
 
+                net_structure->backward_forward[grad_layer->name] = forward_layer->name;
                 net_structure->layers.push_back(grad_layer);
             }
         }

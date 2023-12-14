@@ -17,6 +17,7 @@
 
 #include <map>
 #include <string>
+#include <functional>
 
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
@@ -27,6 +28,10 @@
 
 namespace TNN_NS {
 
+class GradOp;
+using GradOpPtr = std::unique_ptr<GradOp>;
+using GradOpCreator = std::function<GradOpPtr()>;
+
 class GradOp {
 public:
     GradOp();
@@ -34,35 +39,35 @@ public:
     virtual ~GradOp();
 
     virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                          LayerResource *resource, LayerParam *param, Context *context,
+                          LayerResource *resource, GradientParam *grad_param, Context *context,
                           const GradOpInfo &grad_info) = 0;
 
-    static Status RegisterGradOp(DeviceType device, LayerType type, std::shared_ptr<GradOp> layer_grad);
+    static Status RegisterGradOpCreator(DeviceType device, LayerType type, GradOpCreator grad_op_creator);
 
-    static GradOp *GetGradOp(DeviceType device, LayerType type);
+    static GradOpPtr CreateGradOp(DeviceType device, LayerType type);
 
 private:
-    static std::map<std::pair<DeviceType, LayerType>, std::shared_ptr<GradOp>> &GetGradOpMap();
+    static std::map<std::pair<DeviceType, LayerType>, std::function<GradOpPtr()>> &GetGradOpCreatorMap();
 };
 
 template <typename T>
 class GradOpRegister {
 public:
     explicit GradOpRegister(DeviceType device, LayerType type) {
-        GradOp::RegisterGradOp(device, type, std::make_shared<T>());
+        GradOp::RegisterGradOpCreator(device, type, []() { return GradOpPtr(new T()); });
     }
 };
 
-#define DECLARE_GRAD_OP(device_string, device, type_string, layer_type)                                             \
+#define DECLARE_GRAD_OP(device_string, device, type_string, layer_type)                                          \
     class device_string##type_string##GradOp : public GradOp {                                                   \
-    public:                                                                                                            \
-        virtual ~device_string##type_string##GradOp(){};                                                            \
-        virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,                   \
-                              LayerResource *resource, LayerParam *param, Context *context,                            \
-                              const GradOpInfo &grad_info);                                                         \
+    public:                                                                                                      \
+        virtual ~device_string##type_string##GradOp(){};                                                         \
+        virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,             \
+                              LayerResource *resource, GradientParam *grad_param, Context *context,              \
+                              const GradOpInfo &grad_info);                                                      \
     };
 
-#define REGISTER_GRAD_OP(device_string, device, type_string, layer_type)                                            \
+#define REGISTER_GRAD_OP(device_string, device, type_string, layer_type)                                         \
     GradOpRegister<device_string##type_string##GradOp> g_##device##_##layer_type##_layer_grad_register(          \
         device, layer_type);
 

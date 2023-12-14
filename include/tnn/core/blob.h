@@ -47,6 +47,10 @@ struct PUBLIC BlobDesc {
 struct PUBLIC BlobHandle {
     void *base            = NULL;
     uint64_t bytes_offset = 0;
+
+    void *GetHandlePtr() {
+        return base ? base + bytes_offset : nullptr;
+    }
 };
 
 class BlobImpl;
