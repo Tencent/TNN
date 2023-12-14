@@ -49,7 +49,7 @@ struct PUBLIC BlobHandle {
     uint64_t bytes_offset = 0;
 
     void *GetHandlePtr() {
-        return base ? base + bytes_offset : nullptr;
+        return base ? (char *)base + bytes_offset : nullptr;
     }
 };
 

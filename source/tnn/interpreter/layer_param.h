@@ -700,11 +700,13 @@ struct LogSoftmaxLayerParam : public LayerParam {
 };
 
 #if TNN_TRAIN
+class BaseLayer;
 struct GradientParam : public LayerParam {
     LayerType forward_layer_type;
     std::string forward_layer_name;
     LayerParam* forward_param;
     bool need_train = false;
+    BaseLayer* forward_layer = nullptr;
 
     PARAM_COPY(GradientParam)
 };

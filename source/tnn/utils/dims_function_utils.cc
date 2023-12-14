@@ -314,7 +314,7 @@ DimsVector DimsFunctionUtils::GetDimsStep(const DimsVector& dims) {
     return step_dims;
 }
 
-static int GetNCHWPackedCount(const DimsVector& dims, const int pack) {
+int DimsFunctionUtils::GetNCHWPackedCount(const DimsVector& dims, const int pack) {
     int batch   = DimsFunctionUtils::GetDim(dims, 0);  
     int channel = DimsFunctionUtils::GetDim(dims, 1);
     int hw      = DimsVectorUtils::Count(dims, 2);
