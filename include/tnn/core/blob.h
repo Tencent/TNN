@@ -48,8 +48,9 @@ struct PUBLIC BlobHandle {
     void *base            = NULL;
     uint64_t bytes_offset = 0;
 
-    void *GetHandlePtr() {
-        return base ? (char *)base + bytes_offset : nullptr;
+    template <typename T>
+    T force_to() {
+        return reinterpret_cast<T>(base ? ((char *)base + bytes_offset) : nullptr);
     }
 };
 

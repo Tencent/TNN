@@ -53,9 +53,9 @@ Status SolverLayer::ZeroGrad() {
         const BlobDesc &grad_desc = grad->GetBlobDesc();
 
         if (grad_desc.data_format == DATA_FORMAT_NC4HW4 && grad_desc.data_type == DATA_TYPE_FLOAT) {
-            void *grad_ptr = grad->GetHandle().GetHandlePtr();
+            void *grad_ptr = grad->GetHandle().force_to<void *>();
             if (grad_ptr != nullptr) {
-                bzero(grad_ptr, DimsFunctionUtils::GetNCHWPackedCount(grad_desc.dims, 4) * sizeof(float));
+                bzero(grad_ptr, DimsFunctionUtils::GetNCHWXPackedCount(grad_desc.dims, 4) * sizeof(float));
             }
         } else {
             LOGE("data_type or data_format not supported\n");

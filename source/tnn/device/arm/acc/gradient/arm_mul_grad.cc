@@ -96,7 +96,7 @@ public:
             return Status(TNNERR_TRAIN_ERROR, "dtype not supported");
         }
 
-        int count_quad = DimsFunctionUtils::GetNCHWPackedCount(fw_outputs[0]->GetBlobDesc().dims, 4);
+        int count_quad = DimsFunctionUtils::GetNCHWXPackedCount(fw_outputs[0]->GetBlobDesc().dims, 4);
 
         float* x0 = reinterpret_cast<float *>(forward_input_ptrs[0]);
         float* x1 = reinterpret_cast<float *>(forward_input_ptrs[1]);

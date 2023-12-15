@@ -90,7 +90,7 @@ public:
     // @brief step[i]: DimsVectorUtils::Count(dims, i + 1)
     static DimsVector GetDimsStep(const DimsVector& dims);
 
-    static int GetNCHWPackedCount(const DimsVector &dims, const int pack=4);
+    static int GetNCHWXPackedCount(const DimsVector &dims, const int pack=4);
 
 };
 
