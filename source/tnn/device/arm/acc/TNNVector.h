@@ -202,14 +202,6 @@ struct TNNVector {
         return dst;
     }
 
-    static T sum(const TNNVector<T, len>& v1) {
-        T dst = 0;
-        for (int i = 0; i < len; ++i) {
-            dst += v1.value[i];
-        }
-        return dst;
-    }
-
     static TNNVector<T, len> add(const TNNVector<T, len>& v1, const TNNVector<T, len>& v2) {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {

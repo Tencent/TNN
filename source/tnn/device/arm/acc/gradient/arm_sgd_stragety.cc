@@ -27,16 +27,17 @@ Status ArmSGDSolverStrategy::ExecUpdate(Blob *grad, RawBuffer *resource, SolverP
     }
 
     float *resource_ptr = resource->force_to<float *>();
-    float *grad_ptr = nullptr;
+    float *grad_ptr = grad->GetHandle().force_to<float *>();;
+
+    if (grad_desc.data_format != DATA_FORMAT_NCHW && grad_desc.data_format != DATA_FORMAT_NC4HW4) {
+        return Status(TNNERR_TRAIN_ERROR, "grad only support nchw and nc4hw4");
+    }
+    
     RawBuffer grad_nc4hw4;
-    if (grad_desc.data_format == DATA_FORMAT_NCHW) {
-        grad_ptr = grad->GetHandle().force_to<float *>();
-    } else if (grad_desc.data_format == DATA_FORMAT_NC4HW4) {
+    if (grad_desc.data_format == DATA_FORMAT_NC4HW4 && !FloatBlobCanIgnorePack(grad_desc.dims)) {
         grad_nc4hw4 = RawBuffer(DimsVectorUtils::Count(grad_desc.dims) * sizeof(float));
         grad_ptr = grad_nc4hw4.force_to<float *>();
         UnpackFloatBlob(grad_ptr, grad->GetHandle().force_to<float *>(), grad_desc.dims);
-    } else {
-        return Status(TNNERR_TRAIN_ERROR, "grad only support nchw and nc4hw4");
     }
 
     auto learning_rate  = param->learning_rate;

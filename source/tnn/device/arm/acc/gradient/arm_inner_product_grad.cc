@@ -25,12 +25,7 @@ DECLARE_ARM_GRAD_OP(InnerProduct, LAYER_INNER_PRODUCT);
 // weight_grad: oc * ic     <- matmul(output_grad^T, input)
 // input_grad:  batch * ic  <- matmul(output_grad, weight)
 // bias_grad:   1 * oc      <- sigma_batch(output_grad)
-template <int acc_weight>
 static void ExecWeightGrad(int batch, int oc, int ic, float *weight_grad, float *output_grad, float *input) {
-    if (!acc_weight) {
-        memset(weight_grad, 0, oc * ic * sizeof(float));
-    }
-
     for (int b = 0; b < batch; ++b) {
         auto o_ptr = output_grad + oc * b;
         auto i_ptr = input + ic * b;
@@ -51,7 +46,6 @@ static void ExecWeightGrad(int batch, int oc, int ic, float *weight_grad, float 
     }
 }
 
-template <int acc_input>
 static void ExecInputGrad(int batch, int oc, int ic, float *input_grad, float *output_grad, float *weight,
                           ArmContext *context) {
     size_t pack_a_size    = batch * oc * sizeof(float) + NEON_KERNEL_EXTRA_LOAD;
@@ -60,23 +54,10 @@ static void ExecInputGrad(int batch, int oc, int ic, float *input_grad, float *o
     char *workspace       = reinterpret_cast<char *>(context->GetSharedWorkSpace(workspace_size));
     float *pack_a_ptr     = reinterpret_cast<float *>(workspace);
     float *pack_b_ptr     = reinterpret_cast<float *>(workspace + pack_a_size);
-
-    if (!acc_input) {
-        memset(input_grad, 0, batch * ic * sizeof(float));
-    }
-
     GemmFloatPackAB(batch, ic, oc, output_grad, pack_a_ptr, oc, weight, pack_b_ptr, ic, input_grad, ic);
 }
 
-template <int acc_bias>
 static void ExecBiasGrad(int batch, int oc, float *bias_grad, float *output_grad) {
-    if (batch == 1 && !acc_bias) {
-        memcpy(bias_grad, output_grad, oc * sizeof(float));
-        return;
-    }
-    if (!acc_bias) {
-        memset(bias_grad, 0, oc * sizeof(float));
-    }
     Float4 ug;
     for (int b = 0; b < batch; ++b) {
         float *dst_ptr = bias_grad;
@@ -145,11 +126,7 @@ Status ArmInnerProductGradOp::OnGrad(const std::vector<Blob *> &inputs, const st
             input_grad_ptr       = reordered_ptr;
         }
 
-        if (acc_input_grads[0]) {
-            ExecInputGrad<1>(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
-        } else {
-            ExecInputGrad<0>(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
-        }
+        ExecInputGrad(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
 
         if (input_need_reformat) {
             PackFloatBlob(reinterpret_cast<float *>(GetBlobHandlePtr(input_grads[0]->GetHandle())), input_grad_ptr,
@@ -167,19 +144,10 @@ Status ArmInnerProductGradOp::OnGrad(const std::vector<Blob *> &inputs, const st
                 UnpackFloatBlob(reordered_ptr, input_ptr, input_dims[0]);
                 input_ptr = reordered_ptr;
             }
-
-            if (acc_resource_grads[0]) {
-                ExecWeightGrad<1>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
-            } else {
-                ExecWeightGrad<0>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
-            }
+            ExecWeightGrad(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
 
             if (has_bias && bias.GetDataCount() > 0) {
-                if (acc_resource_grads[1]) {
-                    ExecBiasGrad<1>(batch, oc, bias_grad_ptr, output_grad_ptr);
-                } else {
-                    ExecBiasGrad<0>(batch, oc, bias_grad_ptr, output_grad_ptr);
-                }
+                ExecBiasGrad(batch, oc, bias_grad_ptr, output_grad_ptr);
             }
         }
     } else {

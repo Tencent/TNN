@@ -30,7 +30,6 @@ public:
 } ARM_UNARY_GRAD_FUNC;
 
 #define DEFINE_ARM_UNARY_LAYER_GRAD_FUNC(grad_class, func_type)                                                        \
-    template <int acc>                                                                                                 \
     void ExecGrad(int count_quad, float *input_grad, float *input, float *output, float *output_grad) {                \
         Float4 in, in_grad, out, out_grad;                                                                             \
         OMP_PARALLEL_FOR_                                                                                              \
@@ -39,8 +38,8 @@ public:
             out      = Float4::load(output + n * 4);                                                                   \
             out_grad = Float4::load(output_grad + n * 4);                                                              \
             in_grad  = func_type()(in, out, out_grad);                                                                 \
-            Float4::save(input_grad + n * 4, acc ? (in_grad + Float4::load(input_grad + n * 4)) : in_grad);            \
-        }                                                                                                              \
+            Float4::save(input_grad + n * 4, in_grad + Float4::load(input_grad + n * 4));                              \
+        }                                                                                                          \
     }
 
 #define DEFINE_ARM_UNARY_GRAD_OP(type_string, func_type)                                                               \
@@ -63,11 +62,7 @@ public:
                 auto output_ptr      = reinterpret_cast<float *>(GetBlobHandlePtr(fw_outputs[0]->GetHandle()));        \
                 auto input_grad_ptr  = reinterpret_cast<float *>(GetBlobHandlePtr(input_grads[0]->GetHandle()));       \
                 auto output_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(output_grads[0]->GetHandle()));      \
-                if (acc_input_grads[0]) {                                                                              \
-                    ExecGrad<1>(count_quad, input_grad_ptr, input_ptr, output_ptr, output_grad_ptr);                   \
-                } else {                                                                                               \
-                    ExecGrad<0>(count_quad, input_grad_ptr, input_ptr, output_ptr, output_grad_ptr);                   \
-                }                                                                                                      \
+                ExecGrad(count_quad, input_grad_ptr, input_ptr, output_ptr, output_grad_ptr);                          \
             } else {                                                                                                   \
                 LOGE("Arm" #type_string "GradOp::OnGrad, dtype not supported\n");                                      \
                 return Status(TNNERR_TRAIN_ERROR, "dtype not supported");                                              \
