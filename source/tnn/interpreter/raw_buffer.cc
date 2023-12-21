@@ -43,7 +43,7 @@ RawBuffer::RawBuffer(int bytes_size) {
     bytes_size_ = bytes_size;
 }
 
-RawBuffer::RawBuffer(int bytes_size, DimsVector dims) : RawBuffer(bytes_size){
+RawBuffer::RawBuffer(int bytes_size, const DimsVector &dims) : RawBuffer(bytes_size) {
     this->dims_ = dims;
 }
 
@@ -58,8 +58,13 @@ RawBuffer::RawBuffer(int bytes_size, char *buffer) {
     bytes_size_ = bytes_size;
 }
 
-RawBuffer::RawBuffer(int bytes_size, char* buffer, DimsVector dims) : RawBuffer(bytes_size, buffer) {
+RawBuffer::RawBuffer(int bytes_size, char *buffer, const DimsVector &dims) : RawBuffer(bytes_size, buffer) {
           this->dims_ = dims;
+}
+
+RawBuffer::RawBuffer(int bytes_size, char *buffer, const DimsVector &dims, DataType data_type)
+    : RawBuffer(bytes_size, buffer, dims) {
+    this->data_type_ = data_type;
 }
 
 RawBuffer::RawBuffer(const RawBuffer &buf) {
@@ -69,11 +74,11 @@ RawBuffer::RawBuffer(const RawBuffer &buf) {
     this->dims_       = buf.dims_;
 }
 
-void RawBuffer::SetBufferDims(DimsVector dims) {
+void RawBuffer::SetBufferDims(const DimsVector &dims) {
     this->dims_ = dims;
 }
 
-DimsVector RawBuffer::GetBufferDims() {
+const DimsVector &RawBuffer::GetBufferDims() {
     return this->dims_;
 }
 

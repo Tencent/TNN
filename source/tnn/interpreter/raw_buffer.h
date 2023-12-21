@@ -31,9 +31,10 @@ class RawBuffer {
 public:
     RawBuffer();
     explicit RawBuffer(int bytes_size);
-    RawBuffer(int bytes_size, DimsVector dims);
+    RawBuffer(int bytes_size, const DimsVector& dims);
     RawBuffer(int bytes_size, char *buffer);
-    RawBuffer(int bytes_size, char* buffer, DimsVector dims);
+    RawBuffer(int bytes_size, char* buffer, const DimsVector& dims);
+    RawBuffer(int bytes_size, char* buffer, const DimsVector& dims, DataType data_type);
     RawBuffer(const RawBuffer &buf);
     RawBuffer(int bytes_size, int alignment);
     RawBuffer &operator=(RawBuffer buf);
@@ -41,14 +42,14 @@ public:
 
     void buffer(char *buf, int bytes_size);
     void SetDataType(DataType data_type);
-    void SetBufferDims(DimsVector shape);
+    void SetBufferDims(const DimsVector& shape);
 
 
 
     DataType GetDataType();
     int GetBytesSize();
     int GetDataCount();
-    DimsVector GetBufferDims();
+    const DimsVector& GetBufferDims();
 
     void Permute(size_t outter, size_t inner);
 

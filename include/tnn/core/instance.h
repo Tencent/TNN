@@ -41,7 +41,7 @@ typedef std::function<void(std::vector<Blob*>& blobs, LayerInfo* info)> BlobStat
 
 class PUBLIC Instance {
 public:
-    Instance(NetworkConfig& net_config, ModelConfig& model_config);
+    Instance(const NetworkConfig& net_config, const ModelConfig& model_config);
 
     ~Instance();
 

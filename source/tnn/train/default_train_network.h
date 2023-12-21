@@ -40,7 +40,6 @@ public:
     virtual Status GetAllInputBlobs(BlobMap &blobs) override;
 
     virtual Status TrainStep() override;
-    virtual Status ZeroGrad() override;
     virtual Status GetTrainingFeedback(TrainingFeedback &feed_back) override;
 
 protected:
@@ -51,6 +50,7 @@ protected:
     virtual Status SetGlobalStep();
     virtual Status SetGradientLayerRuntimeInfo();
     virtual Status SetSolverLayerRuntimeInfo();
+    virtual Status ZeroGrad();
 
     std::map<Blob *, Blob *> input_to_grad_map_;
     std::map<Blob *, RawBuffer *> grad_to_resource_map_;

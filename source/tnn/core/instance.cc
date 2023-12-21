@@ -34,7 +34,7 @@ namespace TNN_NS {
  * It wraps the network object to keep consistency of the header.
  */
 
-Instance::Instance(NetworkConfig& net_config, ModelConfig& model_config) {
+Instance::Instance(const NetworkConfig& net_config, const ModelConfig& model_config) {
     net_config_   = net_config;
     model_config_ = model_config;  // note that, the params in model_config is empty, don't use it
 }

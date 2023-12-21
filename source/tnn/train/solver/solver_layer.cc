@@ -62,6 +62,7 @@ Status SolverLayer::ZeroGrad() {
             return Status(TNNERR_LAYER_ERR, "data_type or data_format not supported");
         }
     }
+    return TNN_OK;
 }
 
 Status SolverLayer::SetTrainableResources(std::vector<RawBuffer*> trainable) {

@@ -99,8 +99,6 @@ public:
     virtual Status TrainStep();
     // @brief get training feedback
     virtual Status GetTrainingFeedback(TrainingFeedback &feed_back);
-    // @brief set all grads as 0
-    virtual Status ZeroGrad();
 #endif  // TNN_TRAIN
 
 #if TNN_PROFILE
