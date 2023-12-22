@@ -27,7 +27,7 @@ Status ArmSGDSolverStrategy::ExecUpdate(Blob *grad, RawBuffer *resource, SolverP
     }
 
     float *resource_ptr = resource->force_to<float *>();
-    float *grad_ptr = grad->GetHandle().force_to<float *>();;
+    float *grad_ptr = grad->GetHandle().force_to<float *>();
 
     if (grad_desc.data_format != DATA_FORMAT_NCHW && grad_desc.data_format != DATA_FORMAT_NC4HW4) {
         return Status(TNNERR_TRAIN_ERROR, "grad only support nchw and nc4hw4");
