@@ -279,6 +279,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
     }
 
     // init layer
+    std::map<std::string, BaseLayer*> layer_map;
     for (auto layer_info : net_structure->layers) {
         if (runtime_model_ == RUNTIME_MODE_NORMAL && const_layers.find(layer_info->name) != const_layers.end()) {
             continue;
@@ -345,6 +346,20 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         cur_layer->SetRuntimeMode(runtime_model_);
         cur_layer->SetConstantResource(&net_resource->constant_map);
         cur_layer->SetConstantResourceFlag(&net_resource->constant_blob_flags);
+
+#if TNN_TRAIN
+        if (layer_info->type == LayerType::LAYER_GRADIENT) {
+            auto &forward_layer_name = net_structure->backward_forward[layer_info->name];
+            auto it_forward_layer = layer_map.find(forward_layer_name);
+            if (it_forward_layer == layer_map.end() || layer_info->param == nullptr) {
+                return Status(TNNERR_TRAIN_ERROR, "backward layer[" + layer_info->name + "] miss its forward layer");
+            }
+
+            GradientParam *grad_param = dynamic_cast<GradientParam*>(layer_info->param.get());
+            CHECK_PARAM_NULL(grad_param);
+            grad_param->forward_layer = it_forward_layer->second;
+        }
+#endif
         ret = cur_layer->Init(context_, layer_info->param.get(), layer_resource, inputs, outputs, device_);
         if (ret != TNN_OK) {
             LOGE("Error Init layer %s (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(), (int)ret, (int)ret);
@@ -355,6 +370,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
         cur_layer->SetRuntimeBlobMemoryPool(runtime_blob_pool_);
 
         layers_.push_back(cur_layer);
+        layer_map[cur_layer->GetLayerName()] = cur_layer;
     }
     forward_layer_count_ = layers_.size();
     return ret;
@@ -501,9 +517,11 @@ Status DefaultNetwork::PrepareDoReshape(const InputShapesMap& inputs, bool& shap
     for (auto iter : inputs) {
         Blob *blob = blob_manager_->GetBlob(iter.first);
         if (blob == nullptr) {
+#if TNN_TRAIN
             if (config_.train_config.run_mode == TRAIN_MODE_TRAIN) {
                 continue;  // inputs contains groud turth label, so continues
             }
+#endif
             LOGE("DefaultNetwork reshape blob is empty, maybe the blob name is wrong\n");
             return Status(TNNERR_PARAM_ERR, "DefaultNetwork reshape blob is empty, maybe the blob name is wrong");
         }

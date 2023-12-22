@@ -65,7 +65,7 @@ public:
         float *y       = reinterpret_cast<float *>(GetBlobHandlePtr(fw_outputs[0]->GetHandle()));
         float *y_grad  = reinterpret_cast<float *>(GetBlobHandlePtr(output_grads[0]->GetHandle()));
         float *x0_grad = reinterpret_cast<float *>(grad_ptrs[0]);
-        float *x1_grad = reinterpret_cast<float *>(grad_ptrs[0]);
+        float *x1_grad = reinterpret_cast<float *>(grad_ptrs[1]);
         if (forward_acc->GetBroadCastType() == BroadcastTypeNormal) {
             ExecGradNormally(x0_grad, x1_grad, x0, x1, y, y_grad, fw_outputs[0]->GetBlobDesc().dims);
         } else if (forward_acc->GetBroadCastType() == BroadcastTypeSingle) {
