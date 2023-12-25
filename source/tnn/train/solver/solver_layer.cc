@@ -52,14 +52,23 @@ Status SolverLayer::ZeroGrad() {
 
         const BlobDesc &grad_desc = grad->GetBlobDesc();
 
-        if (grad_desc.data_format == DATA_FORMAT_NC4HW4 && grad_desc.data_type == DATA_TYPE_FLOAT) {
-            void *grad_ptr = grad->GetHandle().force_to<void *>();
-            if (grad_ptr != nullptr) {
-                bzero(grad_ptr, DimsFunctionUtils::GetNCHWXPackedCount(grad_desc.dims, 4) * sizeof(float));
-            }
+        if (grad_desc.data_type != DATA_TYPE_FLOAT) {
+            LOGE("grad data_type only support DATA_TYPE_FLOAT\n");
+            return Status(TNNERR_LAYER_ERR, "grad data_type only support DATA_TYPE_FLOAT");
+        }
+
+        int grad_bytes = 0;
+        if (grad_desc.data_format == DATA_FORMAT_NC4HW4) {
+            grad_bytes = DimsFunctionUtils::GetNCHWXPackedCount(grad_desc.dims, 4) * sizeof(float);
+        } else if (grad_desc.data_format == DATA_FORMAT_NCHW) {
+            grad_bytes = DimsVectorUtils::Count(grad_desc.dims) * sizeof(float);
         } else {
             LOGE("data_type or data_format not supported\n");
             return Status(TNNERR_LAYER_ERR, "data_type or data_format not supported");
+        }
+        void *grad_ptr = grad->GetHandle().force_to<void *>();
+        if (grad_ptr != nullptr) {
+            bzero(grad_ptr, grad_bytes);
         }
     }
     return TNN_OK;

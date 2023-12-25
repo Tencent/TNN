@@ -56,8 +56,13 @@ public:
 
         // 目前只处理float
         if (fw_inputs[0]->GetBlobDesc().data_type != DATA_TYPE_FLOAT) {
-            LOGE("Arm Mul GradOp::OnGrad, dtype not supported\n");
+            LOGE("Arm Binary GradOp::OnGrad, dtype not supported\n");
             return Status(TNNERR_TRAIN_ERROR, "dtype not supported");
+        }
+
+        if (fw_inputs[0]->GetBlobDesc().data_format != DATA_FORMAT_NC4HW4) {
+            LOGE("Arm Binary GradOp::OnGrad, data format not supported\n");
+            return Status(TNNERR_TRAIN_ERROR, "data format not supported");
         }
 
         float *x0      = reinterpret_cast<float *>(forward_input_ptrs[0]);
