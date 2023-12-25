@@ -17,6 +17,7 @@
 #include <string>
 #include <typeinfo>
 #include <utility>
+#include <sstream>
 #include "tnn/utils/bfp16.h"
 #include "tnn/utils/bfp16_utils.h"
 #include "tnn/utils/data_type_utils.h"
@@ -248,6 +249,18 @@ RawBuffer ConvertFloatToFP16(RawBuffer &buf) {
     } else {
         return buf;
     }
+}
+
+std::string RawBuffer::ToString() {
+    std::ostringstream os;
+    os << "bytes_size: " << bytes_size_;
+    os << " data_type: " << data_type_;
+    os << " shape: [ " ;
+    for (auto iter : dims_) {
+        os << iter << " " ;
+    }
+    os << "]";
+    return os.str();
 }
 
 }  // namespace TNN_NS

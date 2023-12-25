@@ -35,13 +35,13 @@ public:
         auto forward_param = dynamic_cast<MultidirBroadcastLayerParam *>(grad_param->forward_param);
         CHECK_PARAM_NULL(forward_param);
 
-        // 求导目标  dL/dx + dL/dw 
+        // 求导目标  dL/dx + dL/dw
         void *grad_ptrs[2];
-        if (forward_acc->GetResource().GetDataCount() > 0) {
-            if (forward_param->weight_input_index == 0) { // w 作为左值 
+        if (forward_acc->GetResource().GetDataCount() > 0) {  // 如果w不需要训练，则w_grad设置为nullptr
+            if (forward_param->weight_input_index == 0) {     // w 作为左值
                 grad_ptrs[0] = resource_grads.empty() ? nullptr : resource_grads[0]->GetHandle().force_to<void *>();
                 grad_ptrs[1] = input_grads[0]->GetHandle().force_to<void *>();
-            } else {         // w 作为右值 
+            } else {  // w 作为右值
                 grad_ptrs[0] = input_grads[0]->GetHandle().force_to<void *>();
                 grad_ptrs[1] = resource_grads.empty() ? nullptr : resource_grads[0]->GetHandle().force_to<void *>();
             }
@@ -54,9 +54,9 @@ public:
         std::vector<void *> &forward_input_ptrs     = forward_acc->GetInputPtrs();
         std::vector<DimsVector> &forward_input_dims = forward_acc->GetInputShapes();
 
-        // 目前只处理float 
+        // 目前只处理float
         if (fw_inputs[0]->GetBlobDesc().data_type != DATA_TYPE_FLOAT) {
-            LOGE("Arm Mul GradOp::OnGrad, dtype not supportedn");
+            LOGE("Arm Mul GradOp::OnGrad, dtype not supported\n");
             return Status(TNNERR_TRAIN_ERROR, "dtype not supported");
         }
 
@@ -66,16 +66,17 @@ public:
         float *y_grad  = reinterpret_cast<float *>(GetBlobHandlePtr(output_grads[0]->GetHandle()));
         float *x0_grad = reinterpret_cast<float *>(grad_ptrs[0]);
         float *x1_grad = reinterpret_cast<float *>(grad_ptrs[1]);
-        if (forward_acc->GetBroadCastType() == BroadcastTypeNormal) {
+        if (DimsVectorUtils::Equal(forward_input_dims[0], forward_input_dims[1])) {  // BroadcastTypeNormal
             ExecGradNormally(x0_grad, x1_grad, x0, x1, y, y_grad, fw_outputs[0]->GetBlobDesc().dims);
-        } else if (forward_acc->GetBroadCastType() == BroadcastTypeSingle) {
-            if (DimsVectorUtils::Count(forward_input_dims[1]) == 1) { // 确保x0是单个元素，需要被扩展 
+        } else if (DimsVectorUtils::Count(forward_input_dims[0]) == 1 ||
+                   DimsVectorUtils::Count(forward_input_dims[1]) == 1) {  // BroadcastTypeSingle
+            if (DimsVectorUtils::Count(forward_input_dims[1]) == 1) {     // 确保x0是单个元素，需要被扩展
                 std::swap(x0, x1);
                 std::swap(x0_grad, x1_grad);
             }
             ExecGradSingle(x0_grad, x1_grad, x0, x1, y, y_grad, fw_outputs[0]->GetBlobDesc().dims);
         } else {
-            LOGE("Arm Mul GradOp::OnGrad, broadcast type not supported");
+            LOGE("Arm Mul GradOp::OnGrad, broadcast type not supported\n");
             return Status(TNNERR_TRAIN_ERROR, "broadcast type not supported");
         }
         return TNN_OK;
@@ -83,7 +84,8 @@ public:
 
 private:
     virtual std::pair<float, float> cal_grad(const float &i_0, const float &i_1, const float &o, const float &og) = 0;
-    virtual std::pair<Float4, Float4> cal_grad(const Float4 &i_0, const Float4 &i_1, const Float4 &o, const Float4 &og) = 0;
+    virtual std::pair<Float4, Float4> cal_grad(const Float4 &i_0, const Float4 &i_1, const Float4 &o,
+                                               const Float4 &og)                                                  = 0;
 
     void ExecGradNormally(float *x0_grad, float *x1_grad, float *x0, float *x1, float *y, float *y_grad,
                           const DimsVector &dims) {
@@ -127,7 +129,7 @@ private:
                     auto &grad_0  = grads.first;
                     auto &grad_1  = grads.second;
 
-                    // x0的grad需要累加 
+                    // x0的grad需要累加
                     if (x0_grad != nullptr) {
                         int e = 4;
                         if ((c == c4n - 1) && (c4r != 0)) {
@@ -138,11 +140,11 @@ private:
                             grad_0_sum += grad_0[k];
                         }
                         x0_grad[0] += grad_0_sum;
-                    } 
+                    }
                     if (x1_grad != nullptr) {
                         Float4::save(x1_grad + nptr, grad_1 + Float4::load(x1_grad + nptr));
                     }
-                    
+
                     nptr += 4;
                 }
             }

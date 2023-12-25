@@ -99,9 +99,12 @@ Status GradientLayer::InferOutputShape(bool ignore_error) {
 
     for (int i = input_grad_count_; i < output_blobs_.size(); ++i) {
         auto trainable_buffer = resource_->GetTrainable()[i - input_grad_count_];
-        // resouce buffer dims is empty, use data count
-        output_blobs_[i]->GetBlobDesc().dims = {
-            1, trainable_buffer->GetDataCount() > 0 ? trainable_buffer->GetDataCount() : 1};
+        if (DimsVectorUtils::Count(trainable_buffer->GetBufferDims()) > 0) {
+            output_blobs_[i]->GetBlobDesc().dims = trainable_buffer->GetBufferDims();
+        } else {
+            LOGE("GradientLayer::InferOutputShape, empty resouce_grad dim to calculate\n");
+            return Status(TNNERR_LAYER_ERR, "empty resouce_grad dim to calculate");
+        }
     }
 
     return TNN_OK;

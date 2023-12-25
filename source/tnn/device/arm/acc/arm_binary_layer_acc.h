@@ -63,7 +63,6 @@ public:
     RawBuffer &GetResource() { return broadcast_;}
     std::vector<void *> &GetInputPtrs() { return input_ptrs_;}
     std::vector<DimsVector> &GetInputShapes() { return input_shapes_;}
-    BroadcastType &GetBroadCastType() { return btype_;}
 
 protected:
     virtual bool DataTypeSupported(DataType data_type) override;

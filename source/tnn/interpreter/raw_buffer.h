@@ -44,8 +44,6 @@ public:
     void SetDataType(DataType data_type);
     void SetBufferDims(const DimsVector& shape);
 
-
-
     DataType GetDataType();
     int GetBytesSize();
     int GetDataCount();
@@ -57,6 +55,8 @@ public:
     T force_to() {
         return reinterpret_cast<T>(buff_ ? buff_.get() : nullptr);
     }
+    
+    std::string ToString();
 
 private:
     shared_ptr<char> buff_ = nullptr;

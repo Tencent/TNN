@@ -158,7 +158,30 @@ public:
     if (R > 0) {                                                                                                       \
         fw_resources = resource->GetTrainable();                                                                       \
     };                                                                                                                 \
-    std::vector<Blob *> resource_grads(outputs.begin() + I, outputs.begin() + I + R); /* dL/dw 求导目标 */
+    std::vector<Blob *> resource_grads(outputs.begin() + I, outputs.begin() + I + R); /* dL/dw 求导目标 */              \
+                                                                                                                       \
+    /* 做一些检查：x和dL/dx的维度必须相同， y和dL/dy的维度必须相同， w和dL/dw的维度必须相同 */                                    \
+    for (int i = 0; i < I; ++i) {                                                                                      \
+        if (!DimsVectorUtils::Equal(fw_inputs[i]->GetBlobDesc().dims, input_grads[i]->GetBlobDesc().dims)) {           \
+            LOGE("GradOp::OnGrad %s vs %s: input dim not match\n", fw_inputs[i]->GetBlobDesc().description().c_str(),  \
+                 input_grads[i]->GetBlobDesc().description().c_str());                                                 \
+            return Status(TNNERR_LAYER_ERR, "GradOp::OnGrad input and input_grad dims not match");                     \
+        }                                                                                                              \
+    }                                                                                                                  \
+    for (int i = 0; i < O; ++i) {                                                                                      \
+        if (!DimsVectorUtils::Equal(fw_outputs[i]->GetBlobDesc().dims, output_grads[i]->GetBlobDesc().dims)) {         \
+            LOGE("GradOp::OnGrad %s vs %s: output dim not match\n", fw_outputs[i]->GetBlobDesc().description().c_str(),\
+                 output_grads[i]->GetBlobDesc().description().c_str());                                                \
+            return Status(TNNERR_LAYER_ERR, "GradOp::OnGrad output and output_grad dims not match");                   \
+        }                                                                                                              \
+    }                                                                                                                  \
+    for (int i = 0; i < R; ++i) {                                                                                      \
+        if (!DimsVectorUtils::Equal(fw_resources[i]->GetBufferDims(), resource_grads[i]->GetBlobDesc().dims)) {        \
+            LOGE("GradOp::OnGrad %s vs %s: , resource dim not match\n", fw_resources[i]->ToString().c_str(),           \
+                 resource_grads[i]->GetBlobDesc().description().c_str());                                              \
+            return Status(TNNERR_LAYER_ERR, "GradOp::OnGrad resource and resource_grad data count not match");         \
+        }                                                                                                              \
+    }
 
 }  // namespace TNN_NS
 

@@ -2,12 +2,10 @@
 
 namespace TNN_NS {
 
-std::map<std::string, std::shared_ptr<Mat>> GradTest::DoLayerGradTest(const std::string& layer_type,
-                                                                      const std::vector<Input>& layer_inputs,
-                                                                      const std::string& layer_output,
-                                                                      std::shared_ptr<LayerParam> layer_param,
-                                                                      std::shared_ptr<LayerResource> layer_resource,
-                                                                      const std::set<std::string>& net_outputs) {
+Status GradTest::DoLayerGradTest(std::map<std::string, std::shared_ptr<Mat>>& result, const std::string& layer_type,
+                                 const std::vector<Input>& layer_inputs, const std::string& layer_output,
+                                 std::shared_ptr<LayerParam> layer_param, std::shared_ptr<LayerResource> layer_resource,
+                                 const std::set<std::string>& net_outputs) {
     // 将输入拆分为Mat输入和const常量输入
     std::map<std::string, std::shared_ptr<Mat>> mat_inputs;
     std::map<std::string, std::shared_ptr<RawBuffer>> net_consts;
@@ -22,16 +20,24 @@ std::map<std::string, std::shared_ptr<Mat>> GradTest::DoLayerGradTest(const std:
     auto instance = InitLayerGradTestNetwork(layer_type, layer_inputs, {layer_output}, layer_param, net_outputs,
                                              layer_resource, net_consts);
 
-    TNN_NS::MatConvertParam convert_param;
+    Status ret = TNN_OK;
+    MatConvertParam convert_param;
     for (const auto& [input_name, input_mat] : mat_inputs) {
-        instance->SetInputMat(input_mat, convert_param, input_name);
+        ret = instance->SetInputMat(input_mat, convert_param, input_name);
+        RETURN_IF_FAIL(ret);
     }
-    instance->Forward();
-    instance->TrainStep();
+
+    ret = instance->Forward();
+    RETURN_IF_FAIL(ret);
+    ret = instance->TrainStep();
+    RETURN_IF_FAIL(ret);
 
     BlobMap blobs;
-    instance->GetAllOutputBlobs(blobs);
-    return Blob2Mat(instance, blobs);
+    ret = instance->GetAllOutputBlobs(blobs);
+    RETURN_IF_FAIL(ret);
+    result = Blob2Mat(instance, blobs);
+
+    return TNN_OK;
 }
 
 // 创建一个Layer的后向测试网络：包含两个layer，一个是要测试的layer，一个是ReduceMean用来产生一个标量作为loss
@@ -80,8 +86,12 @@ NetworkConfig GradTest::GetNetworkConfig() {
     TrainConfig& train_config                = network_config.train_config;
     train_config.run_mode                    = TNN_NS::TRAIN_MODE_TRAIN;
     train_config.train_the_whole_model       = true;
-    train_config.solver_params.learning_rate = 0.1;
+    train_config.solver_params.learning_rate = GetLearningRate();
     return network_config;
+}
+
+float GradTest::GetLearningRate() {
+    return 0.1;
 }
 
 }  // namespace TNN_NS
