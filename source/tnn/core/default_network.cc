@@ -654,9 +654,16 @@ Status DefaultNetwork::Forward() {
             }
 #endif  // DUMP_INPUT_BLOB
             
+            LOGD("layer name: %s\n", layer->GetLayerName().c_str());
+            for (auto blob : inputs) {
+                LOGD("input -  %s\n", blob->GetBlobDesc().description().c_str());
+            }
+
             status = layer->Forward();
-            LOGD("layer name: %s, forward result: %d \n", layer->GetLayerName().c_str(), (int)status);
-            LOGD("Output Shape: [%s]\n", layer->GetOutputBlobs()[0]->GetBlobDesc().description().c_str());
+
+            for (auto blob : outputs) {
+                LOGD("output -  %s\n", blob->GetBlobDesc().description().c_str());
+            }
             if (status != TNN_OK) {
                 LOGE("Forward error %s, exit\n", status.description().c_str());
                 return status;
