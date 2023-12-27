@@ -44,7 +44,7 @@ TEST(BinaryGrad, BroadCastNormal) {
         // 设置w初始值 (初始值用y的值)
         float* init_w = reinterpret_cast<float *>(y.data.get());
         auto& w = layer_resource->element_handle;
-        w = RawBuffer(sizeof(float) * DimsVectorUtils::Count(y.shape), (char *)init_w, y.shape, y.dtype);
+        w = RawBuffer(y.DataBytes(), (char *)init_w, y.shape, y.dtype);
 
         // 训练更新w
         outputs.clear();
@@ -52,7 +52,6 @@ TEST(BinaryGrad, BroadCastNormal) {
             outputs, "Mul", {x}, "z", layer_param, layer_resource,
             {"x", "z", "loss", "z_tnn_grad", "x_tnn_grad", "test_layer_tnn_resource_grad_0", "z_tnn_grad"});
         EXPECT_TRUE(status == TNN_OK);
-        PrintMat(outputs);
 
         // 检查中间的梯度
         float *w_grad = reinterpret_cast<float *>(outputs["test_layer_tnn_resource_grad_0"]->GetData());
@@ -77,7 +76,7 @@ TEST(BinaryGrad, BroadCastNormal) {
         // 设置w初始值 (初始值用y的值)
         float* init_w = reinterpret_cast<float *>(x.data.get());
         auto& w = layer_resource->element_handle;
-        w = RawBuffer(sizeof(float) * DimsVectorUtils::Count(x.shape), (char *)init_w, x.shape, x.dtype);
+        w = RawBuffer(x.DataBytes(), (char *)init_w, x.shape, x.dtype);
 
         // 训练更新w
         outputs.clear();
@@ -119,7 +118,7 @@ TEST(BinaryGrad, BroadCastNormal) {
     }
 }
 
-// 输入维度不同，启用BroadCast
+// 输入维度不同，BroadCastSingle
 TEST(BinaryGrad, BroadCastSingle) {
     GradTest grad_test;
 

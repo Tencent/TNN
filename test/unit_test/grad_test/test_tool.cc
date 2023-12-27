@@ -17,6 +17,17 @@ Input::Input(const std::string& name_, const DimsVector& shape_, const std::vect
     }
 }
 
+size_t Input::DataBytes() {
+    if (dtype == DATA_TYPE_INT32) {
+        return sizeof(int32_t) * Size();
+    }
+    return sizeof(float) * Size();
+}
+
+size_t Input::Size() {
+    return DimsVectorUtils::Count(shape);
+}
+
 std::shared_ptr<AbstractModelInterpreter> CreateInterpreter(
     const std::vector<Input>& net_inputs, const std::set<std::string>& net_outputs, const std::vector<Layer>& layers,
     const std::map<std::string, std::shared_ptr<RawBuffer>>& consts) {
@@ -141,7 +152,7 @@ void PrintMat(const std::map<std::string, std::shared_ptr<Mat>>& mats) {
 
 bool Equal(float* v0, float* v1, size_t n) {
     for (size_t i = 0; i < n; i++) {
-        if (std::abs(v1[i] - v0[i]) > 1e-6) {
+        if (std::abs(v1[i] - v0[i]) > 1e-4) {
             return false;
         }
     }

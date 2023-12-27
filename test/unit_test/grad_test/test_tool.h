@@ -17,6 +17,8 @@ struct Input {
 
     Input(const std::string& name_, const DimsVector& shape_, const std::vector<float>& data_,
           DataType dtype_ = DATA_TYPE_FLOAT, bool is_const_ = false);
+    size_t DataBytes();
+    size_t Size();
 };
 
 struct Layer {

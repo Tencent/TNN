@@ -113,14 +113,14 @@ Status ArmInnerProductGradOp::OnGrad(const std::vector<Blob *> &inputs, const st
         bool output_need_reformat =
             fw_inputs[0]->GetBlobDesc().data_format != DATA_FORMAT_NCHW && !FloatBlobCanIgnorePack(output_dims[0]);
         RawBuffer output_grad_reordered;
-        if (output_need_reformat) {
+        if (output_need_reformat) {  // 将y_grad转为nchw
             output_grad_reordered = RawBuffer(batch * oc * sizeof(float));
             float *reordered_ptr  = output_grad_reordered.force_to<float *>();
             UnpackFloatBlob(reordered_ptr, output_grad_ptr, output_dims[0]);
             output_grad_ptr = reordered_ptr;
         }
         RawBuffer input_grad_reordered;
-        if (input_need_reformat) {
+        if (input_need_reformat) {  // 将使用一个新的nchw的存储来存x_grad
             input_grad_reordered = RawBuffer(batch * ic * sizeof(float));
             float *reordered_ptr = input_grad_reordered.force_to<float *>();
             input_grad_ptr       = reordered_ptr;
@@ -128,14 +128,16 @@ Status ArmInnerProductGradOp::OnGrad(const std::vector<Blob *> &inputs, const st
 
         ExecInputGrad(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
 
-        if (input_need_reformat) {
+        if (input_need_reformat) {  // 将nchw的x_grad转为NC4HW4
             PackFloatBlob(reinterpret_cast<float *>(GetBlobHandlePtr(input_grads[0]->GetHandle())), input_grad_ptr,
                           input_dims[0]);
         }
 
         if (resource_need_train) {
-            auto weight_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grads[0]->GetHandle()));
-            auto bias_grad_ptr   = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grads[1]->GetHandle()));
+            resource_grads[0]->GetBlobDesc().data_format = DATA_FORMAT_NCHW;
+            resource_grads[1]->GetBlobDesc().data_format = DATA_FORMAT_NCHW;
+            auto weight_grad_ptr = resource_grads[0]->GetHandle().force_to<float *>();
+            auto bias_grad_ptr   = resource_grads[1]->GetHandle().force_to<float *>();
 
             RawBuffer input_reordered;
             if (input_need_reformat) {
