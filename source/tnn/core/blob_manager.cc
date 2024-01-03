@@ -199,8 +199,15 @@ Status BlobManager::AllocateBlobMemory(int flag) {
 
                 BlobMemorySizeInfo info = device_->Calculate(current_blob->GetBlobDesc());
                 // find an available BlobMemory
+                bool use_new_memory = false;
+#if TNN_TRAIN
+                // for train mode, ZeroGrad will reset all grads as 0 at the TrainStep() beginning, use_count does not work
+                if (config_.train_config.run_mode == TRAIN_MODE_TRAIN) {
+                    use_new_memory = true;
+                }
+#endif
                 BlobMemory *blob_memory =
-                    blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, false);
+                    blob_memory_pool_map_[info.dims.size()]->BorrowBlobMemory(use_count, info, use_new_memory);
                 blob_memory_mapping_.insert(std::make_pair(current_blob, blob_memory));
             }
         }

@@ -41,7 +41,7 @@ Status::~Status() {
 }
 
 //constructor with code and message
-Status::Status(int code, std::string message) {
+Status::Status(int code, const std::string& message) {
     code_    = code;
     message_ = (message != "OK" && message.length() > 0) ? message : StatusGetDefaultMessage(code);
 }

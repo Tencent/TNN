@@ -66,6 +66,8 @@ struct NetStructure {
     std::vector<std::shared_ptr<LayerInfo>> layers;
     std::set<std::string> blobs;
     ModelType source_model_type = MODEL_TYPE_TNN;
+    std::map<std::string, std::string> back2forward;  // backward_layer_name -> its forward_layer_name
+    std::set<std::string> grad_blobs;
 
 public:
     std::shared_ptr<NetStructure> Copy() {

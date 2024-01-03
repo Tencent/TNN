@@ -17,6 +17,7 @@
 
 #include <map>
 #include <string>
+#include <functional>
 
 #include "tnn/core/blob.h"
 #include "tnn/core/status.h"
@@ -27,6 +28,10 @@
 
 namespace TNN_NS {
 
+class GradOp;
+using GradOpPtr = std::unique_ptr<GradOp>;
+using GradOpCreator = std::function<GradOpPtr()>;
+
 class GradOp {
 public:
     GradOp();
@@ -34,46 +39,45 @@ public:
     virtual ~GradOp();
 
     virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                          LayerResource *resource, LayerParam *param, Context *context,
+                          LayerResource *resource, GradientParam *grad_param, Context *context,
                           const GradOpInfo &grad_info) = 0;
 
-    static Status RegisterGradOp(DeviceType device, LayerType type, std::shared_ptr<GradOp> layer_grad);
+    static Status RegisterGradOpCreator(DeviceType device, LayerType type, GradOpCreator grad_op_creator);
 
-    static GradOp *GetGradOp(DeviceType device, LayerType type);
+    static GradOpPtr CreateGradOp(DeviceType device, LayerType type);
 
 private:
-    static std::map<std::pair<DeviceType, LayerType>, std::shared_ptr<GradOp>> &GetGradOpMap();
+    static std::map<std::pair<DeviceType, LayerType>, std::function<GradOpPtr()>> &GetGradOpCreatorMap();
 };
 
 template <typename T>
 class GradOpRegister {
 public:
     explicit GradOpRegister(DeviceType device, LayerType type) {
-        GradOp::RegisterGradOp(device, type, std::make_shared<T>());
+        GradOp::RegisterGradOpCreator(device, type, []() { return GradOpPtr(new T()); });
     }
 };
 
-#define DECLARE_GRAD_OP(device_string, device, type_string, layer_type)                                             \
+#define DECLARE_GRAD_OP(device_string, device, type_string, layer_type)                                          \
     class device_string##type_string##GradOp : public GradOp {                                                   \
-    public:                                                                                                            \
-        virtual ~device_string##type_string##GradOp(){};                                                            \
-        virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,                   \
-                              LayerResource *resource, LayerParam *param, Context *context,                            \
-                              const GradOpInfo &grad_info);                                                         \
+    public:                                                                                                      \
+        virtual ~device_string##type_string##GradOp(){};                                                         \
+        virtual Status OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,             \
+                              LayerResource *resource, GradientParam *grad_param, Context *context,              \
+                              const GradOpInfo &grad_info);                                                      \
     };
 
-#define REGISTER_GRAD_OP(device_string, device, type_string, layer_type)                                            \
+#define REGISTER_GRAD_OP(device_string, device, type_string, layer_type)                                         \
     GradOpRegister<device_string##type_string##GradOp> g_##device##_##layer_type##_layer_grad_register(          \
         device, layer_type);
 
 #define PREPARE_INPUT_AND_GRAD(I)                                                                                      \
     std::vector<Blob *> fw_inputs(inputs.begin(), inputs.begin() + I);                                                 \
     std::vector<Blob *> input_grads(outputs.begin(), outputs.begin() + I);                                             \
-    const std::vector<bool> &acc_input_grads = grad_info.accumulate_input_grad;                                        \
     std::vector<DimsVector> input_dims;                                                                                \
     for (int i = 0; i < I; ++i) {                                                                                      \
         input_dims.push_back(fw_inputs[i]->GetBlobDesc().dims);                                                        \
-        auto input_grad_dims = input_grads[i]->GetBlobDesc().dims;                                                     \
+        auto& input_grad_dims = input_grads[i]->GetBlobDesc().dims;                                                    \
         if (!DimsVectorUtils::Equal(input_dims[i], input_grad_dims)) {                                                 \
             LOGE("GradOp::OnGrad %s vs %s: , dims not match\n", fw_inputs[i]->GetBlobDesc().description().c_str(),  \
                  input_grads[i]->GetBlobDesc().description().c_str());                                                 \
@@ -87,7 +91,7 @@ public:
     std::vector<DimsVector> output_dims;                                                                               \
     for (int i = 0; i < O; ++i) {                                                                                      \
         output_dims.push_back(fw_outputs[i]->GetBlobDesc().dims);                                                      \
-        auto output_grad_dims = output_grads[i]->GetBlobDesc().dims;                                                   \
+        auto& output_grad_dims = output_grads[i]->GetBlobDesc().dims;                                                  \
         if (!DimsVectorUtils::Equal(output_dims[i], output_grad_dims)) {                                               \
             LOGE("GradOp::OnGrad %s vs %s: , dims not match\n", fw_outputs[i]->GetBlobDesc().description().c_str(), \
                  output_grads[i]->GetBlobDesc().description().c_str());                                                \
@@ -101,7 +105,6 @@ public:
         fw_resources = resource->GetTrainable();                                                                       \
     }                                                                                                                  \
     std::vector<Blob *> resource_grads(outputs.begin() + I, outputs.begin() + I + R);                                  \
-    const std::vector<bool> &acc_resource_grads = grad_info.accumulate_resource_grad;                                  \
     std::vector<DimsVector> resource_dims;                                                                             \
     for (int i = 0; i < R; ++i) {                                                                                      \
         resource_dims.push_back(resource_grads[i]->GetBlobDesc().dims);                                                \
@@ -134,17 +137,51 @@ public:
         LOGE("GradOp::OnGrad, trainable size error\n");                                                             \
         return Status(TNNERR_TRAIN_ERROR, "trainable size error");                                                     \
     }                                                                                                                  \
-    if (grad_info.accumulate_input_grad.size() != (I)) {                                                               \
-        LOGE("GradOp::OnGrad, accumulate_input_grad size error\n");                                                 \
-        return Status(TNNERR_TRAIN_ERROR, "accumulate_input_grad size error");                                         \
-    }                                                                                                                  \
-    if (grad_info.accumulate_resource_grad.size() != resource_need_train) {                                            \
-        LOGE("GradOp::OnGrad, accumulate_resource_grad size error\n");                                              \
-        return Status(TNNERR_TRAIN_ERROR, "accumulate_resource_grad size error");                                      \
-    }                                                                                                                  \
     PREPARE_INPUT_AND_GRAD((I));                                                                                       \
     PREPARE_OUTPUT_AND_GRAD((I), (O));                                                                                 \
     PREPARE_RESOURCE_AND_GRAD((I), resource_need_train);
+
+#define ON_GRAD_PREPARATION()                                                                                          \
+    auto forward_base = grad_param->forward_layer;                                                                     \
+    CHECK_PARAM_NULL(forward_base);                                                                                    \
+                                                                                                                       \
+    std::vector<Blob *> &fw_inputs = forward_base->GetInputBlobs(); /* x */                                            \
+    int I                          = fw_inputs.size();                                                                 \
+    std::vector<Blob *> input_grads(outputs.begin(), outputs.begin() + I); /* dL/dx 求导目标 */                         \
+                                                                                                                       \
+    std::vector<Blob *> &fw_outputs = forward_base->GetOutputBlobs(); /* y */                                          \
+    int O                           = fw_outputs.size();                                                               \
+    std::vector<Blob *> output_grads(inputs.begin() + I + O, inputs.begin() + I + O * 2); /* dL/dy */                  \
+                                                                                                                       \
+    int R = grad_param->need_train ? resource->GetTrainable().size() : 0; /* w */                                      \
+    std::vector<RawBuffer *> fw_resources;                                                                             \
+    if (R > 0) {                                                                                                       \
+        fw_resources = resource->GetTrainable();                                                                       \
+    };                                                                                                                 \
+    std::vector<Blob *> resource_grads(outputs.begin() + I, outputs.begin() + I + R); /* dL/dw 求导目标 */              \
+                                                                                                                       \
+    /* 做一些检查：x和dL/dx的维度必须相同， y和dL/dy的维度必须相同， w和dL/dw的维度必须相同 */                                    \
+    for (int i = 0; i < I; ++i) {                                                                                      \
+        if (!DimsVectorUtils::Equal(fw_inputs[i]->GetBlobDesc().dims, input_grads[i]->GetBlobDesc().dims)) {           \
+            LOGE("GradOp::OnGrad %s vs %s: input dim not match\n", fw_inputs[i]->GetBlobDesc().description().c_str(),  \
+                 input_grads[i]->GetBlobDesc().description().c_str());                                                 \
+            return Status(TNNERR_LAYER_ERR, "GradOp::OnGrad input and input_grad dims not match");                     \
+        }                                                                                                              \
+    }                                                                                                                  \
+    for (int i = 0; i < O; ++i) {                                                                                      \
+        if (!DimsVectorUtils::Equal(fw_outputs[i]->GetBlobDesc().dims, output_grads[i]->GetBlobDesc().dims)) {         \
+            LOGE("GradOp::OnGrad %s vs %s: output dim not match\n", fw_outputs[i]->GetBlobDesc().description().c_str(),\
+                 output_grads[i]->GetBlobDesc().description().c_str());                                                \
+            return Status(TNNERR_LAYER_ERR, "GradOp::OnGrad output and output_grad dims not match");                   \
+        }                                                                                                              \
+    }                                                                                                                  \
+    for (int i = 0; i < R; ++i) {                                                                                      \
+        if (!DimsVectorUtils::Equal(fw_resources[i]->GetBufferDims(), resource_grads[i]->GetBlobDesc().dims)) {        \
+            LOGE("GradOp::OnGrad %s vs %s: , resource dim not match\n", fw_resources[i]->ToString().c_str(),           \
+                 resource_grads[i]->GetBlobDesc().description().c_str());                                              \
+            return Status(TNNERR_LAYER_ERR, "GradOp::OnGrad resource and resource_grad data count not match");         \
+        }                                                                                                              \
+    }
 
 }  // namespace TNN_NS
 

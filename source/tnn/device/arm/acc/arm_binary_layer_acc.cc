@@ -141,53 +141,7 @@ Status ArmBinaryLayerAcc::Init(Context *context, LayerParam *param, LayerResourc
         RETURN_ON_NEQ(allocateBufferParamHalf(inputs, outputs), TNN_OK);
     }
 #endif
-
-    auto layer_param = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
-    CHECK_PARAM_NULL(layer_param);
-    auto layer_res = dynamic_cast<EltwiseLayerResource *>(resource_);
-
-    // prepare input shapes
-    input_shapes_.clear();
-    input_shapes_.reserve(4);
-    auto output      = outputs[0];
-    auto output_dims = output->GetBlobDesc().dims;
-
-    if (broadcast_.GetBytesSize() > 0) {
-        DimsVector input_shape0 = inputs[0]->GetBlobDesc().dims;
-        if (layer_param->weight_input_index == 0) {
-            // bias as another input
-            input_shapes_.push_back(layer_res->element_shape);
-            input_shapes_.push_back(input_shape0);
-        } else {
-            input_shapes_.push_back(input_shape0);
-            input_shapes_.push_back(layer_res->element_shape);
-        }
-    } else {
-        if (inputs.size() == 1) {
-            input_shapes_.push_back(inputs[0]->GetBlobDesc().dims);
-            input_shapes_.push_back(inputs[0]->GetBlobDesc().dims);
-        } else {
-            for (size_t inid = 0; inid < inputs.size(); inid++) {
-                input_shapes_.push_back(inputs[inid]->GetBlobDesc().dims);
-            }
-        }
-    }
-
-    btype_ = BroadcastTypeUnknown;
-    // check broadcast type is general or other optimized ncxhwx types
-    // if type is general, go to nchw general impl
-    DimsVector input_pad_shape;
-    input_pad_shape.resize(output_dims.size());
-    for (int i = 0; i < input_shapes_.size(); i++) {
-        int pad_size = output_dims.size() - input_shapes_[i].size();
-        PadShape(pad_size, output_dims.size(), input_pad_shape, input_shapes_[i]);
-        BroadCastTypeFilter(output_dims, input_pad_shape, btype_);
-        if (btype_ == BroadcastTypeGeneral) {
-            break;
-        }
-    }
-
-    return TNN_OK;
+    return Reshape(inputs, outputs);
 }
 
 // if reshape, reset input_shapes and broadcast type

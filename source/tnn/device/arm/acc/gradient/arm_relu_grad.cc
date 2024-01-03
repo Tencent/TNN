@@ -18,16 +18,15 @@ namespace TNN_NS {
 
 // y = relu(x)
 // dy/dx = x > 0 ? 1 : 0
-typedef struct arm_relu_grad_function : arm_unary_grad_function {
-    virtual float operator()(const float &i, const float &o, const float &og) {
+class ArmReluGradOp : public ArmUnaryGradOp {
+private:
+    virtual float cal_grad(const float &i, const float &o, const float &og) override {
         return (i > 0.0 ? og : 0.0);
     }
-    virtual Float4 operator()(const Float4 &i, const Float4 &o, const Float4 &og) {
+    virtual Float4 cal_grad(const Float4 &i, const Float4 &o, const Float4 &og) override {
         return Float4::bsl_cgt(i, Float4(0.0), og, Float4(0.0));
     }
-} ARM_RELU_GRAD_FUNC;
-
-DEFINE_ARM_UNARY_GRAD_OP(Relu, ARM_RELU_GRAD_FUNC)
+};
 
 REGISTER_ARM_GRAD_OP(Relu, LAYER_RELU)
 REGISTER_ARM_GRAD_LAYOUT(LAYER_RELU, DATA_FORMAT_NC4HW4)

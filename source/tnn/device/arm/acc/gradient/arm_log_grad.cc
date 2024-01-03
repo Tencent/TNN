@@ -18,16 +18,15 @@ namespace TNN_NS {
 
 // y = log(x)
 // dy/dx = 1/x
-typedef struct arm_log_grad_function : arm_unary_grad_function {
-    virtual float operator()(const float &i, const float &o, const float &og) {
+class ArmLogGradOp : public ArmUnaryGradOp {
+private:
+    virtual float cal_grad(const float &i, const float &o, const float &og) override {
         return og / i;
     }
-    virtual Float4 operator()(const Float4 &i, const Float4 &o, const Float4 &og) {
+    virtual Float4 cal_grad(const Float4 &i, const Float4 &o, const Float4 &og) override {
         return Float4::div(og, i);
     }
-} ARM_LOG_GRAD_FUNC;
-
-DEFINE_ARM_UNARY_GRAD_OP(Log, ARM_LOG_GRAD_FUNC)
+};
 
 REGISTER_ARM_GRAD_OP(Log, LAYER_LOG)
 REGISTER_ARM_GRAD_LAYOUT(LAYER_LOG, DATA_FORMAT_NC4HW4)

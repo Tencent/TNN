@@ -25,7 +25,7 @@ dtype binary_op(const dtype &a, const dtype &b, float alpha = 0, float beta = 0)
     return a;
 }
 
-void PadShape(const int pad_size, const int dim_size, DimsVector &pad_shape, DimsVector in_shape);
+void PadShape(const int pad_size, const int dim_size, DimsVector &pad_shape, const DimsVector& in_shape);
 
 void BroadCastTypeFilter(const DimsVector &dims_output, const DimsVector &dims_input, BroadcastType &type);
 

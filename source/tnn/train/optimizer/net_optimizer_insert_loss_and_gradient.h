@@ -48,6 +48,7 @@ namespace optimizer {
 
         Status InsertGradientUpdateLayer(NetStructure* net_structure);
         std::shared_ptr<LayerInfo> CreateSolver(const std::string& name);
+        bool LayerNameExist(const std::vector<std::shared_ptr<LayerInfo>>& layers, const std::string& name);
 
         TrainConfig train_config;
 

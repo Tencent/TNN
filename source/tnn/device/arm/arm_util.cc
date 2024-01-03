@@ -671,10 +671,11 @@ int PackFloatBlob(float *dst, float *src, const DimsVector &dims) {
 }
 
 int UnpackFloatBlob(float *dst, float *src, size_t batch, size_t channel, size_t hw) {
+    int round_channel = ROUND_UP(channel, 4);
     OMP_PARALLEL_FOR_
     for (int n = 0; n < batch; ++n) {
         auto dst_ptr_n = dst + n * channel * hw;
-        auto src_ptr_n = src + n * ROUND_UP(channel, 4) * hw;
+        auto src_ptr_n = src + n * round_channel * hw;
         UnpackC4(dst_ptr_n, src_ptr_n, hw, channel);
     }
     return 0;

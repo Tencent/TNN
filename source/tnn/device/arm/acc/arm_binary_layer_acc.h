@@ -60,6 +60,10 @@ public:
 
     virtual Status RefreshBuffers(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) override;
 
+    RawBuffer &GetResource() { return broadcast_;}
+    std::vector<void *> &GetInputPtrs() { return input_ptrs_;}
+    std::vector<DimsVector> &GetInputShapes() { return input_shapes_;}
+
 protected:
     virtual bool DataTypeSupported(DataType data_type) override;
     virtual Status ConfigBuffer2ArmBlobDesc(BlobDesc &desc) override;

@@ -22,19 +22,14 @@ namespace TNN_NS {
 
 std::string BlobDesc::description(bool all_message) {
     std::ostringstream os;
-    //name
     os << "name: " <<name;
-
-    //data type
-    os << " data type: " << data_type;
-
-    //shape
+    os << " data_type: " << data_type;
+    os << " data_format: " << data_format;
     os << " shape: [ " ;
     for (auto iter : dims) {
         os << iter << " " ;
     }
     os << "]";
-
     return os.str();
 }
 

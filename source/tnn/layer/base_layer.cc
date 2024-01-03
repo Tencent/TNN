@@ -234,13 +234,17 @@ std::string BaseLayer::GetLayerName() {
 }
 
 //@brief get all input blobs
-std::vector<Blob*> BaseLayer::GetInputBlobs() {
+std::vector<Blob*> &BaseLayer::GetInputBlobs() {
     return input_blobs_;
 }
 
 //@brief get all input blobs
-std::vector<Blob*> BaseLayer::GetOutputBlobs() {
+std::vector<Blob*> &BaseLayer::GetOutputBlobs() {
     return output_blobs_;
+}
+
+AbstractLayerAcc* BaseLayer::GetAbstractLayerAcc() {
+    return layer_acc_;
 }
 
 Status BaseLayer::InferShapeAhead(std::vector<Blob*>& input_blobs, std::vector<Blob*>& output_blobs, LayerParam* param,
