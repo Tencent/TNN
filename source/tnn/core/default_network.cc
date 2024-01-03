@@ -349,7 +349,7 @@ Status DefaultNetwork::InitLayers(NetStructure *net_structure, NetResource *net_
 
 #if TNN_TRAIN
         if (layer_info->type == LayerType::LAYER_GRADIENT) {
-            auto &forward_layer_name = net_structure->backward_forward[layer_info->name];
+            auto &forward_layer_name = net_structure->back2forward[layer_info->name];
             auto it_forward_layer = layer_map.find(forward_layer_name);
             if (it_forward_layer == layer_map.end() || layer_info->param == nullptr) {
                 return Status(TNNERR_TRAIN_ERROR, "backward layer[" + layer_info->name + "] miss its forward layer");

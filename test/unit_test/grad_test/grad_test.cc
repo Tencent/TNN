@@ -6,6 +6,8 @@ Status GradTest::DoLayerGradTest(std::map<std::string, std::shared_ptr<Mat>>& re
                                  const std::vector<Input>& layer_inputs, const std::string& layer_output,
                                  std::shared_ptr<LayerParam> layer_param, std::shared_ptr<LayerResource> layer_resource,
                                  const std::set<std::string>& net_outputs) {
+    std::vector<Layer> layers = CreateGradTestLayers(layer_type, layer_inputs, {layer_output}, layer_param, layer_resource);
+
     // 将输入拆分为Mat输入和const常量输入
     std::map<std::string, std::shared_ptr<Mat>> mat_inputs;
     std::map<std::string, std::shared_ptr<RawBuffer>> net_consts;
@@ -17,9 +19,12 @@ Status GradTest::DoLayerGradTest(std::map<std::string, std::shared_ptr<Mat>>& re
         }
     }
 
-    auto instance = InitLayerGradTestNetwork(layer_type, layer_inputs, {layer_output}, layer_param, net_outputs,
-                                             layer_resource, net_consts);
+    const std::vector<Input>& net_inputs = layer_inputs;
 
+    // 常量在创建Instance的时候就传递进去
+    auto instance =  CreateInstance(GetNetworkConfig(), net_inputs, net_outputs, layers, net_consts);
+
+    // 普通输入通过SetInputMat设置
     Status ret = TNN_OK;
     MatConvertParam convert_param;
     for (const auto& [input_name, input_mat] : mat_inputs) {
@@ -43,11 +48,10 @@ Status GradTest::DoLayerGradTest(std::map<std::string, std::shared_ptr<Mat>>& re
 // 创建一个Layer的后向测试网络：包含两个layer，一个是要测试的layer，一个是ReduceMean用来产生一个标量作为loss
 // 1) 学习率：0.1
 // 2) Loss使用ReduceMean产生，则要测试的Layer的 dL/dy = 1 / count(y.dims)
-std::shared_ptr<Instance> GradTest::InitLayerGradTestNetwork(
+std::vector<Layer> GradTest::CreateGradTestLayers(
     const std::string& layer_type, const std::vector<Input>& layer_inputs,
     const std::vector<std::string>& layer_outputs, std::shared_ptr<LayerParam> layer_param,
-    const std::set<std::string>& net_outputs, std::shared_ptr<LayerResource> layer_resource,
-    const std::map<std::string, std::shared_ptr<RawBuffer>>& consts) {
+    std::shared_ptr<LayerResource> layer_resource) {
     std::vector<Layer> layers(2);
 
     // 添加要测试的layer：这个算子的输入就是整个网络的输入
@@ -75,7 +79,7 @@ std::shared_ptr<Instance> GradTest::InitLayerGradTestNetwork(
     reduce_layer_param->all_reduce = 1;
     loss_layer.info.param          = reduce_layer_param;
 
-    return CreateInstance(GetNetworkConfig(), layer_inputs, net_outputs, layers, consts);
+    return layers;
 }
 
 NetworkConfig GradTest::GetNetworkConfig() {

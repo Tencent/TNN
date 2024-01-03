@@ -253,7 +253,8 @@ namespace optimizer {
                     }
                 }
 
-                net_structure->backward_forward[grad_layer->name] = forward_layer->name;
+                net_structure->grad_blobs.insert(grad_layer->outputs.begin(), grad_layer->outputs.end());
+                net_structure->back2forward[grad_layer->name] = forward_layer->name;
                 net_structure->layers.push_back(grad_layer);
             }
         }

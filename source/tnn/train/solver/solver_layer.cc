@@ -40,40 +40,6 @@ Status SolverLayer::Init(Context* context, LayerParam* param, LayerResource* res
     return TNN_OK;
 }
 
-Status SolverLayer::ZeroGrad() {
-    if (input_blobs_.size() < 1) {
-        LOGE("SolverLayer::ZeroGrad, ERROR, input size error, should contain global step init value\n");
-        return Status(TNNERR_TRAIN_ERROR, "input size error");
-    }
-
-    for (size_t i = 0; i < input_blobs_.size() - 1; ++i) {
-        Blob *grad = input_blobs_[i];
-        CHECK_PARAM_NULL(grad);
-
-        const BlobDesc &grad_desc = grad->GetBlobDesc();
-
-        if (grad_desc.data_type != DATA_TYPE_FLOAT) {
-            LOGE("grad data_type only support DATA_TYPE_FLOAT\n");
-            return Status(TNNERR_LAYER_ERR, "grad data_type only support DATA_TYPE_FLOAT");
-        }
-
-        int grad_bytes = 0;
-        if (grad_desc.data_format == DATA_FORMAT_NC4HW4) {
-            grad_bytes = DimsFunctionUtils::GetNCHWXPackedCount(grad_desc.dims, 4) * sizeof(float);
-        } else if (grad_desc.data_format == DATA_FORMAT_NCHW) {
-            grad_bytes = DimsVectorUtils::Count(grad_desc.dims) * sizeof(float);
-        } else {
-            LOGE("data_type or data_format not supported\n");
-            return Status(TNNERR_LAYER_ERR, "data_type or data_format not supported");
-        }
-        void *grad_ptr = grad->GetHandle().force_to<void *>();
-        if (grad_ptr != nullptr) {
-            bzero(grad_ptr, grad_bytes);
-        }
-    }
-    return TNN_OK;
-}
-
 Status SolverLayer::SetTrainableResources(std::vector<RawBuffer*> trainable) {
     training_info_.solver_info.trainable_resources = trainable;
 

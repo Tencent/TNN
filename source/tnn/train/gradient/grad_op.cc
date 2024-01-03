@@ -38,18 +38,4 @@ std::map<std::pair<DeviceType, LayerType>, GradOpCreator> &GradOp::GetGradOpCrea
     return grad_op_creator_map;
 }
 
-// struct GradComputeConext {
-//     std::vector<Blob *> fw_inputs;          
-//     std::vector<Blob *> fw_outputs;
-//     std::vector<RawBuffer *> train_resource;
-
-//     std::vector<Blob *> input_grads;
-//     std::vector<Blob *> output_grads;
-//     std::vector<Blob *> train_resource_grads;
-
-//     std::vector<DimsVector> fw_input_dims;
-//     std::vector<DimsVector> fw_output_dims;
-//     std::vector<DimsVector> train_resource_dims;
-// };
-
 }  // namespace TNN_NS

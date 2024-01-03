@@ -16,6 +16,7 @@
 
 #include "tnn/train/gradient/gradient_layer.h"
 #include "tnn/train/solver/solver_layer.h"
+#include "tnn/utils/dims_function_utils.h"
 
 namespace TNN_NS {
 
@@ -85,12 +86,32 @@ Status DefaultTrainNetwork::TrainStep() {
 }
 
 Status DefaultTrainNetwork::ZeroGrad() {
-    auto solver_layer = dynamic_cast<SolverLayer *>(layers_.back());
-    if (!solver_layer) {
-        LOGE("DefaultTrainNetwork::SetSolverLayerRuntimeInfo ERROR, solver_layer is empty\n");
-        return Status(TNNERR_TRAIN_ERROR, "solver_layer is empty");
+    for (const auto& grad_name : net_structure_->grad_blobs) {
+        Blob *grad = blob_manager_->GetBlob(grad_name);
+        CHECK_PARAM_NULL(grad);
+
+        const BlobDesc &grad_desc = grad->GetBlobDesc();
+
+        if (grad_desc.data_type != DATA_TYPE_FLOAT) {
+            LOGE("grad data_type only support DATA_TYPE_FLOAT\n");
+            return Status(TNNERR_LAYER_ERR, "grad data_type only support DATA_TYPE_FLOAT");
+        }
+
+        int grad_bytes = 0;
+        if (grad_desc.data_format == DATA_FORMAT_NC4HW4) {
+            grad_bytes = DimsFunctionUtils::GetNCHWXPackedCount(grad_desc.dims, 4) * sizeof(float);
+        } else if (grad_desc.data_format == DATA_FORMAT_NCHW) {
+            grad_bytes = DimsVectorUtils::Count(grad_desc.dims) * sizeof(float);
+        } else {
+            LOGE("data_type or data_format not supported\n");
+            return Status(TNNERR_LAYER_ERR, "data_type or data_format not supported");
+        }
+        void *grad_ptr = grad->GetHandle().force_to<void *>();
+        if (grad_ptr != nullptr) {
+            bzero(grad_ptr, grad_bytes);
+        }
     }
-    return solver_layer->ZeroGrad();
+    return TNN_OK;
 }
 
 Status DefaultTrainNetwork::GetTrainingFeedback(TrainingFeedback &feed_back) {

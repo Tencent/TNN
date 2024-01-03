@@ -18,11 +18,10 @@ private:
     // 创建一个Layer的后向测试网络：包含两个layer，一个是要测试的layer，一个是ReduceMean用来产生一个标量作为loss
     // 1) 学习率：0.1
     // 2) Loss使用ReduceMean产生，则要测试的Layer的 dL/dy = 1 / count(y.dims)
-    std::shared_ptr<Instance> InitLayerGradTestNetwork(
+    std::vector<Layer> CreateGradTestLayers(
         const std::string& layer_type, const std::vector<Input>& layer_inputs,
         const std::vector<std::string>& layer_outputs, std::shared_ptr<LayerParam> layer_param,
-        const std::set<std::string>& net_outputs, std::shared_ptr<LayerResource> layer_resource = nullptr,
-        const std::map<std::string, std::shared_ptr<RawBuffer>>& consts = {});
+        std::shared_ptr<LayerResource> layer_resource);
 };
 
 }  // namespace TNN_NS

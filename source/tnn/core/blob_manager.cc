@@ -201,7 +201,7 @@ Status BlobManager::AllocateBlobMemory(int flag) {
                 // find an available BlobMemory
                 bool use_new_memory = false;
 #if TNN_TRAIN
-                // for train mode, ZeroGrad will reset all grads to 0 at the TrainStep() beginning, use_count does not work
+                // for train mode, ZeroGrad will reset all grads as 0 at the TrainStep() beginning, use_count does not work
                 if (config_.train_config.run_mode == TRAIN_MODE_TRAIN) {
                     use_new_memory = true;
                 }
