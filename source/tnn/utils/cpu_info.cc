@@ -14,7 +14,7 @@
 
 #include "cpu_info.h"
 
-#if defined(__ANDROID__) || defined(__linux__)
+#if defined(__ANDROID__) || defined(__OHOS__) || defined(__linux__)
 
 #include <alloca.h>
 #include <fcntl.h>
@@ -657,4 +657,4 @@ struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset(const struct cpuin
     return chipset;
 }
 
-#endif  // __ANDROID__ || __linux__
+#endif  // __ANDROID__ || __OHOS__ || __linux__

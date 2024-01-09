@@ -25,7 +25,7 @@
 // Do not remove following statement.
 // windows.h replace LoadLibrary with LoadLibraryA, which cause compiling issue of TNN.
 #undef LoadLibrary
-#elif defined __ANDROID__
+#elif defined(__ANDROID__) || defined(__OHOS__)
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/file.h>
@@ -47,7 +47,7 @@ typedef struct shared_mutex_struct {
     // Pointer to the pthread mutex and share memory segment.
 #if defined _WIN32 
     HANDLE ptr;
-#elif defined __ANDROID__
+#elif defined(__ANDROID__) || defined(__OHOS__)
     struct flock* ptr;
 #else
     pthread_mutex_t * ptr;

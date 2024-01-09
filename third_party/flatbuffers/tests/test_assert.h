@@ -6,7 +6,7 @@
 
 // clang-format off
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(__OHOS__)
   #include <android/log.h>
   #define TEST_OUTPUT_LINE(...) \
       __android_log_print(ANDROID_LOG_INFO, "FlatBuffers", __VA_ARGS__)

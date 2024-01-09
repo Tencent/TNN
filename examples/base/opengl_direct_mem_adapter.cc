@@ -185,7 +185,7 @@ Status OpenGLDirectMemAdapter::CreateGlEnv() {
     if (!wglMakeCurrent(hdc_, hglrc_)) {
         return Status(TNNERR_COMMON_ERROR, "active gl rendering context failed");
     }
-#elif defined(__ANDROID__)
+#elif defined(__ANDROID__) || defined(__OHOS__)
     // EGL config attributes
     const EGLint confAttr[] = {
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
@@ -301,7 +301,7 @@ void OpenGLDirectMemAdapter::DestroyGlEnv() {
         // delete the rendering context
         wglDeleteContext(hglrc_);
     }
-#elif defined(__ANDROID__)
+#elif defined(__ANDROID__) || defined(__OHOS__)
     if (egl_display_ != EGL_NO_DISPLAY) {
         eglMakeCurrent(egl_display_, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         eglDestroyContext(egl_display_, egl_context_);
@@ -339,7 +339,7 @@ cl_mem OpenGLDirectMemAdapter::AcquireCLMem() {
         }
         cl_image_2d_ = cl_mem_;
     } else if (sharing_type_ == EGL_SHARING && mem_flags_ == CL_MEM_READ_ONLY) {
-#ifndef __ANDROID__
+#if !defined(__ANDROID__) && !defined(___OHOS__)
         LOGE("Acquire cl mem got unsupported sharing type/mem flag, sharing type: %d, mem_flag: %d\n", sharing_type_, mem_flags_);
 #else
         // EGL_SHARING have some problem in HUAWEI when mem flag is WRITE ONLY
@@ -384,7 +384,7 @@ void OpenGLDirectMemAdapter::ReleaseCLMem() {
             return;
         }
     } else if (sharing_type_ == EGL_SHARING && mem_flags_ == CL_MEM_READ_ONLY) {
-#ifdef __ANDROID__
+ #if defined(__ANDROID__) || defined(__OHOS__)
         cl_mem cl_objects[] = {cl_mem_};
         cl_error = clEnqueueReleaseEGLObjectsKHR(command_queue_, 1, cl_objects, 0, NULL, NULL);
         if (cl_error != CL_SUCCESS) {
@@ -592,7 +592,7 @@ Status OpenGLDirectMemAdapter::InitWithGLTex(GLuint tex, size_t width, size_t he
         }
 
         LOGI("opengl adapter sharing_type_: %d\n", sharing_type_);
-#ifdef __ANDROID__
+ #if defined(__ANDROID__) || defined(__OHOS__)
         egl_display_ = eglGetCurrentDisplay();
         egl_context_ = eglGetCurrentContext();
 #endif
@@ -612,7 +612,7 @@ OpenGLDirectMemAdapter::OpenGLDirectMemAdapter() {
 
 void OpenGLDirectMemAdapter::CleanUp() {
     if (sharing_type_ == EGL_SHARING && mem_flags_ == CL_MEM_READ_ONLY) {
-#ifdef __ANDROID__
+ #if defined(__ANDROID__) || defined(__OHOS__)
         if (egl_image_ != EGL_NO_IMAGE_KHR) {
             eglDestroyImageKHR(egl_display_, egl_image_);
             egl_image_ = EGL_NO_IMAGE_KHR;
@@ -684,7 +684,7 @@ bool OpenGLDirectMemAdapter::CheckShareContextSupport() {
 #ifdef _WIN32
             cl_context_properties context_prop[] = {CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
                                                     CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(), 0};
-#elif defined(__ANDROID__)
+#elif defined(__ANDROID__) || defined(__OHOS__)
             cl_context_properties context_prop[] = {CL_GL_CONTEXT_KHR, (cl_context_properties)eglGetCurrentContext(),
                                                     CL_EGL_DISPLAY_KHR, (cl_context_properties)eglGetCurrentDisplay(), 0};
 #endif

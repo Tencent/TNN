@@ -226,7 +226,7 @@
 #include <string>
 #endif 
 
-#if defined(__ANDROID__) || defined(linux) || defined(__APPLE__) || defined(__MACOSX)
+#if defined(__ANDROID__) || defined(__OHOS__) || defined(linux) || defined(__APPLE__) || defined(__MACOSX)
 #include <alloca.h>
 #endif // linux
 

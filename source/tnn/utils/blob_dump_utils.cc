@@ -30,11 +30,11 @@ namespace TNN_NS {
 #pragma warning(disable : 4996)
 
 #if (DUMP_INPUT_BLOB || DUMP_OUTPUT_BLOB)
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(__OHOS__)
 std::string g_tnn_dump_directory = "/storage/emulated/0/";
 #else
 std::string g_tnn_dump_directory = "./";
-#endif //__ANDROID__
+#endif //__ANDROID__ || __OHOS__
 #endif
 
 // #define DUMP_RAW_INT8
