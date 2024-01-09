@@ -31,7 +31,7 @@ static const std::vector<std::string> g_opencl_library_paths = {
 //default opencl library path
 #if defined(__APPLE__) || defined(__MACOSX)
     "libOpenCL.so", "/System/Library/Frameworks/OpenCL.framework/OpenCL"
-#elif defined(__ANDROID__)
+#elif defined(__ANDROID__) || defined(__OHOS__)
     "libOpenCL.so",
     "libGLES_mali.so",
     "libmali.so",

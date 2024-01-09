@@ -15,7 +15,7 @@
 #ifndef TNN_SOURCE_TNN_UTILS_CPU_INFO_H_
 #define TNN_SOURCE_TNN_UTILS_CPU_INFO_H_
 
-#if defined(__ANDROID__) || defined(__linux__)
+#if defined(__ANDROID__) || defined(__OHOS__) || defined(__linux__)
 
 #include <stdint.h>
 
@@ -70,11 +70,11 @@ struct cpuinfo_arm_linux_processor {
 };
 
 bool cpuinfo_arm_linux_parse_proc_cpuinfo(char *hardware, struct cpuinfo_arm_linux_processor *processor);
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(__OHOS__)
 void cpuinfo_arm_android_parse_properties(struct cpuinfo_android_properties *properties);
 #endif
 struct cpuinfo_arm_chipset cpuinfo_arm_android_decode_chipset(const struct cpuinfo_android_properties *properties);
 
-#endif  // __ANDROID__ || __linux__
+#endif  // __ANDROID__ || __OHOS__ || __linux__
 
 #endif  // TNN_SOURCE_TNN_UTILS_CPU_INFO_H_

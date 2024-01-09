@@ -83,6 +83,34 @@
 #define __TNN_FILE__ __FILE__
 #endif
 
+#if defined(__OHOS__)
+#ifndef __TNNHarmonyLogger__
+#define __TNNHarmonyLogger__
+#include <string>
+class TNNHarmonyLogger {
+private:
+    static std::string replaceAll(std::string& str, const std::string& from, const std::string& to) {
+        size_t startPos = 0;
+        while ((startPos = str.find(from, startPos)) != std::string::npos) {
+            str.replace(startPos, from.length(), to);
+            startPos += to.length();
+        }
+        return str;
+    }
+
+public:
+    /**
+     * 鸿蒙的字符串格式化必须指定隐私参数标识, 例如常见的格式化字符串 %s 要变成 %{public}s 见
+     * https://developer.harmonyos.com/cn/docs/documentation/doc-references-V3/_hi_log-0000001447130392-V3#ZH-CN_TOPIC_0000001574088465__oh_log_print
+     */
+    static std::string makeFormatForHarmonyOS(char* fmt) {
+        std::string originFmt(fmt);
+        return replaceAll(originFmt, "%", "%{public}");
+    }
+};
+#endif
+#endif
+
 // Log
 #ifdef __ANDROID__
 #include <android/log.h>

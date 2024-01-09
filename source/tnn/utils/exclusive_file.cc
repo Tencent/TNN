@@ -116,7 +116,7 @@ static void create_file(const char * fname) {
     }
 }
 
-#elif defined(__ANDROID__) // Android
+#elif defined(__ANDROID__) || defined(__OHOS__)
 
 shared_mutex_t shared_mutex_init(const char* iname) {
     shared_mutex_t mutex = {NULL, 0, NULL, 1};

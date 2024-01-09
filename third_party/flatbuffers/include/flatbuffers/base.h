@@ -54,7 +54,7 @@
   #define FLATBUFFERS_CPP98_STL
 #endif
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(__OHOS__)
   #include <android/api-level.h>
 #endif
 

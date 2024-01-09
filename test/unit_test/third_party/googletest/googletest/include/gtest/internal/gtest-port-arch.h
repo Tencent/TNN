@@ -81,7 +81,7 @@
 # define GTEST_OS_GNU_KFREEBSD 1
 #elif defined __linux__
 # define GTEST_OS_LINUX 1
-# if defined __ANDROID__
+# if defined(__ANDROID__) || defined(__OHOS__)
 #  define GTEST_OS_LINUX_ANDROID 1
 # endif
 #elif defined __MVS__

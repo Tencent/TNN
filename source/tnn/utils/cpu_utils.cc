@@ -22,13 +22,13 @@
 #include <omp.h>
 #endif
 
-#if defined(__ANDROID__) || defined(__linux__)
+#if defined(__ANDROID__) || defined(__OHOS__) || defined(__linux__)
 #include <stdint.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 #endif
 
-#if defined(__ANDROID__) || defined(__linux__)
+#if defined(__ANDROID__) || defined(__OHOS__) || defined(__linux__)
 #ifdef __aarch64__
 #include <sys/auxv.h>
 #endif
@@ -96,7 +96,7 @@
 
 namespace TNN_NS {
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(__OHOS__)
 static int GetMaxFreqOfCpu(int cpuid) {
     // first try, for all possible cpu
     char path[256];
@@ -239,10 +239,10 @@ static int SortCpuidByMaxFrequency(std::vector<int>& cpuids, int* little_cluster
 
     return 0;
 }
-#endif  // __ANDROID__
+#endif  // __ANDROID__ || __OHOS__
 
 static int SetSchedAffinity(const std::vector<int>& cpuids) {
-#if defined(__ANDROID__) || defined(__linux__)
+#if defined(__ANDROID__) || defined(__OHOS__) || defined(__linux__)
     // cpu_set_t definition
     // ref
     // http://stackoverflow.com/questions/16319725/android-set-thread-affinity
@@ -282,7 +282,7 @@ static int SetSchedAffinity(const std::vector<int>& cpuids) {
 }
 
 Status CpuUtils::SetCpuPowersave(int powersave) {
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(__OHOS__)
     static std::vector<int> sorted_cpuids;
     static int little_cluster_offset = 0;
     static int cpucount              = GetCpuCount();
@@ -347,7 +347,7 @@ Status CpuUtils::SetCpuPowersave(int powersave) {
 }
 
 Status CpuUtils::SetCpuAffinity(const std::vector<int>& cpu_list) {
-#if defined(__ANDROID__) || defined(__linux__)
+#if defined(__ANDROID__) || defined(__OHOS__) || defined(__linux__)
     if (0 != SetSchedAffinity(cpu_list)) {
         return TNNERR_SET_CPU_AFFINITY;
     }
@@ -387,7 +387,7 @@ bool CpuUtils::CpuSupportFp16() {
 #endif
 
 // ANDROID
-#elif defined(__ANDROID__)
+#elif defined(__ANDROID__) || defined(__OHOS__)
     cpuinfo_android_properties cpu_prop;
     cpuinfo_arm_linux_processor processor;
     cpuinfo_arm_linux_parse_proc_cpuinfo(cpu_prop.proc_cpuinfo_hardware, &processor);
@@ -488,7 +488,7 @@ bool CpuUtils::CpuSupportInt8Dot() {
 #endif
 
 // ANDROID
-#elif defined(__ANDROID__)
+#elif defined(__ANDROID__) || defined(__OHOS__)
     // hwcap & HWCAP_ASIMDDP (1 << 20) may also work, need more test
     // unsigned int hwcap = getauxval(AT_HWCAP);
     // int8dot = hwcap & (1 << 20);

@@ -310,7 +310,7 @@ namespace test {
         config.precision = ConvertPrecision(FLAGS_pr);
 
         config.enable_tune_kernel = FLAGS_et;
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) || defined(__OHOS__)
         config.cache_path = "/data/local/tmp/";
 #else
         config.cache_path = "";
