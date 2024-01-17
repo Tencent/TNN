@@ -388,6 +388,7 @@ bool CpuUtils::CpuSupportFp16() {
 
 // ANDROID
 #elif defined(__ANDROID__) || defined(__OHOS__)
+#ifndef __OHOS__
     cpuinfo_android_properties cpu_prop;
     cpuinfo_arm_linux_processor processor;
     cpuinfo_arm_linux_parse_proc_cpuinfo(cpu_prop.proc_cpuinfo_hardware, &processor);
@@ -399,6 +400,7 @@ bool CpuUtils::CpuSupportFp16() {
         LOGD("Big cores of Exynos 9810 do not support FP16 compute, fp16arith = 0.\n");
         return false;
     }
+#endif
 #ifdef __aarch64__
     unsigned int hwcap = getauxval(AT_HWCAP);
     fp16arith          = hwcap & HWCAP_FPHP && hwcap & HWCAP_ASIMDHP;
@@ -489,9 +491,12 @@ bool CpuUtils::CpuSupportInt8Dot() {
 
 // ANDROID
 #elif defined(__ANDROID__) || defined(__OHOS__)
+#ifdef __OHOS__
     // hwcap & HWCAP_ASIMDDP (1 << 20) may also work, need more test
-    // unsigned int hwcap = getauxval(AT_HWCAP);
-    // int8dot = hwcap & (1 << 20);
+    unsigned int hwcap = getauxval(AT_HWCAP);
+    int8dot = hwcap & (1 << 20);
+    return int8dot;
+#else
 
     cpuinfo_android_properties cpu_prop;
     cpuinfo_arm_linux_processor processor;
@@ -533,6 +538,7 @@ bool CpuUtils::CpuSupportInt8Dot() {
 
     LOGD("CpuUtils::CpuSupportInt8Dot, ANDROID, midr = %x, int8dot = %d.\n", processor.midr, int8dot);
     return int8dot;
+#endif
 
 // OSX
 #elif defined(__OSX__)

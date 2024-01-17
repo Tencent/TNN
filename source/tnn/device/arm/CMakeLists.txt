@@ -13,15 +13,6 @@ endif()
 
 add_library(TNNArm OBJECT ${ARM_SRC} ${ARM_SRC_ASM})
 
-if (${OHOS_ARCH} STREQUAL "armeabi-v7a")
-    target_compile_options(
-            TNNArm
-            PUBLIC
-            -mfloat-abi=softfp
-            -mfpu=neon
-            )
-endif ()
-
 #if(SYSTEM.Android)
 #    target_link_libraries(TNNArm log)
 #endif()

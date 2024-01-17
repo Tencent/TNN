@@ -262,11 +262,11 @@ Status constructGraph(const SSAGraph &ssa, Graph * graph, GraphRegistry * regist
             reportError(msg, node.source);
         }
         if (node.inputs.size() != g->inputs().size()) {
-            ERRORV("GraphFunction input size got %lu, expected: %lu.", msg, node.inputs.size(), g->inputs().size());
+            ERRORV("GraphFunction input size got %d, expected: %d.", msg, int(node.inputs.size()), int(g->inputs().size()));
             reportError(msg, node.source);
         }
         if (node.outputs.size() != g->outputs().size()) {
-            ERRORV("GraphFunction output size got %lu, expected: %lu.", msg, node.outputs.size(), g->outputs().size());
+            ERRORV("GraphFunction output size got %d, expected: %d.", msg, int(node.outputs.size()), int(g->outputs().size()));
             reportError(msg, node.source);
         }
 

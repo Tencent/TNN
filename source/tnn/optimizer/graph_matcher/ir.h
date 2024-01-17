@@ -110,12 +110,12 @@ namespace TNN_NS {
         Node * input(size_t id) {
             auto e = input_edges[id];
             if (!e) {
-                ERRORV("node %s's input_edegs[%lu] is nullptr", msg, name().c_str(), id);
+                ERRORV("node %s's input_edegs[%d] is nullptr", msg, name().c_str(), int(id));
                 throw std::runtime_error(msg);
             }
             auto n = e->src;
             if (!n) {
-                ERRORV("node %s's input_edegs[%lu]->src is nullptr", msg, name().c_str(), id);
+                ERRORV("node %s's input_edegs[%d]->src is nullptr", msg, name().c_str(), int(id));
                 throw std::runtime_error(msg);
             }
             return n;

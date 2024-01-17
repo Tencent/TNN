@@ -26,7 +26,7 @@ namespace TNN_NS {
     
 Status validateSetAndVector(std::set<std::string> input_set, std::vector<std::string> input_vec) {
     if (input_set.size() != input_vec.size()) {
-        ERRORV("set and vector size not match: %lu != %lu", msg, input_set.size(), input_vec.size());
+        ERRORV("set and vector size not match: %d != %d", msg, int(input_set.size()), int(input_vec.size()));
         return Status(TNNERR_COMMON_ERROR, msg);
     }
     for(auto name : input_vec) {

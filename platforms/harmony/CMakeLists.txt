@@ -1,0 +1,25 @@
+if(PROCESSOR.arm)
+    add_definitions(-mfloat-abi=softfp -mfpu=neon)
+endif()
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie -fPIE -s")
+
+# target_link_libraries(TNN log -fopenmp)
+
+if(NOT TNN_BUILD_SHARED)
+    string(ASCII 27 Esc)
+    set(ColourReset "${Esc}[m")
+    set(Red         "${Esc}[31m")
+    message(STATUS "${Red}[WARNING] TNN is built as a static library, link it with option -Wl,--whole-archive tnn -Wl,--no-whole-archive${ColourReset}")
+endif()
+
+if(TNN_OPENCL_ENABLE)
+    message(STATUS "Build TNN OpenCL")
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/opencl/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/device/opencl)
+endif()
+
+if(TNN_HUAWEI_NPU_ENABLE)
+    message(STATUS "Build TNN NPU")
+    target_link_libraries(TNN hiai hiai_ir hiai_ir_build)
+    include_directories(${PROJECT_SOURCE_DIR}/source/tnn/device/huawei_npu)
+endif()

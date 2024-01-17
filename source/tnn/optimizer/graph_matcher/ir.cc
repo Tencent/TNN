@@ -567,8 +567,8 @@ namespace TNN_NS {
                 }
             }
             if (n->output_edges.size() != total) {
-                ERRORV("number of output edges [%lu] not match tensor_usage:[%lu] for node[%s].", \
-                        msg, n->output_edges.size(), total, n->name().c_str());
+                ERRORV("number of output edges [%d] not match tensor_usage:[%d] for node[%s].", \
+                        msg, int(n->output_edges.size()), int(total), n->name().c_str());
                 return Status(TNNERR_COMMON_ERROR, msg);
             }
         }
@@ -684,7 +684,7 @@ namespace TNN_NS {
             return Status(TNNERR_COMMON_ERROR, msg);
         }
         if (names_set.size() != outputs().size()) {
-            ERRORV("In setOutputsOrder, number of tensors not match, %lu != %lu", msg, names_set.size(), outputs().size());
+            ERRORV("In setOutputsOrder, number of tensors not match, %d != %d", msg, int(names_set.size()), int(outputs().size()));
             return Status(TNNERR_COMMON_ERROR, msg);
         }
 
@@ -708,13 +708,13 @@ namespace TNN_NS {
 
             auto groups = clustering(matches);
 
-            INFO("matched subgraphs:%lu groups:%lu", matches.size(), groups.size());
+            INFO("matched subgraphs:%d groups:%d", int(matches.size()), int(groups.size()));
 
             for(auto &group : groups) {
                 if (group.size() != 1) {
                     // currently, only restricted mode is supported. 
                     // which means the pattern should not has multiple isomorphic matches.
-                    WARN("a group of %lu matched SubGraphs are ignored because those subgraphs share some common nodes.", group.size());
+                    WARN("a group of %d matched SubGraphs are ignored because those subgraphs share some common nodes.", int(group.size()));
                     continue;
                 }
                 auto &origin_graph = group[0];
@@ -725,13 +725,13 @@ namespace TNN_NS {
                 if (heir_graph) {
 
                     if (heir_graph->inputs().size() != origin_graph->inputs().size()) {
-                        WARN("Warning: Skiped one replacement. heir_graph and origin graph num inputs not match, %lu != %lu", 
-                                    heir_graph->inputs().size(),  origin_graph->inputs().size());
+                        WARN("Warning: Skiped one replacement. heir_graph and origin graph num inputs not match, %d != %d", 
+                                    int(heir_graph->inputs().size()),  int(origin_graph->inputs().size()));
                         continue;
                     }
                     if (heir_graph->outputs().size() != origin_graph->outputs().size()) {
-                        WARN("Warning: Skiped one replacement. heir_graph and origin graph num outputs not match, %lu != %lu", 
-                                    heir_graph->outputs().size(),  origin_graph->outputs().size());
+                        WARN("Warning: Skiped one replacement. heir_graph and origin graph num outputs not match, %d != %d", 
+                                    int(heir_graph->outputs().size()),  int(origin_graph->outputs().size()));
                         continue;
                     }
                     if (heir_graph->reBuildTensorIndex() != TNN_OK) {

@@ -194,7 +194,7 @@ Status ArmGridSampleLayerAcc::DoForward(const std::vector<Blob *> &inputs, const
     auto input_dims = input_blob->GetBlobDesc().dims;
     auto grid_dims  = grid_blob->GetBlobDesc().dims;
     if (!(input_dims.size() == 4 && param->mode == 2 && param->pad_type == 0 && param->align_corners == 0)) {
-        LOGE("Error: Arm layer acc don't support GridSample input size(%lu) or param:(%d, %d, %d)\n", input_dims.size(),
+        LOGE("Error: Arm layer acc don't support GridSample input size(%d) or param:(%d, %d, %d)\n", int(input_dims.size()),
              param->mode, param->pad_type, param->align_corners);
         return Status(TNNERR_MODEL_ERR, "Error: Arm layer acc don't support.\n");
     }

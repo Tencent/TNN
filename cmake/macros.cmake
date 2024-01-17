@@ -13,6 +13,8 @@ endif (UNIX)
 
 if(CMAKE_SYSTEM_NAME MATCHES "^Android")
   set(SYSTEM.Android 1)
+elseif(CMAKE_SYSTEM_NAME MATCHES "^OHOS")
+  set(SYSTEM.Harmony 1)
 elseif(CMAKE_SYSTEM_NAME MATCHES "^Linux")
   set(SYSTEM.Linux 1)
 elseif(CMAKE_SYSTEM_NAME MATCHES "^Darwin")

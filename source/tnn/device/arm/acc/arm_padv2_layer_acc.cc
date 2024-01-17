@@ -33,7 +33,7 @@ Status ArmPadV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     auto output_dims = output_blob->GetBlobDesc().dims;
     PadUtils::PadContext pad_context;
     if (input_dims.size() < 2 || input_dims.size() > 5) {
-        LOGE("Error: ArmPadV2LayerAcc layer acc does not support input dims size %lu\n", input_dims.size());
+        LOGE("Error: ArmPadV2LayerAcc layer acc does not support input dims size %d\n", int(input_dims.size()));
         return Status(TNNERR_MODEL_ERR, "Error: ArmPadV2LayerAcc layer acc does not support;");
     }
     pad_context.input_batch  = input_dims[0];
@@ -63,7 +63,7 @@ Status ArmPadV2LayerAcc::DoForward(const std::vector<Blob *> &inputs, const std:
     }
     const auto pads = layer_param->pads;
     if (pads.size() < 2 || pads.size() > 10) {
-        LOGE("Error: ArmPadV2LayerAcc layer acc does not support pas size %lu\n", pads.size());
+        LOGE("Error: ArmPadV2LayerAcc layer acc does not support pas size %d\n", int(pads.size()));
         return Status(TNNERR_MODEL_ERR, "Error: ArmPadV2LayerAcc layer acc does not support");
     }
     switch (pads.size()) {
