@@ -22,8 +22,13 @@ Status RangeLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start_in
     auto layer_param = CreateLayerParam<RangeLayerParam>(param);
     int index = start_index;
 
-    if (index+7>layer_cfg_arr.size()) {
-        LOGE("Range TNN Interpreter: Range requires at least 7 layer param.");
+    if (index >= layer_cfg_arr.size()) {
+        // To support OLD TNN Proto, with no param.
+        return TNN_OK;
+    }
+
+    if (index + 7 > layer_cfg_arr.size()) {
+        LOGE("Range TNN Interpreter: Range support 0 or at least 7 layer param.");
         return Status(TNNERR_PARAM_ERR, "RangeLayerInterpreter param is invalid");
     }
 
