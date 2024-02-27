@@ -45,6 +45,7 @@ nvinfer1::DataType RoiAlignTRTPluginLayerBuilder::getOutputDataType(int index, c
 }
 
 ILayer* RoiAlignTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
+#if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 84
     auto layer_param = dynamic_cast<RoiAlignLayerParam*>(param_);
     if (!layer_param) {
         LOGE("RoiAlignTRTPluginLayerBuilder: Unable to get layer param.");
@@ -86,6 +87,9 @@ ILayer* RoiAlignTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network)
     }
 
     return layer;
+#else
+    return TensorRTPluginLayerBuilder::AddToNetwork(network);
+#endif
 }
 
 DimsExprs RoiAlignTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
