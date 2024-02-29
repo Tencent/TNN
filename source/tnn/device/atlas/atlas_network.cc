@@ -154,6 +154,16 @@ Status AtlasNetwork::GetAllOutputBlobs(BlobMap &blobs) {
     blobs = output_blob_map_;
     return TNN_OK;
 }
+    
+// @brief get atlas model id of current network
+uint32_t AtlasNetwork::GetModelId() const {
+    return this->model_id_;
+}
+    
+// @brief get atlas model desc of current network 
+aclmdlDesc* AtlasNetwork::GetModelDesc() const {
+    return this->model_desc_;
+}
 
 Status AtlasNetwork::Reshape(const InputShapesMap &inputs) {
     aclError ret = aclrtSetCurrentContext(context_);
@@ -275,6 +285,12 @@ Status AtlasNetwork::Forward() {
     if (ret != ACL_ERROR_NONE) {
         LOGE("set context & synchronize stream failed\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set context & synchronized failed");
+    }
+
+    ret = aclrtSynchronizeStream(stream_);
+    if (ret != ACL_ERROR_NONE) {
+        LOGE("before forward synchronize stream failed\n");
+        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "before forward synchronize stream failed");
     }
 
     ret = aclmdlExecute(model_id_, input_, output_);
@@ -619,7 +635,7 @@ Status AtlasNetwork::AddBlobToMap(const InputShapesMap &max_input_shapes_map, si
                 LOGE("get batch size failed\n");
                 return Status(TNNERR_ATLAS_RUNTIME_ERROR, "get batch size failed");
             }
-            output_dim0_map_[blob_name] = (int)acl_dims.dims[0] / max_batch;
+            output_dim0_map_[blob_name] = std::max(1, (int)acl_dims.dims[0] / max_batch);
         }
         // get data type
         data_type = aclmdlGetOutputDataType(model_desc_, index);

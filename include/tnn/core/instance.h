@@ -94,6 +94,10 @@ public:
     std::shared_ptr<AbstractModelInterpreter> GetInterpreter();
 #endif  // end of GET_INTERP_ENABLE
 
+#ifdef GET_NETWORK_ENABLE 
+    AbstractNetwork *GetNetwork();
+#endif
+
     // tnn instance network infer async.
     // device gpu, all layer infer complete will call Callback.
     Status ForwardAsync(Callback call_back);
@@ -122,8 +126,10 @@ private:
     NetworkConfig net_config_;
     ModelConfig model_config_;
     
+#ifndef GET_NETWORK_ENABLE 
     AbstractNetwork *GetNetwork();
-    
+#endif
+
     //Mat interface for simple use
 public:
     // set input Mat, if input_name is not set, take the first input as default

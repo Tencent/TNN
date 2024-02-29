@@ -3,6 +3,7 @@
 #ifndef TNN_SOURCE_DEVICE_ATLAS_TNN_IMPL_ATLAS_H_
 #define TNN_SOURCE_DEVICE_ATLAS_TNN_IMPL_ATLAS_H_
 
+#include "acl/acl.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/tnn_impl.h"
 
@@ -68,6 +69,12 @@ public:
 
 private:
     std::shared_ptr<AbstractModelInterpreter> interpreter_;
+
+    // Model Desc and Model id for the first instance.
+    // Set when the first Effective CreateInst is called.
+    // Usage: Get input/output names, shapes, datatypes ... etc.
+    uint32_t model_id_of_the_first_instance_ = 0;
+    aclmdlDesc* model_desc_of_the_first_instance_ = nullptr;
 };
 
 }  // namespace TNN_NS

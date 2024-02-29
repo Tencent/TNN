@@ -72,6 +72,12 @@ public:
     // @param blobs output blobs name map
     virtual Status GetAllOutputBlobs(BlobMap &blobs);
 
+    // @brief get atlas model id of current network
+    uint32_t GetModelId() const;
+    
+    // @brief get atlas model desc of current network
+    aclmdlDesc* GetModelDesc() const;
+
 private:
     // @brief load model from om file
     Status LoadModelFromFile(const std::string &om_file);
