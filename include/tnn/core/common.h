@@ -99,6 +99,7 @@ typedef enum {
     NETWORK_TYPE_SNPE       = 0x3000,
     NETWORK_TYPE_HIAI       = 0x4000,
     NETWORK_TYPE_ATLAS      = 0x5000,
+    NETWORK_TYPE_TORCHAIE   = 0x5001,
     NETWORK_TYPE_HUAWEI_NPU = 0x6000,
     NETWORK_TYPE_RK_NPU     = 0x7000,
     NETWORK_TYPE_TENSORRT   = 0x8000,
@@ -152,6 +153,7 @@ typedef enum {
     MODEL_TYPE_SNPE            = 0x3000,
     MODEL_TYPE_HIAI            = 0x4000,
     MODEL_TYPE_ATLAS           = 0x5000,
+    MODEL_TYPE_TORCHAIE        = 0x5001,
     MODEL_TYPE_RKCACHE         = 0x6000,
     MODEL_TYPE_TORCHSCRIPT     = 0x7000,
     MODEL_TYPE_TORCHSCRIPT_BIN = 0x7001,
@@ -208,6 +210,7 @@ struct PUBLIC ModelConfig {
     // snpe model need one param: dlc model dir.
     // hiai model need two params: order is model name, model_file_path.
     // atlas model need one param: config string.
+    // torchaie model need one param: model_file_path.
     std::vector<std::string> params = {};
 
     // params can also add extra config for specific layer

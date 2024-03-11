@@ -132,9 +132,9 @@ namespace test {
 
                 std::string model_name = FLAGS_mp;
                 if(FLAGS_mp.find_last_of("/") != -1) {
-                    model_name = FLAGS_mp.substr(FLAGS_mp.find_last_of("/") + 1); 
-                }   
-    
+                    model_name = FLAGS_mp.substr(FLAGS_mp.find_last_of("/") + 1);
+                }
+
                 Timer timer(model_name + " - " + FLAGS_dt);
 
                 for (int i = 0; i < FLAGS_ic; ++i) {
@@ -335,7 +335,7 @@ namespace test {
                 p2 = input_data_type_str.find(delimiter, p1);
                 std::string input_name = input_data_type_str.substr(p1, p2-p1);
                 p1 = p2 + 1;
-                
+
                 delimiter = ";";
                 p2 = input_data_type_str.find(delimiter, p1);
                 input_data_type[input_name] = static_cast<DataType>(std::stoi(input_data_type_str.substr(p1, p2-p1)));
@@ -391,9 +391,11 @@ namespace test {
                 config.params.push_back("");
                 return config;
             }
+        } else if (config.model_type == MODEL_TYPE_TORCHAIE) {
+		config.params.push_back(FLAGS_mp);
         } else if (config.model_type == MODEL_TYPE_TORCHSCRIPT) {
             config.params.push_back(std::string(FLAGS_mp));
-        } else if (config.model_type == MODEL_TYPE_TORCHSCRIPT_BIN) {
+	} else if (config.model_type == MODEL_TYPE_TORCHSCRIPT_BIN) {
             // config.params.push_back(std::string(FLAGS_mp));
             std::ifstream model_stream(FLAGS_mp, std::ios::binary);
             std::stringstream model_content;
@@ -571,7 +573,7 @@ namespace test {
                     } else if (mat_type == NC_INT32) {
                         input_stream >> reinterpret_cast<int32_t*>(mat_data)[i];
                     } else if (mat_type == NC_INT64) {
-                        input_stream >> reinterpret_cast<int64_t*>(mat_data)[i];                                         
+                        input_stream >> reinterpret_cast<int64_t*>(mat_data)[i];
                     } else if (mat_type == NCHW_HALF) {
                         float val;
                         input_stream >> val;
@@ -685,7 +687,7 @@ namespace test {
 	std::string thread_id = thread_id_stream.str();
         std::string output_file_name;
 	if(FLAGS_tt > 1) {
-            output_file_name = FLAGS_op + thread_id; 
+            output_file_name = FLAGS_op + thread_id;
 	} else {
 	    output_file_name = FLAGS_op;
 	}

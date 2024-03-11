@@ -39,7 +39,7 @@ if(TNN_OPENVINO_ENABLE)
 
     set_target_properties(openvino PROPERTIES IMPORTED_LOCATION $ENV{OPENVINO_ROOT_DIR}/runtime/lib/intel64/${LIB_PFX}openvino${LIB_EXT})
     set_target_properties(tbb PROPERTIES IMPORTED_LOCATION $ENV{OPENVINO_ROOT_DIR}/runtime/3rdparty/tbb/lib/libtbb.so)
- 
+
     target_link_libraries(TNN openvino tbb)
 endif()
 
@@ -68,6 +68,11 @@ endif()
 
 if(TNN_ATLAS_ENABLE)
     target_link_libraries(TNN ascendcl acl_dvpp)
+    if (TNN_TORCHAIE_ENABLE)
+        find_package(Torch REQUIRED)
+	find_package(TorchVision REQUIRED)
+	target_link_libraries(TNN ${TORCH_LIBRARIES} torch_cpu torch_aie TorchVision::TorchVision)
+    endif()
     if(LINUX_TEST_ENABLE)
         add_executable(AtlasTest ${COMMON_SRC} ${CMAKE_SOURCE_DIR}/platforms/linux/src/test_atlas.cc)
         target_link_libraries(AtlasTest TNN)

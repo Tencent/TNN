@@ -11,6 +11,10 @@ namespace TNN_NS {
 
 TNNImplFactoryRegister<TNNImplFactory<TNNImplAtlas>> g_tnn_impl_atlas_factory_register(MODEL_TYPE_ATLAS);
 
+#if defined(TNN_TORCHAIE_ENABLE)
+TNNImplFactoryRegister<TNNImplFactory<TNNImplAtlas>> g_tnn_impl_torchaie_factory_register(MODEL_TYPE_TORCHAIE);
+#endif
+
 TNNImplAtlas::TNNImplAtlas() {}
 
 TNNImplAtlas::~TNNImplAtlas() {}

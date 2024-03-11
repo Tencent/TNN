@@ -65,6 +65,8 @@ ModelType ConvertModelType(std::string model_type) {
         return MODEL_TYPE_RKCACHE;
     } else if ("ATLAS" == model_type) {
         return MODEL_TYPE_ATLAS;
+    } else if ("TAIE" == model_type) {
+        return MODEL_TYPE_TORCHAIE;
     } else if ("TS" == model_type) {
         return MODEL_TYPE_TORCHSCRIPT;
     } else if ("TSB" == model_type) {
@@ -91,6 +93,8 @@ NetworkType ConvertNetworkType(std::string network_type) {
         return NETWORK_TYPE_TENSORRT;
     } else if ("ATLAS" == network_type) {
         return NETWORK_TYPE_ATLAS;
+    } else if ("TAIE" == network_type) {
+	return NETWORK_TYPE_TORCHAIE;
     } else if ("TORCH" == network_type) {
         return NETWORK_TYPE_TNNTORCH;
     } else if ("ZIXIAO" == network_type) {

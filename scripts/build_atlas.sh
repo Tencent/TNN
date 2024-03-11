@@ -2,6 +2,10 @@
 
 DEBUG=0
 TARGET_ARCH=aarch64
+TORCHAIE="ON"
+
+export LIBTORCH_ROOT_DIR=/usr/local/python3.9.2/lib/python3.9/site-packages/torch
+export TORCHAIE_ROOT_DIR=/usr/local/Ascend/torch_aie/latest
 
 if [ -z $TNN_ROOT_PATH ]
 then
@@ -35,7 +39,9 @@ cmake ${TNN_ROOT_PATH} \
       -DTNN_X86_ENABLE:BOOL="OFF"  \
       -DTNN_BUILD_SHARED:BOOL="ON" \
       -DCMAKE_SYSTEM_PROCESSOR=$TARGET_ARCH \
-      -DTNN_ATLAS_ENABLE:BOOL="ON"
+      -DTNN_ATLAS_ENABLE:BOOL="ON" \
+      -DTNN_GLIBCXX_USE_CXX11_ABI_ENABLE=OFF \
+      -DTNN_TORCHAIE_ENABLE:BOOL=$TORCHAIE
 
 echo "Building TNN on ATLAS ..."
 make -j $(nproc)

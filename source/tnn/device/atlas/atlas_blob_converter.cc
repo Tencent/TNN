@@ -601,7 +601,9 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
     return TNN_OK;
 }
 
+#if !defined(TNN_TORCHAIE_ENABLE)
 DECLARE_BLOB_CONVERTER_CREATER(Atlas);
 REGISTER_BLOB_CONVERTER(Atlas, DEVICE_ATLAS);
+#endif
 
 }  // namespace TNN_NS
