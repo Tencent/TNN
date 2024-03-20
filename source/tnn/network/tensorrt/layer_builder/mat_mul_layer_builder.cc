@@ -134,6 +134,8 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
     //         Calling Plugin CUBLAS GEMM may hurt performace, so we put a very strict prerequisite.
     //         Ideally, Batched-GEMM plugin should only be called by Models with Transformer Kernels.
     // Update: Disable custom plugin for case 2 above for Myelin optimization to speed-up network.
+    // Update: Disable all plugin cases below, plugin should only be called via extra flag "ffn"
+    /*
     if (opA == MatrixOperation::kNONE && opB == MatrixOperation::kNONE &&
             input_tensors.size() == 2 &&
             input_tensors[0]->getDimensions().nbDims == input_tensors[1]->getDimensions().nbDims) {
@@ -151,6 +153,7 @@ ILayer* MatMulTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
             return TensorRTPluginLayerBuilder::AddToNetwork(network); 
         }
     }
+    */
     IMatrixMultiplyLayer* layer = network->addMatrixMultiply(*matrix_a, opA, *matrix_b, opB);
 
     if (layer != nullptr) {
