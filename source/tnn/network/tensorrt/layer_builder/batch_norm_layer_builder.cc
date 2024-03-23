@@ -75,6 +75,7 @@ ILayer* BatchNormTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(BatchNorm, LAYER_BATCH_NORM);
+REGISTER_TENSORRT_LAYER_BUILDER(BatchNorm, LAYER_BIAS_ADD);
 REGISTER_TENSORRT_LAYER_BUILDER(BatchNorm, LAYER_SCALE);
 
 }  //  namespace TNN_NS
