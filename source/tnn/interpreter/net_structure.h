@@ -64,6 +64,8 @@ struct NetStructure {
     InputDataTypeMap  input_data_type_map;
     std::set<std::string> outputs;
     std::vector<std::shared_ptr<LayerInfo>> layers;
+    std::vector<std::string> parsed_input_names_list;
+    std::vector<std::string> parsed_output_names_list;
     std::set<std::string> blobs;
     ModelType source_model_type = MODEL_TYPE_TNN;
 

@@ -16,12 +16,18 @@
 
 namespace TNN_NS {
 
-DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(SplitV, LAYER_SPLITV);
+DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER_WITH_FUNC(SplitV, LAYER_SPLITV,
+                                                void CheckInputShapeTensor(INetworkDefinition* network););
 
 bool SplitVTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
-    return ((inOut[pos].type == nvinfer1::DataType::kFLOAT) && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR
-        && inOut[pos].type == inOut[0].type);
+    if (pos == 0) {
+        return inOut[pos].type == nvinfer1::DataType::kFLOAT && inOut[pos].format == nvinfer1::TensorFormat::kLINEAR;
+    } else if (pos >= nbInputs) {
+        return inOut[pos].type == inOut[0].type && inOut[pos].format == inOut[0].format;
+    } else {
+        return true;
+    }
 }
 
 Status SplitVTRTPluginLayerBuilder::Reshape() {
@@ -41,17 +47,33 @@ ILayer* SplitVTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 
-DimsExprs SplitVTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,
-        int nbInputs, nvinfer1::IExprBuilder& exprBuilder) noexcept {
+DimsExprs SplitVTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputs,
+                                                           nvinfer1::IExprBuilder& exprBuilder) noexcept {
     auto param = dynamic_cast<SplitVLayerParam*>(param_);
     DimsExprs output(inputs[0]);
+    auto axis = param->axis >= 0 ? param->axis : (inputs[0].nbDims + param->axis);
     if (param->is_split_specified) {
-        output.d[param->axis] = exprBuilder.constant(param->slices[index]);
+        auto slices = std::set<int>(param->slices.begin(), param->slices.end());
+        if (slices.size() == 0 || (slices.size() == 1 && slices.count(0))) {
+            output.d[axis] = inputs[1].d[index];
+        } else {
+            output.d[axis] = exprBuilder.constant(param->slices[index]);
+        }
     } else {
-        output.d[param->axis] = exprBuilder.operation(DimensionOperation::kCEIL_DIV, *inputs[0].d[param->axis],
+        output.d[axis] = exprBuilder.operation(DimensionOperation::kCEIL_DIV, *inputs[0].d[axis],
                                                       *exprBuilder.constant(param->slices.size()));
     }
     return output;
+}
+
+void SplitVTRTPluginLayerBuilder::CheckInputShapeTensor(INetworkDefinition* network) {
+    auto param = dynamic_cast<SplitVLayerParam*>(param_);
+    if (param->is_split_specified) {
+        auto slices = std::set<int>(param->slices.begin(), param->slices.end());
+        if (slices.size() == 0 || (slices.size() == 1 && slices.count(0))) {
+            ReplaceInputShapeTensor(1, network);
+        }
+    }
 }
 
 const char* SplitVPluginCreator::getPluginName() const noexcept {
@@ -59,5 +81,6 @@ const char* SplitVPluginCreator::getPluginName() const noexcept {
 }
 
 REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(SplitV, LAYER_SPLITV);
+REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(SplitV, LAYER_SPLITTORCH);
 
 }  //  namespace TNN_NS

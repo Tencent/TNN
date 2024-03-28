@@ -29,7 +29,7 @@ Status TileLayerInterpreter::InterpretResource(Deserializer& deserializer, Layer
     return TNN_OK;
 }
 
-Status TileLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status TileLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, TileLayerParam, "invalid tile layer param to save", param);
     
     for (int i=0; i< layer_param->reps.size(); i++) {

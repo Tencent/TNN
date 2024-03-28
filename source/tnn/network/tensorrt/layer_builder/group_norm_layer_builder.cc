@@ -22,21 +22,21 @@ bool GroupNormTRTPluginLayerBuilder::supportsFormatCombination(
         int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs, int nbOutputs) noexcept {
     const auto &desc = inOut[pos];
     const auto common_cond = nbInputs == 3 && nbOutputs == 1;
-    switch (pos)
-    {
-    case 0:
-        return common_cond 
-            && (desc.type == nvinfer1::DataType::kFLOAT || desc.type == nvinfer1::DataType::kHALF)
-            && desc.format == nvinfer1::TensorFormat::kLINEAR && (pos == 0 || inOut[pos].type == inOut[0].type);
-    case 1:
-    case 2:
-        return common_cond && desc.type == nvinfer1::DataType::kFLOAT;
-    case 3:
-        return common_cond
-            && desc.type == inOut[0].type
-            && desc.format == nvinfer1::TensorFormat::kLINEAR;
-    default:
-        return false;
+    switch (pos) {
+        case 0: {
+            auto type_format_0 = (desc.type == nvinfer1::DataType::kFLOAT || desc.type == nvinfer1::DataType::kHALF) &&
+                                 desc.format == nvinfer1::TensorFormat::kLINEAR;
+            auto type_format_1 = desc.type == nvinfer1::DataType::kINT8 && desc.format == nvinfer1::TensorFormat::kCHW4;
+            auto type_format_2 = desc.type == nvinfer1::DataType::kINT8 && desc.format == nvinfer1::TensorFormat::kCHW32;
+            return common_cond && (type_format_0 || type_format_1 || type_format_2);
+        }
+        case 1:
+        case 2:
+            return common_cond && desc.type == nvinfer1::DataType::kFLOAT;
+        case 3:
+            return common_cond && desc.type == inOut[0].type && desc.format == inOut[0].format;
+        default:
+            return false;
     }
 }
 

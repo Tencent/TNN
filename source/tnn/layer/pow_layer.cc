@@ -13,13 +13,40 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/layer/elementwise_layer.h"
+#include <cmath>
 
 namespace TNN_NS {
 DECLARE_LAYER_WITH_FUNC(Pow, LAYER_POWER,
                         virtual Status FillLayerParamWithConstantResource(););
 
 Status PowLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    //return BaseLayer::InferOutputDataType();
+    auto status = BaseLayer::InferOutputDataType();
+    RETURN_ON_NEQ(status, TNN_OK);
+
+    // When type(input_0) is int,
+    // If exponenet is in the second input, output type will be set to FLOAT
+    // Else (exponent is in layer param, fixed),
+    // When exponent >= 0, and is X.0 (can convert to integer), output type is INT
+    // Otherwise, output type is FLOAT
+    if (input_blobs_[0]->GetBlobDesc().data_type==DATA_TYPE_INT8 ||
+        input_blobs_[0]->GetBlobDesc().data_type==DATA_TYPE_INT32 ||
+        input_blobs_[0]->GetBlobDesc().data_type==DATA_TYPE_INT64 ||
+        input_blobs_[0]->GetBlobDesc().data_type==DATA_TYPE_UINT32) {
+        if (input_blobs_.size() >= 2) {
+            output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
+        } else {
+            auto layer_param = dynamic_cast<PowLayerParam*>(param_);
+            CHECK_PARAM_NULL(layer_param);
+ 
+            float exp_fp32 = layer_param->exponent;
+            // Integers can be represented perfectly by Float, so we can use != here.
+            if (std::floor(exp_fp32)!=exp_fp32 || exp_fp32<0.0f) {
+                output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
+            }
+        }
+    }
+    return TNN_OK;
 }
 
 Status PowLayer::InferOutputShape(bool ignore_error) {

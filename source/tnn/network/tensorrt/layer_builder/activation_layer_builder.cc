@@ -26,7 +26,18 @@ ILayer* ActivationTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
-    bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetInt8Mode();
+    bool type_cast = false;
+    nvinfer1::DataType input_dtype = input_tensor->getType();
+    if (input_dtype == nvinfer1::DataType::kINT32) {
+        type_cast = true;
+        ILayer* cast_layer = network->addIdentity(*input_tensor);
+        if (cast_layer != nullptr) {
+            cast_layer->setName((layer_name_+"_input_to_float").c_str());
+            cast_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
+            input_tensor = cast_layer->getOutput(0);
+        }
+    }
+
 
     ILayer* last_layer;
     IActivationLayer* activation_layer = network->addActivation(*input_tensor, m_type);
@@ -45,11 +56,14 @@ ILayer* ActivationTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         last_layer = activation_layer;
     }
 
-    if (int8) {
-        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
-            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        return AddInt8OutputQDQLayers(network, last_layer->getOutput(0), output_foreign_tensor,
-            output_scale_value, 1 / output_scale_value);
+    if (type_cast) {
+        input_tensor = last_layer->getOutput(0);
+        ILayer* cast_layer = network->addIdentity(*input_tensor);
+        if (cast_layer != nullptr) {
+            cast_layer->setName((layer_name_+"_output_to_int32").c_str());
+            cast_layer->setOutputType(0, nvinfer1::DataType::kINT32);
+            last_layer = cast_layer;
+        }
     }
 
     return last_layer;

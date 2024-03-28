@@ -37,7 +37,7 @@ Status ReorgLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
     return TNN_OK;
 }
 
-Status ReorgLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ReorgLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     ReorgLayerParam* layer_param = dynamic_cast<ReorgLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

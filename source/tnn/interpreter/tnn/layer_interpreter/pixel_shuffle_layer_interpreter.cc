@@ -31,7 +31,7 @@ Status PixelShuffleLayerInterpreter::InterpretResource(Deserializer &deserialize
     return TNN_OK;
 }
 
-Status PixelShuffleLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status PixelShuffleLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     auto layer_param = dynamic_cast<PixelShuffleLayerParam *>(param);
     CHECK_PARAM_NULL(layer_param);
     output_stream << layer_param->upscale_factor << " ";

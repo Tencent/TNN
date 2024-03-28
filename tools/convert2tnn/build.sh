@@ -41,7 +41,7 @@ function build_model_check_and_tnn_converter_and_onnx2tnn() {
         -DTNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE:BOOL="ON" \
         -DTNN_BUILD_SHARED="OFF"
 
-    make -j4
+    make -j16
 
     if [ -f "model_check" ]; then
         cp model_check ../${BIN_DIR}/

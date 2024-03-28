@@ -29,7 +29,7 @@ Status BitShiftLayerInterpreter::InterpretResource(Deserializer &deserializer, L
     return TNN_OK;
 }
 
-Status BitShiftLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status BitShiftLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     auto layer_param = dynamic_cast<BitShiftLayerParam *>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

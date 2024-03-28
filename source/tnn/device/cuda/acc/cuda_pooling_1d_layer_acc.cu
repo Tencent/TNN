@@ -80,7 +80,7 @@ Status CudaPooling1DLayerAcc::Forward(const std::vector<Blob *> &inputs, const s
 
     float alpha = 1.f;
     float beta = 0.f;
-    auto status = cudnnPoolingForward(context_->cudnn_handle_, this->m_pooling_desc, &alpha, m_input_desc,
+    auto status = cudnnPoolingForward(context_->GetCudnnHandle(), this->m_pooling_desc, &alpha, m_input_desc,
         input_data, &beta, m_output_desc, output_data);
 
     if (status != CUDNN_STATUS_SUCCESS) {

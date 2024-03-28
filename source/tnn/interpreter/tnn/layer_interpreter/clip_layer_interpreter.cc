@@ -31,7 +31,7 @@ Status ClipLayerInterpreter::InterpretResource(Deserializer& deserializer, Layer
     return TNN_OK;
 }
 
-Status ClipLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ClipLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, ClipLayerParam, "invalid clip param to save", param);
     output_stream << layer_param->min << " " << layer_param->max << " ";
     return TNN_OK;

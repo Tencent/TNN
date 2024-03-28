@@ -37,6 +37,10 @@ public:
     // @brief add layer to tensorRT network
     virtual ILayer* AddToNetwork(INetworkDefinition* network) = 0;
 
+    // @brief check topo
+    virtual void CheckTopo(int id, std::vector<std::shared_ptr<LayerInfo>> &layers) {};
+    // @breif replace input of shape tensor with execution tensor if needed
+    virtual void CheckInputShapeTensor(INetworkDefinition* network) {};
 };
 
 //@brief TensorRTTypeLayerBuilderRegister register TypeLayerBuilderCreator

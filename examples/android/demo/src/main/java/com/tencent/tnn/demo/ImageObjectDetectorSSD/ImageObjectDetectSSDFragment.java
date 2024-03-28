@@ -44,6 +44,9 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
     private ToggleButton mHuaweiNPUswitch;
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
+    // add for qualcomm SNPE
+    private boolean mUseSNPE = false;
+
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -52,6 +55,9 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
+        if (mUseSNPE) {
+            System.loadLibrary("SNPE");
+        }
         String modelPath = initModel();
         NpuEnable = imageObjectDetectorSSD.checkNpu(modelPath);
     }
@@ -63,6 +69,7 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
         String[] modelPathsDetector = {
                 "mobilenetv2_ssd_tf_fix_box.tnnmodel",
                 "mobilenetv2_ssd_tf_fix_box.tnnproto",
+                "mobilenetv2_ssd_tf_fix_box.dlc",
         };
         for (int i = 0; i < modelPathsDetector.length; i++) {
             String modelFilePath = modelPathsDetector[i];
@@ -174,6 +181,8 @@ public class ImageObjectDetectSSDFragment extends BaseFragment {
         int device = 0;
         if (mUseHuaweiNpu) {
             device = 2;
+        } else if (mUseSNPE) {
+            device = 3;
         } else if(mUseGPU) {
             device = 1;
         }

@@ -44,7 +44,7 @@ ConstFolder::~ConstFolder() {
  * Those object is initialized in this function.
  */
 Status ConstFolder::Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+                         InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type, bool enable_const_folder) {
     config_ = net_config;
     config_.device_type = DEVICE_NAIVE;
     auto device         = GetDevice(DEVICE_NAIVE);
@@ -83,7 +83,7 @@ Status ConstFolder::Init(NetworkConfig &net_config, ModelConfig &model_config, A
         }
     }
 
-    auto ret =DefaultNetwork::Init(config_, model_config, interpreter, min_inputs_shape, max_inputs_shape);
+    auto ret =DefaultNetwork::Init(config_, model_config, interpreter, min_inputs_shape, max_inputs_shape, inputs_data_type);
     if(ret != TNN_OK) {
         return ret;
     }

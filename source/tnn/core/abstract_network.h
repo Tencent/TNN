@@ -34,11 +34,15 @@ public:
     // @brief virtual default destructor
     virtual ~AbstractNetwork() {}
 
+    // @brief init network wrapper, record min and max input shapes
+    Status InitWrapper(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
+        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type, bool enable_const_folder=true);
+
     // @brief init network with net cfg and net res.
     // @param net_cfg
     // @param net_res
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
-        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder=true) = 0;
+        InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type, bool enable_const_folder=true) = 0;
 
     // @brief deinit release init create resource
     virtual Status DeInit() = 0;
@@ -48,7 +52,7 @@ public:
     //  forward
     //  @return error code: If successful, returns zero. Otherwise, returns
     //  an error code.
-    virtual Status GetForwardMemorySize(int &memory_size) = 0;
+    virtual Status GetForwardMemorySize(size_t &memory_size) = 0;
 
     //  @brief: set memory used by the tnn instance without forward
     //  memory, the memory size must be at least that returned by
@@ -61,6 +65,8 @@ public:
     //
     virtual Status SetForwardMemory(void *memory) = 0;
 
+    Status ReshapeWrapper(const InputShapesMap &inputs);
+
     // @brief network infer
     virtual Status Reshape(const InputShapesMap &inputs) = 0;
 
@@ -68,8 +74,16 @@ public:
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void **command_queue) = 0;
 
+    // @brief set tnn command queue
+    // @param command_queue device command queue for forward
+    virtual Status SetCommandQueue(void *command_queue) = 0;
+
     // @brief share tnn command queue to another network。
     virtual Status ShareCommandQueue(AbstractNetwork *network);
+
+    // @brief share tnn network resource to another network
+    // @param network to share resource
+    virtual Status ShareNetResource(AbstractNetwork *network);
     
     // @brief network infer, it will sync to wait result
     virtual Status Forward() = 0;
@@ -98,6 +112,10 @@ public:
     virtual void StartProfile();
     virtual std::shared_ptr<ProfileResult> FinishProfile();
 #endif
+
+protected:
+    InputShapesMap min_inputs_shape_;
+    InputShapesMap max_inputs_shape_;
 };
 
 class AbstractNetworkImplFactory {

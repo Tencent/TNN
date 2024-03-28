@@ -131,6 +131,7 @@ void BlobMemoryPool::CalculateAllBlobMemorySize() {
     for (auto iter : blob_memory_library_) {
         BlobMemorySizeInfo info = iter->GetBlobMemorySizeInfo();
         all_blob_memory_size_ += GetBlobMemoryBytesSize(info);
+        LOGD("all_blob_memory_size_: %d \n", all_blob_memory_size_);
     }
 }
 

@@ -13,18 +13,18 @@ jobs:
     outputs:
       CONDITION: ${{ steps.preflight.outputs.CONDITION }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Preflight
       id: preflight
       run: |
-        echo ::set-output name=CONDITION::0
-        ./scripts/.ci/preflight.sh ios || ret=$? && echo $ret && echo ::set-output name=CONDITION::$ret
+        echo "CONDITION=0" >> $GITHUB_OUTPUT
+        ./scripts/.ci/preflight.sh ios || ret=$? && echo $ret && echo "CONDITION=$ret" >> $GITHUB_OUTPUT
 
   ios-iphone-os:
     needs: [setup]
     if: ${{ needs.setup.outputs.CONDITION != '11' }}
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: build
       run: ./scripts/build_framework_ios.sh

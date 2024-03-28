@@ -23,6 +23,7 @@ DECLARE_LAYER_INTERPRETER(RoiAlign, LAYER_ROIALIGN);
 Status RoiAlignLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int index, LayerParam** param) {
     auto p = CreateLayerParam<RoiAlignLayerParam>(param);
     GET_INT_1_OR_DEFAULT(p->mode, 1);
+    GET_INT_1_OR_DEFAULT(p->aligned, 0);
     GET_INT_3(p->output_height, p->output_width, p->sampling_ratio);
     GET_FLOAT_1(p->spatial_scale);
     return TNN_OK;
@@ -32,13 +33,14 @@ Status RoiAlignLayerInterpreter::InterpretResource(Deserializer& deserializer, L
     return TNN_OK;
 }
 
-Status RoiAlignLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status RoiAlignLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto* layer_param = dynamic_cast<RoiAlignLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");
         return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
     output_stream << layer_param->mode << " ";
+    output_stream << layer_param->aligned << " ";
     output_stream << layer_param->output_height << " ";
     output_stream << layer_param->output_width << " ";
     output_stream << layer_param->sampling_ratio << " ";

@@ -30,7 +30,7 @@ Status LSTMONNXLayerInterpreter::InterpretResource(Deserializer& deserializer, L
     return TNN_OK;
 }
 
-Status LSTMONNXLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status LSTMONNXLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<LSTMONNXLayerParam*>(param);
     if (layer_param == nullptr) {
         LOGE("invalid layer param to save\n");

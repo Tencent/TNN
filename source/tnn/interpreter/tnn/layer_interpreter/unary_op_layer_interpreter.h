@@ -31,7 +31,7 @@ public:
     virtual Status InterpretResource(Deserializer &deserializer, LayerResource **Resource) {
         return TNN_OK;
     }
-    virtual Status SaveProto(std::ofstream &output_stream, LayerParam *param) {
+    virtual Status SaveProto(std::ostream &output_stream, LayerParam *param) {
         return TNN_OK;
     }
     virtual Status SaveResource(Serializer &serializer, LayerParam *param, LayerResource *resource) {

@@ -20,7 +20,8 @@
 
 namespace TNN_NS {
 
-constexpr const char* PLUGIN_VERSION{"1"};
+#define TNN_PLUGIN_VERSION "1001"
+constexpr const char* PLUGIN_VERSION{TNN_PLUGIN_VERSION};
 
 // @brief TensorRTPluginLayer Builder, defines the tensorRT plugin layer builder interface
 class TensorRTPluginLayerBuilder : public TensorRTBaseLayerBuilder, public nvinfer1::IPluginV2DynamicExt {
@@ -74,11 +75,18 @@ public:
 
     nvinfer1::IPluginV2DynamicExt* CreatePlugin(const void* data, size_t length) noexcept;
 
+    virtual void CheckTopo(int id, std::vector<std::shared_ptr<LayerInfo>> &layers) {};
+    virtual void CheckInputShapeTensor(INetworkDefinition* network) {};
+
 protected:
     std::string m_plugin_namespace;
     nvinfer1::DataType m_type;
     TensorFormat m_format;
     Context* context_;
+    bool m_has_empty_tensor_input;
+    bool m_maybe_fallback;
+
+    void ReplaceInputShapeTensor(int index, INetworkDefinition* network);
 
 private:
     template<typename T>
@@ -104,69 +112,105 @@ public:
     }
 };
 
-#define DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                             \
-    class type_string##TRTPluginLayerBuilder : public TensorRTPluginLayerBuilder {                                 \
-    public:                                                                                                        \
-        type_string##TRTPluginLayerBuilder(LayerType layer_type) : TensorRTPluginLayerBuilder(layer_type) {}       \
-        virtual ~type_string##TRTPluginLayerBuilder() {}                                                           \
-        virtual bool supportsFormatCombination(int pos, const nvinfer1::PluginTensorDesc* inOut,                   \
-            int nbInputs, int nbOutputs) noexcept;                                                                 \
-        virtual DimsExprs getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputs,          \
-            nvinfer1::IExprBuilder& exprBuilder) noexcept;                                                         \
-        virtual const char* getPluginType() const noexcept;                                                        \
-        virtual nvinfer1::IPluginV2DynamicExt* clone() const noexcept {                                            \
-            auto* plugin = new type_string##TRTPluginLayerBuilder(*this);                                          \
-            plugin->setPluginNamespace(this->m_plugin_namespace.c_str());                                          \
-            return plugin;                                                                                         \
-        }                                                                                                          \
-        virtual nvinfer1::DataType getOutputDataType(int index, const nvinfer1::DataType* inputTypes,              \
-            int nbInputs) const noexcept;                                                                          \
-        virtual ILayer* AddToNetwork(INetworkDefinition* network) noexcept;                                        \
-        virtual Status Reshape();                                                                                  \
-    };                                                                                                             \
-    class type_string##PluginCreator : public nvinfer1::IPluginCreator {                                           \
-    public:                                                                                                        \
-        type_string##PluginCreator() {                                                                             \
-            m_fc.nbFields = 0;                                                                                     \
-            m_fc.fields = nullptr;                                                                                 \
-        }                                                                                                          \
-        virtual const char* getPluginName() const noexcept;                                                        \
-        virtual const char* getPluginVersion() const noexcept { return PLUGIN_VERSION; }                           \
-        virtual const nvinfer1::PluginFieldCollection* getFieldNames() noexcept { return &m_fc; }                  \
-        virtual const char* getPluginNamespace() const noexcept { return m_plugin_namespace.c_str(); }             \
-        virtual void setPluginNamespace(const char* libNamespace) noexcept { m_plugin_namespace = libNamespace; }  \
-        virtual nvinfer1::IPluginV2DynamicExt* createPlugin(const char* name,                                      \
-                const nvinfer1::PluginFieldCollection* fc) noexcept {                                              \
-            std::unordered_map<std::string, TensorRTPluginLayerBuilder*> layer_map =                               \
-                TensorRTNetwork_::GetPluginLayerNameMap();                                                         \
-            TensorRTPluginLayerBuilder* layer = layer_map[name];                                                   \
-            auto plugin = layer->CreatePlugin();                                                                   \
-            plugin->setPluginNamespace(m_plugin_namespace.c_str());                                                \
-            return plugin;                                                                                         \
-        }                                                                                                          \
-        virtual nvinfer1::IPluginV2DynamicExt* deserializePlugin(const char* name,                                 \
-                const void* serialData, size_t serialLength) noexcept {                                            \
-            std::unordered_map<std::string, TensorRTPluginLayerBuilder*> layer_map =                               \
-                TensorRTNetwork_::GetPluginLayerNameMap();                                                         \
-            TensorRTPluginLayerBuilder* layer = layer_map[name];                                                   \
-            IPluginV2DynamicExt* plugin;                                                                           \
-            if (serialLength == 0) {                                                                               \
-                plugin = layer->CreatePlugin();                                                                    \
-            } else {                                                                                               \
-                plugin = layer->CreatePlugin(serialData, serialLength);                                            \
-            }                                                                                                      \
-            plugin->setPluginNamespace(m_plugin_namespace.c_str());                                                \
-            auto new_plugin = plugin->clone();                                                                     \
-            return new_plugin;                                                                                     \
-        }                                                                                                          \
-    private:                                                                                                       \
-        nvinfer1::PluginFieldCollection m_fc;                                                                      \
-        std::string m_plugin_namespace;                                                                            \
-    };                                                                                                             \
+#define DECLARE_TENSORRT_PLUGIN(type_string)                                                                           \
+    class type_string##PluginCreator : public nvinfer1::IPluginCreator {                                               \
+    public:                                                                                                            \
+        type_string##PluginCreator() {                                                                                 \
+            m_fc.nbFields = 0;                                                                                         \
+            m_fc.fields   = nullptr;                                                                                   \
+        }                                                                                                              \
+        virtual const char* getPluginName() const noexcept;                                                            \
+        virtual const char* getPluginVersion() const noexcept {                                                        \
+            return PLUGIN_VERSION;                                                                                     \
+        }                                                                                                              \
+        virtual const nvinfer1::PluginFieldCollection* getFieldNames() noexcept {                                      \
+            return &m_fc;                                                                                              \
+        }                                                                                                              \
+        virtual const char* getPluginNamespace() const noexcept {                                                      \
+            return m_plugin_namespace.c_str();                                                                         \
+        }                                                                                                              \
+        virtual void setPluginNamespace(const char* libNamespace) noexcept {                                           \
+            m_plugin_namespace = libNamespace;                                                                         \
+        }                                                                                                              \
+        virtual nvinfer1::IPluginV2DynamicExt* createPlugin(const char* name,                                          \
+                                                            const nvinfer1::PluginFieldCollection* fc) noexcept {      \
+            std::unordered_map<std::string, TensorRTPluginLayerBuilder*> layer_map =                                   \
+                TensorRTNetwork_::GetPluginLayerNameMap();                                                             \
+            TensorRTPluginLayerBuilder* layer = layer_map[name];                                                       \
+            auto plugin                       = layer->CreatePlugin();                                                 \
+            plugin->setPluginNamespace(m_plugin_namespace.c_str());                                                    \
+            return plugin;                                                                                             \
+        }                                                                                                              \
+        virtual nvinfer1::IPluginV2DynamicExt* deserializePlugin(const char* name, const void* serialData,             \
+                                                                 size_t serialLength) noexcept {                       \
+            std::unordered_map<std::string, TensorRTPluginLayerBuilder*> layer_map =                                   \
+                TensorRTNetwork_::GetPluginLayerNameMap();                                                             \
+            TensorRTPluginLayerBuilder* layer = layer_map[name];                                                       \
+            IPluginV2DynamicExt* plugin;                                                                               \
+            if (serialLength == 0) {                                                                                   \
+                plugin = layer->CreatePlugin();                                                                        \
+            } else {                                                                                                   \
+                plugin = layer->CreatePlugin(serialData, serialLength);                                                \
+            }                                                                                                          \
+            plugin->setPluginNamespace(m_plugin_namespace.c_str());                                                    \
+            auto new_plugin = plugin->clone();                                                                         \
+            return new_plugin;                                                                                         \
+        }                                                                                                              \
+                                                                                                                       \
+    private:                                                                                                           \
+        nvinfer1::PluginFieldCollection m_fc;                                                                          \
+        std::string m_plugin_namespace;                                                                                \
+    };                                                                                                                 \
     REGISTER_TENSORRT_PLUGIN(type_string##PluginCreator);
 
-#define REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                            \
-    TRTPluginTypeLayerBuilderRegister<TypeLayerBuilderCreator<type_string##TRTPluginLayerBuilder>>                 \
+#define DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                                 \
+    class type_string##TRTPluginLayerBuilder : public TensorRTPluginLayerBuilder {                                     \
+    public:                                                                                                            \
+        type_string##TRTPluginLayerBuilder(LayerType layer_type) : TensorRTPluginLayerBuilder(layer_type) {}           \
+        virtual ~type_string##TRTPluginLayerBuilder() {}                                                               \
+        virtual bool supportsFormatCombination(int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs,         \
+                                               int nbOutputs) noexcept;                                                \
+        virtual DimsExprs getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputs,              \
+                                              nvinfer1::IExprBuilder& exprBuilder) noexcept;                           \
+        virtual const char* getPluginType() const noexcept;                                                            \
+        virtual nvinfer1::IPluginV2DynamicExt* clone() const noexcept {                                                \
+            auto* plugin = new type_string##TRTPluginLayerBuilder(*this);                                              \
+            plugin->setPluginNamespace(this->m_plugin_namespace.c_str());                                              \
+            return plugin;                                                                                             \
+        }                                                                                                              \
+        virtual nvinfer1::DataType getOutputDataType(int index, const nvinfer1::DataType* inputTypes,                  \
+                                                     int nbInputs) const noexcept;                                     \
+        virtual ILayer* AddToNetwork(INetworkDefinition* network) noexcept;                                            \
+        virtual Status Reshape();                                                                                      \
+    };                                                                                                                 \
+    DECLARE_TENSORRT_PLUGIN(type_string)
+
+
+#define DECLARE_TENSORRT_PLUGIN_LAYER_BUILDER_WITH_FUNC(type_string, layer_type, extra_func)                                                 \
+    class type_string##TRTPluginLayerBuilder : public TensorRTPluginLayerBuilder {                                     \
+    public:                                                                                                            \
+        type_string##TRTPluginLayerBuilder(LayerType layer_type) : TensorRTPluginLayerBuilder(layer_type) {}           \
+        virtual ~type_string##TRTPluginLayerBuilder() {}                                                               \
+        virtual bool supportsFormatCombination(int pos, const nvinfer1::PluginTensorDesc* inOut, int nbInputs,         \
+                                               int nbOutputs) noexcept;                                                \
+        virtual DimsExprs getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs, int nbInputs,              \
+                                              nvinfer1::IExprBuilder& exprBuilder) noexcept;                           \
+        virtual const char* getPluginType() const noexcept;                                                            \
+        virtual nvinfer1::IPluginV2DynamicExt* clone() const noexcept {                                                \
+            auto* plugin = new type_string##TRTPluginLayerBuilder(*this);                                              \
+            plugin->setPluginNamespace(this->m_plugin_namespace.c_str());                                              \
+            return plugin;                                                                                             \
+        }                                                                                                              \
+        virtual nvinfer1::DataType getOutputDataType(int index, const nvinfer1::DataType* inputTypes,                  \
+                                                     int nbInputs) const noexcept;                                     \
+        virtual ILayer* AddToNetwork(INetworkDefinition* network) noexcept;                                            \
+        virtual Status Reshape();                                                                                      \
+        extra_func                                                                                                     \
+    };                                                                                                                 \
+    DECLARE_TENSORRT_PLUGIN(type_string)
+
+#define REGISTER_TENSORRT_PLUGIN_LAYER_BUILDER(type_string, layer_type)                                                \
+    TRTPluginTypeLayerBuilderRegister<TypeLayerBuilderCreator<type_string##TRTPluginLayerBuilder>>                     \
         g_##layer_type##_trt_plugin_layer_builder_register(layer_type);
 
 }  //  namespace TNN_NS

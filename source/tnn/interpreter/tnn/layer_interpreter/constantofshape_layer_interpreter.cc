@@ -29,7 +29,7 @@ Status ConstantOfShapeLayerInterpreter::InterpretResource(Deserializer& deserial
     return TNN_OK;
 }
 
-Status ConstantOfShapeLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ConstantOfShapeLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     return TNN_OK;
 }
 

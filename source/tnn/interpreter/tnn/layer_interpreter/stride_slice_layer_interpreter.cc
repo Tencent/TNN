@@ -71,7 +71,7 @@ Status StrideSliceLayerInterpreter::InterpretResource(Deserializer& deserializer
     return TNN_OK;
 }
 
-Status StrideSliceLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status StrideSliceLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<StrideSliceLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

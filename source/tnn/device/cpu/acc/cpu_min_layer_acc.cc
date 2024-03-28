@@ -23,6 +23,10 @@ Status CpuMinLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const s
                                  const std::vector<DimsVector> &input_shapes, Blob *output) {
     if (output->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         CPU_MIN(input_ptrs, input_shapes, output->GetHandle().base, output->GetBlobDesc().dims);
+    } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        CPU_ELEMENT_WISE<int, int>(input_ptrs, input_shapes, output->GetHandle().base, 
+                                   output->GetBlobDesc().dims,
+                                   [](int a, int b) -> int { return std::min(a, b); });
     } else {
         LOGE("Error: CpuMinLayerAcc don't support data type: %d\n", output->GetBlobDesc().data_type);
         return Status(TNNERR_MODEL_ERR, "Error: CpuMinLayerAcc don't support data type");

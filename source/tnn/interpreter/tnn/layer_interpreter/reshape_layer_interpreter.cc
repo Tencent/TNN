@@ -43,7 +43,7 @@ Status ReshapeLayerInterpreter::InterpretResource(Deserializer& deserializer, La
     return TNN_OK;
 }
 
-Status ReshapeLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ReshapeLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, ReshapeLayerParam, "invalid reshape param to save", param);
 
     output_stream << layer_param->axis << " ";
@@ -62,5 +62,6 @@ Status ReshapeLayerInterpreter::SaveResource(Serializer& serializer, LayerParam*
 }
 
 REGISTER_LAYER_INTERPRETER(Reshape, LAYER_RESHAPE);
+REGISTER_LAYER_INTERPRETER(Reshape, LAYER_RESHAPETORCH);
 
 }  // namespace TNN_NS

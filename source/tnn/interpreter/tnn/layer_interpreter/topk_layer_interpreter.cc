@@ -36,8 +36,7 @@ Status TopKLayerInterpreter::InterpretResource(Deserializer& deserializer, Layer
     return TNN_OK;
 }
 
-Status TopKLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
-
+Status TopKLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, TopKLayerParam, "invalid topk param to save", param);
     output_stream << layer_param->axis << " " << layer_param->largest << " " << 
                      layer_param->sorted << " " << layer_param->k << " ";

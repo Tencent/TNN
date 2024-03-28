@@ -47,6 +47,16 @@ nvinfer1::DataType ScatterNDTRTPluginLayerBuilder::getOutputDataType(int index,
 }
 
 ILayer* ScatterNDTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
+    auto input_tensors = GetInputITensors();
+    if (input_tensors.size() == 3) {
+        IScatterLayer* layer = network->addScatter(*input_tensors[0], *input_tensors[1], *input_tensors[2], nvinfer1::ScatterMode::kND);
+        if (layer != nullptr) {
+            layer->setName(layer_name_.c_str());
+            layer->setAxis(0);
+        }
+
+        return layer;
+    }
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }
 

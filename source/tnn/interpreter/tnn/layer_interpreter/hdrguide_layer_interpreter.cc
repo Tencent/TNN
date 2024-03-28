@@ -53,7 +53,7 @@ Status HdrGuideLayerInterpreter::InterpretResource(Deserializer& deserializer, L
     return TNN_OK;
 }
 
-Status HdrGuideLayerInterpreter::SaveProto(std::ofstream&, LayerParam*) {
+Status HdrGuideLayerInterpreter::SaveProto(std::ostream&, LayerParam*) {
     return TNN_OK;
 }
 

@@ -62,12 +62,22 @@ enum ActivationType {
     ActivationType_ReLU        = 0x0001,
     ActivationType_ReLU6       = 0x0002,
     ActivationType_SIGMOID_MUL = 0x0100,
+    ActivationType_GELU        = 0x0200,
 };
 
 enum FusionType {
     FusionType_None                = 0x0000,
     FusionType_Conv_Add_Activation = 0x0001,
     FusionType_Conv_Activation_Add = 0x0002,
+    FusionType_TRTPlugin_BertQKVtoContextV1 = 0x0003,
+    FusionType_TRTPlugin_BertQKVtoContextV2 = 0x0004,
+    FusionType_TRTPlugin_BertQKVtoContextV3 = 0x0005,
+    FusionType_TRTPlugin_Gelu = 0x0006,
+    FusionType_AddBiasResidualLayerNorm = 0x0007,
+    FusionType_FFN = 0x0008,
+    FusionType_Attention = 0x0009,
+    FusionType_Flash_Attention = 0x000a,
+    FusionType_Cross_Attention = 0x000b,
 };
 
 struct BatchNormLayerParam : public LayerParam {
@@ -210,6 +220,13 @@ struct RangeLayerParam : public LayerParam {
     RangeData delta = {1};
     // RangeData delta = { .i = 1};
 
+    // Added for TNN-Torch, in TNN-torch,
+    // num of inputs of aten::arange may vary from 0-3, in which cases,
+    // order of inputs is not certain.
+    int start_index = -1;
+    int limit_index = -1;
+    int delta_index = -1;
+
     PARAM_COPY(RangeLayerParam)
 };
 
@@ -238,6 +255,20 @@ struct NormalizeLayerParam : public LayerParam {
     PARAM_COPY(NormalizeLayerParam)
 };
 
+struct NormLayerParam : public LayerParam {
+    int dim      = 1;
+    bool keepdim = 1;
+    int p         = 2;
+
+    PARAM_COPY(NormLayerParam)
+};
+
+struct ClampminLayerParam : public LayerParam {
+    float min = 1e-12f;
+
+    PARAM_COPY(ClampminLayerParam)
+};
+
 struct ReshapeLayerParam : public LayerParam {
     // reshape_type:
     // onnx caffe reshape(nchw): 0
@@ -254,6 +285,13 @@ struct PermuteLayerParam : public LayerParam {
     std::vector<int> orders;
 
     PARAM_COPY(PermuteLayerParam)
+};
+
+struct PermuteV2LayerParam : public PermuteLayerParam {
+    int dim0 = 0;
+    int dim1 = 0;
+
+    PARAM_COPY(PermuteV2LayerParam)
 };
 
 struct CastLayerParam : public LayerParam {
@@ -323,6 +361,15 @@ struct ReduceMaxLayerParam : public ReduceLayerParam {
     PARAM_COPY(ReduceMaxLayerParam)
 };
 
+struct CumsumLayerParam : public LayerParam {
+    int axis = 0;
+    bool exclusive = false;
+    bool exclusive_extend = false;  // Exclusive Extend includes "exclusive"
+    bool reverse = false;
+
+    PARAM_COPY(CumsumLayerParam)
+};
+
 struct InnerProductLayerParam : public LayerParam {
     int num_output = 0;
     int has_bias   = 0;
@@ -383,6 +430,12 @@ struct StrideSliceV2LayerParam : public LayerParam {
     std::vector<int> axes;
     std::vector<int> strides;
 
+    // Add for TNN-Torch
+    // Torch aten::slice converted StridedSliceV2 may have 2 inputs, 
+    // The second of which is not begins but ends.
+    int begins_index = -1;
+    int ends_index = -1;
+
     PARAM_COPY(StrideSliceV2LayerParam)
 };
 
@@ -441,6 +494,12 @@ struct HardSigmoidLayerParam : public LayerParam {
     float beta  = 0.0f;
 
     PARAM_COPY(HardSigmoidLayerParam)
+};
+
+struct LeakyReluLayerParam : public LayerParam {
+    float alpha = 0.01f;
+
+    PARAM_COPY(LeakyReluLayerParam)
 };
 
 typedef enum {
@@ -603,6 +662,11 @@ struct GatherLayerParam : public LayerParam {
     PARAM_COPY(GatherLayerParam)
 };
 
+struct GatherElementsLayerParam : public LayerParam {
+    int axis = 0;
+    PARAM_COPY(GatherElementsLayerParam)
+};
+
 struct GatherNDLayerParam : public LayerParam {
     int batch_dims = 0;
     PARAM_COPY(GatherNDLayerParam)
@@ -623,6 +687,13 @@ struct ExpandLayerParam : public LayerParam {
     PARAM_COPY(ExpandLayerParam)
 };
 
+struct RollLayerParam : public LayerParam {
+    std::vector<int> shifts;
+    std::vector<int> dims;
+
+    PARAM_COPY(RollLayerParam)
+};
+
 struct MatMulLayerParam : public LayerParam {
     int weight_position = -1;
     DimsVector matrix_a_dims;
@@ -635,6 +706,7 @@ struct MatMulLayerParam : public LayerParam {
 struct RoiAlignLayerParam : public LayerParam {
     // 0: max, 1: avg
     int mode = 1;
+    bool aligned = false;
     int output_height;
     int output_width;
     int sampling_ratio;
@@ -647,6 +719,13 @@ struct FlattenLayerParam : public LayerParam {
     int axis = 1;
 
     PARAM_COPY(FlattenLayerParam)
+};
+
+struct FlattenTorchLayerParam : public LayerParam {
+    int start_dim = 0;
+    int end_dim = -1;
+
+    PARAM_COPY(FlattenTorchLayerParam)
 };
 
 struct EinsumLayerParam : public LayerParam {
@@ -696,6 +775,67 @@ struct LogSoftmaxLayerParam : public LayerParam {
     int axis = 1;
 
     PARAM_COPY(LogSoftmaxLayerParam)
+};
+
+struct SplitTorchLayerParam : public SplitVLayerParam {
+    int split_size          = 0;
+
+    PARAM_COPY(SplitTorchLayerParam)
+};
+
+struct QuantizeLayerParam : public LayerParam {
+    int64_t axis            = 0;
+
+    PARAM_COPY(QuantizeLayerParam)
+};
+struct LinspaceLayerParam : public LayerParam {
+    DataType data_type = DATA_TYPE_FLOAT;
+    RangeData start    = {0};
+    RangeData end    = {0};
+
+    RangeData steps = {1};
+
+    // Added for TNN-Torch, in TNN-torch,
+    // num of inputs of aten::linspace may vary from 0-3, in which cases,
+    // order of inputs is not certain.
+    int start_index = -1;
+    int end_index = -1;
+    int steps_index = -1;
+
+    PARAM_COPY(LinspaceLayerParam)
+};
+struct FusedLayerParam : public LayerParam {
+    FusionType type = FusionType_None;
+
+    // Param for BERT multi-head attention.
+    // FusionType_TRTPlugin_BertQKVtoContextV3 = 0x0003,
+    int bert_mha_hidden_size = -1;    
+    int bert_mha_num_heads = -1;
+
+    // Param for BERT add-layernorm fusion.
+    // FusionType_AddBiasResidualLayerNorm
+    LayerNormLayerParam layer_norm_param;
+
+    // Param for BERT ffn fusion.
+    // FusionType_FFN
+    ActivationType ffn_activation = ActivationType_None;
+    int ffn_inter_size = 0;
+
+    // Param for BERT attention fusion.
+    // FusionType_Attention
+    int attention_head_num = -1;
+    int attention_size_per_head = -1;
+    float attention_q_scaling = 1.0;
+    bool has_attention_mask = true;
+    bool dense_mode = false;
+
+    PARAM_COPY(FusedLayerParam)
+};
+
+struct EffectiveTransformerLayerParam : public LayerParam {
+    bool is_remove_padding = false;
+
+    PARAM_COPY(EffectiveTransformerLayerParam)
 };
 
 struct GLULayerParam : public LayerParam {

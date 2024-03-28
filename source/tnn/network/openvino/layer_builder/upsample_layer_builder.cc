@@ -1,6 +1,6 @@
 // Tencent is pleased to support the open source community by making TNN available.
 //
-// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+// Copyright (C) 2023 THL A29 Limited, a Tencent company. All rights reserved.
 //
 // Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -12,22 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include <cmath>
-#include <memory>
-
-#include <ngraph/node.hpp>
-#include <ngraph/ngraph.hpp>
-#include <ngraph/op/op.hpp>
-#include <ngraph/opsets/opset.hpp>
-#include <ngraph/opsets/opset1.hpp>
-#include <ngraph/opsets/opset3.hpp>
-#include <inference_engine.hpp>
-
-#include "tnn/layer/base_layer.h"
 #include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
-#include "tnn/extern_wrapper/foreign_blob.h"
-#include "tnn/extern_wrapper/foreign_tensor.h"
-#include "tnn/network/openvino/openvino_types.h"
 
 namespace TNN_NS {
 
@@ -45,11 +30,11 @@ Status UpsampleOVLayerBuilder::Build() {
 
     ngraph::op::v4::Interpolate::InterpolateAttrs attrs;
     if (paramlist->align_corners) {
-        attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::align_corners;
+        attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::ALIGN_CORNERS;
     } else {
-        attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::half_pixel;
+        attrs.coordinate_transformation_mode = ngraph::op::v4::Interpolate::CoordinateTransformMode::HALF_PIXEL;
     }
-    attrs.nearest_mode = ngraph::op::v4::Interpolate::NearestMode::floor;
+    attrs.nearest_mode = ngraph::op::v4::Interpolate::NearestMode::FLOOR;
     // attrs.align_corners = paramlist->align_corners;
     // if (paramlist->align_corners) 
     //     attrs.coordinate_transformation_mode = ngraph::op::v3::Interpolate::CoordinateTransformMode::align_corners;
@@ -61,11 +46,11 @@ Status UpsampleOVLayerBuilder::Build() {
         ngraph::element::Type_t::i64, ngraph::Shape{input_node->get_output_shape(0).size() - 2}, axes);
 
     if (paramlist->mode == 1) {
-        attrs.mode = ngraph::op::v4::Interpolate::InterpolateMode::nearest; //"nearest";
+        attrs.mode = ngraph::op::v4::Interpolate::InterpolateMode::NEAREST; //"nearest";
     } else if (paramlist->mode == 2) {
-        attrs.mode = ngraph::op::v4::Interpolate::InterpolateMode::linear;  //"linear";
+        attrs.mode = ngraph::op::v4::Interpolate::InterpolateMode::LINEAR;  //"linear";
     } else if (paramlist->mode == 3){
-        attrs.mode = ngraph::op::v4::Interpolate::InterpolateMode::cubic;   //"cubic";
+        attrs.mode = ngraph::op::v4::Interpolate::InterpolateMode::CUBIC;   //"cubic";
     } else {
         return Status(TNNERR_MODEL_ERR, "Error: Upsample dont support resize type");
     }
@@ -77,7 +62,7 @@ Status UpsampleOVLayerBuilder::Build() {
     upsampleScaleShape.push_back(1.0);
     upsampleScaleShape.push_back(1.0);
     if (paramlist->dims.size() != 0) {
-        attrs.shape_calculation_mode = ngraph::op::v4::Interpolate::ShapeCalcMode::sizes;
+        attrs.shape_calculation_mode = ngraph::op::v4::Interpolate::ShapeCalcMode::SIZES;
         if (paramlist->dims[0] != 0 && paramlist->dims[1] != 0) {
             upsampleShape[0] = paramlist->dims[1];
             upsampleShape[1] = paramlist->dims[0];
@@ -85,7 +70,7 @@ Status UpsampleOVLayerBuilder::Build() {
             return Status(TNNERR_MODEL_ERR, "Error: Upsample size error");
         }
     } else {
-        attrs.shape_calculation_mode = ngraph::op::v4::Interpolate::ShapeCalcMode::scales;
+        attrs.shape_calculation_mode = ngraph::op::v4::Interpolate::ShapeCalcMode::SCALES;
         upsampleScaleShape[0] = paramlist->scales.at(1);
         upsampleScaleShape[1] = paramlist->scales.at(0);
     }

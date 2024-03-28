@@ -57,6 +57,8 @@ public class StreamOCRDetectFragment extends BaseFragment {
     private ToggleButton mHuaweiNPUswitch;
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
+    // add for qualcomm SNPE
+    private boolean mUseSNPE = false;
 
     private boolean mDeviceSwitched = false;
 
@@ -67,6 +69,9 @@ public class StreamOCRDetectFragment extends BaseFragment {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
+        if (mUseSNPE) {
+            System.loadLibrary("SNPE");
+        }
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
         String modelPath = initModel();
@@ -80,10 +85,13 @@ public class StreamOCRDetectFragment extends BaseFragment {
         String[] modelPathsDetector = {
                 "angle_net.tnnmodel",
                 "angle_net.tnnproto",
+                "angle_net.dlc",
                 "crnn_lite_lstm.tnnmodel",
                 "crnn_lite_lstm.tnnproto",
+                "crnn_lite_lstm.dlc",
                 "dbnet.tnnmodel",
                 "dbnet.tnnproto",
+                "dbnet.dlc",
                 "keys.txt",
         };
 
@@ -290,6 +298,8 @@ public class StreamOCRDetectFragment extends BaseFragment {
                     int device = 0;
                     if (mUseHuaweiNpu) {
                         device = 2;
+                    } else if (mUseSNPE) {
+                        device = 3;
                     } else if (mUseGPU) {
                         device = 1;
                     }
@@ -333,6 +343,8 @@ public class StreamOCRDetectFragment extends BaseFragment {
                                 int device = 0;
                                 if (mUseHuaweiNpu) {
                                     device = 2;
+                                } else if (mUseSNPE) {
+                                    device = 3;
                                 } else if (mUseGPU) {
                                     device = 1;
                                 }
@@ -358,6 +370,8 @@ public class StreamOCRDetectFragment extends BaseFragment {
                                     monitorResult += "opencl\n";
                                 } else if (mUseHuaweiNpu) {
                                     monitorResult += "huawei_npu\n";
+                                } else if (mUseSNPE) {
+                                    monitorResult += "snpe\n";
                                 } else {
                                     monitorResult += "arm\n";
                                 }

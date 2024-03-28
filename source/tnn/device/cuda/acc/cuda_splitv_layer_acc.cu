@@ -61,10 +61,11 @@ Status CudaSplitVLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
 
 Status CudaSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
     auto layer_param = dynamic_cast<SplitVLayerParam *>(param_);
-    int axis = layer_param->axis;
     Blob *input_blob  = inputs[0];
     auto dims = input_blob->GetBlobDesc().dims;
     float* input_data = static_cast<float*>(input_blob->GetHandle().base);
+
+    int axis = layer_param->axis >= 0 ? layer_param->axis : (dims.size() + layer_param->axis);
 
     const int THREAD_PER_BLOCK = 128;
     const int ELE_PER_THREAD = 16;
@@ -77,13 +78,14 @@ Status CudaSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 
     int split_begin = 0;
     for(int i= 0; i < split_num; i++) {
-      if (slices[i] > 0) {
-        Blob* output_blob = outputs[i];
-        int split_end = split_begin + slices[i];
-        dim3 griddim;
-        griddim.x = (slices[i] * inner_size + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
+      Blob* output_blob = outputs[i];
+      int split_size = output_blob->GetBlobDesc().dims[axis];
+      int split_end = split_begin + split_size;
+      dim3 griddim;
+      if (split_size != 0) {
+        griddim.x = (split_size * inner_size + ELE_PER_THREAD * THREAD_PER_BLOCK - 1) / (ELE_PER_THREAD * THREAD_PER_BLOCK);
         griddim.y = DimsVectorUtils::Count(dims, 1, axis);
-        griddim.z = DimsVectorUtils::Count(dims, 0, min(1, axis));
+        griddim.z = DimsVectorUtils::Count(dims, 0, min(axis, 1));
 
         float* output_data = static_cast<float*>(output_blob->GetHandle().base);
         splitv_separate_kernel<THREAD_PER_BLOCK, ELE_PER_THREAD><<<griddim, THREAD_PER_BLOCK, 0, context_->GetStream()>>>
@@ -96,5 +98,6 @@ Status CudaSplitVLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
 }
 
 REGISTER_CUDA_ACC(SplitV, LAYER_SPLITV);
+REGISTER_CUDA_ACC(SplitV, LAYER_SPLITTORCH);
 
 }  // namespace TNN_NS

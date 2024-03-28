@@ -37,7 +37,7 @@ Status HardSigmoidLayerInterpreter::InterpretResource(Deserializer& deserializer
     return TNN_OK;
 }
 
-Status HardSigmoidLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status HardSigmoidLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<HardSigmoidLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

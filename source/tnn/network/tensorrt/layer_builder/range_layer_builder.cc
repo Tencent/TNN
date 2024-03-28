@@ -20,15 +20,56 @@ namespace TNN_NS {
 DECLARE_TENSORRT_LAYER_BUILDER(Range, LAYER_RANGE);
 
 ILayer* RangeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    auto layer_param = dynamic_cast<RangeLayerParam*>(param_);
     auto input_tensors = GetInputITensors();
-    const ShapeTensor start(*input_tensors[0]);
-    const ShapeTensor limit(*input_tensors[1]);
-    const ShapeTensor delta(*input_tensors[2]);
+    ShapeTensor start;
+    ShapeTensor limit;
+    ShapeTensor delta;
+    if (input_tensors.size()==3) {
+        start = ShapeTensor(*input_tensors[0]);
+        limit = ShapeTensor(*input_tensors[1]);
+        delta = ShapeTensor(*input_tensors[2]);
+    } else { //input_tensors.size()<3
+        if (layer_param->start_index==-1) {
+            //std::cout << "[Range AddToNet] start_index, start.i = " << layer_param->start.i << std::endl;
+            start = shapeVector(layer_param->start.i);
+        } else {
+            //std::cout << "[Range AddToNet] start_index, param_idx = " << layer_param->start_index << std::endl;
+            start = ShapeTensor(*input_tensors[layer_param->start_index]);
+        }
+        if (layer_param->limit_index==-1) {
+            //std::cout << "[Range AddToNet] limit_index, limit.i = " << layer_param->limit.i << std::endl;
+            limit = shapeVector(layer_param->limit.i);
+        } else {
+            //std::cout << "[Range AddToNet] limit_index, param_idx = " << layer_param->limit_index << std::endl;
+            limit = ShapeTensor(*input_tensors[layer_param->limit_index]);
+            //std::cout << "[Range AddToNet] limit.allValuesKnown = " << (int)limit.allValuesKnown() << std::endl;
+            //std::cout << "[Range AddToNet] limit[0] = " << (int)limit[0] << std::endl;
+        }
+        if (layer_param->delta_index==-1) {
+            //std::cout << "[Range AddToNet] delta_index, delta.i = " << layer_param->delta.i << std::endl;
+            delta = shapeVector(layer_param->delta.i);
+        } else {
+            //std::cout << "[Range AddToNet] delta_index, param_idx = " << layer_param->delta_index << std::endl;
+            delta = ShapeTensor(*input_tensors[layer_param->delta_index]);
+        }
+    }
 
-    ShapeTensor zero = shapeScalar(0);
-    ShapeTensor numberOfElements = max(network, sub(network, zero,
-        floorDiv(network, sub(network, start, limit), delta)), zero);
-    IFillLayer* layer = addFill(network, convertTo1D(network, numberOfElements), FillOperation::kLINSPACE);
+    //ShapeTensor zero = shapeScalar(0);
+    ShapeTensor zero;
+    if (start.rank()==0) {
+        zero = shapeScalar(0);
+    } else {
+        zero = shapeVector(0);
+    }
+    ShapeTensor step1 = sub(network, start, limit);
+    ShapeTensor step2 = floorDiv(network, step1, delta);
+    ShapeTensor step3 = sub(network, zero, step2);
+    ShapeTensor numberOfElements = max(network, step3, zero);
+    if (numberOfElements.rank()==0) {
+        numberOfElements = convertTo1D(network, numberOfElements);
+    }
+    IFillLayer* layer = addFill(network, numberOfElements, FillOperation::kLINSPACE);
     if (start.allValuesKnown() && delta.allValuesKnown()) {
         layer->setAlpha(start[0]);
         layer->setBeta(delta[0]);
@@ -36,6 +77,7 @@ ILayer* RangeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     } else {
         layer->setInput(1, start.tensor(network));
         layer->setInput(2, convertTo1D(network, delta).tensor(network));
+        layer->setOutputType(0, nvinfer1::DataType::kINT32);
     }
 
     return layer;

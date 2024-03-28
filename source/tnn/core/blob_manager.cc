@@ -229,7 +229,8 @@ Status BlobManager::AllocateBlobMemory(int flag) {
     Status status = TNN_OK;
 
     do {
-        if (config_.share_memory_mode == SHARE_MEMORY_MODE_DEFAULT) {
+        if (config_.share_memory_mode == SHARE_MEMORY_MODE_DEFAULT ||
+            config_.share_memory_mode == SHARE_MEMORY_MODE_SHARE_NET_RESOURCE) {
             // The default strategy allocated the blob memory separately.
             MemorySeperateAssignStrategy strategy;
             for (auto blob_memory_pool_iter : blob_memory_pool_map_) {
@@ -312,7 +313,8 @@ void BlobManager::OnSharedForwardMemoryChanged(void *memory) {
  * The total size required is given by GetAllBlobMemorySize().
  */
 Status BlobManager::SetForwardMemory(void *memory) {
-    if (config_.share_memory_mode != SHARE_MEMORY_MODE_SET_FROM_EXTERNAL) {
+    if (config_.share_memory_mode != SHARE_MEMORY_MODE_SET_FROM_EXTERNAL &&
+        config_.share_memory_mode != SHARE_MEMORY_MODE_SET_ALL_FROM_EXTERNAL) {
         return Status(TNNERR_NOT_SUPPORT_SET_FORWARD_MEM, "set memory from external is unsupported");
     }
     MemoryUnifyAssignStrategy strategy(memory);

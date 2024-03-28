@@ -39,7 +39,7 @@ Status ScatterLayerInterpreter::InterpretResource(Deserializer &deserializer, La
     return TNN_OK;
 }
 
-Status ScatterLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status ScatterLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     auto *layer_param = static_cast<ScatterLayerParam *>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

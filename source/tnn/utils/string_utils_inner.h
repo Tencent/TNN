@@ -32,6 +32,13 @@ std::string ToString(T value) {
 template <>
 std::string ToString<float>(float value);
 
+bool EndsWith(const std::string& str, const std::string suffix);
+//     if (suffix.length() > str.length()) { 
+//         return false; 
+//     }
+//     return (str.rfind(suffix) == (str.length() - suffix.length()));
+// }
+
 }  // namespace TNN_NS
 
 #endif  // TNN_SOURCE_TNN_UTILS_STRING_UTILS_INNER_H_

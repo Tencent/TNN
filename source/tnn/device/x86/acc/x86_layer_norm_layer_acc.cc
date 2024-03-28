@@ -14,6 +14,7 @@
 
 #include <math.h>
 #include "tnn/device/x86/acc/x86_layer_acc.h"
+#include "tnn/device/x86/acc/x86_layer_norm_layer_acc.h"
 #include "tnn/utils/data_type_utils.h"
 #include "tnn/utils/dims_utils.h"
 
@@ -21,7 +22,41 @@
 #include "tnn/device/x86/acc/Float8.h"
 namespace TNN_NS {
 
-DECLARE_X86_ACC(LayerNorm, LAYER_LAYER_NORM);
+X86LayerNormLayerAcc::~X86LayerNormLayerAcc() {}
+
+Status X86LayerNormLayerAcc::Init(Context *context, LayerParam *param, LayerResource *resource,
+                                  const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto scale_blob = inputs[1];
+    auto bias_blob  = inputs[2];
+
+    // Convert Scale and Bias to float if they are of half type.
+    if (scale_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        std::string name = scale_blob->GetBlobDesc().name;
+        if (const_resource_ == nullptr || const_resource_->find(name) == const_resource_->end()) {
+            return Status(TNNERR_LAYER_ERR, "X86LayerNormLayerAcc has invalid scale, unable to find scale in constant_map.");
+        }
+        auto scale_fp16 = (*const_resource_)[name];
+        auto scale_fp32 = std::make_shared<RawBuffer>(ConvertHalfHandle(*scale_fp16));
+        scale_fp32->SetBufferDims(scale_fp16->GetBufferDims());
+        (*const_resource_)[name] = scale_fp32;
+    }
+    
+    if (bias_blob->GetBlobDesc().data_type == DATA_TYPE_HALF) {
+        std::string name = bias_blob->GetBlobDesc().name;
+        if (const_resource_ == nullptr || const_resource_->find(name) == const_resource_->end()) {
+            return Status(TNNERR_LAYER_ERR, "X86LayerNormLayerAcc has invalid bias, unable to find bias in constant_map.");
+        }
+        auto bias_fp16 = (*const_resource_)[name];
+        auto bias_fp32 = std::make_shared<RawBuffer>(ConvertHalfHandle(*bias_fp16));
+        bias_fp32->SetBufferDims(bias_fp16->GetBufferDims());
+        (*const_resource_)[name] = bias_fp32;
+    }
+
+    Status ret = X86LayerAcc::Init(context, param, resource, inputs, outputs);
+    
+    RETURN_ON_NEQ(ret, TNN_OK);
+    return TNN_OK;
+}
 
 template <typename VEC, int pack>
 static void norm_func(float *input, float *output, int channels, int area, const float *k_data, const float *b_data,

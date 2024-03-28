@@ -25,7 +25,8 @@
 namespace TNN_NS {
 
 TensorRTPluginLayerBuilder::TensorRTPluginLayerBuilder(LayerType type) : TensorRTBaseLayerBuilder(type) {
-    is_plugin = true;
+    is_plugin        = true;
+    m_maybe_fallback = false;
 }
 
 TensorRTPluginLayerBuilder::~TensorRTPluginLayerBuilder() {
@@ -50,6 +51,7 @@ Status TensorRTPluginLayerBuilder::Init(Context* context, LayerParam* param, Lay
 
     m_format = nvinfer1::TensorFormat::kLINEAR;
     m_type = nvinfer1::DataType::kFLOAT;
+    m_has_empty_tensor_input = false;
 
     return TNN_OK;
 }
@@ -100,11 +102,18 @@ int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputD
         input_handle.bytes_offset = input_blob->GetHandle().bytes_offset;
         input_blob->SetHandle(input_handle);
         DimsVector dims;
+        auto foreign_blob = dynamic_cast<ForeignBlob*>(input_blob);
+        if (!foreign_blob) return -1;
         for (int j = 0; j < inputDesc[i].dims.nbDims; j++) {
             dims.push_back(inputDesc[i].dims.d[j]);
-            if (inputDesc[i].dims.d[j] == 0) is_input_zero = true;
+            // plugin with shape tensor input should be excluded
+            if (!m_has_empty_tensor_input) {
+                if (inputDesc[i].dims.d[j] == 0) is_input_zero = true;
+            }
         }
         input_blob->GetBlobDesc().dims = dims;
+        input_blob->GetBlobDesc().data_type = ConvertTRTDataType(inputDesc[i].type);
+        input_blob->GetBlobDesc().data_format = ConvertTRTDataFormat(inputDesc[i].format);
     }
 
     for (int i = 0; i < output_blobs_.size(); i++) {
@@ -118,6 +127,8 @@ int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputD
             dims.push_back(outputDesc[i].dims.d[j]);
         }
         output_blob->GetBlobDesc().dims = dims;
+        output_blob->GetBlobDesc().data_type = ConvertTRTDataType(outputDesc[i].type);
+        output_blob->GetBlobDesc().data_format = ConvertTRTDataFormat(outputDesc[i].format);
     }
 
     if (is_input_zero) return 0;
@@ -129,13 +140,14 @@ int TensorRTPluginLayerBuilder::enqueue(const nvinfer1::PluginTensorDesc* inputD
 }
 
 size_t TensorRTPluginLayerBuilder::getSerializationSize() const noexcept {
-    return sizeof(m_type) + sizeof(m_format);
+    return sizeof(m_type) + sizeof(m_format) + sizeof(m_has_empty_tensor_input);
 }
 
 void TensorRTPluginLayerBuilder::serialize(void* buffer) const noexcept {
     char* d = reinterpret_cast<char*>(buffer);
     write(d, m_type);
     write(d, m_format);
+    write(d, m_has_empty_tensor_input);
 }
 
 const char* TensorRTPluginLayerBuilder::getPluginVersion() const noexcept {
@@ -173,6 +185,7 @@ nvinfer1::IPluginV2DynamicExt* TensorRTPluginLayerBuilder::CreatePlugin(const vo
     const char* d = reinterpret_cast<const char*>(data);
     m_type = read<nvinfer1::DataType>(d);
     m_format = read<TensorFormat>(d);
+    m_has_empty_tensor_input = read<bool>(d);
     return this;
 }
 
@@ -183,6 +196,83 @@ ILayer* TensorRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) no
         layer->setName(layer_name_.c_str());
     }
     return layer;
+}
+
+void TensorRTPluginLayerBuilder::ReplaceInputShapeTensor(int index, INetworkDefinition* network) {
+    auto foreign_blob = dynamic_cast<ForeignBlob*>(input_blobs_[index]);
+    if (foreign_blob->GetReplaceFlag()) {
+        m_has_empty_tensor_input = true;
+        return;
+    }
+
+    auto input_tensors = GetInputITensors();
+#if 0
+    int rank           = input_tensors[index]->getDimensions().d[0];
+
+    Dims strides{rank};
+    std::fill(strides.d, strides.d + strides.nbDims, 0);
+
+    static float dump = 0.f;
+    Weights const_weight;
+    const_weight.count  = 1;
+    const_weight.type   = nvinfer1::DataType::kFLOAT;
+    const_weight.values = (void*)&dump;
+
+    nvinfer1::Dims weightDims;
+    weightDims.nbDims      = 1;
+    weightDims.d[0]        = 1;
+    ILayer* constant_layer = network->addConstant(weightDims, const_weight);
+    nvinfer1::Dims unsqueezeDims{rank};
+    std::fill(unsqueezeDims.d, unsqueezeDims.d + unsqueezeDims.nbDims, 1);
+    IShuffleLayer* unsqueeze = network->addShuffle(*constant_layer->getOutput(0));
+    unsqueeze->setReshapeDimensions(unsqueezeDims);
+
+    Dims starts;
+    starts.nbDims = rank;
+    for (int i = 0; i < rank; i++) {
+        starts.d[i] = 0;
+    }
+    ISliceLayer* broadcast_layer = network->addSlice(*unsqueeze->getOutput(0), starts, nvinfer1::Dims{}, strides);
+    broadcast_layer->setName((layer_name_ + "_constant_of_shape_slice").c_str());
+
+    if (broadcast_layer != nullptr) {
+        broadcast_layer->setInput(2, *input_tensors[index]);
+    }
+
+    ILayer* layer = broadcast_layer;
+#else
+    // https://docs.nvidia.com/deeplearning/tensorrt/developer-guide/index.html#comm-shape-tensors-plug-ins
+    // the method in above doc has a misstake, empty tensor must have empty value ptr
+    // Create an empty-tensor constant with dimensions [1...0].
+    int rank = input_tensors[index]->getDimensions().d[0];
+    Dims d01;
+    d01.nbDims = rank + 1;
+    d01.d[rank] = 0;
+    std::fill(d01.d, d01.d + rank, 1);
+    ITensor *c01 = network->addConstant(d01, {nvinfer1::DataType::kFLOAT, 0x0, 0})->getOutput(0);
+
+    // Create shape tensor that has the value [P,Q...0]
+    static int32_t const intZero = 0;
+    ITensor* z = network->addConstant({1, {1}}, {nvinfer1::DataType::kINT32, &intZero, 1})->getOutput(0);
+    ITensor* concatInputs[] = {input_tensors[index], z};
+    IConcatenationLayer* zpq = network->addConcatenation(concatInputs, 2);
+    zpq->setAxis(0);
+
+    // Create zero-stride slice with output size [P,Q...0]
+    Dims dx;
+    dx.nbDims = rank + 1;
+    std::fill(dx.d, dx.d + dx.nbDims, 0);
+    ISliceLayer* slice = network->addSlice(*c01, dx, dx, dx);
+    slice->setInput(2, *zpq->getOutput(0));
+    ILayer *layer = slice;
+
+#endif
+
+    auto replace_tensor = std::make_shared<TensorRTTensor>();
+    replace_tensor->SetTensor(layer->getOutput(0));
+
+    foreign_blob->SetForeignTensor(replace_tensor, true);
+    m_has_empty_tensor_input = true;
 }
 
 }  //  namespace TNN_NS

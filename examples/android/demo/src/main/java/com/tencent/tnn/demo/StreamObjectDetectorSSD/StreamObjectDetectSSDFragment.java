@@ -61,6 +61,8 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
     private ToggleButton mHuaweiNPUswitch;
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
+    // add for qualcomm SNPE
+    private boolean mUseSNPE = false;
 
     private boolean mDeviceSwitched = false;
 
@@ -71,6 +73,9 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
+        if (mUseSNPE) {
+            System.loadLibrary("SNPE");
+        }
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
         String modelPath = initModel();
@@ -84,6 +89,7 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
         String[] modelPathsDetector = {
                 "mobilenetv2_ssd_tf_fix_box.tnnmodel",
                 "mobilenetv2_ssd_tf_fix_box.tnnproto",
+                "mobilenetv2_ssd_tf_fix_box.dlc",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
@@ -290,6 +296,8 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
                     int device = 0;
                     if (mUseHuaweiNpu) {
                         device = 2;
+                    } else if (mUseSNPE) {
+                        device = 3;
                     } else if (mUseGPU) {
                         device = 1;
                     }
@@ -333,6 +341,8 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
                                 int device = 0;
                                 if (mUseHuaweiNpu) {
                                     device = 2;
+                                } else if (mUseSNPE) {
+                                    device = 3;
                                 } else if (mUseGPU) {
                                     device = 1;
                                 }
@@ -358,6 +368,8 @@ public class StreamObjectDetectSSDFragment extends BaseFragment {
                                     monitorResult += "opencl\n";
                                 } else if (mUseHuaweiNpu) {
                                     monitorResult += "huawei_npu\n";
+                                } else if (mUseSNPE) {
+                                    monitorResult += "snpe\n";
                                 } else {
                                     monitorResult += "arm\n";
                                 }

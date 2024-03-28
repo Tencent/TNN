@@ -23,11 +23,49 @@ ILayer* SqueezeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto axes = paramlist->axes;
     auto tensor = GetInputITensors()[0];
     int size = tensor->getDimensions().nbDims;
-    for (auto& axis : axes) {
-        if (axis < 0) {
-            axis += size;
+    if (axes.empty()) {
+        // TORCH has squeeze without dim,
+        // it squeezes all dims != 1
+        // This squeeze is dangerous, it is not encouraged, model trainers should make sure
+        // that min_dim[i]==1, max_dim[i]!=1 cases should not happen, otherwise ERRORS may occur.
+        DimsVector blob_dims = input_blobs_[0]->GetBlobDesc().dims;
+        if (!blob_dims.empty()) {
+            // We have input blob dim infomation,
+            // This infomation is rather relible
+            for (int i=0; i<blob_dims.size(); i++) {
+                if (blob_dims[i] == 1) {
+                    axes.push_back(i);
+                } 
+            }
+        } else {
+            // No input blob info available,
+            // we use TRT ITensor dim
+            // less reliable because dim[i] == -1 is not counted.
+            LOGI("WARNING: Run into Squeeze TRT LayerBuilder with param->axes empty and input blob info EMPTY, axes now depends on TRT ITensor dim, may lead to potential error. torch.Squeeze(%in) with no dims is overall not recommended.");
+            auto itensor_dims = tensor->getDimensions();
+            for (int i=0; i<itensor_dims.nbDims; i++) {
+                if (itensor_dims.d[i] == 1) {
+                    axes.push_back(i);
+                }
+            }
+        }
+        if (!axes.empty()) {
+            paramlist->axes = axes;
+        }
+    } else {
+        for (auto& axis : axes) {
+            if (axis < 0) {
+                axis += size;
+            }
         }
     }
+
+    // Return ERROR if axes is still empty
+    if (axes.empty()) {
+        LOGE("SqueezeTRTLayerBuilder: Unable to to get or determine AXEs for Squeeze Layer.");
+        return nullptr;
+    }
+
     auto layer = addSqueeze(network, *tensor, axes);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());

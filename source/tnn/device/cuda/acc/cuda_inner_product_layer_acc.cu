@@ -114,14 +114,14 @@ Status CudaInnerProductLayerAcc::Forward(const std::vector<Blob *> &inputs, cons
     float alpha = 1.0;
     float beta  = 0.0;
 
-    CUBLAS_CHECK(cublasSgemm(context_->cublas_handle_, CUBLAS_OP_T, CUBLAS_OP_N,
+    CUBLAS_CHECK(cublasSgemm(context_->GetCublasHandle(), CUBLAS_OP_T, CUBLAS_OP_N,
                              n_, m_, k_, &alpha, weight_, k_, bottom_data, k_,
                              &beta, top_data, n_));
 
     if (has_bias_) {
         alpha = 1.0;
         beta  = 1.0;
-        CUBLAS_CHECK(cublasSgemm(context_->cublas_handle_, CUBLAS_OP_N,
+        CUBLAS_CHECK(cublasSgemm(context_->GetCublasHandle(), CUBLAS_OP_N,
                                  CUBLAS_OP_N, n_, m_, 1, &alpha, bias_, n_,
                                  multiplier_, 1, &beta, top_data, n_));
     }

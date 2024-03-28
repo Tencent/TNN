@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_plugin_layer_builder.h"
+#include "tnn/network/tensorrt/utils.h"
 
 namespace TNN_NS {
 
@@ -44,7 +45,51 @@ nvinfer1::DataType RoiAlignTRTPluginLayerBuilder::getOutputDataType(int index, c
 }
 
 ILayer* RoiAlignTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
+#if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 84
+    auto layer_param = dynamic_cast<RoiAlignLayerParam*>(param_);
+    if (!layer_param) {
+        LOGE("RoiAlignTRTPluginLayerBuilder: Unable to get layer param.");
+        return nullptr;
+    }
+
+    int coordinate_transformation_mode = layer_param->aligned;
+    int mode = layer_param->mode;
+    int output_height = layer_param->output_height;
+    int output_width = layer_param->output_width;
+    int sampling_ratio = layer_param->sampling_ratio;
+    float spatial_scale = layer_param->spatial_scale;
+
+    auto creator = getPluginRegistry()->getPluginCreator("ROIAlign_TRT", "1", "");
+    if (!creator) {
+        LOGE("ROIAlignTRTLayerBuilder: Unable to find creator for TRT ROIAlign_TRT V1 Plugin Layer.");
+        return nullptr;
+    }
+
+    std::vector<ITensor*> input_tensors;
+    for (int i = 0; i < input_blobs_.size(); i++) {
+        auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[i])->GetForeignTensor();
+        input_tensors.push_back(std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor());
+    }
+
+    std::vector<nvinfer1::PluginField> roi_align_v1_field;
+    roi_align_v1_field.emplace_back("coordinate_transformation_mode", &coordinate_transformation_mode, nvinfer1::PluginFieldType::kINT32, 1);
+    roi_align_v1_field.emplace_back("mode", &mode, nvinfer1::PluginFieldType::kINT32, 1);
+    roi_align_v1_field.emplace_back("output_height", &output_height, nvinfer1::PluginFieldType::kINT32, 1);
+    roi_align_v1_field.emplace_back("output_width", &output_width, nvinfer1::PluginFieldType::kINT32, 1);
+    roi_align_v1_field.emplace_back("sampling_ratio", &sampling_ratio, nvinfer1::PluginFieldType::kINT32, 1);
+    roi_align_v1_field.emplace_back("spatial_scale", &spatial_scale, nvinfer1::PluginFieldType::kFLOAT32, 1);
+
+    PluginFieldCollection roi_align_v1_fc {6, roi_align_v1_field.data()};
+    IPluginV2* plugin_obj = creator->createPlugin(layer_name_.c_str(), &roi_align_v1_fc);
+    auto layer = network->addPluginV2(input_tensors.data(), input_blobs_.size(), *plugin_obj);
+    if (layer != nullptr) {
+        layer->setName((layer_name_).c_str());
+    }
+
+    return layer;
+#else
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
+#endif
 }
 
 DimsExprs RoiAlignTRTPluginLayerBuilder::getOutputDimensions(int index, const nvinfer1::DimsExprs* inputs,

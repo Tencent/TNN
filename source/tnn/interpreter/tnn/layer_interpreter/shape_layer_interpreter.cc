@@ -26,7 +26,7 @@ Status ShapeLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
     return TNN_OK;
 }
 
-Status ShapeLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ShapeLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     return TNN_OK;
 }
 

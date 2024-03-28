@@ -143,5 +143,6 @@ Status X86PermuteLayerAcc::DoForward(const std::vector<Blob *> &inputs, const st
 }
 
 X86TypeLayerAccRegister<TypeLayerAccCreator<X86PermuteLayerAcc>> g_x86_permute_layer_acc_register(LAYER_PERMUTE);
+X86TypeLayerAccRegister<TypeLayerAccCreator<X86PermuteLayerAcc>> g_x86_permutev2_layer_acc_register(LAYER_PERMUTEV2);
 
 }  // namespace TNN_NS

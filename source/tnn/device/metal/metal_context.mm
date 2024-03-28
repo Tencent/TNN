@@ -54,6 +54,10 @@ Status MetalContext::GetCommandQueue(void **command_queue) {
     return TNN_OK;
 }
 
+Status MetalContext::SetCommandQueue(void *command_queue) {
+    return Status(TNNERR_COMMON_ERROR, "SetCommandQueue is not supported in metal");
+}
+
 Status MetalContext::ShareCommandQueue(Context* context) {
     if (!metal_context_impl_) {
         return Status(TNNERR_DEVICE_LIBRARY_LOAD, "metal context is nil");

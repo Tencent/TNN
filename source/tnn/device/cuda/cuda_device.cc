@@ -43,6 +43,8 @@ Status CudaDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
         desc.data_type = DATA_TYPE_FLOAT;
     } else if (mat_type == NC_INT32) {
         desc.data_type = DATA_TYPE_INT32;
+    } else if (mat_type == NC_INT64) {
+        desc.data_type = DATA_TYPE_INT64;
     } else {
         desc.data_type = DATA_TYPE_INT8;
     }
@@ -52,10 +54,15 @@ Status CudaDevice::Allocate(void **handle, MatType mat_type, DimsVector dims) {
 
 Status CudaDevice::Allocate(void** handle, BlobMemorySizeInfo& size_info) {
     void* ptr;
-    int bytes_size = GetBlobMemoryBytesSize(size_info);
+    size_t bytes_size = GetBlobMemoryBytesSize(size_info);
     cudaError_t status = cudaMalloc(&ptr, bytes_size);
     if (cudaSuccess != status) {
-        LOGE("cuda alloc failed with size %d for %p status:%d\n", bytes_size, ptr, status);
+        LOGE("cuda alloc failed with size %lu for %p status:%d\n", bytes_size, ptr, status);
+        return TNNERR_OUTOFMEMORY;
+    }
+    status = cudaMemset(ptr, 0, bytes_size);
+    if (cudaSuccess != status) {
+        LOGE("cuda alloc::memset failed with size %lu for %p status:%d\n", bytes_size, ptr, status);
         return TNNERR_OUTOFMEMORY;
     }
 
@@ -72,6 +79,11 @@ Status CudaDevice::Allocate(void** handle, size_t size) {
     }
     if (ptr == nullptr) {
         LOGE("cuda alloc got nullptr\n");
+        return TNNERR_OUTOFMEMORY;
+    }
+    status = cudaMemset(ptr, 0, size);
+    if (cudaSuccess != status) {
+        LOGE("cuda alloc::memset failed with size %lu for %p status:%d\n", size, ptr, status);
         return TNNERR_OUTOFMEMORY;
     }
     *handle = ptr;
@@ -133,6 +145,20 @@ Status CudaDevice::CopyFromDevice(BlobHandle* dst, const BlobHandle* src, BlobDe
     CUDA_CHECK(status);
     CUDA_CHECK(cudaStreamSynchronize(stream));
 
+    return TNN_OK;
+}
+
+Status CudaDevice::GetCurrentDeviceId(int &device_id) {
+    CUDA_CHECK(cudaGetDevice(&device_id));
+    return TNN_OK;
+}
+
+Status CudaDevice::GetCurrentSMVersion(int &sm) {
+    int device_id{-1};
+    CUDA_CHECK(cudaGetDevice(&device_id));
+    cudaDeviceProp props;
+    CUDA_CHECK(cudaGetDeviceProperties(&props, device_id));
+    sm = props.major * 10 + props.minor;
     return TNN_OK;
 }
 

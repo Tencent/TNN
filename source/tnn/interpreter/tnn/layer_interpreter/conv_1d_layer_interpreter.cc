@@ -63,7 +63,7 @@ Status Conv1DLayerInterpreter::InterpretResource(Deserializer& deserializer, Lay
     return TNN_OK;
 }
 
-Status Conv1DLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status Conv1DLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, ConvLayerParam, "invalid layer param to save", param);
 
     output_stream << layer_param->group << " ";
@@ -106,5 +106,6 @@ Status Conv1DLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* 
 }
 
 REGISTER_LAYER_INTERPRETER(Conv1D, LAYER_CONVOLUTION_1D);
+REGISTER_LAYER_INTERPRETER(Conv1D, LAYER_DECONVOLUTION_1D);
 
 }  // namespace TNN_NS

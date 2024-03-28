@@ -70,39 +70,18 @@ DimsVector CalDotOutputShape() {
     return {1};
 }
 
-Status EinsumLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
-}
-
-Status EinsumLayer::InferOutputShape(bool ignore_error) {
-    BaseLayer::InferOutputShape(ignore_error);
-
-    auto inputs  = input_blobs_;
-    auto outputs = output_blobs_;
-
-    auto param = dynamic_cast<EinsumLayerParam *>(param_);
-    if (!param) {
-        return Status(TNNERR_MODEL_ERR, "Error: EinsumLayerParam is nil");
-    }
-
-    param->perm_shapes.clear();
-    param->dim_last_op.clear();
-    param->operand_dims.clear();
-    param->has_zero_size_dim = false;
-    const auto equation    = param->equation;
-    constexpr int ELLIPSIS = '.';
-
-    // Find arrow (->) to split equation into lhs and rhs
-    const auto arrow_pos = equation.find("->");
-    const auto lhs       = equation.substr(0, arrow_pos);
-
-    const auto num_ops = inputs.size();
-
+Status ConvertStoreInputOpLabels(const std::vector<Blob*>& inputs,
+                                 const std::string& equation,
+                                 const int ellipsis,
+                                 std::vector<std::vector<int>>& op_labels) {
     // Convert labels for input operands into an index in [0, 25] and store
     // them in op_labels for each operand along with ELLIPSIS if present.
-    std::vector<std::vector<int>> op_labels(num_ops);
-    bool found_ell      = false;
-    std::size_t curr_op = 0;
+    const auto arrow_pos = equation.find("->");
+    const auto lhs       = equation.substr(0, arrow_pos);
+    const auto num_ops   = inputs.size();
+
+    bool found_ell       = false;
+    std::size_t curr_op  = 0;
     for (auto i = decltype(lhs.length()){0}; i < lhs.length(); ++i) {
         switch (lhs[i]) {
             case ' ':
@@ -120,7 +99,7 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
                                                 " that is not part of any ellipsis";
                     return Status(TNNERR_MODEL_ERR, message);
                 }
-                op_labels[curr_op].push_back(ELLIPSIS);
+                op_labels[curr_op].push_back(ellipsis);
                 found_ell = true;
                 break;
 
@@ -149,18 +128,20 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
     if (curr_op != num_ops - 1) {
         return Status(TNNERR_MODEL_ERR, "einsum() more operands were provided than specified in the equation");
     }
+    
+    return TNN_OK;
+}
 
-    // Labels must be within [a, z].
-    constexpr int TOTAL_LABELS = 'z' - 'a' + 1;
-    std::vector<int> label_count(TOTAL_LABELS, 0);
 
-    // The maximum number of dimensions covered by any ellipsis, needed when
-    // unsqueezing missing dimensions from operands to permute and broadcast
-    int ell_num_dim = 0;
-
+Status CalculateLabelFreq(const std::vector<Blob*>& inputs,
+                          const int ellipsis,
+                          const std::vector<std::vector<int>>& op_labels,
+                          std::vector<int>& label_count,
+                          int& ell_num_dim) {
     // Compute label frequency and number of dimensions covered by ellipsis
     // We do this after parsing labels to make it more readable and simpler
     // to compute the number of dimensions covered by ellipsis.
+    const auto num_ops = inputs.size();
     for (int i = 0; i < num_ops; i++) {
         const auto operand_dims = inputs[i]->GetBlobDesc().dims;
         const auto labels       = op_labels[i];
@@ -169,7 +150,7 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
         bool has_ellipsis       = false;
 
         for (const auto &label : labels) {
-            if (label == ELLIPSIS) {
+            if (label == ellipsis) {
                 --nlabels;
                 has_ellipsis = true;
                 ell_num_dim  = std::max(ell_num_dim, ndims - nlabels);
@@ -189,24 +170,29 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
             return Status(TNNERR_MODEL_ERR, message);
         }
     }
+    return TNN_OK;
+}
 
-    // We want to align the dimensions of every input tensor to have
-    // shape out_dims + sum_dims. For this, we create a mapping of label
-    // to index into the permuted shape.
-    std::vector<int> label_perm_index(TOTAL_LABELS, -1);
 
-    // Current index in the permuted shape
-    int perm_index = 0;
-
-    // Start index of ellipsis dimensions in the permuted shape
-    int ell_index = 0;
-    found_ell     = false;
+Status CalculatePremIndex(const std::vector<Blob*>& inputs,
+                          const std::string& equation,
+                          const std::vector<int>& label_count,
+                          const int total_labels,
+                          const int ell_num_dim,
+                          std::vector<int>& label_perm_index,
+                          int& perm_index,
+                          int& ell_index,
+                          int& out_size) {
+    const auto num_ops   = inputs.size();
+    bool found_ell       = false;
+    const auto arrow_pos = equation.find("->");
+    const auto lhs       = equation.substr(0, arrow_pos);
 
     if (arrow_pos == std::string::npos) {
         // Implicit output is ellipsis (...) + labels seen only once
         perm_index = ell_num_dim;
         found_ell  = true;
-        for (int label = 0; label < TOTAL_LABELS; label++) {
+        for (int label = 0; label < total_labels; label++) {
             if (label_count[label] == 1) {
                 label_perm_index[label] = perm_index++;
             }
@@ -253,9 +239,7 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
         }
     }
 
-    // Save output size before adding contraction dims (dims to sum out)
-    const int out_size = perm_index;
-    param->out_size = out_size;
+    out_size = perm_index;
 
     // If ellipsis is not part of the output, add to contraction dimensions
     if (!found_ell) {
@@ -264,11 +248,90 @@ Status EinsumLayer::InferOutputShape(bool ignore_error) {
     }
 
     // Add contraction labels (labels not present in output)
-    for (int label = 0; label < TOTAL_LABELS; label++) {
+    for (int label = 0; label < total_labels; label++) {
         if (label_count[label] > 0 && label_perm_index[label] == -1) {
             label_perm_index[label] = perm_index++;
         }
     }
+    return TNN_OK;
+}
+
+
+
+
+Status EinsumLayer::InferOutputDataType() {
+    return BaseLayer::InferOutputDataType();
+}
+
+Status EinsumLayer::InferOutputShape(bool ignore_error) {
+    BaseLayer::InferOutputShape(ignore_error);
+
+    auto inputs  = input_blobs_;
+    auto outputs = output_blobs_;
+
+    auto param = dynamic_cast<EinsumLayerParam *>(param_);
+    if (!param) {
+        return Status(TNNERR_MODEL_ERR, "Error: EinsumLayerParam is nil");
+    }
+
+    param->perm_shapes.clear();
+    param->dim_last_op.clear();
+    param->operand_dims.clear();
+    param->has_zero_size_dim = false;
+    const auto equation    = param->equation;
+    constexpr int ELLIPSIS = '.';
+
+    // Find arrow (->) to split equation into lhs and rhs
+    const auto arrow_pos = equation.find("->");
+    const auto lhs       = equation.substr(0, arrow_pos);
+
+    const auto num_ops = inputs.size();
+    std::vector<std::vector<int>> op_labels(num_ops);
+
+    // Convert labels for input operands into an index in [0, 25] and store
+    // them in op_labels for each operand along with ELLIPSIS if present.
+    Status status = ConvertStoreInputOpLabels(inputs, equation, ELLIPSIS, op_labels);
+    if (status != TNN_OK) {
+        return status;
+    }
+
+    // Labels must be within [a, z].
+    constexpr int TOTAL_LABELS = 'z' - 'a' + 1;
+    std::vector<int> label_count(TOTAL_LABELS, 0);
+
+    // The maximum number of dimensions covered by any ellipsis, needed when
+    // unsqueezing missing dimensions from operands to permute and broadcast
+    int ell_num_dim = 0;
+
+    // Compute label frequency and number of dimensions covered by ellipsis
+    // We do this after parsing labels to make it more readable and simpler
+    // to compute the number of dimensions covered by ellipsis.
+    status = CalculateLabelFreq(inputs, ELLIPSIS, op_labels, label_count, ell_num_dim);
+    if (status != TNN_OK) {
+        return status;
+    }
+
+    // We want to align the dimensions of every input tensor to have
+    // shape out_dims + sum_dims. For this, we create a mapping of label
+    // to index into the permuted shape.
+    std::vector<int> label_perm_index(TOTAL_LABELS, -1);
+
+    // Current index in the permuted shape
+    int perm_index = 0;
+
+    // Start index of ellipsis dimensions in the permuted shape
+    int ell_index = 0;
+    
+    // Save output size before adding contraction dims (dims to sum out)
+    int out_size = 0;
+
+    status = CalculatePremIndex(inputs, equation, label_count, TOTAL_LABELS, ell_num_dim,
+                                label_perm_index, perm_index, ell_index, out_size);
+    if (status != TNN_OK) {
+        return status;
+    }
+    param->out_size = out_size;
+
 
     // Here we unsqueeze missing dimensions to make all operands have the same
     // number of dimensions. We take diagonals for repeated labels within the

@@ -83,7 +83,9 @@ Status ReshapeLayer::FillLayerParamWithConstantResource() {
             for (int i=0; i<dim_count; i++) {
                 dims.push_back(dim_data[i]);
             }
-            layer_param->shape = dims;
+            if (layer_param->shape.empty()) {
+                layer_param->shape = dims;
+            }
             layer_param->num_axes = dim_count;
         }
     }
@@ -91,5 +93,6 @@ Status ReshapeLayer::FillLayerParamWithConstantResource() {
 }
 
 REGISTER_LAYER(Reshape, LAYER_RESHAPE);
+REGISTER_LAYER(Reshape, LAYER_RESHAPETORCH);
 
 }  // namespace TNN_NS

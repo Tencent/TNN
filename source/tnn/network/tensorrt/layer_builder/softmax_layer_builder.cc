@@ -24,11 +24,15 @@ ILayer* SoftmaxTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
     ILayer* layer;
+    auto tensor = GetInputITensors()[0];
+    int size = tensor->getDimensions().nbDims;
+    int axis = paramlist->axis;
+    axis = axis < 0 ? axis + size : axis;
 
     ISoftMaxLayer* softmax_layer = network->addSoftMax(*input_tensor);
     if (softmax_layer != nullptr) {
         softmax_layer->setName(layer_name_.c_str());
-        softmax_layer->setAxes(1 << paramlist->axis);
+        softmax_layer->setAxes(1 << axis);
         input_tensor = softmax_layer->getOutput(0);
         layer = softmax_layer;
     }

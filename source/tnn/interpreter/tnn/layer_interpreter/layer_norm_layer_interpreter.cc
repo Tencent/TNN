@@ -29,7 +29,7 @@ Status LayerNormLayerInterpreter::InterpretResource(Deserializer& deserializer, 
     return TNN_OK;
 }
 
-Status LayerNormLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status LayerNormLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, LayerNormLayerParam, "invalid layer norm layer param to save", param);
     output_stream << layer_param->reduce_dims_size << " ";
     output_stream << layer_param->eps << " ";

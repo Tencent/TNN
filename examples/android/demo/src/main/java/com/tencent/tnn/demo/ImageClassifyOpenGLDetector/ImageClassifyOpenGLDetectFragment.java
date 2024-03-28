@@ -36,6 +36,8 @@ public class ImageClassifyOpenGLDetectFragment extends BaseFragment {
     private ToggleButton mHuaweiNPUswitch;
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
+    // add for qualcomm SNPE
+    private boolean mUseSNPE = false;
 
     /**********************************     Get Preview Advised    **********************************/
 
@@ -45,7 +47,9 @@ public class ImageClassifyOpenGLDetectFragment extends BaseFragment {
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
         String modelPath = initModel();
-
+        if (mUseSNPE) {
+            System.loadLibrary("SNPE");
+        }
         // OpenGL Demo not support huawei npu
         NpuEnable = false;
     }
@@ -57,6 +61,7 @@ public class ImageClassifyOpenGLDetectFragment extends BaseFragment {
         String[] modelPathsDetector = {
                 "squeezenet_v1.1.tnnmodel",
                 "squeezenet_v1.1.tnnproto",
+                "squeezenet_v1.1.dlc",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
@@ -171,6 +176,8 @@ public class ImageClassifyOpenGLDetectFragment extends BaseFragment {
         int device = 0;
         if (mUseHuaweiNpu) {
             device = 2;
+        } else if (mUseSNPE) {
+            device = 3;
         } else if (mUseGPU) {
             device = 1;
         }

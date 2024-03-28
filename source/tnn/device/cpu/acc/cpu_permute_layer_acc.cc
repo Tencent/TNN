@@ -55,12 +55,18 @@ Status CpuPermuteLayerAcc::Forward(const std::vector<Blob *> &inputs, const std:
         output_step.push_back(CpuPermuteLayerAcc::count(output_dims, i + 1));
     }
 
-    if (data_type != DATA_TYPE_INT8) {
+    if (data_type == DATA_TYPE_INT32 || data_type == DATA_TYPE_FLOAT) {
+        // 32-bit data types.
         float *input_data  = static_cast<float *>(input_blob->GetHandle().base);
         float *output_data = static_cast<float *>(output_blob->GetHandle().base);
         NaivePermute<float>(output_count, output_dims, input_data, param->orders, input_step, output_step, num_dims, output_data);
+    } else if (data_type == DATA_TYPE_BFP16 || data_type == DATA_TYPE_HALF) {
+        // 16-bit data types.
+        fp16_t *input_data  = static_cast<fp16_t *>(input_blob->GetHandle().base);
+        fp16_t *output_data = static_cast<fp16_t *>(output_blob->GetHandle().base);
+        NaivePermute<fp16_t>(output_count, output_dims, input_data, param->orders, input_step, output_step, num_dims, output_data);
     } else {
-        // DATA_TYPE_INT8
+        // 8-bit data types. DATA_TYPE_INT8
         int8_t *input_data  = static_cast<int8_t *>(input_blob->GetHandle().base);
         int8_t *output_data = static_cast<int8_t *>(output_blob->GetHandle().base);
         NaivePermute<int8_t>(output_count, output_dims, input_data, param->orders, input_step, output_step, num_dims, output_data);

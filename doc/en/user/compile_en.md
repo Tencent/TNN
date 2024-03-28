@@ -260,6 +260,42 @@ PARALLEL_LEVEL=4 cmake -D CMAKE_BUILD_TYPE=Release \
       -G Ninja ..
 ninja
 ```
+## X、Compile(ATLAS) 
+
+### 1. Environment requirements
+#### Dependencies
+
+  - cmake（version 3.1 or higher）
+  - Install arm toolchain
+  - ubuntu: aarch64: sudo apt-get install g++-aarch64-linux-gnu  gcc-aarch64-linux-gnu
+  - other linux: download toolchains from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
+  - CANN environment dependencies:
+    toolkit package: wget https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/6.0.0.alpha003/Ascend-cann-toolkit_6.0.0.alpha003_linux-aarch64.run
+    kernel package: wget https://ascend-repo.obs.cn-east-2.myhuaweicloud.com/CANN/6.0.0.alpha003/Ascend-cann-kernels-310p_6.0.0.alpha003_linux.run 
+    chmod a+x Ascend-cann-toolkit_6.0.0.alpha003_linux-aarch64.run && chmod a+x Ascend-cann-kernels-310p_6.0.0.alpha003_linux.run
+    ./Ascend-cann-toolkit_6.0.0.alpha003_linux-aarch64.run --install  # Default installation path:/usr/local/Ascend/ascend-toolkit
+    ./Ascend-cann-kernels-310p_6.0.0.alpha003_linux.run --install
+### 2. Compilation Steps
+1）switch to 'scripts' dir
+```
+cd <path_to_tnn>/scripts
+```
+2）edit `build_aarch64_linux.sh` or `build_armhf_linux.sh` to config the building options  
+```
+ SHARED_LIB="ON"                # ON for dynamic lib，OFF for static lib
+ ARM="ON"                       # ON to build for ARM CPU
+ OPENMP="ON"                    # ON to enable OpenMP
+ OPENCL="OFF"                   # ON to build for GPU
+ RKNPU="OFF"                    # ON to build for RKNPU 
+ #for arm64:
+ CC=aarch64-linux-gnu-gcc       # set compiler for aarch64 C
+ CXX=aarch64-linux-gnu-g++      # set compiler for aarch64 C++
+ TARGET_ARCH=aarch64
+```
+3）execute the building script
+```
+./build_aarch64_linux.sh
+```
 
 ## Description for build options 
 
@@ -272,7 +308,7 @@ ninja
 |TNN_METAL_ENABLE| OFF | Code source/device/metal compilation switch, the code contains metal acceleration instructions.|
 |TNN_OPENCL_ENABLE| OFF | Code source/device/opencl compilation switch, the code contains opencl acceleration instructions.|
 |TNN_CUDA_ENABLE| OFF | Code source/device/cuda compilation switch, the code contains cuda acceleration instructions, currently only a small part of the implementation has been migrated.|
-|TNN_DSP_ENABLE| OFF | Code source/device/dsp compilation switch, currently adapted to snpe implementation.|
+|TNN_SNPE_ENABLE| OFF | Code source/device/snpe compilation switch, currently adapted to Qualcomm SNPE dsp implementation.|
 |TNN_ATLAS_ENABLE| OFF | The code source/device/atlas compilation switch is currently adapted to Huawei's atlas acceleration framework.|
 |TNN_HUAWEI_NPU_ENABLE| OFF | The code source/device/huawei_npu compilation switch is currently adapted to the HiAI acceleration framework.|
 |TNN_RK_NPU_ENABLE| OFF | The code source/device/rknpu compilation switch is currently adapted to the rknpu_ddk acceleration framework.|

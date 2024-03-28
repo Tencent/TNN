@@ -43,7 +43,7 @@ Status PermuteLayerInterpreter::InterpretResource(Deserializer& deserializer, La
     return TNN_OK;
 }
 
-Status PermuteLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status PermuteLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     PermuteLayerParam* layer_param = dynamic_cast<PermuteLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

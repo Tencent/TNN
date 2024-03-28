@@ -36,6 +36,8 @@ DEFINE_int32(wc, 0, warm_up_count_message);
 
 DEFINE_string(ip, "", input_path_message);
 
+DEFINE_string(im, "", input_map_message);
+
 DEFINE_string(op, "", output_path_message);
 
 DEFINE_bool(fc, false, output_format_cmp_message);
@@ -46,16 +48,22 @@ DEFINE_bool(ub, false, unit_test_benchmark_message);
 
 DEFINE_int32(th, 1, cpu_thread_num_message);
 
-DEFINE_int32(it, 0, input_format_message);
+DEFINE_int32(if, 0, input_format_message);
 
 DEFINE_string(pr, "AUTO", precision_message);
 
 DEFINE_string(is, "", input_shape_message);
+
+DEFINE_string(it, "", input_data_type_message);
 
 DEFINE_bool(et, false, enable_tune_message);
 
 DEFINE_string(sc, "", scale_message);
 
 DEFINE_string(bi, "", bias_message);
+
+DEFINE_int32(tt, 1, test_thread_num_message);
+
+DEFINE_string(cp, "", cache_path_message);
 
 }  // namespace TNN_NS

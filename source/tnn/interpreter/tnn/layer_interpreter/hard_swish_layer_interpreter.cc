@@ -37,7 +37,7 @@ Status HardSwishLayerInterpreter::InterpretResource(Deserializer& deserializer, 
     return TNN_OK;
 }
 
-Status HardSwishLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status HardSwishLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<HardSwishLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

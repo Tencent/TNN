@@ -56,7 +56,7 @@ Status DetectionPostProcessLayerInterpreter::InterpretResource(Deserializer &des
     return TNN_OK;
 }
 
-Status DetectionPostProcessLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status DetectionPostProcessLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     CAST_OR_RET_ERROR(layer_param, DetectionPostProcessLayerParam, "invalid layer param to save", param);
 
     output_stream << layer_param->max_detections << " ";

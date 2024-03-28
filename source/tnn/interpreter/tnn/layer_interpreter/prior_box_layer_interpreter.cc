@@ -77,7 +77,7 @@ Status PriorBoxLayerInterpreter::InterpretResource(Deserializer &deserializer, L
     return TNN_OK;
 }
 
-Status PriorBoxLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status PriorBoxLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     PriorBoxLayerParam *layer_param = dynamic_cast<PriorBoxLayerParam *>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

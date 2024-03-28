@@ -45,16 +45,19 @@ public:
     //@brief create foreignBlob with blob only
     ForeignBlob(Blob * blob);
 
-    ~ForeignBlob();    
+    virtual ~ForeignBlob();    
 
     //@brief get the ForeignTensor
     std::shared_ptr<ForeignTensor> GetForeignTensor();
 
     //@brief set the ForeignTensor
-    Status SetForeignTensor(std::shared_ptr<ForeignTensor> foreign_tensor);
+    Status SetForeignTensor(std::shared_ptr<ForeignTensor> foreign_tensor, bool replace = false);
+
+    //@brief get replace flag
+    bool GetReplaceFlag();
 
 protected:
-
+    bool is_replaced_ = false;
     std::shared_ptr<ForeignTensor> foreign_tensor_;
 
 };

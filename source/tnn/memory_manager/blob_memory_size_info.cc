@@ -24,12 +24,21 @@ int64_t GetBlobMemoryBytesSize(BlobMemorySizeInfo& size_info) {
         return dims_count * DataTypeUtils::GetBytesSize(size_info.data_type);
 
     } else if (size_info.dims.size() == 2) {
-        // 2d blob memory with 4 channel
-        int64_t dims_count = 1;
-        for (auto dim : size_info.dims) {
-            dims_count *= dim;
+        if (size_info.data_type == DATA_TYPE_INT8) {
+            // 2b int8 blob memory with 1 channel, for large memory allocate
+            int64_t dims_count = 1;
+            for (auto dim : size_info.dims) {
+                dims_count *= dim;
+            }
+            return dims_count * DataTypeUtils::GetBytesSize(size_info.data_type);
+        } else {
+            // 2d blob memory with 4 channel
+            int64_t dims_count = 1;
+            for (auto dim : size_info.dims) {
+                dims_count *= dim;
+            }
+            return dims_count * 4 * DataTypeUtils::GetBytesSize(size_info.data_type);
         }
-        return dims_count * 4 * DataTypeUtils::GetBytesSize(size_info.data_type);
     } else {
         return 0;
     }

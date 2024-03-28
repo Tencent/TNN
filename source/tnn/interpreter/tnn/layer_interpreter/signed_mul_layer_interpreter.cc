@@ -35,7 +35,7 @@ DECLARE_LAYER_INTERPRETER(SignedMul, LAYER_SIGNED_MUL);
         return TNN_OK;
     }
 
-    Status SignedMulLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+    Status SignedMulLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
         auto layer_param = dynamic_cast<SignedMulLayerParam*>(param);
 
         if (nullptr == layer_param) {
