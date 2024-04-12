@@ -12,10 +12,10 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/atlas/atlas_blob_converter.h"
+
 
 #include "tnn/core/macro.h"
-#include "tnn/device/atlas/atlas_runtime.h"
+#include "tnn/device/atlas/atlas_blob_converter.h"
 #include "tnn/device/atlas/atlas_utils.h"
 #include "tnn/memory_manager/blob_memory_size_info.h"
 #include "tnn/utils/blob_memory_size_utils.h"
@@ -31,17 +31,16 @@ AtlasBlobConverterAcc::AtlasBlobConverterAcc(Blob *blob) : BlobConverterAcc(blob
     blob_bytesize_               = GetBlobMemoryBytesSize(size_info);
     LOGD("blob bytesize: %d\n", blob_bytesize_);
 
-    auto model_info_map = AtlasRuntime::GetInstance()->GetModleInfoMap();
     // for input blob, need to find model info
-    if (model_info_map.find(blob) != model_info_map.end()) {
-        model_info_ = model_info_map[blob];
+    if (global_blob_om_model_info_map.find(blob) != global_blob_om_model_info_map.end()) {
+        om_model_info_ = global_blob_om_model_info_map[blob];
         aclError acl_ret =
-            aclmdlGetInputIndexByName(model_info_.model_desc, ACL_DYNAMIC_AIPP_NAME, &dynamic_aipp_index_);
+            aclmdlGetInputIndexByName(om_model_info_->model_desc, ACL_DYNAMIC_AIPP_NAME, &dynamic_aipp_index_);
         LOGD("acl ret: %d  input_index: %d\n", acl_ret, dynamic_aipp_index_);
         if (ACL_ERROR_NONE == acl_ret) {
             aipp_type_ = AIPP_DYNAMIC;
         } else {
-            if (model_info_.has_aipp) {
+            if (!(om_model_info_->aipp_input_format_map.empty())) {
                 aipp_type_ = AIPP_STATIC;
             } else {
                 aipp_type_ = AIPP_NONE;
@@ -73,13 +72,13 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
         return Status(TNNERR_PARAM_ERR, "not support postprocess yet!");
     }
 
-    auto atlas_cmd_queue = static_cast<AtlasCommandQueue *>(command_queue);
-    if (atlas_cmd_queue == nullptr) {
+    aclrtStream stream_ptr = static_cast<aclrtStream>(command_queue);
+    if (stream_ptr == nullptr) {
         LOGE("get atlas command queue failed!\n");
         return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
     }
 
-    acl_ret = aclrtSetCurrentContext(atlas_cmd_queue->context);
+    acl_ret = aclrtSetCurrentContext(global_stream_context_map[stream_ptr]);
     if (acl_ret != ACL_ERROR_NONE) {
         LOGE("set context failed\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set context failed");
@@ -95,7 +94,7 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
         LOGD("Convert To Mat:  mat type: %d, mat device type: %d, byte_size: %d.\n", mat.GetMatType(), mat.GetDeviceType(), blob_bytesize_);
         if (DATA_FORMAT_NCHW == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
             tnn_ret = AtlasMemoryCopyAsync(mat.GetData(), blob_->GetHandle().base, mat.GetDeviceType(), blob_bytesize_,
-                                           atlas_cmd_queue->stream, false);
+                                           stream_ptr, false);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
@@ -105,12 +104,12 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
                     buffer_.reset(new char[blob_bytesize_], [](char *p) { delete[] p; });
                 }
                 tnn_ret = AtlasMemoryCopyAsync(buffer_.get(), blob_->GetHandle().base, DEVICE_NAIVE, blob_bytesize_,
-                                               atlas_cmd_queue->stream, false);
+                                               stream_ptr, false);
                 if (tnn_ret != TNN_OK)
                     return tnn_ret;
                 // force sync
                 LOGD("force sync to get buffer data\n");
-                acl_ret = aclrtSynchronizeStream(atlas_cmd_queue->stream);
+                acl_ret = aclrtSynchronizeStream(stream_ptr);
                 if (acl_ret != ACL_ERROR_NONE) {
                     return Status(TNNERR_ATLAS_RUNTIME_ERROR, "stream sync failed");
                 }
@@ -127,12 +126,12 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
                     buffer_.reset(new char[blob_bytesize_], [](char *p) { delete[] p; });
                 }
                 tnn_ret = AtlasMemoryCopyAsync(buffer_.get(), blob_->GetHandle().base, DEVICE_NAIVE, blob_bytesize_,
-                                               atlas_cmd_queue->stream, false);
+                                               stream_ptr, false);
                 if (tnn_ret != TNN_OK)
                     return tnn_ret;
                 // force sync
                 LOGD("force sync to get buffer data\n");
-                acl_ret = aclrtSynchronizeStream(atlas_cmd_queue->stream);
+                acl_ret = aclrtSynchronizeStream(stream_ptr);
                 if (acl_ret != ACL_ERROR_NONE) {
                     return Status(TNNERR_ATLAS_RUNTIME_ERROR, "stream sync failed");
                 }
@@ -159,14 +158,14 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
         LOGD("Convert To NC_INT32 Mat: mat type: %d, mat device type: %d, byte_size: %d.\n", mat.GetMatType(), mat.GetDeviceType(), blob_bytesize_);
         if (DATA_TYPE_INT32 == blob_datatype) {
             tnn_ret = AtlasMemoryCopyAsync(mat.GetData(), blob_->GetHandle().base, mat.GetDeviceType(), blob_bytesize_,
-                                           atlas_cmd_queue->stream, false);
+                                           stream_ptr, false);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else if (DATA_TYPE_FLOAT == blob_datatype) {
             LOGD("WARNING: Target Blob name is '%s', internally convert Blob DataType from FLOAT to INT32.", blob_->GetBlobDesc().name.c_str());
             blob_->GetBlobDesc().data_type = DATA_TYPE_INT32;
             tnn_ret = AtlasMemoryCopyAsync(mat.GetData(), blob_->GetHandle().base, mat.GetDeviceType(), blob_bytesize_,
-                                           atlas_cmd_queue->stream, false);
+                                           stream_ptr, false);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else {
@@ -177,7 +176,7 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
         LOGD("Convert To NC_INT64 Mat: mat type: %d, mat device type: %d, byte_size: %d.\n", mat.GetMatType(), mat.GetDeviceType(), blob_bytesize_);
         if (DATA_TYPE_INT64 == blob_datatype) {
             tnn_ret = AtlasMemoryCopyAsync(mat.GetData(), blob_->GetHandle().base, mat.GetDeviceType(), blob_bytesize_,
-                                           atlas_cmd_queue->stream, false);
+                                           stream_ptr, false);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else if (DATA_TYPE_FLOAT == blob_datatype || DATA_TYPE_INT32 == blob_datatype) {
@@ -186,7 +185,7 @@ Status AtlasBlobConverterAcc::ConvertToMatAsync(Mat &mat, MatConvertParam param,
             BlobMemorySizeInfo new_size_info = Calculate1DMemorySize(blob_->GetBlobDesc());
             blob_bytesize_                   = GetBlobMemoryBytesSize(new_size_info);  // sizeof(int64_t) == 8, re-calculate ByteSize
             tnn_ret = AtlasMemoryCopyAsync(mat.GetData(), blob_->GetHandle().base, mat.GetDeviceType(), blob_bytesize_,
-                                           atlas_cmd_queue->stream, false);
+                                           stream_ptr, false);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else {
@@ -210,27 +209,30 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam para
     Status tnn_ret   = TNN_OK;
     aclError acl_ret = ACL_ERROR_NONE;
 
-    auto atlas_cmd_queue = static_cast<AtlasCommandQueue *>(command_queue);
-    if (atlas_cmd_queue == nullptr) {
+    aclrtStream stream_ptr = static_cast<aclrtStream>(command_queue);
+    if (stream_ptr == nullptr) {
         LOGE("get atlas command queue failed!\n");
         return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
     }
 
-    acl_ret = aclrtSetCurrentContext(atlas_cmd_queue->context);
+    aclrtContext aclrt_context = global_stream_context_map[stream_ptr];
+    acl_ret = aclrtSetCurrentContext(aclrt_context);
     if (acl_ret != ACL_ERROR_NONE) {
         LOGE("set context failed\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "set context failed");
     }
 
     if (AIPP_DYNAMIC == aipp_type_) {
-        LOGD("run with dynamic aipp\n");
-        tnn_ret = ConvertFromMatAsyncWithDynamicAipp(mat, param, atlas_cmd_queue);
+        //LOGD("run with dynamic aipp\n");
+        //tnn_ret = ConvertFromMatAsyncWithDynamicAipp(mat, param, stream_ptr);
+        LOGE("Convert From Mat With Dynamic AIPP NOT SUPPORTED yet.\n");
+        return Status(TNNERR_NULL_PARAM, "Convert From Mat With Dynamic AIPP NOT SUPPORTED yet");
     } else if (AIPP_STATIC == aipp_type_) {
         LOGD("run with static aipp\n");
-        tnn_ret = ConvertFromMatAsyncWithStaticAipp(mat, param, atlas_cmd_queue);
+        tnn_ret = ConvertFromMatAsyncWithStaticAipp(mat, param, stream_ptr);
     } else {
         LOGD("run without aipp\n");
-        tnn_ret = ConvertFromMatAsyncWithoutAipp(mat, param, atlas_cmd_queue);
+        tnn_ret = ConvertFromMatAsyncWithoutAipp(mat, param, stream_ptr);
     }
 
     return tnn_ret;
@@ -239,12 +241,13 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsync(Mat &mat, MatConvertParam para
 Status AtlasBlobConverterAcc::ConvertToMat(Mat &mat, MatConvertParam param, void *command_queue) {
     Status ret = ConvertToMatAsync(mat, param, command_queue);
     if (ret == TNN_OK) {
-        auto atlas_cmd_queue = static_cast<AtlasCommandQueue *>(command_queue);
-        if (atlas_cmd_queue == nullptr) {
+        aclrtStream stream_ptr = static_cast<aclrtStream>(command_queue);
+        if (stream_ptr == nullptr) {
             LOGE("get atlas command queue failed!\n");
             return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
         }
-        aclError acl_ret = aclrtSynchronizeStream(atlas_cmd_queue->stream);
+
+        aclError acl_ret = aclrtSynchronizeStream(stream_ptr);
         if (acl_ret != ACL_ERROR_NONE) {
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "stream sync failed");
         }
@@ -260,12 +263,13 @@ Status AtlasBlobConverterAcc::ConvertFromMat(Mat &mat, MatConvertParam param, vo
 
     Status ret = ConvertFromMatAsync(mat, param, command_queue);
     if (ret == TNN_OK) {
-        auto atlas_cmd_queue = static_cast<AtlasCommandQueue *>(command_queue);
-        if (atlas_cmd_queue == nullptr) {
+        aclrtStream stream_ptr = static_cast<aclrtStream>(command_queue);
+        if (stream_ptr == nullptr) {
             LOGE("get atlas command queue failed!\n");
             return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
         }
-        aclError acl_ret = aclrtSynchronizeStream(atlas_cmd_queue->stream);
+
+        aclError acl_ret = aclrtSynchronizeStream(stream_ptr);
         if (acl_ret != ACL_ERROR_NONE) {
             return Status(TNNERR_ATLAS_RUNTIME_ERROR, "stream sync failed");
         }
@@ -274,7 +278,7 @@ Status AtlasBlobConverterAcc::ConvertFromMat(Mat &mat, MatConvertParam param, vo
 }
 
 Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConvertParam param,
-                                                             AtlasCommandQueue *atlas_cmd_queue) {
+                                                             const aclrtStream& aclrt_stream) {
     Status tnn_ret   = TNN_OK;
     aclError acl_ret = ACL_ERROR_NONE;
 
@@ -303,7 +307,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
     if (NCHW_FLOAT == mat.GetMatType()) {
         if (DATA_FORMAT_NCHW == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
             tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
-                                           atlas_cmd_queue->stream, true);
+                                           aclrt_stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else if (DATA_FORMAT_NHWC == blob_dataformat && DATA_TYPE_FLOAT == blob_datatype) {
@@ -319,7 +323,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
                                                                 blob_dim[0], blob_dim[3], blob_dim[1], blob_dim[2]);
 
                 tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, buffer_.get(), DEVICE_NAIVE, mat_bytesize,
-                                               atlas_cmd_queue->stream, true);
+                                               aclrt_stream, true);
                 if (tnn_ret != TNN_OK)
                     return tnn_ret;
             } else {
@@ -332,14 +336,14 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
         LOGD("Convert from NC_INT32 Mat: mat device type: %d\n", mat.GetDeviceType());
         if (DATA_TYPE_INT32 == blob_datatype) {
             tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
-                                           atlas_cmd_queue->stream, true);
+                                           aclrt_stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else if (DATA_TYPE_FLOAT == blob_datatype) {
             LOGD("WARNING: Target Blob name is '%s', internally convert Blob DataType from FLOAT to INT32.", blob_->GetBlobDesc().name.c_str());
             blob_->GetBlobDesc().data_type = DATA_TYPE_INT32;
             tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
-                                           atlas_cmd_queue->stream, true);
+                                           aclrt_stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else {
@@ -350,7 +354,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
         LOGD("Convert from NC_INT64 Mat: mat device type: %d\n", mat.GetDeviceType());
         if (DATA_TYPE_INT64 == blob_datatype) {
             tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
-                                           atlas_cmd_queue->stream, true);
+                                           aclrt_stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else if (DATA_TYPE_FLOAT == blob_datatype || DATA_TYPE_INT32 == blob_datatype) {
@@ -359,7 +363,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
             BlobMemorySizeInfo new_size_info = Calculate1DMemorySize(blob_->GetBlobDesc());
             blob_bytesize_                   = GetBlobMemoryBytesSize(new_size_info);  // sizeof(int64_t) == 8, re-calculate ByteSize
             tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
-                                           atlas_cmd_queue->stream, true);
+                                           aclrt_stream, true);
             if (tnn_ret != TNN_OK)
                 return tnn_ret;
         } else {
@@ -374,7 +378,7 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithoutAipp(Mat &mat, MatConver
 }
 
 Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithStaticAipp(Mat &mat, MatConvertParam param,
-                                                                AtlasCommandQueue *atlas_cmd_queue) {
+                                                                const aclrtStream& aclrt_stream) {
     Status tnn_ret   = TNN_OK;
     aclError acl_ret = ACL_ERROR_NONE;
 
@@ -391,14 +395,15 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithStaticAipp(Mat &mat, MatCon
         return tnn_ret;
     }
 
+    auto aipp_input_format = om_model_info_->aipp_input_format_map[blob_->GetBlobDesc().name];
+
     LOGD("Convert From Mat:  mat type: %d  mat device type: %d  acl input format:%d\n", mat.GetMatType(),
-         mat.GetDeviceType(), model_info_.aipp_input_format);
-    if ((N8UC3 == mat.GetMatType() && ACL_RGB888_U8 == model_info_.aipp_input_format) ||
-        (NGRAY == mat.GetMatType() && ACL_YUV400_U8 == model_info_.aipp_input_format) ||
-        ((NNV12 == mat.GetMatType() || NNV21 == mat.GetMatType()) &&
-         ACL_YUV420SP_U8 == model_info_.aipp_input_format)) {
+         mat.GetDeviceType(), aipp_input_format);
+    if ((N8UC3 == mat.GetMatType() && ACL_RGB888_U8 == aipp_input_format) ||
+        (NGRAY == mat.GetMatType() && ACL_YUV400_U8 == aipp_input_format) ||
+        ((NNV12 == mat.GetMatType() || NNV21 == mat.GetMatType()) && ACL_YUV420SP_U8 == aipp_input_format)) {
         tnn_ret = AtlasMemoryCopyAsync(blob_->GetHandle().base, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
-                                       atlas_cmd_queue->stream, true);
+                                       aclrt_stream, true);
         if (tnn_ret != TNN_OK)
             return tnn_ret;
     } else {
@@ -409,13 +414,14 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithStaticAipp(Mat &mat, MatCon
 }
 
 Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithDynamicAipp(Mat &mat, MatConvertParam param,
-                                                                 AtlasCommandQueue *atlas_cmd_queue) {
+                                                                 const aclrtStream& aclrt_stream) {
+    /*
     Status tnn_ret = SetDynamicAipp(mat, param);
     if (TNN_OK != tnn_ret) {
         LOGE("set dynamic aipp failed!\n");
         return tnn_ret;
     }
-    auto data_buffer = aclmdlGetDatasetBuffer(model_info_.input_dataset, 0);
+    auto data_buffer = aclmdlGetDatasetBuffer(om_model_info_.input_dataset, 0);
     if (nullptr == data_buffer) {
         LOGE("get data buffer from dataset failed!\n");
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "get data buffer failed");
@@ -441,9 +447,11 @@ Status AtlasBlobConverterAcc::ConvertFromMatAsyncWithDynamicAipp(Mat &mat, MatCo
     }
 
     tnn_ret = AtlasMemoryCopyAsync(data_buffer_ptr, mat.GetData(), mat.GetDeviceType(), mat_bytesize,
-                                   atlas_cmd_queue->stream, true);
+                                   aclrt_stream, true);
 
     return tnn_ret;
+    */
+    return TNN_OK;
 }
 
 bool AtlasBlobConverterAcc::NeedDoScaleBias(MatConvertParam &param) {
@@ -492,11 +500,12 @@ Status AtlasBlobConverterAcc::AtlasMemoryCopyAsync(void *dst, void *src, DeviceT
 }
 
 Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
+    /*
     aclError acl_ret = ACL_ERROR_NONE;
     Status tnn_ret   = TNN_OK;
 
     if (nullptr == aipp_dynamic_set_) {
-        aipp_mat_batchsize_ = GetMaxBatchSize(model_info_.model_desc, blob_->GetBlobDesc().dims[0]);
+        aipp_mat_batchsize_ = GetMaxBatchSize(om_model_info_->model_desc, blob_->GetBlobDesc().dims[0]);
         aipp_dynamic_set_   = aclmdlCreateAIPP(aipp_mat_batchsize_);
         if (nullptr == aipp_dynamic_set_) {
             LOGE("create aipp info failed\n");
@@ -593,10 +602,11 @@ Status AtlasBlobConverterAcc::SetDynamicAipp(Mat &mat, MatConvertParam &param) {
 
     // set input aipp
     acl_ret =
-        aclmdlSetInputAIPP(model_info_.model_id, model_info_.input_dataset, dynamic_aipp_index_, aipp_dynamic_set_);
+        aclmdlSetInputAIPP(om_model_info_->model_id, om_model_info_.input_dataset, dynamic_aipp_index_, aipp_dynamic_set_);
     if (ACL_ERROR_NONE != acl_ret) {
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "aipp set input failed!\n");
     }
+    */
 
     return TNN_OK;
 }

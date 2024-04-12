@@ -37,9 +37,9 @@ public:
     virtual Status ConvertFromMatAsync(Mat& mat, MatConvertParam param, void* command_queue = NULL);
 
 private:
-    Status ConvertFromMatAsyncWithoutAipp(Mat& mat, MatConvertParam param, AtlasCommandQueue* atlas_cmd_queue);
-    Status ConvertFromMatAsyncWithStaticAipp(Mat& mat, MatConvertParam param, AtlasCommandQueue* atlas_cmd_queue);
-    Status ConvertFromMatAsyncWithDynamicAipp(Mat& mat, MatConvertParam param, AtlasCommandQueue* atlas_cmd_queue);
+    Status ConvertFromMatAsyncWithoutAipp(Mat& mat, MatConvertParam param, const aclrtStream& aclrt_stream);
+    Status ConvertFromMatAsyncWithStaticAipp(Mat& mat, MatConvertParam param, const aclrtStream& aclrt_stream);
+    Status ConvertFromMatAsyncWithDynamicAipp(Mat& mat, MatConvertParam param, const aclrtStream& aclrt_stream);
 
     bool NeedDoScaleBias(MatConvertParam& param);
     Status AtlasMemoryCopyAsync(void* dst, void* src, DeviceType mat_device_type, int bytes, void* stream,
@@ -55,7 +55,7 @@ private:
     AippType aipp_type_           = AIPP_NONE;
     int aipp_mat_batchsize_       = 0;
     size_t dynamic_aipp_index_    = 0;
-    AtlasModelInfo model_info_;
+    std::shared_ptr<AtlasOMModelInfo> om_model_info_;
 };
 
 }  // namespace TNN_NS

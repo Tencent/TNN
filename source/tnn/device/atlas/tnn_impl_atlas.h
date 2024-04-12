@@ -1,4 +1,16 @@
-// Copyright 2019 Tencent. All Rights Reserved
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2024 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
 
 #ifndef TNN_SOURCE_DEVICE_ATLAS_TNN_IMPL_ATLAS_H_
 #define TNN_SOURCE_DEVICE_ATLAS_TNN_IMPL_ATLAS_H_
@@ -20,8 +32,7 @@ public:
 
     // @brief init the tnn, contruct model interpreter
     // @param config config model type and params
-    // @return status code: Successful, returns zero. Otherwise, returns
-    // error code.
+    // @return status code: 0 if succeed elsewise error codes
     virtual Status Init(ModelConfig& config);
 
     // @brief release model interpreter
@@ -31,9 +42,7 @@ public:
     // outputIndex.
     //@param output_name Name of the output blob
     //@param output_index Index of the output layer
-    //@return status code: If successful, returns zero. Otherwise, returns
-    // error
-    // code.
+    //@return status code: 0 if succeed elsewise error codes
     virtual Status AddOutput(const std::string& output_name, int output_index = 0);
 
     //@brief get input shapes map from model
@@ -50,10 +59,8 @@ public:
 
     // @brief create an instance
     // @param instance: The instance to be created.
-    // @param inputs_shape: modify input shape, or it will use the shape in the
-    // proto
-    // @param status code: If successful, returns zero. Otherwise, returns
-    // error code.
+    // @param inputs_shape: modify input shape, or it will use shape in the proto
+    // @param status code: 0 if succeed elsewise error codes
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
                                                  InputShapesMap inputs_shape = InputShapesMap(),
                                                  InputDataTypeMap inputs_data_type = InputDataTypeMap());
@@ -62,19 +69,20 @@ public:
     // @param instance: The instance to be created.
     // @param min_inputs_shape: support min shape
     // @param max_inputs_shape: support max shape
-    // @param status code: If successful, returns zero. Otherwise, returns
-    // error code.
+    // @param status code: 0 if succeed elsewise error codes
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status, InputShapesMap min_inputs_shape,
                                                  InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type = InputDataTypeMap());
 
 private:
     std::shared_ptr<AbstractModelInterpreter> interpreter_;
+    ModelType model_type_;
+    bool acl_init_called_ = false;
 
-    // Model Desc and Model id for the first instance.
+    // OM Model Desc and OM Model id for the first instance.
     // Set when the first Effective CreateInst is called.
     // Usage: Get input/output names, shapes, datatypes ... etc.
-    uint32_t model_id_of_the_first_instance_ = 0;
-    aclmdlDesc* model_desc_of_the_first_instance_ = nullptr;
+    uint32_t om_model_id_of_the_first_instance_ = 0;
+    aclmdlDesc* om_model_desc_of_the_first_instance_ = nullptr;
 };
 
 }  // namespace TNN_NS

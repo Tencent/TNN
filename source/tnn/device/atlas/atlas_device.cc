@@ -1,6 +1,6 @@
 // Tencent is pleased to support the open source community by making TNN available.
 //
-// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+// Copyright (C) 2024 THL A29 Limited, a Tencent company. All rights reserved.
 //
 // Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -12,8 +12,9 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/atlas/atlas_device.h"
 #include "acl/ops/acl_dvpp.h"
+#include "tnn/device/atlas/atlas_context.h"
+#include "tnn/device/atlas/atlas_device.h"
 #include "tnn/utils/blob_memory_size_utils.h"
 #include "tnn/utils/dims_vector_utils.h"
 
@@ -107,8 +108,17 @@ AbstractLayerAcc* AtlasDevice::CreateLayerAcc(LayerType type) {
     return nullptr;
 }
 
-Context* AtlasDevice::CreateContext(int) {
-    return nullptr;
+Context* AtlasDevice::CreateContext(int device_id) {
+    auto context = new AtlasContext();
+    
+    Status ret = context->Setup(device_id);
+    if (ret != TNN_OK) {
+        LOGE("Cuda context setup failed.");
+        delete context;
+        return NULL;
+    }
+
+    return context;
 }
 
 NetworkType AtlasDevice::ConvertAutoNetworkType() {

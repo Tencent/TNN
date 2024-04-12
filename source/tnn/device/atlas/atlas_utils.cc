@@ -7,47 +7,6 @@
 
 namespace TNN_NS {
 
-std::vector<std::string> SplitPath(const std::string& str, const std::set<char> delimiters) {
-    std::vector<std::string> result;
-    char const* pch   = str.c_str();
-    char const* start = pch;
-    for (; *pch; ++pch) {
-        if (delimiters.find(*pch) != delimiters.end()) {
-            if (start != pch) {
-                std::string str(start, pch);
-                result.push_back(str);
-            } else {
-                result.push_back("");
-            }
-            start = pch + 1;
-        }
-    }
-    result.push_back(start);
-    return result;
-}
-
-long GetCurentTime() {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
-}
-
-int SaveMemToFile(std::string file_name, void* data, int size) {
-    FILE* fd = fopen(file_name.c_str(), "wb");
-    if (fd == nullptr) {
-        return -1;
-    }
-
-    int ret = fwrite(data, 1, size, fd);
-    if (ret != size) {
-        fclose(fd);
-        return -1;
-    }
-
-    fclose(fd);
-    return 0;
-}
-
 Status ConvertFromAclDataTypeToTnnDataType(aclDataType acl_datatype, DataType& tnn_datatype) {
     if (ACL_FLOAT == acl_datatype) {
         tnn_datatype = DATA_TYPE_FLOAT;

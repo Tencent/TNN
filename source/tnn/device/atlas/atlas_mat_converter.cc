@@ -1,6 +1,6 @@
 // Tencent is pleased to support the open source community by making TNN available.
 //
-// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+// Copyright (C) 2024 THL A29 Limited, a Tencent company. All rights reserved.
 //
 // Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -14,7 +14,6 @@
 
 #include "tnn/device/atlas/atlas_mat_converter.h"
 #include "tnn/core/macro.h"
-#include "tnn/device/atlas/atlas_runtime.h"
 #include "tnn/device/atlas/atlas_utils.h"
 #include "tnn/utils/data_format_converter.h"
 #include "tnn/utils/dims_vector_utils.h"
@@ -106,11 +105,11 @@ Status AtlasMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
         return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
     }
 
-    auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
-    if (atlas_cmd_queue == nullptr) {
-        LOGE("get atlas command queue failed!\n");
-        return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
-    }
+    //auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
+    //if (atlas_cmd_queue == nullptr) {
+    //    LOGE("get atlas command queue failed!\n");
+    //    return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
+    //}
 
     aclrtMemcpyKind memcpy_type;
     if (DEVICE_ATLAS == src.GetDeviceType() && DEVICE_ATLAS == dst.GetDeviceType()) {
@@ -157,8 +156,13 @@ Status AtlasMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
     }
 
-    auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
-    if (atlas_cmd_queue == nullptr) {
+    //auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
+    //if (atlas_cmd_queue == nullptr) {
+    //    LOGE("get atlas command queue failed!\n");
+    //    return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
+    //}
+    aclrtStream* stream_ptr = static_cast<aclrtStream*>(command_queue);
+    if (stream_ptr == nullptr) {
         LOGE("get atlas command queue failed!\n");
         return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
     }
@@ -196,7 +200,7 @@ Status AtlasMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
     }
 
     acl_ret =
-        acldvppVpcResizeAsync(dvpp_channel_desc_, input_desc_, output_desc_, resize_config, atlas_cmd_queue->stream);
+        acldvppVpcResizeAsync(dvpp_channel_desc_, input_desc_, output_desc_, resize_config, *stream_ptr);
     if (ACL_ERROR_NONE != acl_ret) {
         LOGE("acldvppVpcResizeAsync failed, ret = %d\n", acl_ret);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acldvppVpcResizeAsync failed");
@@ -210,7 +214,7 @@ Status AtlasMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         resize_config = nullptr;
     }
 
-    aclrtSynchronizeStream(atlas_cmd_queue->stream);
+    aclrtSynchronizeStream(*stream_ptr);
 
     ret = ProcessOutput(dst);
     if (TNN_OK != ret) {
@@ -226,8 +230,13 @@ Status AtlasMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* com
         return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
     }
 
-    auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
-    if (atlas_cmd_queue == nullptr) {
+    //auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
+    //if (atlas_cmd_queue == nullptr) {
+    //    LOGE("get atlas command queue failed!\n");
+    //    return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
+    //}
+    aclrtStream* stream_ptr = static_cast<aclrtStream*>(command_queue);
+    if (stream_ptr == nullptr) {
         LOGE("get atlas command queue failed!\n");
         return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
     }
@@ -257,13 +266,13 @@ Status AtlasMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* com
 
     aclError acl_ret = ACL_ERROR_NONE;
     acl_ret =
-        acldvppVpcCropAsync(dvpp_channel_desc_, input_desc_, output_desc_, crop_roi_config, atlas_cmd_queue->stream);
+        acldvppVpcCropAsync(dvpp_channel_desc_, input_desc_, output_desc_, crop_roi_config, *stream_ptr);
     if (ACL_ERROR_NONE != acl_ret) {
         LOGE("acldvppVpcResizeAsync failed, ret = %d\n", acl_ret);
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acldvppVpcResizeAsync failed");
     }
 
-    aclrtSynchronizeStream(atlas_cmd_queue->stream);
+    aclrtSynchronizeStream(*stream_ptr);
 
     ret = ProcessOutput(dst);
     if (TNN_OK != ret) {
@@ -287,12 +296,6 @@ Status AtlasMatConverterAcc::WarpAffine(Mat& src, Mat& dst, WarpAffineParam para
         return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
     }
 
-    auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
-    if (atlas_cmd_queue == nullptr) {
-        LOGE("get atlas command queue failed!\n");
-        return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
-    }
-
     return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat not support WarpAffine");
 }
 
@@ -302,12 +305,6 @@ Status AtlasMatConverterAcc::CvtColor(Mat& src, Mat& dst, ColorConversionType ty
         return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
     }
 
-    auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
-    if (atlas_cmd_queue == nullptr) {
-        LOGE("get atlas command queue failed!\n");
-        return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
-    }
-
     return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat not support CvtColor");
 }
 
@@ -315,12 +312,6 @@ Status AtlasMatConverterAcc::CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderPa
     if (!init_success_) {
         LOGE("init mat converter failed!\n");
         return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
-    }
-
-    auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
-    if (atlas_cmd_queue == nullptr) {
-        LOGE("get atlas command queue failed!\n");
-        return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
     }
 
     return Status(TNNERR_ATLAS_DVPP_NOT_SUPPORT, "atlas mat not support CopyMakeBorder");
@@ -647,6 +638,14 @@ Status AtlasMatConverterAcc::MatCopyAsync(Mat& dst, Mat& src, int dst_offset, vo
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "acl memory copy failed");
     }
 
+    return TNN_OK;
+}
+
+Status AtlasMatConverterAcc::ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param, void* command_queue) {
+    return TNN_OK;
+}
+
+Status AtlasMatConverterAcc::ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue) {
     return TNN_OK;
 }
 

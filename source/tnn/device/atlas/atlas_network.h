@@ -1,4 +1,16 @@
-// Copyright 2019 Tencent. All Rights Reserved
+// Tencent is pleased to support the open source community by making TNN available.
+//
+// Copyright (C) 2024 THL A29 Limited, a Tencent company. All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
 
 #ifndef TNN_SOURCE_DEVICE_ATLAS_ATLAS_NETWORK_H_
 #define TNN_SOURCE_DEVICE_ATLAS_ATLAS_NETWORK_H_
@@ -9,13 +21,14 @@
 #include <unordered_set>
 #include <vector>
 #include "acl/acl.h"
-#include "tnn/core/abstract_network.h"
+#include "tnn/core/default_network.h"
 #include "tnn/core/macro.h"
 #include "tnn/device/atlas/atlas_common_types.h"
+#include "tnn/device/atlas/atlas_context.h"
 
 namespace TNN_NS {
 
-class AtlasNetwork : public AbstractNetwork {
+class AtlasNetwork : public DefaultNetwork {
 public:
     // @brief virtual default destructor
     virtual ~AtlasNetwork();
@@ -26,9 +39,6 @@ public:
     virtual Status Init(NetworkConfig &net_config, ModelConfig &model_config, AbstractModelInterpreter *interpreter,
                         InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, InputDataTypeMap inputs_data_type,
                         bool enable_const_folder = true);
-
-    // @brief deinit release init create resource
-    virtual Status DeInit();
 
     //  @brief return the amount of memory required for forward
     //  @param memory_size: the memory size used by tnn layers for
@@ -48,7 +58,7 @@ public:
     //
     virtual Status SetForwardMemory(void *memory);
 
-    // @brief network infer
+    // @brief reshape network
     virtual Status Reshape(const InputShapesMap &inputs);
 
     // @brief get tnn command queue
@@ -72,38 +82,35 @@ public:
     // @param blobs output blobs name map
     virtual Status GetAllOutputBlobs(BlobMap &blobs);
 
-    // @brief get atlas model id of current network
-    uint32_t GetModelId() const;
-    
-    // @brief get atlas model desc of current network
-    aclmdlDesc* GetModelDesc() const;
+    // @brief get OM info of ATLAS OM model
+    std::shared_ptr<AtlasOMModelInfo> GetOMModelInfo();
 
 private:
+    // OM RELATED
+    
     // @brief load model from om file
-    Status LoadModelFromFile(const std::string &om_file);
+    Status LoadOMModelFromFile(const std::string &om_file);
 
     // @brief load model from memory
-    Status LoadModelFromMemory(const std::string &om_file);
+    Status LoadOMModelFromMemory(const std::string &om_content);
 
-    // @brief unload model
-    void UnloadModel();
+    // @brief deduce model dynamic input mode
+    Status DeduceOMModelDynamicMode();
+    
+    // @brief deduce model AIPP input format
+    Status DeduceOMModelAIPPInputFormat();
 
-    // @brief allocate data set and create Blob
-    Status AllocateDatasetCreateBlob(aclmdlDataset **data_set, const InputShapesMap &max_input_shapes_map,
-                                     bool is_input);
+    // @brief internal init network for OM model
+    Status InitOMModel(ModelConfig &model_config, AbstractModelInterpreter *interpreter,
+                       InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape,
+                       InputDataTypeMap inputs_data_type, bool enable_const_folder);
 
-    // @brief add blob into map
-    Status AddBlobToMap(const InputShapesMap &max_input_shapes_map, size_t index, void *data, bool is_input);
+    // @brief internal reshape network for OM model
+    virtual Status ReshapeOMModel(const InputShapesMap &inputs);
 
     // @brief get input dims
     Status GetInputInfo(size_t index, std::vector<int> &input_dims, aclFormat &input_format,
                         aclDataType &input_data_type);
-
-    // @brief deduce dynamic input type
-    Status DeduceDynamicInputType();
-    
-    // @brief get output shape from max input shape if output shape is missing.
-    //Status InferOutputShapeIfNecessery();
     
     // @brief set dynamic input dims for OM models converted with --input_shape_range
     Status SetRangeDynamicInputDim(std::string input_name, const DimsVector& target_input_shape);
@@ -114,36 +121,30 @@ private:
     // @brief set dynmaic batch size
     Status SetDynamicBatchSize(std::string blob_name, int batch_size);
 
+    std::map<std::string, int> output_dim0_map_;
+    void* om_model_memory_ptr_                        = nullptr;
+    void* om_model_weight_ptr_                        = nullptr;
+    std::shared_ptr<AtlasOMModelInfo> om_model_info_  = nullptr;
+
+
+
+    // @brief add blob into map
+    Status AddBlobToMap(const InputShapesMap &max_input_shapes_map, size_t index, void *data, bool is_input);
+
+    // @brief allocate data set and create Blob
+    Status AllocateDatasetCreateBlob(aclmdlDataset **data_set, const InputShapesMap &max_input_shapes_map,
+                                     bool is_input);
+
     // @brief destory dataset
     void DestroyDataset(aclmdlDataset *&data_set);
 
+    ModelType model_type_;
     BlobMap input_blob_map_;
     BlobMap output_blob_map_;
 
-    bool need_to_deinit                               = false;
-    std::shared_ptr<AtlasCommandQueue> command_queue_ = nullptr;
-    aclrtContext context_                             = nullptr;
-    aclrtStream stream_                               = nullptr;
-    size_t model_mem_size_                            = 0;
-    size_t model_weight_size_                         = 0;
-    void *model_mem_ptr_                              = nullptr;
-    void *model_weight_ptr_                           = nullptr;
-    uint32_t model_id_                                = 0;
-    aclmdlDesc *model_desc_                           = nullptr;
-    aclmdlDataset *input_                             = nullptr;
-    aclmdlDataset *output_                            = nullptr;
-
-    // Traditional Type 1 Dynamic Input
-    bool atc_mode_dynamic_batch_hw_dim_ = false;  // Be one of dynamic batch, hw, or dim
-    bool atc_mode_dynamic_batch_ = false;
-    bool atc_mode_dynamic_hw_ = false;
-    bool atc_mode_dynamic_dim_ = false;
-    // More Flexible Type 2 Dynamic Input (--input_shape_range)
-    std::unordered_set<std::string> dynamic_input_shape_range_names_;
-
-    bool has_aipp_ = false;
-    std::map<std::string, aclAippInputFormat> aipp_input_format_map_;
-    std::map<std::string, int> output_dim0_map_;
+    bool network_init_called_                         = false;
+    aclmdlDataset* aclmdl_input_dataset_              = nullptr;
+    aclmdlDataset* aclmdl_output_dataset_             = nullptr;
 };
 
 }  // namespace TNN_NS

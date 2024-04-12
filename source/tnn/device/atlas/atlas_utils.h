@@ -17,12 +17,6 @@
 
 namespace TNN_NS {
 
-std::vector<std::string> SplitPath(const std::string& str, const std::set<char> delimiters);
-
-long GetCurentTime();
-
-int SaveMemToFile(std::string file_name, void* data, int size);
-
 Status ConvertFromAclDataTypeToTnnDataType(aclDataType acl_datatype, DataType& tnn_datatype);
 
 Status ConvertAclDataFormatToTnnDataFormat(aclFormat acl_format, DataFormat& tnn_dataformat);

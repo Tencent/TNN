@@ -1,6 +1,6 @@
 // Tencent is pleased to support the open source community by making TNN available.
 //
-// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+// Copyright (C) 2024 THL A29 Limited, a Tencent company. All rights reserved.
 //
 // Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -32,6 +32,9 @@ public:
     virtual Status Crop(Mat& src, Mat& dst, CropParam param, void* command_queue = NULL) override;
     virtual Status WarpAffine(Mat& src, Mat& dst, WarpAffineParam param, void* command_queue = NULL) override;
     virtual Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue = NULL) override;
+    virtual Status ResizeAndPaste(Mat& src, Mat& dst, ResizeParam param, PasteParam paste_param,
+                                  void* command_queue = NULL) override;
+    virtual Status ConcatMatWithBatch(std::vector<Mat>& src_vec, Mat& dst, void* command_queue = NULL) override;
     virtual Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue = NULL) override;
 
 private:
