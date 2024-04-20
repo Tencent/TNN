@@ -61,6 +61,22 @@ ILayer* UpsampleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network)
         out_shape_tensor = concat(network, nc, size);
     }
 
+
+    // Dim Mode Special Case:
+    // Cases When Both N,C and H+W are dynamic
+    // In this case, We cannot turn to Scale mode.
+    // Also layer->SetOutputDimensions() API does not accept -1 as dim
+    // Have to use TNN Upsample Plugin.
+    // e.g [-1,2,-1,-1]
+    if (input_blobs_.size() == 1 && !paramlist->dims.empty()) {
+        // In this case, network->addResize should not be called. GO Plugin
+        auto trt_dim = input_tensor->getDimensions();
+        if (trt_dim.d[0] <= 0 || trt_dim.d[1] <= 0) {
+            LOGI("WARNING: Dynamic NCHW Upsample with fixed dims param is  NOT SUPPORTED by TensorRT, use TNN Upsample Plugin instead.\n");
+            return TensorRTPluginLayerBuilder::AddToNetwork(network); 
+        }
+    }
+
     IResizeLayer* layer = network->addResize(*input_tensor);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
@@ -68,7 +84,7 @@ ILayer* UpsampleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network)
             if (!paramlist->dims.empty()) {
                 auto trt_dim = input_tensor->getDimensions();
                 if (trt_dim.nbDims != 4) {
-                    LOGE("Upsample with 1 input only support 4d input.");
+                    LOGE("Upsample with 1 input only support 4d input.\n");
                     return nullptr;
                 }
 
@@ -76,24 +92,15 @@ ILayer* UpsampleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network)
                 // [-1,3,32,32], [-1,2,-1,-1], [1,16,256,256]
                 if (trt_dim.d[0] <= 0 || trt_dim.d[1] <= 0) {
                     // Cases When At least One of N, C be dynamic
-                    if (trt_dim.d[2] > 0 && trt_dim.d[3] > 0) {
-                        // Cases when H,W are fixed, turn to scale mode
-                        // e.g [-1,3,32,32]
-                        float scale[4];
-                        scale[0] = 1;
-                        scale[1] = 1;
-                        scale[2] = paramlist->dims[0] / float(trt_dim.d[2]);
-                        scale[3] = paramlist->dims[1] / float(trt_dim.d[3]);
-                        layer->setScales(scale, 4);
-                    } else {
-                        // Cases When Both N,C and H+W are dynamic
-                        // In this case, We cannot turn to Scale mode.
-                        // Also layer->SetOutputDimensions() API does not accept -1 as dim
-                        // Have to use TNN Upsample Plugin.
-                        // e.g [-1,2,-1,-1]
-                        LOGI("WARNING: Dynamic NCHW Upsample with fixed dims provided, NOT SUPPORTED by TensorRT, use TNN Upsample Plugin instead.");
-                        return TensorRTPluginLayerBuilder::AddToNetwork(network); 
-                    }
+                    // and H,W are fixed, turn to scale mode
+                    // Here trt_dim.d[2] > 0 && trt_dim.d[3] > 0
+                    // e.g [-1,3,32,32]
+                    float scale[4];
+                    scale[0] = 1;
+                    scale[1] = 1;
+                    scale[2] = paramlist->dims[0] / float(trt_dim.d[2]);
+                    scale[3] = paramlist->dims[1] / float(trt_dim.d[3]);
+                    layer->setScales(scale, 4);
                 } else {
                     // Cases When Both N and C are fixed
                     // e.g [1,16,256,256]
@@ -107,17 +114,30 @@ ILayer* UpsampleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network)
                             paramlist->dims[0], paramlist->dims[1]);
                         layer->setOutputDimensions(dims);
                     } else {
-                        LOGE("Upsample with 1 input Fix N,C + Fixed dims does not have standard positive dim, Unsupported.");
+                        LOGE("Upsample with 1 input Fix N,C + Fixed dims does not have standard positive dim, Unsupported.\n");
                         return nullptr;
                     }
                 }
             } else {
-                float scale[4];
-                scale[0] = 1;
-                scale[1] = 1;
-                scale[2] = paramlist->scales[1];
-                scale[3] = paramlist->scales[0];
-                layer->setScales(scale, 4);
+                if (output_dims.size() == 4) {
+                    float scale[4];
+                    scale[0] = 1;
+                    scale[1] = 1;
+                    scale[2] = paramlist->scales[1];
+                    scale[3] = paramlist->scales[0];
+                    layer->setScales(scale, 4);
+                } else if (output_dims.size() == 5) {
+                    float scale[5];
+                    scale[0] = 1;
+                    scale[1] = 1;
+                    scale[2] = paramlist->scales[2];
+                    scale[3] = paramlist->scales[1];
+                    scale[4] = paramlist->scales[0];
+                    layer->setScales(scale, 5);
+                } else {
+                    LOGE("Upsample with 1 input and scale param only support 2d or 3d now.\n");
+                    return nullptr;
+                }
             }
         } else if (input_blobs_.size() == 2) {
             // set resize layer input with shape tensor
@@ -127,12 +147,12 @@ ILayer* UpsampleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network)
             auto input_tensor2 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor2)->GetTensor();
             layer->setInput(1, *input_tensor2);
         } else {
-                float scale[4];
-                scale[0] = 1;
-                scale[1] = 1;
-                scale[2] = paramlist->scales[1];
-                scale[3] = paramlist->scales[0];
-                layer->setScales(scale, 4);
+            float scale[4];
+            scale[0] = 1;
+            scale[1] = 1;
+            scale[2] = paramlist->scales[1];
+            scale[3] = paramlist->scales[0];
+            layer->setScales(scale, 4);
         }
         layer->setResizeMode(paramlist->mode == 1 ? ResizeMode::kNEAREST : ResizeMode::kLINEAR);
         layer->setAlignCorners(paramlist->align_corners);

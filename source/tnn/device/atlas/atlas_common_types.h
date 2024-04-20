@@ -25,10 +25,6 @@
 #include "tnn/core/blob.h"
 #include "tnn/core/macro.h"
 
-///////////////////////
-#include <iostream>
-///////////////////////
-
 namespace TNN_NS {
 
 enum class AtlasOmModelDynamicMode {

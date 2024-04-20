@@ -105,12 +105,6 @@ Status AtlasMatConverterAcc::Copy(Mat& src, Mat& dst, void* command_queue) {
         return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
     }
 
-    //auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
-    //if (atlas_cmd_queue == nullptr) {
-    //    LOGE("get atlas command queue failed!\n");
-    //    return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
-    //}
-
     aclrtMemcpyKind memcpy_type;
     if (DEVICE_ATLAS == src.GetDeviceType() && DEVICE_ATLAS == dst.GetDeviceType()) {
         memcpy_type = ACL_MEMCPY_DEVICE_TO_DEVICE;
@@ -156,11 +150,6 @@ Status AtlasMatConverterAcc::Resize(Mat& src, Mat& dst, ResizeParam param, void*
         return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
     }
 
-    //auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
-    //if (atlas_cmd_queue == nullptr) {
-    //    LOGE("get atlas command queue failed!\n");
-    //    return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
-    //}
     aclrtStream* stream_ptr = static_cast<aclrtStream*>(command_queue);
     if (stream_ptr == nullptr) {
         LOGE("get atlas command queue failed!\n");
@@ -230,11 +219,6 @@ Status AtlasMatConverterAcc::Crop(Mat& src, Mat& dst, CropParam param, void* com
         return Status(TNNERR_NULL_PARAM, "init mat converter failed!");
     }
 
-    //auto atlas_cmd_queue = static_cast<AtlasCommandQueue*>(command_queue);
-    //if (atlas_cmd_queue == nullptr) {
-    //    LOGE("get atlas command queue failed!\n");
-    //    return Status(TNNERR_NULL_PARAM, "get atlas command queue failed!");
-    //}
     aclrtStream* stream_ptr = static_cast<aclrtStream*>(command_queue);
     if (stream_ptr == nullptr) {
         LOGE("get atlas command queue failed!\n");
