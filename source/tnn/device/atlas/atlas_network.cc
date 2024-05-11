@@ -354,6 +354,7 @@ Status AtlasNetwork::DeduceOMModelAIPPInputFormat() {
             this->om_model_info_->aipp_input_format_map[input_name] = aipp_info.inputFormat;
         }
     }
+    return TNN_OK;
 }
 
 Status AtlasNetwork::InitOMModel(ModelConfig &model_config, AbstractModelInterpreter *interpreter,
@@ -1003,13 +1004,14 @@ Status AtlasNetwork::SetRangeDynamicInputDim(std::string input_name, const DimsV
         return Status(TNNERR_ATLAS_RUNTIME_ERROR, "get dynamic batch input index falied");
     }
 
+    // Deprecated in CANN 7+ Version
     // Get & Destroy Old Output TensorDesc
-    aclTensorDesc* old_input_desc = aclmdlGetDatasetTensorDesc(this->aclmdl_input_dataset_, index);
-    if (old_input_desc == nullptr) {
-        LOGE("failed to get existing TensorDesc for input '%s'.\n", input_name.c_str());
-        return Status(TNNERR_ATLAS_RUNTIME_ERROR, "failed to get existing TensorDesc for dynamic input.");
-    }
-    aclDestroyTensorDesc(old_input_desc);
+    //aclTensorDesc* old_input_desc = aclmdlGetDatasetTensorDesc(this->aclmdl_input_dataset_, index);
+    //if (old_input_desc == nullptr) {
+    //    LOGE("failed to get existing TensorDesc for input '%s'.\n", input_name.c_str());
+    //    return Status(TNNERR_ATLAS_RUNTIME_ERROR, "failed to get existing TensorDesc for dynamic input.");
+    //}
+    //aclDestroyTensorDesc(old_input_desc);
 
     // Create & Set New Output TensorDesc
     int64_t dim_arr[target_input_shape.size()];
