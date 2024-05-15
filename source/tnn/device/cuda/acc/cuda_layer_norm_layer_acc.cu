@@ -63,7 +63,7 @@ template<typename T>
 __global__ void ln_mul_add_kernel(const T *input, T *output, const T *scale, const T *bias,
                                   const LNFloat2 *mean_var,
                                   const int count, const float eps) {
-    int offset = blockIdx.y * blockDim.y + threadIdx.x;
+    int offset = blockIdx.y * blockDim.x + threadIdx.x;
     int total_offset = blockIdx.x * count + offset;
     if (offset < count) {
         const float* mean_var_float = reinterpret_cast<const float*>(mean_var);

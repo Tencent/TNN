@@ -995,6 +995,21 @@ namespace TNN_NS {
         // 5. remove unused Nodes
         // NB. we need to keep the original graph output tensor names un-changed.
 
+        auto return_check = [&]() {
+            std::set<std::string> graph_outputs;
+            for (auto &output: g->outputs())
+                graph_outputs.insert(output->name);
+
+            return std::any_of(anchor->nodes.begin(), anchor->nodes.end(), [&](const std::shared_ptr<Node> &node) {
+                return std::any_of(node->info->outputs.begin(), node->info->outputs.end(), [&](const std::string &output) {
+                    return (graph_outputs.count(output));
+                });
+            });
+        };
+
+        if (return_check())
+            return;
+
         std::set<std::string> tensor_names;
         for(auto & p : tensor_map) tensor_names.insert(p.first);
         for(auto &name : tensor_names) renameTensor(name, name_prefix + name);
