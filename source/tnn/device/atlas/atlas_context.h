@@ -26,9 +26,6 @@ public:
     // @brief deconstructor
     ~AtlasContext();
 
-    // @brief setup with specified device id
-    Status Setup(int device_id);
-
     // @brief load library
     virtual Status LoadLibrary(std::vector<std::string> path) override;
 
@@ -66,6 +63,11 @@ public:
 
     // @brief set ModelType
     void SetModelType(ModelType model_type);
+    
+    // @brief set specific device id
+    void SetDeviceId(int device_id);
+    
+    int GetDeviceId();
 
 private:
     ModelType model_type_;

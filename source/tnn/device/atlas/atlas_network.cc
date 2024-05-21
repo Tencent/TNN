@@ -69,8 +69,9 @@ AtlasNetwork::~AtlasNetwork() {
             if (acl_ret != ACL_ERROR_NONE) {
                 LOGE("unload model failed, modelId is %u\n", this->om_model_info_->model_id);
             }
+            this->om_model_info_->model_id = INT_MAX;
         }
-        
+
         if (nullptr != this->om_model_info_->model_desc) {
             (void)aclmdlDestroyDesc(this->om_model_info_->model_desc);
             this->om_model_info_->model_desc = nullptr;
@@ -114,6 +115,15 @@ AtlasNetwork::~AtlasNetwork() {
             LOGD("Unload ATLAS ACL Model Weight.\n");
             this->om_model_weight_ptr_  = nullptr;
             this->om_model_info_->weight_size = 0;
+        }
+
+        // Destroy aclrt Device()
+        if (tnn_atlas_context->GetDeviceId() != INT_MAX) {
+            LOGD("Reset aclrt Device.\n");
+            acl_ret = aclrtResetDevice(tnn_atlas_context->GetDeviceId());
+            if (acl_ret != ACL_ERROR_NONE) {
+                LOGE("TNN ATLAS Network: aclrtResetDevice() failed\n");
+            }
         }
     }
 

@@ -25,11 +25,6 @@ AtlasContext::~AtlasContext() {
     //}
 }
 
-Status AtlasContext::Setup(int device_id) {
-    this->device_id_ = device_id;
-    return TNN_OK;
-}
-
 Status AtlasContext::LoadLibrary(std::vector<std::string> path) {
     return TNN_OK;
 }
@@ -105,6 +100,12 @@ void AtlasContext::SetModelType(ModelType model_type) {
     this->model_type_ = model_type;
 }
 
+void AtlasContext::SetDeviceId(int device_id) {
+    this->device_id_ = device_id;
+}
 
+int AtlasContext::GetDeviceId() {
+    return this->device_id_;
+}
 
 }  //  namespace TNN_NS

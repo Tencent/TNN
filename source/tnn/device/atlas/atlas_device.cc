@@ -110,14 +110,7 @@ AbstractLayerAcc* AtlasDevice::CreateLayerAcc(LayerType type) {
 
 Context* AtlasDevice::CreateContext(int device_id) {
     auto context = new AtlasContext();
-    
-    Status ret = context->Setup(device_id);
-    if (ret != TNN_OK) {
-        LOGE("Cuda context setup failed.");
-        delete context;
-        return NULL;
-    }
-
+    context->SetDeviceId(device_id);
     return context;
 }
 
