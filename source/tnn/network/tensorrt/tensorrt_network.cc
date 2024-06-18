@@ -513,6 +513,7 @@ Status TensorRTNetwork_::InitLayers(NetStructure *net_structure, NetResource *ne
         if (ret != TNN_OK) {
             LOGE("Error Init layer: %s layer type: %d (err: %d or 0x%X)\n", cur_layer->GetLayerName().c_str(),
                 type, (int)ret, (int)ret);
+            delete cur_layer;
             return ret;
         }
 
