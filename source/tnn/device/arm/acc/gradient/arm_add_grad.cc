@@ -19,17 +19,16 @@ namespace TNN_NS {
 // z = x + y
 // dz/dx = 1
 // dz/dy = 1
-typedef struct arm_add_grad_function: arm_binary_grad_function {
-    virtual std::pair<float, float> operator()(const float &i_0, const float &i_1, const float &o, const float &og) {
+class ArmAddGradOp : public ArmBinaryGradOp {
+private:
+    virtual std::pair<float, float> cal_grad(const float &i_0, const float &i_1, const float &o, const float &og) override {
         return {og, og};
     }
-    virtual std::pair<Float4, Float4> operator()(const Float4 &i_0, const Float4 &i_1, const Float4 &o,
-                                                 const Float4 &og) {
+    virtual std::pair<Float4, Float4> cal_grad(const Float4 &i_0, const Float4 &i_1, const Float4 &o,
+                                                 const Float4 &og) override {
         return {og, og};
     }
-} ARM_ADD_GRAD_FUNC;
-
-DEFINE_ARM_BINARY_GRAD_OP(Add, ARM_ADD_GRAD_FUNC)
+};
 
 REGISTER_ARM_GRAD_OP(Add, LAYER_ADD)
 REGISTER_ARM_GRAD_LAYOUT(LAYER_ADD, DATA_FORMAT_NC4HW4)

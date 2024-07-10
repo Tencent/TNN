@@ -43,10 +43,10 @@ typedef std::map<std::string, onnx::TensorShapeProto> TensorShapeMap;
 struct OnnxNetInfo {
     DataType data_type = DATA_TYPE_FLOAT;
     // onnx weight node and weight reshape node
+    TensorProtoMap constants;
     TensorProtoMap weights_map;
-    TensorShapeMap weights_shape_map;
     std::set<std::string > used_const_node;
-    std::map<std::string, onnx::NodeProto> proxy_node_map;
+    std::map<std::string, onnx::NodeProto> tensor_generators;
     bool is_3D_model = false;
     int opset = 0;
 };

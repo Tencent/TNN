@@ -25,12 +25,7 @@ DECLARE_ARM_GRAD_OP(InnerProduct, LAYER_INNER_PRODUCT);
 // weight_grad: oc * ic     <- matmul(output_grad^T, input)
 // input_grad:  batch * ic  <- matmul(output_grad, weight)
 // bias_grad:   1 * oc      <- sigma_batch(output_grad)
-template <int acc_weight>
 static void ExecWeightGrad(int batch, int oc, int ic, float *weight_grad, float *output_grad, float *input) {
-    if (!acc_weight) {
-        memset(weight_grad, 0, oc * ic * sizeof(float));
-    }
-
     for (int b = 0; b < batch; ++b) {
         auto o_ptr = output_grad + oc * b;
         auto i_ptr = input + ic * b;
@@ -51,7 +46,6 @@ static void ExecWeightGrad(int batch, int oc, int ic, float *weight_grad, float 
     }
 }
 
-template <int acc_input>
 static void ExecInputGrad(int batch, int oc, int ic, float *input_grad, float *output_grad, float *weight,
                           ArmContext *context) {
     size_t pack_a_size    = batch * oc * sizeof(float) + NEON_KERNEL_EXTRA_LOAD;
@@ -60,23 +54,10 @@ static void ExecInputGrad(int batch, int oc, int ic, float *input_grad, float *o
     char *workspace       = reinterpret_cast<char *>(context->GetSharedWorkSpace(workspace_size));
     float *pack_a_ptr     = reinterpret_cast<float *>(workspace);
     float *pack_b_ptr     = reinterpret_cast<float *>(workspace + pack_a_size);
-
-    if (!acc_input) {
-        memset(input_grad, 0, batch * ic * sizeof(float));
-    }
-
     GemmFloatPackAB(batch, ic, oc, output_grad, pack_a_ptr, oc, weight, pack_b_ptr, ic, input_grad, ic);
 }
 
-template <int acc_bias>
 static void ExecBiasGrad(int batch, int oc, float *bias_grad, float *output_grad) {
-    if (batch == 1 && !acc_bias) {
-        memcpy(bias_grad, output_grad, oc * sizeof(float));
-        return;
-    }
-    if (!acc_bias) {
-        memset(bias_grad, 0, oc * sizeof(float));
-    }
     Float4 ug;
     for (int b = 0; b < batch; ++b) {
         float *dst_ptr = bias_grad;
@@ -96,14 +77,14 @@ static void ExecBiasGrad(int batch, int oc, float *bias_grad, float *output_grad
 }
 
 Status ArmInnerProductGradOp::OnGrad(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs,
-                                        LayerResource *resource, LayerParam *param, Context *context,
+                                        LayerResource *resource, GradientParam *grad_param, Context *context,
                                         const GradOpInfo &grad_info) {
     ON_GRAD_PREPARATION_IOR(1, 1, 2);
 
     auto arm_context = dynamic_cast<ArmContext *>(context);
     CHECK_PARAM_NULL(arm_context);
 
-    auto inner_product_param = dynamic_cast<InnerProductLayerParam *>(param);
+    auto inner_product_param = dynamic_cast<InnerProductLayerParam *>(grad_param->forward_param);
     CHECK_PARAM_NULL(inner_product_param);
     bool has_bias = inner_product_param->has_bias;
 
@@ -127,59 +108,44 @@ Status ArmInnerProductGradOp::OnGrad(const std::vector<Blob *> &inputs, const st
         auto input_grad_ptr  = reinterpret_cast<float *>(GetBlobHandlePtr(input_grads[0]->GetHandle()));
 
         // nc4hw4 -> nchw if needed
-        bool input_need_reformat =
+        bool input_is_packed =
             fw_inputs[0]->GetBlobDesc().data_format != DATA_FORMAT_NCHW && !FloatBlobCanIgnorePack(input_dims[0]);
-        bool output_need_reformat =
+        bool output_is_packed =
             fw_inputs[0]->GetBlobDesc().data_format != DATA_FORMAT_NCHW && !FloatBlobCanIgnorePack(output_dims[0]);
-        RawBuffer output_grad_reordered;
-        if (output_need_reformat) {
-            output_grad_reordered = RawBuffer(batch * oc * sizeof(float));
-            float *reordered_ptr  = output_grad_reordered.force_to<float *>();
-            UnpackFloatBlob(reordered_ptr, output_grad_ptr, output_dims[0]);
-            output_grad_ptr = reordered_ptr;
+        
+        RawBuffer output_grad_nchw;
+        if (output_is_packed) {  // 将y_grad转为nchw
+            output_grad_nchw = RawBuffer(batch * oc * sizeof(float));
+            UnpackFloatBlob(output_grad_nchw.force_to<float *>(), output_grad_ptr, output_dims[0]);
+            output_grad_ptr = output_grad_nchw.force_to<float *>();
         }
-        RawBuffer input_grad_reordered;
-        if (input_need_reformat) {
-            input_grad_reordered = RawBuffer(batch * ic * sizeof(float));
-            float *reordered_ptr = input_grad_reordered.force_to<float *>();
-            input_grad_ptr       = reordered_ptr;
-        }
-
-        if (acc_input_grads[0]) {
-            ExecInputGrad<1>(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
+        
+        if (input_is_packed) {  // 这种情况需要把x_grad计算后进行pack
+            RawBuffer x_grad_nchw = RawBuffer(batch * ic * sizeof(float));
+            UnpackFloatBlob(x_grad_nchw.force_to<float *>(), input_grad_ptr, batch, ic, 1); 
+            ExecInputGrad(batch, oc, ic, x_grad_nchw.force_to<float *>(), output_grad_ptr, weight_ptr, arm_context);
+            PackFloatBlob(input_grad_ptr, x_grad_nchw.force_to<float *>(), batch, ic, 1);
         } else {
-            ExecInputGrad<0>(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
-        }
-
-        if (input_need_reformat) {
-            PackFloatBlob(reinterpret_cast<float *>(GetBlobHandlePtr(input_grads[0]->GetHandle())), input_grad_ptr,
-                          input_dims[0]);
+            ExecInputGrad(batch, oc, ic, input_grad_ptr, output_grad_ptr, weight_ptr, arm_context);
         }
 
         if (resource_need_train) {
-            auto weight_grad_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grads[0]->GetHandle()));
-            auto bias_grad_ptr   = reinterpret_cast<float *>(GetBlobHandlePtr(resource_grads[1]->GetHandle()));
+            auto weight_grad_ptr = resource_grads[0]->GetHandle().force_to<float *>();
+            auto bias_grad_ptr   = resource_grads[1]->GetHandle().force_to<float *>();
 
-            RawBuffer input_reordered;
-            if (input_need_reformat) {
-                input_reordered      = RawBuffer(batch * ic * sizeof(float));
-                float *reordered_ptr = input_reordered.force_to<float *>();
-                UnpackFloatBlob(reordered_ptr, input_ptr, input_dims[0]);
-                input_ptr = reordered_ptr;
+            RawBuffer input_nchw;
+            if (input_is_packed) {   // 这种情况需要把 x unpack后参与计算
+                input_nchw = RawBuffer(batch * ic * sizeof(float));
+                UnpackFloatBlob(input_nchw.force_to<float *>(), input_ptr, input_dims[0]);
+                input_ptr = input_nchw.force_to<float *>();
             }
 
-            if (acc_resource_grads[0]) {
-                ExecWeightGrad<1>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
-            } else {
-                ExecWeightGrad<0>(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
-            }
+            ExecWeightGrad(batch, oc, ic, weight_grad_ptr, output_grad_ptr, input_ptr);
+            resource_grads[0]->GetBlobDesc().data_format = DATA_FORMAT_NCHW;
 
             if (has_bias && bias.GetDataCount() > 0) {
-                if (acc_resource_grads[1]) {
-                    ExecBiasGrad<1>(batch, oc, bias_grad_ptr, output_grad_ptr);
-                } else {
-                    ExecBiasGrad<0>(batch, oc, bias_grad_ptr, output_grad_ptr);
-                }
+                ExecBiasGrad(batch, oc, bias_grad_ptr, output_grad_ptr);
+                resource_grads[1]->GetBlobDesc().data_format = DATA_FORMAT_NCHW;
             }
         }
     } else {

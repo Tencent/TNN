@@ -201,6 +201,7 @@ struct TNNVector {
         }
         return dst;
     }
+
     static TNNVector<T, len> add(const TNNVector<T, len>& v1, const TNNVector<T, len>& v2) {
         TNNVector<T, len> dst;
         for (int i = 0; i < len; ++i) {

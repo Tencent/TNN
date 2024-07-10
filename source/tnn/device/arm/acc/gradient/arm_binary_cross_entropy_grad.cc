@@ -20,19 +20,19 @@ namespace TNN_NS {
 // y = -x1*log(x0) - (1-x1)*log(1-x0)
 // dy/dx0 = (1-x1)/(1-x0) -x1/x0
 // dy/dx1 = log(1-x0) - log(x0)
-typedef struct arm_bce_grad_function: arm_binary_grad_function {
-    virtual std::pair<float, float> operator()(const float &i_0, const float &i_1, const float &o, const float &og) {
+class ArmBinaryCrossEntropyGradOp : public ArmBinaryGradOp {
+private:
+    virtual std::pair<float, float> cal_grad(const float &i_0, const float &i_1, const float &o, const float &og) override {
         return {((1.0 - i_1) / (1.0 - i_0) - i_1 / i_0) * og, (std::log(1.0 - i_0) - std::log(i_0)) * og};
     }
-    virtual std::pair<Float4, Float4> operator()(const Float4 &i_0, const Float4 &i_1, const Float4 &o,
-                                                 const Float4 &og) {
+    virtual std::pair<Float4, Float4> cal_grad(const Float4 &i_0, const Float4 &i_1, const Float4 &o,
+                                                 const Float4 &og) override {
         Float4 g0 = Float4::div(Float4(1.0) - i_1, Float4(1.0) - i_0) - Float4::div(i_1, i_0);
         Float4 g1 = Float4::log(Float4(1.0) - i_0) - Float4::log(i_0);
         return {g0 * og, g1 * og};
     }
-} ARM_BCE_GRAD_FUNC;
+};
 
-DEFINE_ARM_BINARY_GRAD_OP(BinaryCrossEntropy, ARM_BCE_GRAD_FUNC)
 
 REGISTER_ARM_GRAD_OP(BinaryCrossEntropy, LAYER_BINARY_CROSSENTROPY)
 REGISTER_ARM_GRAD_LAYOUT(LAYER_BINARY_CROSSENTROPY, DATA_FORMAT_NC4HW4)

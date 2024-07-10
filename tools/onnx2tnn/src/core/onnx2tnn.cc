@@ -123,7 +123,7 @@ int Onnx2TNN::Convert(DataType dataType) {
     //加载onnx模型
     if (!onnx_model_) {
         onnx::ModelProto* onnx_model = new onnx::ModelProto();
-        ret                          = read_proto_from_binary(onnx_model_path_.c_str(), (google::protobuf::Message*)onnx_model);
+        ret = read_proto_from_binary(onnx_model_path_.c_str(), (google::protobuf::Message*)onnx_model);
 
         if (ret != 0) {
             delete onnx_model;
@@ -313,12 +313,7 @@ int Onnx2TNN::TNNWriteProto() {
             for (int i = 0; i < graph.node_size(); i++) {
                 onnx::NodeProto& node      = (onnx::NodeProto&)graph.node(i);
                 const std::string& onnx_op = node.op_type();
-
-                if (onnx_op == k_tnn_noop_type) {
-                    continue;
-                }
-                if (onnx_op == "Constant" &&
-                    onnx_net_info_.used_const_node.find(node.output(0)) == onnx_net_info_.used_const_node.end()) {
+                if (onnx_op == k_tnn_noop_type || onnx_op == "Constant") {
                     continue;
                 }
                 auto op_converter = OnnxOpConverterManager::Shared()->GetOnnxOpConverter(onnx_op);
@@ -368,8 +363,7 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
 
     // node reference
     std::map<std::string, int> node_reference;
-    std::map<std::string, std::vector<int>> follow_up_node_ids;
-    std::map<std::string, int> node_name_to_node_id;
+    std::set<std::string> exist_outputs;
 
     //去除常量node，便于fuse判断pattern
     std::vector<IndexNode> index_nodes;
@@ -380,8 +374,8 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     ClearEmptyNode(index_nodes);
 
     // weight node and weight reshape node
+    TensorProtoMap constants;
     TensorProtoMap weights;
-    TensorShapeMap weight_shapes;
 
     for (int j = 0; j < graph.initializer_size(); j++) {
         const onnx::TensorProto& initializer = graph.initializer(j);
@@ -389,29 +383,26 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
         weights[initializer.name()] = initializer;
     }
 
-    for (int j = 0; j < graph.value_info_size(); j++) {
-        const onnx::TensorShapeProto& shape_info = graph.value_info(j).type().tensor_type().shape();
-        LOGD("value_info dim_size = %d\n", shape_info.dim_size());
-        weight_shapes[graph.value_info(j).name()] = shape_info;
-    }
     // initial proxy node
     for (int i = 0; i < graph.node_size(); ++i) {
         const auto& node = graph.node(i);
-        onnx_net_info_.proxy_node_map[node.output(0)] = node;
+        onnx_net_info_.tensor_generators[node.output(0)] = node;
     }
 
-    std::set<std::string> need_constant_node = {};
+    std::set<std::string> need_constant_op = { "Mul" };
     // process constant node
     for (int i = 0; i < graph.node_size(); ++i) {
         const auto& node    = graph.node(i);
-        const auto& op_type = node.op_type();
-        if (std::find(need_constant_node.begin(), need_constant_node.end(), op_type) != need_constant_node.end()) {
-            for (const auto& input_name : node.input()) {
-                if (onnx_net_info_.proxy_node_map.find(input_name) != onnx_net_info_.proxy_node_map.end()) {
-                    const auto& input_node = onnx_net_info_.proxy_node_map.find(input_name)->second;
-                    if (input_node.op_type() == "Constant") {
-                        onnx_net_info_.used_const_node.insert(input_node.output(0));
-                    }
+        if (need_constant_op.find(node.op_type()) == need_constant_op.end()) {
+            continue;
+        }
+
+        for (const auto& input_name : node.input()) {
+            auto it = onnx_net_info_.tensor_generators.find(input_name);
+            if (it != onnx_net_info_.tensor_generators.end()) {
+                const auto& creator_node = it->second;
+                if (creator_node.op_type() == "Constant") {
+                    onnx_net_info_.used_const_node.insert(input_name);
                 }
             }
         }
@@ -430,18 +421,18 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
             name = node.output(0);
         }
 
-        if (onnx_op == "Constant" &&
-            onnx_net_info_.used_const_node.find(node.output(0)) == onnx_net_info_.used_const_node.end()) {
-            // Constant
+        if (onnx_op == "Constant") {
             onnx::TensorProto tensor = get_node_attr_tensor(node, "value");
+            if (onnx_net_info_.used_const_node.find(node.output(0)) != onnx_net_info_.used_const_node.end()) {
+                constants[node.output(0)]  = tensor;
+            }
             weights[node.output(0)]  = tensor;
-            LOGD("const node to initialize = %s\n", name.c_str());
             continue;
         } else if (onnx_op == "Cast") {
             // do nothing
         }
 
-        for (int j = 0; j < (int)node.input_size(); j++) {
+        for (int j = 0; j < node.input_size(); j++) {
             const std::string& input_name = node.input(j);
 
             // check weight
@@ -456,30 +447,19 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
             } else {
                 node_reference[input_name] = node_reference[input_name] + 1;
             }
-
-            // 记录依赖 node name 的节点列表
-            {
-                std::vector<int> node_list;
-                if (follow_up_node_ids.find(input_name) != follow_up_node_ids.end()) {
-                    node_list = follow_up_node_ids[input_name];
-                }
-                node_list.push_back(i);
-                follow_up_node_ids[input_name] = node_list;
-            }
         }
 
-        for (int j = 0; j < (int)node.output_size(); j++) {
+        for (int j = 0; j < node.output_size(); j++) {
             const std::string& output_name = node.output(j);
 
             blob_names.insert(output_name);
 
-            // 记录node name 对应的node id
             {
                 // 每个node name只应该出现一次
-                if (node_name_to_node_id.find(output_name) != node_name_to_node_id.end()) {
+                if (exist_outputs.find(output_name) != exist_outputs.end()) {
                     assert(0);
                 }
-                node_name_to_node_id[output_name] = i;
+                exist_outputs.insert(output_name);
             }
 
             // 简化代码逻辑， Dropout 只取0号output，原因暂不清楚
@@ -490,20 +470,16 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
     }
 
     // include Input node
-    int input_node_count = 0;
     for (int j = 0; j < graph.input_size(); j++) {
         const std::string& input_name = graph.input(j).name();
-
         // check weight
-        if (weights.find(input_name) != weights.end())
+        if (weights.find(input_name) != weights.end()) {
             continue;
-
+        }
         blob_names.insert(input_name);
-
-        input_node_count++;
     }
+    onnx_net_info_.constants = constants;
     onnx_net_info_.weights_map       = weights;
-    onnx_net_info_.weights_shape_map = weight_shapes;
 
     // onnx_op remove
     RemoveIdentity(mutable_graph, index_nodes, weights, node_reference, blob_names);
@@ -605,11 +581,9 @@ int Onnx2TNN::OnnxExtractBlobWeights() {
             ++it;
         }
     }
-
     onnx_blob_names_                 = blob_names;
     onnx_node_reference_             = node_reference;
     onnx_net_info_.weights_map       = weights;
-    onnx_net_info_.weights_shape_map = weight_shapes;
     return 0;
 }
 

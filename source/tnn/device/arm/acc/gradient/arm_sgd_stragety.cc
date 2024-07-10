@@ -19,21 +19,28 @@ namespace TNN_NS {
 DECLARE_ARM_SOLVER_STRATEGY(SGD, SOLVER_TYPE_SGD)
 
 Status ArmSGDSolverStrategy::ExecUpdate(Blob *grad, RawBuffer *resource, SolverParam *param, Context *context) {
-    if (resource->GetDataType() != DATA_TYPE_FLOAT) {
+    const BlobDesc& grad_desc = grad->GetBlobDesc();
+    
+    if (resource->GetDataType() != DATA_TYPE_FLOAT || grad_desc.data_type != DATA_TYPE_FLOAT) {
         LOGE("ArmSGDSolverStrategy::ExecUpdate ERROR, only support fp32 model now\n");
         return Status(TNNERR_TRAIN_ERROR, "solver only support fp32 model now");
     }
 
-    auto dims = grad->GetBlobDesc().dims;
-    if (dims.size() != 2 || dims[0] != 1) {
-        LOGE("ArmSGDSolverStrategy::ExecUpdate ERROR, resource grad dims can not ignore data format\n");
-        return Status(TNNERR_TRAIN_ERROR, "resource grad dims can not ignore data format");
+    float *resource_ptr = resource->force_to<float *>();
+    float *grad_ptr = grad->GetHandle().force_to<float *>();
+
+    if (grad_desc.data_format != DATA_FORMAT_NCHW && grad_desc.data_format != DATA_FORMAT_NC4HW4) {
+        return Status(TNNERR_TRAIN_ERROR, "grad only support nchw and nc4hw4");
+    }
+    
+    RawBuffer grad_nchw;
+    if (grad_desc.data_format == DATA_FORMAT_NC4HW4 && !FloatBlobCanIgnorePack(grad_desc.dims)) {
+        grad_nchw = RawBuffer(DimsVectorUtils::Count(grad_desc.dims) * sizeof(float));
+        grad_ptr = grad_nchw.force_to<float *>();
+        UnpackFloatBlob(grad_ptr, grad->GetHandle().force_to<float *>(), grad_desc.dims);
     }
 
-    float *grad_ptr     = reinterpret_cast<float *>(GetBlobHandlePtr(grad->GetHandle()));
-    float *resource_ptr = resource->force_to<float *>();
     auto learning_rate  = param->learning_rate;
-
     int count = resource->GetDataCount();
     for (int n = 0; n < count - 3; n += 4) {
         Float4 g = Float4::load(grad_ptr + n) * learning_rate;

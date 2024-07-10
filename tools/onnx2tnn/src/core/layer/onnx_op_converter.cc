@@ -37,37 +37,40 @@ std::vector<std::string> OnnxOpConverter::GetValidInputNames(NodeProto &node, On
     
     for (int j = 1; j < (int)node.input_size(); j++) {
         const std::string &input_name = node.input(j);
-        if (input_name.length() > 0 &&
-            net_info.weights_map.find(input_name) == net_info.weights_map.end()) {
+        if (input_name.empty()) {
+            continue;
+        }
+
+        // 在weights_map没有找到：肯定有其他的变量输入(是常规变量输入)
+        // 在constants里找到：肯定有其他变量的输入（是常量输入）
+        if (net_info.weights_map.count(input_name) == 0 || net_info.constants.count(input_name) > 0) {
             has_another_variable_input = true;
             break;
         }
     }
-    
-    bool all_inputs_const = (!has_another_variable_input) &&
-    net_info.weights_map.find(node.input(0)) != net_info.weights_map.end();
-    
+
+    bool all_inputs_const = (!has_another_variable_input) && net_info.weights_map.find(node.input(0)) != net_info.weights_map.end();
+
     for (int j = 0; j < (int)node.input_size(); j++) {
         const auto input_name = node.input(j);
-        if (input_name.length() <= 0) {
+        if (input_name.empty()) {
             continue;
+        }
+        //if all inputs are const, it is a const layer which is only excuted on NAIVE
+        if (all_inputs_const) {
+            
         } else {
-            //if all inputs are const, it is a const layer which is only excuted on NAIVE
-            if (all_inputs_const) {
-                
+            if (HasLayerResource(node, net_info)) {
+                if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
+                net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
+                    continue;
+                }
             } else {
-                if (HasLayerResource(node, net_info)) {
-                    if (net_info.weights_map.find(input_name) != net_info.weights_map.end() &&
-                    net_info.used_const_node.find(input_name) == net_info.used_const_node.end()) {
-                        continue;
-                    }
+                if (j == 0 && node.input_size() == 1) {
+                    
                 } else {
-                    if (j == 0 && node.input_size() == 1) {
-                        
-                    } else {
-                        if (!has_another_variable_input && net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
-                            continue;
-                        }
+                    if (!has_another_variable_input && net_info.weights_map.find(input_name) != net_info.weights_map.end()) {
+                        continue;
                     }
                 }
             }

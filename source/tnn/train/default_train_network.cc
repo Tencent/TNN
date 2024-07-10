@@ -16,6 +16,7 @@
 
 #include "tnn/train/gradient/gradient_layer.h"
 #include "tnn/train/solver/solver_layer.h"
+#include "tnn/utils/dims_function_utils.h"
 
 namespace TNN_NS {
 
@@ -58,16 +59,20 @@ Status DefaultTrainNetwork::TrainStep() {
         return TNN_OK;
     }
 
-    Status ret = TNN_OK;
+    Status ret = ZeroGrad();
+    if (ret != TNN_OK) {
+        LOGE("DefaultTrainNetwork::TrainStep, zero grad failed\n");
+        return ret;
+    }
 
     RuntimeMode prev_mode = runtime_model_;
     runtime_model_        = RUNTIME_MODE_BACKWARD;
-    ret                   = Forward();
+    ret = Forward();
+    runtime_model_        = prev_mode;
     if (ret != TNN_OK) {
         LOGE("DefaultTrainNetwork::TrainStep, backward pass failed\n");
         return ret;
     }
-    runtime_model_ = prev_mode;
 
     for (auto layer : need_refresh_layers_) {
         ret = layer->RefreshBuffers();
@@ -78,6 +83,35 @@ Status DefaultTrainNetwork::TrainStep() {
     }
 
     return ret;
+}
+
+Status DefaultTrainNetwork::ZeroGrad() {
+    for (const auto& grad_name : net_structure_->grad_blobs) {
+        Blob *grad = blob_manager_->GetBlob(grad_name);
+        CHECK_PARAM_NULL(grad);
+
+        const BlobDesc &grad_desc = grad->GetBlobDesc();
+
+        if (grad_desc.data_type != DATA_TYPE_FLOAT) {
+            LOGE("grad data_type only support DATA_TYPE_FLOAT\n");
+            return Status(TNNERR_LAYER_ERR, "grad data_type only support DATA_TYPE_FLOAT");
+        }
+
+        int grad_bytes = 0;
+        if (grad_desc.data_format == DATA_FORMAT_NC4HW4) {
+            grad_bytes = DimsFunctionUtils::GetNCHWXPackedCount(grad_desc.dims, 4) * sizeof(float);
+        } else if (grad_desc.data_format == DATA_FORMAT_NCHW) {
+            grad_bytes = DimsVectorUtils::Count(grad_desc.dims) * sizeof(float);
+        } else {
+            LOGE("data_type or data_format not supported\n");
+            return Status(TNNERR_LAYER_ERR, "data_type or data_format not supported");
+        }
+        void *grad_ptr = grad->GetHandle().force_to<void *>();
+        if (grad_ptr != nullptr) {
+            bzero(grad_ptr, grad_bytes);
+        }
+    }
+    return TNN_OK;
 }
 
 Status DefaultTrainNetwork::GetTrainingFeedback(TrainingFeedback &feed_back) {

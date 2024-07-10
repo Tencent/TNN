@@ -39,19 +39,19 @@ Status ArmSolverLayerAcc::DoForward(const std::vector<Blob *> &inputs, const std
         return Status(TNNERR_TRAIN_ERROR, "runtime training info is nil");
     }
 
-    float *global_step_init_ptr_ = reinterpret_cast<float *>(GetBlobHandlePtr(inputs.back()->GetHandle()));
-    if (!global_step_init_ptr_) {
+    float *global_step_init_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(inputs.back()->GetHandle()));
+    if (!global_step_init_ptr) {
         LOGE("ArmSolverLayerAcc::DoForward, ERROR, global_step_init is nil\n");
         return Status(TNNERR_NET_ERR, "global_step_init is nil");
     }
-    float *global_step_ptr_ = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
-    if (!global_step_ptr_) {
+    float *global_step_ptr = reinterpret_cast<float *>(GetBlobHandlePtr(outputs[0]->GetHandle()));
+    if (!global_step_ptr) {
         LOGE("ArmSolverLayerAcc::DoForward, ERROR, global_step is nil\n");
         return Status(TNNERR_NET_ERR, "global_step is nil");
     }
-    *global_step_init_ptr_ = *global_step_init_ptr_ + 1;
-    *global_step_ptr_      = *global_step_init_ptr_;
-    LOGD("ArmSolverLayerAcc::DoForward, step: %d, lr: %f\n", int(*global_step_ptr_), solver_param_->learning_rate);
+    *global_step_init_ptr = *global_step_init_ptr + 1;
+    *global_step_ptr = *global_step_init_ptr;
+    LOGD("ArmSolverLayerAcc::DoForward, step: %d, lr: %f\n", int(*global_step_ptr), solver_param_->learning_rate);
 
     return impl_->OnSolve(inputs, outputs, solver_param_, context_, runtime_training_info_->solver_info);
 }

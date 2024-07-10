@@ -25,8 +25,8 @@ std::tuple<int, std::string> OnnxOpConverterMultiBrodcast::GetWeightInputIndexNa
     std::map<std::string, onnx::TensorProto>::iterator it;
     for (int j = 0; j < node.input_size(); j++) {
         const std::string &input_name = node.input(j);
-        it                            = net_info.weights_map.find(input_name);
-        if (it != net_info.weights_map.end()) {
+        if (net_info.weights_map.find(input_name) != net_info.weights_map.end()
+            && net_info.constants.find(input_name) == net_info.constants.end()) {
             if (weight_input_count <= 0) {
                 weight_input_index = j;
                 weight_name = input_name;
@@ -50,13 +50,8 @@ string OnnxOpConverterMultiBrodcast::TNNLayerParam(NodeProto &node, OnnxNetInfo 
 }
 
 bool OnnxOpConverterMultiBrodcast::HasLayerResource(NodeProto &node, OnnxNetInfo &net_info) {
-    const std::string &onnx_op        = node.op_type();
-    std::string name                  = !node.name().empty() ? node.name() : node.output(0);
-    const std::string &tnn_layer_type = TNNOpType(node, net_info);
-
     auto weight_input       = GetWeightInputIndexName(node, net_info);
     auto weight_input_index = get<0>(weight_input);
-    auto weight_name        = get<1>(weight_input);
     if (weight_input_index < 0) {
         return false;
     }

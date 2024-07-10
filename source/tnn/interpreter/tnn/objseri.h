@@ -153,9 +153,12 @@ namespace TNN_NS {
                     dims.push_back(GetInt());
                 }
             }
- 
+
             value = TNN_NS::RawBuffer(length);
             value.SetDataType(data_type);
+            if (dims.empty()) {
+                dims = { value.GetDataCount() };
+            }
             value.SetBufferDims(dims);
 
             char *buffer = value.force_to<char *>();

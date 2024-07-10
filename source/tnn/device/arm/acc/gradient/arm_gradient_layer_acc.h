@@ -29,8 +29,8 @@ public:
     virtual Status DoForward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs);
 
 private:
-    GradOp *impl_;
-    LayerParam *forward_param_;
+    GradOpPtr impl_;
+    GradientParam *grad_param_;
 };
 
 #define DECLARE_ARM_GRAD_OP(type_string, layer_type) DECLARE_GRAD_OP(Arm, DEVICE_ARM, type_string, layer_type)
