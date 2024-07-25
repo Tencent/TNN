@@ -52,7 +52,7 @@ ILayer* TileTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     nvinfer1::ISliceLayer* layer = addSlice(network, *slice_input,
         similar(network, inputDims, 0), outputShape, similar(network, inputDims, 1));
     layer->setName(layer_name_.c_str());
-    layer->setMode(nvinfer1::SliceMode::kWRAP);
+    layer->setMode(nvinfer1::SampleMode::kWRAP);
 
     return layer;
 }

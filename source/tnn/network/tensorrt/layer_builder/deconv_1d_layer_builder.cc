@@ -153,19 +153,19 @@ ILayer* Deconvolution1DTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* n
     auto pads = paramlist->pads;
     IDeconvolutionLayer* deconv_layer;
     if (paramlist->pad_type == -1 || (pads[0] == pads[1]) ) {
-        deconv_layer = network->addDeconvolution(*(layer->getOutput(0)), paramlist->output_channel,
+        deconv_layer = network->addDeconvolutionNd(*(layer->getOutput(0)), paramlist->output_channel,
             kernelSize, kernelWeights, biasWeights);
         if (deconv_layer != nullptr) {
             deconv_layer->setName(layer_name_.c_str());
-            deconv_layer->setStride(DimsHW(paramlist->strides[0], 1));
-            deconv_layer->setPadding(DimsHW(paramlist->pads[0], 0));
+            deconv_layer->setStrideNd(DimsHW(paramlist->strides[0], 1));
+            deconv_layer->setPaddingNd(DimsHW(paramlist->pads[0], 0));
             deconv_layer->setNbGroups(paramlist->group);
             //deconv_layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_DOWN);
         }
     } else {
         DimsVector postPadding{pads[1], 0};
         DimsVector  prePadding{pads[0], 0};
-        deconv_layer = network->addDeconvolution(*(layer->getOutput(0)), paramlist->output_channel, kernelSize,
+        deconv_layer = network->addDeconvolutionNd(*(layer->getOutput(0)), paramlist->output_channel, kernelSize,
             kernelWeights, biasWeights);
         if(deconv_layer != NULL) {
             deconv_layer->setName(layer_name_.c_str());

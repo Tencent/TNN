@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "NvInfer.h"
-#include "NvUtils.h"
+// #include "NvUtils.h"
 #include "NvInferPlugin.h"
 
 #include "tnn/core/macro.h"

@@ -50,7 +50,7 @@ TensorRTNetwork_::TensorRTNetwork_() {
     m_trt_context = nullptr;
     m_trt_builder = nullptr;
     m_context_memory = nullptr;
-    m_trt_bindings = nullptr;
+    // m_trt_bindings = nullptr;
     device_id_ = 0;
 }
 
@@ -69,14 +69,13 @@ TensorRTNetwork_::~TensorRTNetwork_() {
     }
 
     if (m_trt_context) {
-        m_trt_context->destroy();
+        delete m_trt_context;
     }
 
-    if (m_trt_engine) m_trt_engine->destroy();
+    if (m_trt_engine) delete m_trt_engine;
 
-    if (m_trt_builder) m_trt_builder->destroy();
+    if (m_trt_builder) delete m_trt_builder;
 
-    if(m_trt_bindings) delete[] m_trt_bindings;
 }
 
 Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
@@ -199,7 +198,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             deploy_input.read(model_stream, size);
             initLibNvInferPlugins(&m_trt_logger, "");
             IRuntime* runtime = createInferRuntime(m_trt_logger);
-            if (m_trt_engine) m_trt_engine->destroy();
+            if (m_trt_engine) delete m_trt_engine;
             m_trt_engine = runtime->deserializeCudaEngine(model_stream, size);
             delete[] model_stream;
             if (!m_trt_engine) {
@@ -210,13 +209,13 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             if (ret != TNN_OK)
                 return ret;
 
-            runtime->destroy();
+            delete runtime;
             deploy_input.close();
         } else {
             // deserialize cuda engine with cache buf
             initLibNvInferPlugins(&m_trt_logger, "");
             IRuntime* runtime = createInferRuntime(m_trt_logger);
-            if (m_trt_engine) m_trt_engine->destroy();
+            if (m_trt_engine) delete m_trt_engine;
             m_trt_engine = runtime->deserializeCudaEngine(cache_buf.data(), cache_buf.size());
             if (!m_trt_engine) {
                 LOGE("create tensorrt engine failed\n");
@@ -226,7 +225,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             if (ret != TNN_OK)
                 return ret;
 
-            runtime->destroy();
+            delete runtime;
         }
     } else {
         ret = CreateExecuteContext();
@@ -234,8 +233,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
             return ret;
     }
 
-    int bind_num = m_trt_engine->getNbBindings();
-    this->m_trt_bindings = new void*[bind_num];
+    int bind_num = m_trt_engine->getNbIOTensors();
 
     ret = ReshapeLayers();
     if (ret != TNN_OK) {
@@ -251,8 +249,7 @@ Status TensorRTNetwork_::Init(NetworkConfig &net_config, ModelConfig &model_conf
     }
 
     for (auto iter : outputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        this->m_trt_bindings[index] = iter.second->GetHandle().base;
+        this->m_trt_context->setTensorAddress(iter.first.c_str(), iter.second->GetHandle().base);
     }
 
     return TNN_OK;
@@ -275,19 +272,14 @@ Status TensorRTNetwork_::Forward() {
     }
 
     for (auto iter : inputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        if (index < 0) continue;
-        this->m_trt_bindings[index] = iter.second->GetHandle().base;
+        this->m_trt_context->setTensorAddress(iter.first.c_str(), iter.second->GetHandle().base);
     }
 
     for (auto iter : outputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        if (index < 0) continue;
-        this->m_trt_bindings[index] = iter.second->GetHandle().base;
+        this->m_trt_context->setTensorAddress(iter.first.c_str(), iter.second->GetHandle().base);
     }
 
-    bool trt_ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
-        dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
+    bool trt_ret = this->m_trt_context->enqueueV3(dynamic_cast<CudaContext*>(context_)->GetStream());
     if (trt_ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
     }
@@ -317,15 +309,12 @@ Status TensorRTNetwork_::ReshapeLayers() {
     }
 
     for (auto iter : inputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        if (index < 0) continue;
-        auto dims = blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims;
-        nvinfer1::Dims inputDims = ConvertToTRTDims(dims);
-        bool success = m_trt_context->setBindingDimensions(index, inputDims);
-	if(!success) {
+        auto dims = m_trt_engine->getTensorShape(iter.first.c_str());
+        bool success = m_trt_context->setInputShape(iter.first.c_str(), dims);
+	    if(!success) {
             return Status(TNNERR_PARAM_ERR, "Reshape failed\n");
         }
-        this->m_trt_bindings[index] = iter.second->GetHandle().base;
+        this->m_trt_context->setTensorAddress(iter.first.c_str(), iter.second->GetHandle().base);
     }
 
     BlobMap outputs;
@@ -338,20 +327,18 @@ Status TensorRTNetwork_::ReshapeLayers() {
     for (auto blob_name : const_input_blobs_) {
         Blob *blob = blob_manager_->GetBlob(blob_name);
         auto buf = net_resource_->constant_map[blob_name];
-        int index = m_trt_engine->getBindingIndex(blob_name.c_str());
-        if (index < 0) continue;
-        // Data is reload from const_map to blob in CudaLayerAcc::ReloadConstantBlobs
-        m_trt_bindings[index] = blob->GetHandle().base;
+        this->m_trt_context->setTensorAddress(blob_name.c_str(), blob->GetHandle().base);
 
         bool success;
         auto foreign_tensor = dynamic_cast<ForeignBlob*>(blob)->GetForeignTensor();
         if (std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->IsShapeTensor()) {
             auto name = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetShapeBlobName();
             auto dims = net_resource_->blob_shapes_map[name];
-            success = m_trt_context->setInputShapeBinding(index, dims.data());
+            success = m_trt_context->setInputTensorAddress(name.c_str(), dims.data());
         } else {
+            auto name = buf->GetName();
             nvinfer1::Dims inputDims = ConvertToTRTDims(buf->GetBufferDims());
-            success = m_trt_context->setBindingDimensions(index, inputDims);
+            success = m_trt_context->setInputShape(name.c_str(), inputDims);
         }
 
         if (!success) {
@@ -360,10 +347,9 @@ Status TensorRTNetwork_::ReshapeLayers() {
     }
 
     for (auto iter : outputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        auto trt_dims = m_trt_context->getBindingDimensions(index).d;
+        auto trt_dims = m_trt_context->getTensorShape(iter.first.c_str()).d;
         DimsVector dims;
-        for (int i = 0; i < m_trt_context->getBindingDimensions(index).nbDims; i++) {
+        for (int i = 0; i < m_trt_context->getTensorShape(iter.first.c_str()).nbDims; i++) {
             dims.push_back(trt_dims[i]);
         }
         blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims = dims;
@@ -405,13 +391,10 @@ Status TensorRTNetwork_::ForwardAsync(Callback call_back) {
     }
 
     for (auto iter : inputs) {
-        int index = m_trt_engine->getBindingIndex(iter.first.c_str());
-        if (index < 0) continue;
-        this->m_trt_bindings[index] = iter.second->GetHandle().base;
+        this->m_trt_context->setTensorAddress(iter.first.c_str(), iter.second->GetHandle().base);
     }
 
-    bool trt_ret = this->m_trt_context->enqueueV2(this->m_trt_bindings,
-        dynamic_cast<CudaContext*>(context_)->GetStream(), nullptr);
+    bool trt_ret = this->m_trt_context->enqueueV3(dynamic_cast<CudaContext*>(context_)->GetStream());
     if (trt_ret != true) {
         return TNNERR_CUDA_TENSORRT_ERROR;
     }
@@ -733,13 +716,17 @@ Status TensorRTNetwork_::InitWithoutCache(BlobMap &inputs, BlobMap &outputs, std
     if (this->explicit_int8_mode) {
         m_trt_config->setFlag(BuilderFlag::kINT8);
     }
-    m_trt_engine = m_trt_builder->buildEngineWithConfig(*m_trt_network, *m_trt_config);
+
+    auto ihost_serialized_model = m_trt_builder->buildSerializedNetwork(*m_trt_network, *m_trt_config);
+    IRuntime* runtime = createInferRuntime(m_trt_logger);
+    m_trt_engine = runtime->deserializeCudaEngine(ihost_serialized_model->data(), ihost_serialized_model->size());
     if (!m_trt_engine) {
         LOGE("create tensorrt engine failed\n");
         return TNNERR_CUDA_TENSORRT_ERROR;
     }
-    m_trt_config->destroy();
-    m_trt_network->destroy();
+    delete m_trt_config;
+    delete m_trt_network;
+    delete ihost_serialized_model;
 
     return TNN_OK;
 }

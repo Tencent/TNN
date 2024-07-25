@@ -21,6 +21,7 @@ namespace TNN_NS {
 DECLARE_TENSORRT_LAYER_BUILDER(InnerProduct, LAYER_INNER_PRODUCT);
 
 ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
+    /*
     auto paramlist = dynamic_cast<InnerProductLayerParam*>(param_);
     auto resource = dynamic_cast<InnerProductLayerResource*>(resource_);
 
@@ -72,7 +73,7 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     input_tensor = in_reshape_layer->getOutput(0);
 
     //FullyConnected
-    layer = network->addFullyConnected(*input_tensor, paramlist->num_output, 
+    layer = network->addMatrixMultiply(*input_tensor, paramlist->num_output,
         kernelWeights, biasWeights);
 
     if (weight_as_input) {
@@ -94,6 +95,9 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     layer = out_reshape_layer;
 
     return layer;
+    */
+    LOGE("not support in TRT 10\n");
+    return nullptr;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(InnerProduct, LAYER_INNER_PRODUCT);

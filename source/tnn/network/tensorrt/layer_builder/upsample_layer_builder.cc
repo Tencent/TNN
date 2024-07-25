@@ -157,8 +157,11 @@ ILayer* UpsampleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network)
             scale[3] = paramlist->scales[0];
             layer->setScales(scale, 4);
         }
-        layer->setResizeMode(paramlist->mode == 1 ? ResizeMode::kNEAREST : ResizeMode::kLINEAR);
-        layer->setAlignCorners(paramlist->align_corners);
+        layer->setResizeMode(paramlist->mode == 1 ? InterpolationMode::kNEAREST : InterpolationMode::kLINEAR);
+        // layer->setAlignCorners(paramlist->align_corners);
+        if (paramlist->align_corners) {
+            layer->setCoordinateTransformation(nvinfer1::ResizeCoordinateTransformation::kALIGN_CORNERS);
+        }
     }
     return layer;
 }

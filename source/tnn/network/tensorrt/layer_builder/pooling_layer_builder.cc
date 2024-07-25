@@ -111,9 +111,11 @@ ILayer* PoolingTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         }
         if (paramlist->pad_type == -1) {
             if (paramlist->ceil_mode == 1) {
-                layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_UP);
+                // layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_UP);
+                LOGE("Caffe is not supported since 9.0\n");
             } else {
-                layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_DOWN);
+                // layer->setPaddingMode(PaddingMode::kCAFFE_ROUND_DOWN);
+                LOGE("Caffe is not supported since 9.0\n");
             }
         } else if (paramlist->pad_type == 0) {
             layer->setPaddingMode(PaddingMode::kSAME_UPPER);
