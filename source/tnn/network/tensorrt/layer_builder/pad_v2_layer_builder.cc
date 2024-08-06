@@ -74,9 +74,9 @@ ILayer* PadV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) no
         return nullptr;
     }
 
-    if (!UseTRTPaddingND(paramlist)) {
-        return TensorRTPluginLayerBuilder::AddToNetwork(network);
-    }
+    //if (!UseTRTPaddingND(paramlist)) {
+    //    return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    //}
 
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
