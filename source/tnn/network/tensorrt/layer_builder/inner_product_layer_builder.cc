@@ -21,7 +21,6 @@ namespace TNN_NS {
 DECLARE_TENSORRT_LAYER_BUILDER(InnerProduct, LAYER_INNER_PRODUCT);
 
 ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
-    /*
     auto paramlist = dynamic_cast<InnerProductLayerParam*>(param_);
     auto resource = dynamic_cast<InnerProductLayerResource*>(resource_);
 
@@ -32,52 +31,92 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     nvinfer1::ITensor* weight_tensor = nullptr;
     bool weight_as_input = (input_blobs_.size() == 2);
     int weight_count = 1;
+
+    Weights kernelWeights;
+    Weights biasWeights;
+
     if (weight_as_input) {
         auto weight_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
         weight_tensor = std::dynamic_pointer_cast<TensorRTTensor>(weight_foreign_tensor)->GetTensor();
         auto dims = weight_tensor->getDimensions();
         paramlist->num_output = dims.d[0];
-        for (int i = 0; i < dims.nbDims; i ++)
+        for (int i = 0; i < dims.nbDims; i++)
             weight_count *= dims.d[i];
-    }
-
-    Weights kernelWeights;
-    Weights biasWeights;
-    ILayer* weight_layer;
- 
-    if (weight_as_input) {
-        kernelWeights = nvinfer1::Weights{nvinfer1::DataType::kFLOAT, nullptr, 0};
     } else {
         kernelWeights = ConvertToWeights(&(resource->weight_handle));
+        weight_count = kernelWeights.count;
     }
+
     if (paramlist->has_bias) {
         biasWeights = ConvertToWeights(&(resource->bias_handle));
     } else {
         biasWeights = ConvertToWeights(nullptr, true, resource->weight_handle.GetDataType());
     }
 
-    ILayer* layer;
-
-    Dims in_dims;
-    in_dims.nbDims = 4;
-    in_dims.d[0] = -1;
-    if (weight_as_input) {
-        in_dims.d[1] = weight_count / paramlist->num_output;
-    } else {
-        in_dims.d[1] = kernelWeights.count / paramlist->num_output;
+    // Reshape input tensor to 2D
+    Dims input_dims = input_tensor->getDimensions();
+    Dims reshape_dims;
+    reshape_dims.nbDims = 2;
+    reshape_dims.d[0] = input_dims.d[0]; // Batch size
+    reshape_dims.d[1] = 1;
+    for (int i = 1; i < input_dims.nbDims; ++i) {
+        reshape_dims.d[1] *= input_dims.d[i];
     }
-    in_dims.d[2] = 1;
-    in_dims.d[3] = 1;
+
     IShuffleLayer* in_reshape_layer = network->addShuffle(*input_tensor);
-    in_reshape_layer->setReshapeDimensions(in_dims);
+    in_reshape_layer->setReshapeDimensions(reshape_dims);
     input_tensor = in_reshape_layer->getOutput(0);
 
-    //FullyConnected
-    layer = network->addMatrixMultiply(*input_tensor, paramlist->num_output,
-        kernelWeights, biasWeights);
+    if (input_tensor == nullptr) {
+        LOGE("Input tensor is null.\n");
+        return nullptr;
+    }
 
-    if (weight_as_input) {
-        layer->setInput(1, *weight_tensor);
+    if (!weight_as_input) {
+        // Create a constant layer for the weights
+        Dims weight_dims;
+        weight_dims.nbDims = 2;
+        weight_dims.d[0] = paramlist->num_output;
+        weight_dims.d[1] = weight_count / paramlist->num_output;
+        weight_tensor = network->addConstant(weight_dims, kernelWeights)->getOutput(0);
+    }
+
+    if (weight_tensor == nullptr) {
+        LOGE("weight tensor is null.\n");
+        return nullptr;
+    }
+
+    // Check dimensions compatibility
+    auto reshaped_input_dims = input_tensor->getDimensions();
+    auto weight_dims = weight_tensor->getDimensions();
+    if (reshaped_input_dims.nbDims != 2 || weight_dims.nbDims != 2) {
+        std::cout << "Input and weight tensors must be 2D." << std::endl;
+        return nullptr;
+    }
+
+    if (reshaped_input_dims.d[1] != weight_dims.d[1]) {
+        std::cout << "Input tensor's second dimension must match weight tensor's second dimension." << std::endl;
+        return nullptr;
+    }
+
+    // Matrix Multiply
+    ILayer* matmul_layer = network->addMatrixMultiply(*input_tensor, MatrixOperation::kNONE, *weight_tensor, MatrixOperation::kTRANSPOSE);
+    if (matmul_layer == nullptr) {
+        return nullptr;
+    }
+
+    ILayer* layer = matmul_layer;
+
+    // Add bias if present
+    if (paramlist->has_bias) {
+        // Adjust bias tensor dimensions to match the output of matmul_layer
+        Dims bias_dims;
+        bias_dims.nbDims = 2;
+        bias_dims.d[0] = 1; // Broadcast across batch size
+        bias_dims.d[1] = paramlist->num_output;
+
+        auto bias_tensor = network->addConstant(bias_dims, biasWeights)->getOutput(0);
+        layer = network->addElementWise(*matmul_layer->getOutput(0), *bias_tensor, ElementWiseOperation::kSUM);
     }
 
     if (layer != nullptr) {
@@ -95,9 +134,6 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     layer = out_reshape_layer;
 
     return layer;
-    */
-    LOGE("not support in TRT 10\n");
-    return nullptr;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(InnerProduct, LAYER_INNER_PRODUCT);
