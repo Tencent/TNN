@@ -75,6 +75,13 @@ ILayer* StrideSliceV2TRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
                 end_dim[param->axes[i]] = param->begins[param->axes[i]] + dim[param->axes[i]];
         }
     }
+
+    if (stride_dim.size() == 0 && input_tensors.size() < 5) { // stride defaults to 1
+        stride_dim = DimsVector(axes.size() > 0 ? axes.size() : dims.size(), 1);
+    }
+    // NOTE & TODO: when input_tensors[3] exists, should we accept it as axes?
+    // NOTE & TODO: when input_tensors[4] exists, should we accept it as strides?
+
     axes = ShapeTensor(1, std::move(axes_dim));
     strides = ShapeTensor(1, std::move(stride_dim));
 

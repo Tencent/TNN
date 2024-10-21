@@ -119,14 +119,17 @@ ILayer* UpsampleTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network)
                     }
                 }
             } else {
-                if (output_dims.size() == 4) {
+                auto trt_dim = input_tensor->getDimensions();
+                if (output_dims.size() == 4 || (output_dims.size() == 0 && trt_dim.nbDims == 4)) {
+                    // NOTE: keep 2nd condition until dims or rank of blob can be tracked in dynamic shape scenario
                     float scale[4];
                     scale[0] = 1;
                     scale[1] = 1;
                     scale[2] = paramlist->scales[1];
                     scale[3] = paramlist->scales[0];
                     layer->setScales(scale, 4);
-                } else if (output_dims.size() == 5) {
+                } else if (output_dims.size() == 5 || (output_dims.size() == 0 && trt_dim.nbDims == 5)) {
+                    // NOTE: keep 2nd condition until dims or rank of blob can be tracked in dynamic shape scenario
                     float scale[5];
                     scale[0] = 1;
                     scale[1] = 1;
