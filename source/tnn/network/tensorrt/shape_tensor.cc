@@ -122,7 +122,7 @@ nvinfer1::ITensor& ShapeTensor::tensor(INetworkDefinition* network) const {
                 count *= value;
             }
             nvinfer1::Weights w{nvinfer1::DataType::kINT32, count == 0 ? nullptr : m_values.data(), count};
-            m_tensor = network->addShape(*network->addConstant(dims, w)->getOutput(0))->getOutput(0);
+            m_tensor = network->addCast(*(network->addShape(*network->addConstant(dims, w)->getOutput(0))->getOutput(0)), nvinfer1::DataType::kINT32)->getOutput(0);
             if (rank() == 0) {
                 nvinfer1::IShuffleLayer* shuffle = network->addShuffle(*m_tensor);
                 nvinfer1::Dims d{0, {}};
@@ -133,7 +133,7 @@ nvinfer1::ITensor& ShapeTensor::tensor(INetworkDefinition* network) const {
         } else {
             assert(m_tensor);
             for (; m_depth > 0; --m_depth) {
-                m_tensor = network->addShape(*m_tensor)->getOutput(0);
+                m_tensor = network->addCast(*(network->addShape(*m_tensor)->getOutput(0)), nvinfer1::DataType::kINT32)->getOutput(0);
             }
         }
     }

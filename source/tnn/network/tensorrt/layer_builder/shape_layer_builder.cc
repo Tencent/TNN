@@ -25,7 +25,12 @@ ILayer* ShapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());   
     }
-    return layer;
+    auto castlayer = network->addCast(*(layer->getOutput(0)), nvinfer1::DataType::kINT32);
+    if (castlayer != nullptr) {
+        castlayer->setName((layer_name_+"_cast2int32").c_str());   
+    }
+
+    return castlayer;
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Shape, LAYER_SHAPE);

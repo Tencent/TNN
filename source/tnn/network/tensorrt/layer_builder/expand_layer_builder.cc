@@ -35,7 +35,7 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     ITensor* inputDims;
     if (input_tensors[0]->getDimensions().nbDims != 0)
-        inputDims = network->addShape(*input_tensors[0])->getOutput(0);
+        inputDims = network->addCast(*(network->addShape(*input_tensors[0])->getOutput(0)), nvinfer1::DataType::kINT32)->getOutput(0);
     int inputRank;
     if (input_tensors[0]->getDimensions().nbDims != 0) {
         inputRank = inputDims->getDimensions().d[0];
@@ -79,12 +79,13 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
             tmpWeight.values = input_data_tensor;
         }
         tmpWeight.count = 1;
+        auto tmp_tensor = network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0);
         if (input_tensors[0]->getDimensions().nbDims != 0) {
             nvinfer1::ITensor* const args[2] = {
-                network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0), inputDims};
+                network->addCast(*tmp_tensor, nvinfer1::DataType::kINT32)->getOutput(0), inputDims};
             newDims = network->addConcatenation(args, 2)->getOutput(0);
         } else {
-            newDims = network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0);
+            newDims = network->addCast(*tmp_tensor, nvinfer1::DataType::kINT32)->getOutput(0);
         }
     } else {
         newDims = inputDims;
@@ -108,7 +109,7 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         tmpWeight.values = layer_param->shape.data();
         tmpWeight.count = 1;
         nvinfer1::ITensor* const args[2] = {
-            network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0), shape};
+            network->addCast(*(network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0)), nvinfer1::DataType::kINT32)->getOutput(0), shape};
         newShape = network->addConcatenation(args, 2)->getOutput(0);
     } else {
         newShape = shape;
@@ -134,7 +135,7 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         tmpWeight.count = 1;
         ILayer* one_shape_constant_layer = network->addConstant(tmpDims, tmpWeight);
         one_shape_constant_layer->setName((layer_name_+"_one_shape_constant").c_str());
-        one = network->addShape(*one_shape_constant_layer->getOutput(0))->getOutput(0);
+        one = network->addCast(*(network->addShape(*one_shape_constant_layer->getOutput(0))->getOutput(0)), nvinfer1::DataType::kINT32)->getOutput(0);
     }
 
     ITensor* strides = network->addElementWise(*one,
