@@ -10,8 +10,8 @@ PYBIND_ENABLE="OFF"
 PACK_TORCH_LIB="OFF"
 DEBUG="OFF"
 
-export CUDNN_ROOT_DIR=/usr/local/cudnn-8.6.0
-export TENSORRT_ROOT_DIR=/usr/local/TensorRT-10.2.0.19
+export CUDNN_ROOT_DIR=/usr/local/cudnn-9.5.1.17
+export TENSORRT_ROOT_DIR=/usr/local/TensorRT-8.6.0.12
 if [ -z $1 ];then export LIBTORCH_ROOT_DIR=`find /usr/local/ -name "libtorch-shared-*"`
 else
     export LIBTORCH_ROOT_DIR=$1
@@ -54,7 +54,7 @@ cmake ${TNN_ROOT_PATH} \
     -DTNN_PACK_TORCH_LIB=${PACK_TORCH_LIB}
 
 echo Building TNN ...
-make -j
+make -j4
 
 if [ -d ${TNN_INSTALL_DIR} ]
 then 
@@ -96,9 +96,9 @@ fi
 #cudnn
 cudnn_dep_list=$( ldd libTNN.so | awk '{if (match($3, "cudnn")){ print $3}}' )
 cp $cudnn_dep_list ${TNN_INSTALL_DIR}/lib/
-cp ${CUDNN_ROOT_DIR}/lib64/libcudnn_cnn_infer.so.8 ${TNN_INSTALL_DIR}/lib/
-cp ${CUDNN_ROOT_DIR}/lib64/libcudnn_ops_infer.so.8 ${TNN_INSTALL_DIR}/lib/
-cp ${CUDNN_ROOT_DIR}/lib64/libcudnn_adv_infer.so.8 ${TNN_INSTALL_DIR}/lib/
+cp ${CUDNN_ROOT_DIR}/lib/libcudnn_cnn_infer.so.9 ${TNN_INSTALL_DIR}/lib/
+cp ${CUDNN_ROOT_DIR}/lib/libcudnn_ops_infer.so.9 ${TNN_INSTALL_DIR}/lib/
+cp ${CUDNN_ROOT_DIR}/lib/libcudnn_adv_infer.so.9 ${TNN_INSTALL_DIR}/lib/
 
 # torch
 if [ "$PACK_TORCH_LIB" = "ON" ]; then

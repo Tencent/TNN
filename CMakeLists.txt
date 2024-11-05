@@ -237,7 +237,7 @@ if(UNIX)
     endif()
 endif()
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(TNN_METAL_ENABLE OR TNN_APPLE_NPU_ENABLE)
@@ -529,7 +529,7 @@ elseif(SYSTEM.Windows)
 endif()
 
 if(TNN_PYBIND_ENABLE)
-    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD 17)
     include_directories(third_party/pybind11/include)
     add_subdirectory(third_party/pybind11)
     file(GLOB_RECURSE TORCH_SRC "source/pytnn/*.cc")
