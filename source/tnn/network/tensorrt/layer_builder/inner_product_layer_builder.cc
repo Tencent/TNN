@@ -53,25 +53,6 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         biasWeights = ConvertToWeights(nullptr, true, resource->weight_handle.GetDataType());
     }
 
-    // Reshape input tensor to 2D
-    Dims input_dims = input_tensor->getDimensions();
-    Dims reshape_dims;
-    reshape_dims.nbDims = 2;
-    reshape_dims.d[0] = input_dims.d[0]; // Batch size
-    reshape_dims.d[1] = 1;
-    for (int i = 1; i < input_dims.nbDims; ++i) {
-        reshape_dims.d[1] *= input_dims.d[i];
-    }
-
-    IShuffleLayer* in_reshape_layer = network->addShuffle(*input_tensor);
-    in_reshape_layer->setReshapeDimensions(reshape_dims);
-    input_tensor = in_reshape_layer->getOutput(0);
-
-    if (input_tensor == nullptr) {
-        LOGE("Input tensor is null.\n");
-        return nullptr;
-    }
-
     if (!weight_as_input) {
         // Create a constant layer for the weights
         Dims weight_dims;
@@ -79,24 +60,6 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         weight_dims.d[0] = paramlist->num_output;
         weight_dims.d[1] = weight_count / paramlist->num_output;
         weight_tensor = network->addConstant(weight_dims, kernelWeights)->getOutput(0);
-    }
-
-    if (weight_tensor == nullptr) {
-        LOGE("weight tensor is null.\n");
-        return nullptr;
-    }
-
-    // Check dimensions compatibility
-    auto reshaped_input_dims = input_tensor->getDimensions();
-    auto weight_dims = weight_tensor->getDimensions();
-    if (reshaped_input_dims.nbDims != 2 || weight_dims.nbDims != 2) {
-        std::cout << "Input and weight tensors must be 2D." << std::endl;
-        return nullptr;
-    }
-
-    if (reshaped_input_dims.d[1] != weight_dims.d[1]) {
-        std::cout << "Input tensor's second dimension must match weight tensor's second dimension." << std::endl;
-        return nullptr;
     }
 
     // Matrix Multiply
