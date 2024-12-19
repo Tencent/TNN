@@ -60,7 +60,7 @@ option(TNN_METAL_FLOAT32 "Enable Metal Float32" OFF)
 option(TNN_COREML_FLOAT32 "Enable Float32 CoreML Model" ON)
 option(TNN_DYNAMIC_RANGE_QUANTIZATION_ENABLE "Enable Dynamic Range Quantization" OFF)
 option(TNN_PACK_TORCH_LIB "Enable Torch Lib Pack in release" ON)
-option(TNN_CUDA_JETSON_ENABLE "Enable CUDA build for Nvidia Jetson Driving Chips like Orin, Thor etc." ON)
+option(TNN_CUDA_JETSON_ENABLE "Enable CUDA build for Nvidia Jetson Driving Chips like Orin, Thor etc." OFF)
 
 set(TNN_USE_GFLAGS OFF)
 
