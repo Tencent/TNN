@@ -53,10 +53,10 @@ if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0)
     string(APPEND TARGET_ARCH " -gencode=arch=compute_90,code=sm_90")
 endif()
 
-if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.6)
-    # sm_100: B40, B100, B200, RTX 5080
-    string(APPEND TARGET_ARCH " -gencode=arch=compute_100,code=sm_100")
-endif()
+#if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.6)
+#    # sm_100: B40, B100, B200, RTX 5080
+#    string(APPEND TARGET_ARCH " -gencode=arch=compute_100,code=sm_100")
+#endif()
 
 # ptx forward-compatible for cuda12 or later
 if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.0)
