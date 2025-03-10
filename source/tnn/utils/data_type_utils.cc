@@ -14,6 +14,7 @@
 
 #include "tnn/utils/data_type_utils.h"
 #include <limits.h>
+#include <cstdint>
 #include "tnn/core/macro.h"
 
 namespace TNN_NS {
