@@ -36,13 +36,21 @@ ILayer* FloorTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         } else {
             unsqueeze->setName((layer_name_ + "/before_unsqueeze").c_str());
         }
+        // update 'tensor' to the output of the Unsqueeze layer
         tensor = unsqueeze->getOutput(0);
     }
+
     IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kFLOOR);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
+    } else {  // i.e. layer == nullptr
+        return layer;
     }
+
     if (input_dim == 0) {
+        // so here, layer != nullptr holds
+        // update 'tensor' to the output of the Floor layer
+        tensor = layer->getOutput(0);
         squeeze = addSqueeze(network, *tensor, {0,});
         if (squeeze == nullptr) {
             return squeeze;
