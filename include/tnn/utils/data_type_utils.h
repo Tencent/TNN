@@ -25,7 +25,7 @@ namespace TNN_NS {
 class PUBLIC DataTypeUtils {
 public:
     // @brief get bytes
-    // @param data_tyep data type info
+    // @param data_type data type info
     static int GetBytesSize(DataType data_type);
 
     // @brief get string for DataType
