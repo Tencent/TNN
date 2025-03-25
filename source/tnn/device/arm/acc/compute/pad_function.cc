@@ -50,6 +50,92 @@ static void CommonPadImpl(float *input_data, float *output_data, int batch_c_r4,
     }
 }
 
+// Common pad in height and width directions
+static Status CommonPadDimSixImpl(float *input_data, float *output_data, int batch_c_r4, DimsVector input_dims, DimsVector output_dims, DimsVector pads, Float4 &vvalue) {
+    if (input_dims[2] != output_dims[2] || input_dims[4] != output_dims[4]) {
+        LOGE("CommonPadDimSixImpl(const type) only support 3 & 5 dims\n");
+        return Status(TNNERR_UNKNOWN_LAYER, "CommonPadDimSixImpl(const type) only support 3 & 5 dims");
+    }
+
+   int height = input_dims[2];
+   int width  = input_dims[4];
+
+   int in_h  = input_dims[3];
+   int in_w  = input_dims[5];
+   int out_h = output_dims[3];
+   int out_w = output_dims[5];
+
+   int pad_t = pads[3];
+   int pad_b = pads[9];
+   int pad_l = pads[5];
+   int pad_r = pads[11];
+
+    /*
+    printf("input_dims: ");
+    for (auto dim : input_dims) {
+        printf("%d, ", dim);
+    }
+    printf("\n");
+
+    printf("output_dims:");
+    for (auto dim : output_dims) {
+        printf("%d, ", dim);
+    }
+    printf("\n");
+
+    printf("pads:       ");
+    for (auto dim : pads) {
+        printf("%d, ", dim);
+    }
+    printf("\n");
+
+    input_dims: 1, 512, 32, 1, 32, 1, 
+    output_dims:1, 512, 32, 2, 32, 2, 
+    pads:       0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,
+    */
+
+    for (int c = 0; c < batch_c_r4; c += 4) {
+        auto input_ptr_c  = input_data + c * height * in_h * width * in_w;
+        auto output_ptr_c = output_data + c * height * out_h * width * out_w;
+
+        for (int hi = 0; hi < height; ++hi) {
+            if (pad_t)
+                for (int i = 0; i < width * out_w * pad_t; ++i)
+                    Float4::save(output_ptr_c + i * 4, vvalue);
+
+            for (int h = 0; h < in_h; ++h) {
+                auto output_ptr_h = output_ptr_c + width * out_w * (h + pad_t) * 4;
+                auto input_ptr_h  = input_ptr_c + width * in_w * h * 4;
+
+                for (int w = 0; w < width; ++w) {
+                    auto output_ptr_w = output_ptr_h + w * out_w * 4;
+                    auto input_ptr_w  = input_ptr_h + w * in_w * 4;
+
+                    for (int i = 0; i < pad_l; i++)
+                        Float4::save(output_ptr_w + i * 4, vvalue);
+
+                    memcpy(output_ptr_w + pad_l * 4, input_ptr_w, in_w * sizeof(float) * 4);
+
+                    for (int i = in_w + pad_l; i < out_w; i++)
+                        Float4::save(output_ptr_w + i * 4, vvalue);
+                }
+            }
+
+            if (pad_b) {
+                auto output_ptr_h = output_ptr_c + width * out_w * (in_h + pad_t) * 4;
+                for (int i = 0; i < width * out_w * pad_b; ++i)
+                    Float4::save(output_ptr_h + i * 4, vvalue);
+            }
+
+            input_ptr_c += in_h * width * in_w * 4;
+            output_ptr_c += out_h * width * out_w * 4;
+        }
+
+    }
+
+    return TNN_OK;
+}
+
 static void CalculatePad(Float4 &src, const Float4 &vvalue, const int padded_zero) {
     if (padded_zero)
         src = Float4::pad(src, vvalue, padded_zero);
@@ -218,9 +304,9 @@ static void ChannelPadImpl(float *input_data, float *output_data, int batch, int
 
 Status PadUtils::ConstPadV2(float *input_data, float *output_data, DimsVector input_dims, DimsVector output_dims,
                             PadContext context) {
-    if (input_dims.size() < 2 || input_dims.size() > 5) {
-        LOGE("Arm PadV2(const type) only support 2 - 5 dims\n");
-        return Status(TNNERR_UNKNOWN_LAYER, "Arm PadV2 only support 2 - 5 dims");
+    if (input_dims.size() < 2 || input_dims.size() > 6) {
+        LOGE("Arm PadV2(const type) only support 2 - 6 dims\n");
+        return Status(TNNERR_UNKNOWN_LAYER, "Arm PadV2 only support 2 - 6 dims");
     }
     const int batch    = context.output_batch;
     const int oc_r4    = context.output_channel_r4;
@@ -237,7 +323,16 @@ Status PadUtils::ConstPadV2(float *input_data, float *output_data, DimsVector in
     const int pad_b    = context.pad_b;
     const int pad_r    = context.pad_r;
     Float4 value_v     = Float4(context.value);
-    
+
+    if (input_dims.size() == 6) {
+        if (input_dims[0] == output_dims[0] && context.pads[1] == context.pads[7]) {
+            return CommonPadDimSixImpl(input_data, output_data, batch * oc_r4, input_dims, output_dims, context.pads, value_v);
+        } else {
+            LOGE("Arm PadV2(const type) with 6 dims do not support channel dim\n");
+            return Status(TNNERR_UNKNOWN_LAYER, "Arm PadV2(const type) with 6 dims do not support channel dim");
+        }
+    }
+
     //ncdhw, extend dim except the batch n
     if (context.input_batch == context.output_batch) {
     if (pad_c_b == 0 && pad_c_e == 0) {

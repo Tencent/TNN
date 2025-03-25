@@ -51,6 +51,13 @@ DimsVector DimsFunctionUtils::Expand(DimsVector dims0, DimsVector dims1, Status 
 
 DimsVector DimsFunctionUtils::Upsample(const DimsVector input_dims,
                                      std::vector<float> scales, std::vector<int> sizes, int mode, Status *status) {
+    if (input_dims.size() == 0) {
+        if (status) {
+            *status = Status(TNNERR_PARAM_ERR, "unsupport upsample input dims");
+        }
+        return DimsVector();
+    }
+
     int num          = input_dims[0];
     int channels   = input_dims[1];
     int height       = input_dims[2];
@@ -107,6 +114,13 @@ DimsVector DimsFunctionUtils::Reshape(const DimsVector input_dims, const DimsVec
 
     int output_size = shape.size() + axis;
     DimsVector output_dims(output_size, 1);
+
+    if (input_dims.size() == 0) {
+        if (status) {
+            *status = Status(TNNERR_LAYER_ERR, "reshape input_dims size error");
+        }
+        return DimsVector();
+    }
 
     for(int i = 0; i < axis; ++i) {
         output_dims[i] = input_dims[i];

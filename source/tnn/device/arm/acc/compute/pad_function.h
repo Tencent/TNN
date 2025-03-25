@@ -47,6 +47,7 @@ public:
         int32_t pad_b   = 0;
         int32_t pad_l   = 0;
         int32_t pad_r   = 0;
+        DimsVector pads;
         int32_t type    = 0;
         float value     = 0.0f;
     };
