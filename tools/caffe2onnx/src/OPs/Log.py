@@ -31,7 +31,7 @@ def get_log_output_shape(input_shape):
 
 
 def create_log_node(layer, node_name, input_name, output_name, input_shape):
-    output_shape = get_log_output_shape(layer)
+    output_shape = get_log_output_shape(input_shape)
 
     node = Node.c2oNode(layer, node_name, 'Log', input_name, output_name, input_shape, output_shape)
 
