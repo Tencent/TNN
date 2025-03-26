@@ -17,6 +17,10 @@
 #include <map>
 #include <mutex>
 
+#include "tnn/core/common.h"
+#include "tnn/core/status.h"
+#include "tnn/core/macro.h"
+
 namespace TNN_NS {
 
 AbstractDevice::AbstractDevice(DeviceType device_type) : device_type_(device_type) {}
@@ -49,7 +53,12 @@ std::shared_ptr<const ImplementedLayout> AbstractDevice::GetImplementedLayout(La
 }
 
 AbstractDevice* GetDevice(DeviceType type) {
-    return GetGlobalDeviceMap()[type].get();
+    auto device_map = GetGlobalDeviceMap();
+    if (device_map.find(type) != device_map.end()) {
+        return GetGlobalDeviceMap()[type].get();
+    } else {
+        return nullptr;
+    }
 }
 
 /*

@@ -58,7 +58,7 @@ Status ReformatLayerInterpreter::InterpretResource(Deserializer& deserializer, L
     return TNN_OK;
 }
 
-Status ReformatLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ReformatLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<ReformatLayerParam*>(param);
     output_stream << layer_param->src_type << " ";
     output_stream << layer_param->dst_type << " ";

@@ -54,6 +54,10 @@ public:
 
     static Status RegisterLayerAccCreator(LayerType type, LayerAccCreator* creator);
 
+    Status GetCurrentDeviceId(int &device_id);
+
+    Status GetCurrentSMVersion(int &sm);
+
 private:
     static std::map<LayerType, std::shared_ptr<LayerAccCreator>>& GetLayerCreatorMap();
 };

@@ -21,7 +21,6 @@
 #include "tnn/device/cuda/cuda_context.h"
 #include "tnn/device/cuda/cuda_device.h"
 #include "tnn/device/cuda/cuda_macro.h"
-#include "tnn/device/cuda/utils.cuh"
 
 namespace TNN_NS {
 
@@ -67,6 +66,7 @@ public:
 
 protected:
     void CreateTempBuf(size_t size);
+    void ResizeTempBuf(int index, size_t size);
 
     bool is_reshaped         = false;
     CudaDevice *device_      = nullptr;
@@ -76,7 +76,7 @@ protected:
     std::vector<CudaTempBufUnit> tempbufs_;
 
 private:
-    // @brief retrun device layer acc support data format
+    // @brief return device layer acc support data format
     virtual std::vector<DataFormat> SupportDataFormat(DataType data_type, int dims_size, BlobType blob_type);
 };
 

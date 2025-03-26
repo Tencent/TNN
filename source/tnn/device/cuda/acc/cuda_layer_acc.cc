@@ -104,7 +104,21 @@ std::vector<DataFormat> CudaLayerAcc::SupportDataFormat(DataType data_type, int 
 void CudaLayerAcc::CreateTempBuf(size_t size) {
     CudaTempBufUnit buf;
     device_->Allocate(&(buf.ptr), size);
+    buf.size = size;
     tempbufs_.push_back(buf);
+}
+
+void CudaLayerAcc::ResizeTempBuf(int index, size_t size) {
+    if (index >= tempbufs_.size()) {
+        LOGD("CUDA ResizeTempBuf index: %d out of range, size of tempbufs_ = : %d\n", index, tempbufs_.size());
+        return;
+    }
+    if (size > tempbufs_[index].size) {
+        device_->ReAllocate(&(tempbufs_[index].ptr), size);
+        tempbufs_[index].size = size;
+    } else {
+        LOGD("CUDA ResizeTempBuf target size %d < current size %d, do nothing.\n", size, tempbufs_[index].size);
+    }
 }
 
 }  //  namespace TNN_NS

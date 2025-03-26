@@ -21,8 +21,16 @@ DECLARE_LAYER(Cast, LAYER_CAST);
 Status CastLayer::InferOutputDataType() {
     BaseLayer::InferOutputDataType();
     auto layer_param = dynamic_cast<CastLayerParam*>(param_);
+    if (input_blobs_.size()==2) {
+        layer_param->to = (int)input_blobs_[1]->GetBlobDesc().data_type;
+    }
     for (auto output_blob : output_blobs_) {
-        output_blob->GetBlobDesc().data_type = (DataType)layer_param->to;
+        if (input_blobs_.size()==2) {
+            // Cast To, pytorch::type_as
+            output_blob->GetBlobDesc().data_type = input_blobs_[1]->GetBlobDesc().data_type;
+        } else {
+            output_blob->GetBlobDesc().data_type = (DataType)layer_param->to;
+        }
     }
     return TNN_OK;
 }

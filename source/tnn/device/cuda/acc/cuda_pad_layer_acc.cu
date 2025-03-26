@@ -113,12 +113,21 @@ Status CudaPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
 
     Blob *input_blob  = inputs[0];
     Blob *output_blob = outputs[0];
+
+    auto input_dims   = input_blob->GetBlobDesc().dims;
+    auto output_dims  = output_blob->GetBlobDesc().dims;
+    int nbDims = input_dims.size();
+    if (nbDims!=3 && nbDims!=4) {
+        LOGE("Error: unsupported PAD input format, should be NCHW or CHW.\n");
+        return Status(TNNERR_LAYER_ERR, "Error: unsupported PAD input format, should be NCHW or CHW.");
+    }
+
     const int count = DimsVectorUtils::Count(output_blob->GetBlobDesc().dims);
-    int output_channel = output_blob->GetBlobDesc().dims[1];
-    int input_h = input_blob->GetBlobDesc().dims[2];
-    int input_w = input_blob->GetBlobDesc().dims[3];
-    int output_h = output_blob->GetBlobDesc().dims[2];
-    int output_w = output_blob->GetBlobDesc().dims[3];
+    int output_channel = output_blob->GetBlobDesc().dims[nbDims-3];
+    int input_h = input_blob->GetBlobDesc().dims[nbDims-2];
+    int input_w = input_blob->GetBlobDesc().dims[nbDims-1];
+    int output_h = output_blob->GetBlobDesc().dims[nbDims-2];
+    int output_w = output_blob->GetBlobDesc().dims[nbDims-1];
     if (input_blob->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
         float* input_data = static_cast<float*>(input_blob->GetHandle().base);
         float* output_data = static_cast<float*>(output_blob->GetHandle().base);
@@ -132,7 +141,7 @@ Status CudaPadLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::ve
                 input_data, output_data, count, output_channel, output_h, output_w, input_h, input_w, pad_l,
                 pad_t);
         } else {
-            int input_channel = input_blob->GetBlobDesc().dims[1];
+            int input_channel = input_blob->GetBlobDesc().dims[nbDims-3];
             pad_default_kernel<<<TNN_CUDA_GET_BLOCKS(count), TNN_CUDA_NUM_THREADS, 0, context_->GetStream()>>>(
                 input_data, output_data, count, input_channel, output_channel, pad_c_b, output_h, output_w,
                 input_h, input_w, pad_l, pad_t, value);

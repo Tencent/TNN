@@ -12,7 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#include "tnn/device/cpu/acc/cpu_layer_acc.h"
+#include "cpu_binary_op_layer_acc.h"
+#include "tnn/core/blob_int8.h"
 #include "tnn/utils/naive_compute.h"
 
 namespace TNN_NS {
@@ -24,32 +25,89 @@ Status CpuEqualLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::v
 }
 
 Status CpuEqualLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    Blob *output_blob = outputs[0];
-    
+    void *output_data       = outputs[0]->GetHandle().base;
+    const auto &output_dims = outputs[0]->GetBlobDesc().dims;
+    auto layer_param        = dynamic_cast<MultidirBroadcastLayerParam *>(param_);
+    auto layer_res          = dynamic_cast<EltwiseLayerResource *>(resource_);
+
+    const float FLOAT_EQUAL_EPSILON = 1e-6;
+
+    DataType in0_dtype, in1_dtype;
     std::vector<void *> input_ptrs;
     std::vector<DimsVector> input_shapes;
-    for (size_t inid = 0; inid < inputs.size(); inid++) {
-        input_ptrs.push_back(inputs[inid]->GetHandle().base);
-        input_shapes.push_back(inputs[inid]->GetBlobDesc().dims);
-    }
-    
-    auto data_type = inputs[0]->GetBlobDesc().data_type;
-    void *output_data = output_blob->GetHandle().base;
-    const auto &output_dims = output_blob->GetBlobDesc().dims;
- 
-    if (data_type == DATA_TYPE_FLOAT) {
-        CPU_ELEMENT_WISE_COMPARE<float, char>(input_ptrs, input_shapes, output_data, output_dims,
-                                  [](float a, float b) -> char { return a == b; });
-    } else if(data_type == DATA_TYPE_INT32) {  
-        CPU_ELEMENT_WISE_COMPARE<int, char>(input_ptrs, input_shapes, output_data, output_dims,
-                                  [](int a, int b) -> char { return a == b; });
-    } else if(data_type == DATA_TYPE_INT8) {
-        CPU_ELEMENT_WISE_COMPARE<char, char>(input_ptrs, input_shapes, output_data, output_dims,
-                                  [](char a, char b) -> char { return a == b; });
+    if (inputs.size() >= 2) {
+        for (size_t inid = 0; inid < inputs.size(); inid++) {
+            input_ptrs.push_back(inputs[inid]->GetHandle().base);
+            input_shapes.push_back(inputs[inid]->GetBlobDesc().dims);
+        }
+        in0_dtype = inputs[0]->GetBlobDesc().data_type;
+        in1_dtype = inputs[1]->GetBlobDesc().data_type;
     } else {
-        LOGE("Error: CpuEqualLayerAcc don't support data type: %d\n", data_type);
-        return Status(TNNERR_MODEL_ERR, "Error: CpuEqualLayerAcc don't support data type");
+        DimsVector input_shape0 = inputs[0]->GetBlobDesc().dims;
+        if (layer_param->weight_input_index == 0) {
+            input_ptrs.push_back(layer_res->element_handle.force_to<void *>());
+            input_shapes.push_back(layer_res->element_shape);
+            in0_dtype = layer_res->element_handle.GetDataType();
+
+            input_ptrs.push_back(inputs[0]->GetHandle().base);
+            input_shapes.push_back(input_shape0);
+            in1_dtype = inputs[0]->GetBlobDesc().data_type;
+        } else {
+            input_ptrs.push_back(inputs[0]->GetHandle().base);
+            input_shapes.push_back(input_shape0);
+            in0_dtype = inputs[0]->GetBlobDesc().data_type;
+
+            input_ptrs.push_back(layer_res->element_handle.force_to<void *>());
+            input_shapes.push_back(layer_res->element_shape);
+            in1_dtype = layer_res->element_handle.GetDataType();
+        }
     }
+
+    if (inputs.size()<=2 && in0_dtype != in1_dtype) {
+        if (in0_dtype==DATA_TYPE_FLOAT && in1_dtype==DATA_TYPE_HALF) {
+            CPU_ELEMENT_WISE_BINARY_TYPECAST<float, fp16_t, int8_t>(input_ptrs, input_shapes, output_data, output_dims,
+                                    [FLOAT_EQUAL_EPSILON](float a, fp16_t b) -> int8_t { return std::abs(a-float(b)) < FLOAT_EQUAL_EPSILON ? 1 : 0; });
+        } else if (in0_dtype==DATA_TYPE_HALF && in1_dtype==DATA_TYPE_FLOAT) {
+            CPU_ELEMENT_WISE_BINARY_TYPECAST<fp16_t, float, int8_t>(input_ptrs, input_shapes, output_data, output_dims,
+                                    [FLOAT_EQUAL_EPSILON](fp16_t a, float b) -> int8_t { return std::abs(float(a)-b) < FLOAT_EQUAL_EPSILON ? 1 : 0; });
+        } else if (in0_dtype==DATA_TYPE_FLOAT && in1_dtype==DATA_TYPE_INT32) {
+            CPU_ELEMENT_WISE_BINARY_TYPECAST<float, int, int8_t>(input_ptrs, input_shapes, output_data, output_dims,
+                                    [FLOAT_EQUAL_EPSILON](float a, int b) -> int8_t { return std::abs(a-float(b)) < FLOAT_EQUAL_EPSILON ? 1 : 0; });
+        } else if (in0_dtype==DATA_TYPE_INT32 && in1_dtype==DATA_TYPE_FLOAT) {
+            CPU_ELEMENT_WISE_BINARY_TYPECAST<int, float, int8_t>(input_ptrs, input_shapes, output_data, output_dims,
+                                    [FLOAT_EQUAL_EPSILON](int a, float b) -> int8_t { return std::abs(float(a)-b) < FLOAT_EQUAL_EPSILON ? 1 : 0; });
+        } else if (in0_dtype==DATA_TYPE_HALF && in1_dtype==DATA_TYPE_INT32) {
+            CPU_ELEMENT_WISE_BINARY_TYPECAST<fp16_t, int, int8_t>(input_ptrs, input_shapes, output_data, output_dims,
+                                    [FLOAT_EQUAL_EPSILON](fp16_t a, int b) -> int8_t { return std::abs(float(a)-float(b)) < FLOAT_EQUAL_EPSILON ? 1 : 0; });
+        } else if (in0_dtype==DATA_TYPE_INT32 && in1_dtype==DATA_TYPE_HALF) {
+            CPU_ELEMENT_WISE_BINARY_TYPECAST<int, fp16_t, int8_t>(input_ptrs, input_shapes, output_data, output_dims,
+                                    [FLOAT_EQUAL_EPSILON](int a, fp16_t b) -> int8_t { return std::abs(float(a)-float(b)) < FLOAT_EQUAL_EPSILON ? 1 : 0; });
+        } else {
+            LOGE("Error: CpuEqualLayerAcc don't support in0.type: %d and in1.type: %d\n", in0_dtype, in1_dtype);
+            return Status(TNNERR_MODEL_ERR, "CpuEqualLayerAcc don't support in0, in1 data type combination");
+        }
+    } else {
+        if (in0_dtype == DATA_TYPE_FLOAT) {
+            CPU_ELEMENT_WISE_COMPARE<float, int8_t>(input_ptrs, input_shapes, output_data, output_dims,
+                [FLOAT_EQUAL_EPSILON](float a, float b) -> int8_t { return std::abs(a-b) < FLOAT_EQUAL_EPSILON ? 1 : 0; });
+        } else if (in0_dtype == DATA_TYPE_HALF) {
+            CPU_ELEMENT_WISE_COMPARE<fp16_t, int8_t>(input_ptrs, input_shapes, output_data, output_dims,
+                [FLOAT_EQUAL_EPSILON](fp16_t a, fp16_t b) -> int8_t { return std::abs(float(a)-float(b)) < FLOAT_EQUAL_EPSILON ? 1 : 0; });
+        } else if (in0_dtype == DATA_TYPE_BFP16) {
+            CPU_ELEMENT_WISE_COMPARE<fp16_t, int8_t>(input_ptrs, input_shapes, output_data, output_dims,
+                [FLOAT_EQUAL_EPSILON](fp16_t a, fp16_t b) -> int8_t { return std::abs(float(a)-float(b)) < FLOAT_EQUAL_EPSILON ? 1 : 0; });
+        } else if (in0_dtype == DATA_TYPE_INT32) {
+            CPU_ELEMENT_WISE_COMPARE<int, int8_t>(input_ptrs, input_shapes, output_data, output_dims,
+                [](int a, int b) -> int8_t { return a == b; });
+        } else if (in0_dtype == DATA_TYPE_INT8) {
+            CPU_ELEMENT_WISE_COMPARE<int8_t, int8_t>(input_ptrs, input_shapes, output_data, output_dims,
+                [](int8_t a, int8_t b) -> int8_t { return a == b; });
+        } else {
+            LOGE("Error: CpuEqualLayerAcc don't support data type: %d\n", inputs[0]->GetBlobDesc().data_type);
+            return Status(TNNERR_MODEL_ERR, "Error: CpuEqualLayerAcc don't support data type");
+        }
+    }
+
     return TNN_OK;
 }
 

@@ -53,24 +53,37 @@ public:
     //@brief get input shapes map from model
     virtual Status GetModelInputShapesMap(InputShapesMap& shapes_map) = 0;
 
+    //@brief get input data types map from model
+    virtual Status GetModelInputDataTypeMap(InputDataTypeMap& data_type_map) = 0;
+
+    // return input names from model
+    virtual Status GetModelInputNames(std::vector<std::string>& input_names) = 0;
+
+    // return output names from model
+    virtual Status GetModelOutputNames(std::vector<std::string>& output_names) = 0;
+
     // @brief create an instance
     // @param instance: The instance to be created.
     // @param inputs_shape: modify input shape, or it will use the shape in the
     // proto
+    // @param inputs_data_type: modify input data type
     // @param status code: If successful, returns zero. Otherwise, returns
     // error code.
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
-                                                 InputShapesMap inputs_shape = InputShapesMap()) = 0;
+                                                 InputShapesMap inputs_shape = InputShapesMap(),
+                                                 InputDataTypeMap inputs_data_type = InputDataTypeMap()) = 0;
 
 
     // @brief create an instance
     // @param instance: The instance to be created.
     // @param min_inputs_shape: support min shape
     // @param max_inputs_shape: support max shape
+    // @param inputs_data_type: modify input data type
     // @param status code: If successful, returns zero. Otherwise, returns
     // error code.
     virtual std::shared_ptr<Instance> CreateInst(NetworkConfig& config, Status& status,
-                                                 InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) = 0;
+                                                 InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape,
+                                                 InputDataTypeMap inputs_data_type = InputDataTypeMap()) = 0;
 
 
 protected:

@@ -1,6 +1,6 @@
 // Tencent is pleased to support the open source community by making TNN available.
 //
-// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+// Copyright (C) 2025 THL A29 Limited, a Tencent company. All rights reserved.
 //
 // Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -25,7 +25,15 @@ ILayer* ShapeTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());   
     }
+#if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 100
+    auto castlayer = network->addCast(*(layer->getOutput(0)), nvinfer1::DataType::kINT32);
+    if (castlayer != nullptr) {
+        castlayer->setName((layer_name_+"_cast2int32").c_str());   
+    }
+    return castlayer;
+#else
     return layer;
+#endif
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Shape, LAYER_SHAPE);

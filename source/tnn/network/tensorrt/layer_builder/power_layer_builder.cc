@@ -38,6 +38,15 @@ ILayer* PowTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
             shuffle_layer->setReshapeDimensions(d);
             tensor = shuffle_layer->getOutput(0);
         }
+
+        if (tensor->getType()==nvinfer1::DataType::kINT8 ||
+            tensor->getType()==nvinfer1::DataType::kINT32) {
+            ILayer* cast_layer = network->addIdentity(*tensor);
+            cast_layer->setName((layer_name_+"_int2fp").c_str());
+            cast_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
+            tensor = cast_layer->getOutput(0);
+        }
+
         IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kSQRT);
         if (layer != nullptr) {
             layer->setName(layer_name_.c_str());

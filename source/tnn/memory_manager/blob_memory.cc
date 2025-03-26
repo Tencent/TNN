@@ -31,6 +31,10 @@ BlobMemorySizeInfo BlobMemory::GetBlobMemorySizeInfo() const {
     return size_info_;
 }
 
+AbstractDevice* BlobMemory::GetDevice() const {
+    return device_;
+}
+
 void BlobMemory::SetUseCount(int use_count) {
     use_count_ = use_count;
 }

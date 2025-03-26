@@ -124,6 +124,43 @@ void CPU_ELEMENT_WISE(const std::vector<void *> &input_ptrs, const std::vector<D
     }
 }
 
+/*
+ * Output[i] = input0[i] + input1[i] with output type cast to higher level data type.
+ * float > half/bfp16 > int32 > int16/int8
+ * CPU_ELEMENT_WISE_BINARY_TYPECAST supports broadcast on all dimensions
+ */
+template <typename T_IN_0, typename T_IN_1, typename T_OUT>
+void CPU_ELEMENT_WISE_BINARY_TYPECAST(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
+                             const DimsVector& shape_output, std::function<T_OUT(T_IN_0, T_IN_1)> op) {
+    const int count = DimsVectorUtils::Count(shape_output);
+    T_OUT *output_data = static_cast<T_OUT *>(output);
+
+    OMP_PARALLEL_FOR_
+    for (int offset = 0; offset < count; ++offset) {
+        DimsVector output_index = DimsOffsetUtils::ConvertOffsetToIndex(shape_output, offset);
+
+        T_IN_0 *in0_data = static_cast<T_IN_0 *>(input_ptrs[0]);
+        T_IN_1 *in1_data = static_cast<T_IN_1 *>(input_ptrs[1]);
+        auto in0_shape = input_shapes[0];
+        auto in1_shape = input_shapes[1];
+        auto in0_diff = shape_output.size() - in0_shape.size();
+        auto in1_diff = shape_output.size() - in1_shape.size();
+           
+        DimsVector in0_index;
+        DimsVector in1_index;
+        for (int i = 0; i < in0_shape.size(); ++i) {
+            in0_index.push_back(std::min(output_index[i + in0_diff], in0_shape[i] - 1));
+        }
+        for (int i = 0; i < in1_shape.size(); ++i) {
+            in1_index.push_back(std::min(output_index[i + in1_diff], in1_shape[i] - 1));
+        }
+        int in0_offset = DimsOffsetUtils::ConvertIndexToOffset(in0_shape, in0_index);
+        int in1_offset = DimsOffsetUtils::ConvertIndexToOffset(in1_shape, in1_index);
+ 
+        output_data[offset] = op(in0_data[in0_offset], in1_data[in1_offset]);
+    }
+}
+
 // float add
 void CPU_MIN(const std::vector<void *> &input_ptrs, const std::vector<DimsVector> &input_shapes, void *output,
              DimsVector shape_output);

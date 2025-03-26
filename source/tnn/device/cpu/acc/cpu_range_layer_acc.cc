@@ -81,6 +81,61 @@ Status CpuRagneLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inpu
         RETURN_ON_NEQ(status, TNN_OK);
         
         outputs[0]->GetBlobDesc().dims = output_dims;
+    } else if (inputs.size()>0) {
+        // Network have 1 or 2 inputs, this may happen under TNN-Torch Mode.
+        // When one or two of start, limit, delta can is in inputs.
+        if (layer_param->start_index!=-1) {
+            int idx = layer_param->start_index;
+            layer_param->data_type = inputs[idx]->GetBlobDesc().data_type;
+            auto start_data = (void *)((char *)inputs[idx]->GetHandle().base + inputs[idx]->GetHandle().bytes_offset);
+            auto start = layer_param->start;
+            if (inputs[idx]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+                start.f = *((float *)start_data);
+            } else if (inputs[idx]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+                start.i = *((int *)start_data);
+            } else {
+                return Status(TNNERR_PARAM_ERR, "RangeLayer has invalid start data type when param.start_index is set.");
+            }
+            layer_param->start = start;
+        }
+        
+        if (layer_param->limit_index!=-1) {
+            int idx = layer_param->limit_index;
+            layer_param->data_type = inputs[idx]->GetBlobDesc().data_type;
+            auto limit_data = (void *)((char *)inputs[idx]->GetHandle().base + inputs[idx]->GetHandle().bytes_offset);
+            auto limit = layer_param->limit;
+            if (inputs[idx]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+                limit.f = *((float *)limit_data);
+            } else if (inputs[idx]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+                limit.i = *((int *)limit_data);
+            } else {
+                return Status(TNNERR_PARAM_ERR, "RangeLayer has invalid limit data type when param.limit_index is set.");
+            }
+            layer_param->limit = limit;
+        }
+        
+        if (layer_param->delta_index!=-1) {
+            int idx = layer_param->delta_index;
+            layer_param->data_type = inputs[idx]->GetBlobDesc().data_type;
+            auto delta_data = (void *)((char *)inputs[idx]->GetHandle().base + inputs[idx]->GetHandle().bytes_offset);
+            auto delta = layer_param->delta;
+            if (inputs[idx]->GetBlobDesc().data_type == DATA_TYPE_FLOAT) {
+                delta.f = *((float *)delta_data);
+            } else if (inputs[idx]->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+                delta.i = *((int *)delta_data);
+            } else {
+                return Status(TNNERR_PARAM_ERR, "RangeLayer has invalid delta data type when param.delta_index is set.");
+            }
+            layer_param->delta = delta;
+        }
+    
+        //infer output shape
+        Status status = TNN_OK;
+        auto output_dims = DimsFunctionUtils::Range(layer_param->start, layer_param->limit,
+                                                  layer_param->delta, layer_param->data_type, &status);
+        RETURN_ON_NEQ(status, TNN_OK);
+        
+        outputs[0]->GetBlobDesc().dims = output_dims;
     }
     
     return TNN_OK;
@@ -107,6 +162,7 @@ Status CpuRagneLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::v
         LOGE("output blob of Shape Layer has wrong data type \n");
         return Status(TNNERR_COMMON_ERROR, "output blob has wrong data type");
     }
+
     return TNN_OK;
 }
 

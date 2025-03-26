@@ -30,7 +30,7 @@ Status ReduceOpLayerInterpreter::InterpretProto(str_arr layer_cfg_arr, int start
     return TNN_OK;
 }
 
-Status ReduceOpLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status ReduceOpLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     auto *layer_param = dynamic_cast<ReduceLayerParam *>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

@@ -41,6 +41,8 @@ static const char warm_up_count_message[] = "warm up count (default 0).";
 
 static const char input_path_message[] = "input file path";
 
+static const char input_map_message[] = "input file map: input[input_file]";
+
 static const char output_path_message[] = "output file path";
 
 static const char output_format_cmp_message[] = "output format for comparison";
@@ -57,6 +59,8 @@ static const char precision_message[] = "compute precision(HIGH, NORMAL, LOW)";
 
 static const char input_shape_message[] = "input shape: name[n,c,h,w]";
 
+static const char input_data_type_message[] = "input data type: name[data_type (in int)], 0:float; 1:half; 2: int8; 3: int32; 4:bfp16; 5:int64; 6:uint32.";
+
 static const char network_type_message[] = "network type: NAIVE, NPU, COREML, SNPE, OPENVINO, default NAIVE";
 
 static const char enable_tune_message[] = "enable tune kernel(default false)";
@@ -64,6 +68,10 @@ static const char enable_tune_message[] = "enable tune kernel(default false)";
 static const char scale_message[] = "input scale: s0,s1,s2,...)";
 
 static const char bias_message[] = "input bias: b0,b1,b2,...)";
+
+static const char test_thread_num_message[] = "set test thread num, default is 1";
+
+static const char cache_path_message[] = "cache path to store possible cache models or opt kernel";
 
 DECLARE_bool(h);
 
@@ -85,6 +93,8 @@ DECLARE_int32(wc);
 
 DECLARE_string(ip);
 
+DECLARE_string(im);
+
 DECLARE_string(op);
 
 DECLARE_bool(fc);
@@ -95,17 +105,23 @@ DECLARE_bool(ub);
 
 DECLARE_int32(th);
 
-DECLARE_int32(it);
+DECLARE_int32(if);
 
 DECLARE_string(pr);
 
 DECLARE_string(is);
+
+DECLARE_string(it);
 
 DECLARE_bool(et);
 
 DECLARE_string(sc);
 
 DECLARE_string(bi);
+
+DECLARE_int32(tt);
+
+DECLARE_string(cp);
 
 }  // namespace TNN_NS
 

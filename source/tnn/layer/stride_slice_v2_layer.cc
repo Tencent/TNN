@@ -69,33 +69,47 @@ Status StrideSliceV2Layer::FillLayerParamWithConstantResource() {
     CHECK_PARAM_NULL(layer_param);
     
     if (input_blobs_.size() >= 2) {
-        auto begins_blob_name = input_blobs_[1]->GetBlobDesc().name;
-        if (const_resource_ != nullptr && const_resource_->find(begins_blob_name) != const_resource_->end()) {
-            auto begins_buffer =  (*const_resource_)[begins_blob_name];
-            auto dim_count = begins_buffer->GetDataCount();
-            auto dim_data = (int *)begins_buffer->force_to<int *>();
-            DimsVector dims;
-            for (int i=0; i<dim_count; i++) {
-                dims.push_back(dim_data[i]);
+        if (input_blobs_.size() >= 3) {
+            layer_param->begins_index = 1;
+            layer_param->ends_index = 2;
+        } else {
+            if (layer_param->begins_index==-1 && layer_param->ends_index==-1) {
+                // 2 inputs, the second input not specified, set to begins by default.
+                layer_param->begins_index = 1;
             }
-            layer_param->begins = dims;
+        }
+
+        if (layer_param->begins_index != -1) {
+            auto begins_blob_name = input_blobs_[layer_param->begins_index]->GetBlobDesc().name;
+            if (const_resource_ != nullptr && 
+                const_resource_->find(begins_blob_name) != const_resource_->end()) {
+                auto begins_buffer = (*const_resource_)[begins_blob_name];
+                auto dim_count = begins_buffer->GetDataCount();
+                auto dim_data = (int *)begins_buffer->force_to<int *>();
+                DimsVector dims;
+                for (int i=0; i<dim_count; i++) {
+                    dims.push_back(dim_data[i]);
+                }
+                layer_param->begins = dims;
+            }
+        }
+        
+        if (layer_param->ends_index != -1) {
+            auto ends_blob_name = input_blobs_[layer_param->ends_index]->GetBlobDesc().name;
+            if (const_resource_ != nullptr && 
+                const_resource_->find(ends_blob_name) != const_resource_->end()) {
+                auto ends_buffer = (*const_resource_)[ends_blob_name];
+                auto dim_count = ends_buffer->GetDataCount();
+                auto dim_data = (int *)ends_buffer->force_to<int *>();
+                DimsVector dims;
+                for (int i=0; i<dim_count; i++) {
+                    dims.push_back(dim_data[i]);
+                }
+                layer_param->ends = dims;
+            }
         }
     }
-    
-    if (input_blobs_.size() >= 3) {
-        auto ends_blob_name = input_blobs_[2]->GetBlobDesc().name;
-        if (const_resource_ != nullptr && const_resource_->find(ends_blob_name) != const_resource_->end()) {
-            auto ends_buffer =  (*const_resource_)[ends_blob_name];
-            auto dim_count = ends_buffer->GetDataCount();
-            auto dim_data = (int *)ends_buffer->force_to<int *>();
-            DimsVector dims;
-            for (int i=0; i<dim_count; i++) {
-                dims.push_back(dim_data[i]);
-            }
-            layer_param->ends = dims;
-        }
-    }
-    
+ 
     return status;
 }
 

@@ -14,7 +14,7 @@ endif()
 find_package(CUDA REQUIRED)
 
 set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(TNN_CUDA_ENABLE ON)
 set(TNN_TENSORRT_ENABLE ON)
 
@@ -23,8 +23,8 @@ if (TNN_DEMO_WITH_OPENCV)
     include_directories(${OpenCV_INCLUDE_DIRS})
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -std=c++11 -fPIC")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -pthread -fPIC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -std=c++17 -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++17 -pthread -fPIC")
 
 set(TNNRoot ${CMAKE_SOURCE_DIR}/../../../)
 set(TNNInclude ${TNNRoot}/include)

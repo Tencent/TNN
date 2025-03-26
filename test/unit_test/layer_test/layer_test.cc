@@ -265,13 +265,13 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
     MatType mat_type          = NCHW_FLOAT;
     if (blob_desc_device.data_type == DATA_TYPE_BFP16) {
         // the value is initialized as bfp16
-        mat_type = RESERVED_BFP16_TEST;
+        mat_type = NCHW_BFP16;
     } else if (blob_desc_device.data_type == DATA_TYPE_INT8) {
         // the value is initialized as int8
-        mat_type = RESERVED_INT8_TEST;
+        mat_type = NC_INT8;
     } else if (blob_desc_device.data_type == DATA_TYPE_HALF && device_blob->GetBlobDesc().device_type == DEVICE_ARM) {
         // the value is initialized as half
-        mat_type = RESERVED_FP16_TEST;
+        mat_type = NCHW_HALF;
     } else if (blob_desc_device.data_type == DATA_TYPE_INT32) {
         mat_type = NC_INT32;
     }
@@ -284,21 +284,21 @@ Status LayerTest::GenerateRandomBlob(Blob* cpu_blob, Blob* device_blob, void* co
         } else {
             InitRandom(static_cast<float*>(input_data), blob_count, 1.0f + (float)magic_num);
         }
-    } else if (mat_type == RESERVED_FP16_TEST) {
+    } else if (mat_type == NCHW_HALF) {
         if (ensure_input_positive_) {
             // some layers only supports positive values as input
             InitRandom(static_cast<fp16_t*>(input_data), blob_count, (fp16_t)0.0f, (fp16_t)(1.0f + magic_num));
         } else {
             InitRandom(static_cast<fp16_t*>(input_data), blob_count, (fp16_t)(1.0f + magic_num));
         }
-    } else if (mat_type == RESERVED_INT8_TEST) {
+    } else if (mat_type == NC_INT8) {
         if (ensure_input_positive_) {
             // some layers only supports positive values as input
             InitRandom(static_cast<int8_t*>(input_data), blob_count, (int8_t)0, (int8_t)8);
         } else {
             InitRandom(static_cast<int8_t*>(input_data), blob_count, (int8_t)8);
         }
-    } else if (mat_type == RESERVED_BFP16_TEST) {
+    } else if (mat_type == NCHW_BFP16) {
         if (ensure_input_positive_) {
             InitRandom(static_cast<bfp16_t*>(input_data), blob_count, bfp16_t(0.f), bfp16_t(1.0f + magic_num));
         } else {
@@ -357,9 +357,9 @@ int LayerTest::CompareBlob(Blob* cpu_blob, Blob* device_blob, void* command_queu
     // mat type for both
     MatType mat_type = NCHW_FLOAT;
     if (blob_desc_device.data_type == DATA_TYPE_BFP16) {
-        mat_type = RESERVED_BFP16_TEST;
+        mat_type = NCHW_BFP16;
     } else if (blob_desc_device.data_type == DATA_TYPE_INT8) {
-        mat_type = RESERVED_INT8_TEST;
+        mat_type = NC_INT8;
     } else if (blob_desc_device.data_type == DATA_TYPE_INT32) {
         mat_type = NC_INT32;
     }

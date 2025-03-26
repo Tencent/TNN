@@ -31,7 +31,7 @@ Status NpuInnerProductLayer::Convert() {
 
     // weight
     int input_dims_size = (int)input_ops_[0]->GetShape().size();
-    vector<int> w_shape = input_ops_[0]->GetShape();
+    std::vector<int> w_shape = input_ops_[0]->GetShape();
     w_shape[0]          = param->num_output;
     for (int i = input_dims_size; i < 4; ++i) {
         w_shape.push_back(1);

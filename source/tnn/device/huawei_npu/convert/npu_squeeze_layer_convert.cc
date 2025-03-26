@@ -39,7 +39,7 @@ Status NpuSqueezeLayer::Convert() {
     } else {
         output->set_input_x(*input_ops_[0]->GetOperator());
     }
-    output->set_attr_axis(ge::AttrValue::LIST_INT(NpuUtils::Int32VecToTVec<long>(param->axes)));
+    output->set_attr_axis(ge::AttrValue::LIST_INT(NpuUtils::Int32VecToTVec<int64_t>(param->axes)));
     ADD_OUTPUT_OP(output)
 }
 

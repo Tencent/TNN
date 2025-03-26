@@ -34,7 +34,7 @@ Status SqueezeLayerInterpreter::InterpretResource(Deserializer &deserializer, La
     return TNN_OK;
 }
 
-Status SqueezeLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status SqueezeLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     auto squeeze_param = dynamic_cast<SqueezeLayerParam *>(param);
     if (nullptr == squeeze_param) {
         LOGE("invalid layer param to save\n");

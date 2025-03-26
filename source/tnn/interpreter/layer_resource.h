@@ -172,6 +172,33 @@ struct BiasAddLayerResource : public LayerResource {
     RawBuffer bias_handle;
 };
 
+struct QuantizeLayerResource : public LayerResource {
+    RawBuffer scale_handle;
+};
+
+struct WhereLayerResource : public LayerResource {
+    RawBuffer x;
+    RawBuffer y;
+};
+
+struct FusedLayerResource : public LayerResource {
+
+    // Resource for BERT ffn fusion.
+    // FusionType_FFN
+    MatMulLayerResource ffn_matmul_in;
+    MatMulLayerResource ffn_matmul_out;
+    EltwiseLayerResource ffn_bias;
+
+    // Resource for BERT attention fusion.
+    // FusionType_Attention
+    MatMulLayerResource attention_q_mm;
+    MatMulLayerResource attention_k_mm;
+    MatMulLayerResource attention_v_mm;
+    MatMulLayerResource attention_o_mm;
+    EltwiseLayerResource attention_q_bias;
+    EltwiseLayerResource attention_k_bias;
+    EltwiseLayerResource attention_v_bias;
+};
 
 }  // namespace TNN_NS
 

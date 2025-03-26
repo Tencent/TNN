@@ -14,6 +14,7 @@
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 #include "tnn/network/tensorrt/utils.h"
+#include <numeric>
 
 namespace TNN_NS {
 

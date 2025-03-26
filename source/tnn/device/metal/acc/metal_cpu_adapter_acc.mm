@@ -29,7 +29,7 @@ inline MatType MatTypeByBlob(const BlobDesc& desc) {
         return NCHW_FLOAT;
     
     if (desc.data_type == DATA_TYPE_HALF)
-        return RESERVED_BFP16_TEST;
+        return NCHW_BFP16;
     
     return INVALID;
 }

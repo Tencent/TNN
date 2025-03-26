@@ -24,9 +24,16 @@ MemoryUnifyAssignStrategy::MemoryUnifyAssignStrategy(void* data) {
 Status MemoryUnifyAssignStrategy::AssignAllBlobMemory(std::set<BlobMemory*>& blob_memory_library) {
     int blob_memory_start_offset = 0;
     for (auto& iter : blob_memory_library) {
-        BlobHandle handle;
-        handle.base         = all_blob_memory_data_;
-        handle.bytes_offset = blob_memory_start_offset;
+        auto device = iter->GetDevice();
+        BlobHandle handle; 
+        //special for metal, device special api to calculate blob base.        
+        if(device->GetDeviceType() == DEVICE_METAL) {
+            handle.base         = all_blob_memory_data_;             
+            handle.bytes_offset = blob_memory_start_offset;          
+        } else {                                                     
+            handle.base         = reinterpret_cast<char*>(all_blob_memory_data_) + blob_memory_start_offset;
+            handle.bytes_offset = 0;
+        }
         iter->SetHandleFromExternal(handle);
         BlobMemorySizeInfo size_info = iter->GetBlobMemorySizeInfo();
         blob_memory_start_offset += GetBlobMemoryBytesSize(size_info);

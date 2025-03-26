@@ -43,14 +43,13 @@ public:
     void SetDataType(DataType data_type);
     void SetBufferDims(DimsVector shape);
 
-
-
     DataType GetDataType() const;
     int GetBytesSize() const;
     int GetDataCount() const;
     DimsVector GetBufferDims() const;
 
     void Permute(size_t outter, size_t inner);
+    void Reshape(DimsVector& new_dims);
 
     template <typename T>
     T force_to() {
@@ -73,7 +72,10 @@ RawBuffer ConvertFloatToFP16(RawBuffer &buf);
 RawBuffer ConvertHalfHandle(RawBuffer &buf);
 RawBuffer ConvertFloatToBFP16(RawBuffer &buf);
 RawBuffer ConvertHalfToBFP16(RawBuffer &buf);
+RawBuffer ConvertFloatToHalf(RawBuffer &buf);
 std::shared_ptr<float> GetFloatFromRawBuffer(const RawBuffer &raw_buffer);
+
+RawBuffer Concat(std::vector<RawBuffer> & list, int axis);
 
 }  // namespace TNN_NS
 

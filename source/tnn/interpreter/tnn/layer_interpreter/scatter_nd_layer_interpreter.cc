@@ -33,7 +33,7 @@ Status ScatterNDLayerInterpreter::InterpretResource(Deserializer &deserializer, 
     return TNN_OK;
 }
 
-Status ScatterNDLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status ScatterNDLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     return TNN_OK;
 }
 

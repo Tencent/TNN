@@ -30,7 +30,12 @@ ILayer* CastTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     ILayer* layer = network->addIdentity(*tensor);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
-        layer->setOutputType(0, ConvertToTRTDataType((DataType)layer_param->to));
+        if (input_blobs_.size()==1) {
+            layer->setOutputType(0, ConvertToTRTDataType((DataType)layer_param->to));
+        } else {
+            // CastTo, pytorch aten::type_as
+            layer->setOutputType(0, ConvertToTRTDataType(input_blobs_[1]->GetBlobDesc().data_type));
+        }
     }
 
     return layer;

@@ -27,7 +27,7 @@
 namespace TNN_NS {
 
 struct SharedMemory {
-    int shared_memory_size      = 0;
+    size_t shared_memory_size   = 0;
     void *shared_memory_data    = NULL;
     int shared_memory_ref_count = 0;
 };
@@ -48,7 +48,7 @@ bool operator<(SharedMemoryId lhs, SharedMemoryId rhs);
 class SharedMemoryManager {
 public:
     static SharedMemory GetSharedMemory(
-        int forward_memory_size, std::thread::id thread_id,
+        size_t forward_memory_size, std::thread::id thread_id,
         AbstractDevice *device, int device_id,
         ISharedMemoryChangeListener *listener,
         Status &status);

@@ -24,6 +24,18 @@ Status RangeLayer::InferOutputDataType() {
     if (runtime_model_ != RUNTIME_MODE_CONST_FOLD) {
         return status;
     }
+    
+    auto *layer_param = dynamic_cast<RangeLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+
+    // Used In TNN torch, when 1-3 of start, limit, delta is in input_blobs_
+    // start_index, limit_index, delta_index represent their index in input_blobs.
+    if (layer_param->start_index!=-1 || layer_param->limit_index!=-1 ||
+        layer_param->delta_index!=-1) {
+        output_blobs_[0]->SetFlag(output_blobs_[0]->GetFlag() | DATA_FLAG_ALLOCATE_IN_FORWARD);
+        return status;
+    }
+
     const auto& input_name = input_blobs_[0]->GetBlobDesc().name;
     const auto& const_res  = const_resource_;
     if (const_res != nullptr && const_res->find(input_name) != const_res->end()) {

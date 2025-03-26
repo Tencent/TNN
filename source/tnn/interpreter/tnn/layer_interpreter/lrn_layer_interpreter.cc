@@ -38,7 +38,7 @@ Status LRNLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerR
     return TNN_OK;
 }
 
-Status LRNLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status LRNLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<LRNLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

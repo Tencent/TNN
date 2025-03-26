@@ -46,7 +46,7 @@ Status SquaredDifferenceLayerInterpreter::InterpretResource(Deserializer& deseri
     return TNN_OK;
 }
 
-Status SquaredDifferenceLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status SquaredDifferenceLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<MultidirBroadcastLayerParam*>(param);
     output_stream << layer_param->weight_input_index << " ";
     return TNN_OK;

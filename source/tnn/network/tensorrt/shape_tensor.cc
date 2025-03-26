@@ -1,6 +1,6 @@
 // Tencent is pleased to support the open source community by making TNN available.
 //
-// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+// Copyright (C) 2025 THL A29 Limited, a Tencent company. All rights reserved.
 //
 // Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -122,7 +122,11 @@ nvinfer1::ITensor& ShapeTensor::tensor(INetworkDefinition* network) const {
                 count *= value;
             }
             nvinfer1::Weights w{nvinfer1::DataType::kINT32, count == 0 ? nullptr : m_values.data(), count};
+            #if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 100
+            m_tensor = network->addCast(*(network->addShape(*network->addConstant(dims, w)->getOutput(0))->getOutput(0)), nvinfer1::DataType::kINT32)->getOutput(0);
+            #else
             m_tensor = network->addShape(*network->addConstant(dims, w)->getOutput(0))->getOutput(0);
+            #endif
             if (rank() == 0) {
                 nvinfer1::IShuffleLayer* shuffle = network->addShuffle(*m_tensor);
                 nvinfer1::Dims d{0, {}};
@@ -133,7 +137,11 @@ nvinfer1::ITensor& ShapeTensor::tensor(INetworkDefinition* network) const {
         } else {
             assert(m_tensor);
             for (; m_depth > 0; --m_depth) {
+                #if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 100
+                m_tensor = network->addCast(*(network->addShape(*m_tensor)->getOutput(0)), nvinfer1::DataType::kINT32)->getOutput(0);
+                #else
                 m_tensor = network->addShape(*m_tensor)->getOutput(0);
+                #endif
             }
         }
     }

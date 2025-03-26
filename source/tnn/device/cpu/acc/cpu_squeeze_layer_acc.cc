@@ -18,9 +18,56 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(Squeeze, LAYER_SQUEEZE);
+DECLARE_CPU_ACC_WITH_FUNC(Squeeze, LAYER_SQUEEZE,
+                          virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                                 const std::vector<Blob *> &outputs););
 
 Status CpuSqueezeLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+Status CpuSqueezeLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto *layer_param = dynamic_cast<SqueezeLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+
+    DimsVector input_dims  = inputs[0]->GetBlobDesc().dims;
+    RETURN_VALUE_ON_NEQ(input_dims.size() > 0, true, Status(TNNERR_PARAM_ERR, "SqueezeLayer has invalid inpu    t size"));
+
+    std::vector<int> axes  = layer_param->axes;
+
+    if (!axes.empty()) {
+        DimsVector output_dims = input_dims;
+        for (auto iter = axes.rbegin(); iter != axes.rend(); iter++) {
+            int axis = *iter;
+            axis =  axis < 0 ? axis + (int)output_dims.size() : axis;
+            if (axis < 0 || axis >= output_dims.size() || output_dims[axis] != 1) {
+                return Status(TNNERR_PARAM_ERR, "SqueezeLayer has invalid input axes");
+            }
+            output_dims.erase(output_dims.begin() + axis);
+        }
+        outputs[0]->GetBlobDesc().dims = output_dims;
+        return TNN_OK;
+    } else {
+        // axes is empty, this may occur in pytorch
+        // https://pytorch.org/docs/stable/generated/torch.squeeze.html?highlight=squeeze#torch.squeeze
+        // This Squeeze may be dangerous, pytorch has the following warning:
+        // If the tensor has a batch dimension of size 1, then squeeze(input) will also remove the batch dimension, which can lead to unexpected errors.
+        DimsVector output_dims = {};
+        for (int i=0; i<input_dims.size(); i++) {
+            if (input_dims[i] == 1) {
+                axes.push_back(i);
+            } else {
+                output_dims.push_back(input_dims[i]);
+            }
+        }
+        if (output_dims.empty()) {
+            output_dims.push_back(0);
+        }
+        layer_param->axes = axes;
+        outputs[0]->GetBlobDesc().dims = output_dims;
+        return TNN_OK;
+    }
+
     return TNN_OK;
 }
 

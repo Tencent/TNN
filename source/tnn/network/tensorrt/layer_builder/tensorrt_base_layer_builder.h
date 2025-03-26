@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "NvInfer.h"
-#include "NvUtils.h"
+// #include "NvUtils.h"
 #include "NvInferPlugin.h"
 
 #include "tnn/core/macro.h"
@@ -33,6 +33,7 @@
 #include "tnn/core/status.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
+#include "tnn/interpreter/net_structure.h"
 #include "tnn/network/tensorrt/shape_tensor.h"
 #include "tnn/network/tensorrt/tensorrt_tensor.h"
 #include "tnn/extern_wrapper/base_layer_builder.h"
@@ -77,6 +78,11 @@ public:
 
     // @brief set tensorrt_network
     void SetNetwork(TensorRTNetwork_ *network);
+
+    // @brief check graph topo and set fallback flag
+    virtual void CheckTopo(int id, std::vector<std::shared_ptr<LayerInfo>> &layers) = 0;
+    // @breif replace input of shape tensor with execution tensor if needed
+    virtual void CheckInputShapeTensor(INetworkDefinition* network) = 0;
 
 protected:
     // @brief Build the foreign network

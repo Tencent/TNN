@@ -37,7 +37,7 @@ Status SoftmaxLayerInterpreter::InterpretResource(Deserializer& deserializer, La
     return TNN_OK;
 }
 
-Status SoftmaxLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status SoftmaxLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     SoftmaxLayerParam* layer_param = dynamic_cast<SoftmaxLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

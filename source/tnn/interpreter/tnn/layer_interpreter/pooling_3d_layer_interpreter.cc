@@ -60,7 +60,7 @@ Status Pooling3DLayerInterpreter::InterpretResource(Deserializer& deserializer, 
     return TNN_OK;
 }
 
-Status Pooling3DLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status Pooling3DLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, PoolingLayerParam, "invalid layer param to save", param);
 
     output_stream << layer_param->pool_type << " ";

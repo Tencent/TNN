@@ -30,6 +30,20 @@ Status Conv1DLayer::InferOutputShape(bool ignore_error) {
     Blob* input_blob           = input_blobs_[0];
     Blob* output_blob          = output_blobs_[0];
     ConvLayerParam* conv_param = dynamic_cast<ConvLayerParam*>(param_);
+    int group = conv_param->group;
+    const int pad_type = conv_param->pad_type;
+
+    if (input_blobs_.size() > 1) {
+        auto dims = input_blobs_[1]->GetBlobDesc().dims;
+        conv_param->kernels[0] = dims[2];
+        if (pad_type == 3) {
+            conv_param->output_channel = dims[1] * group;
+            conv_param->input_channel = dims[0] / group ;
+        } else {
+            conv_param->output_channel = dims[0];
+            conv_param->input_channel = dims[1];
+        }
+    }
     CHECK_PARAM_NULL(conv_param);
 
     int num    = input_blob->GetBlobDesc().dims[0];
@@ -43,7 +57,7 @@ Status Conv1DLayer::InferOutputShape(bool ignore_error) {
 
     int height_out = 0;
 
-    const int pad_type = conv_param->pad_type;
+    // const int pad_type = conv_param->pad_type;
 
     // Refactored the code to support tensorflow models
     if (pad_type == -1)  // default padding following the proto setting
@@ -85,7 +99,7 @@ Status Conv1DLayer::InferOutputShape(bool ignore_error) {
         return Status(TNNERR_PARAM_ERR, "Error: ConvLayer dont support pad type");
     }
 
-    int group = conv_param->group;
+    // int group = conv_param->group;
     if (group == 0) {
         LOGE_IF(!ignore_error, "Error: ConvLayer Error: invalid group param\n");
         return Status(TNNERR_INVALID_GROUP, "ConvLayer Error: invalid group param");

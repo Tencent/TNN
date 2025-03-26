@@ -18,6 +18,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "tnn/core/macro.h"
 
@@ -45,7 +46,9 @@ typedef enum {
     // int64
     DATA_TYPE_INT64 = 5,
     // uint32
-    DATA_TYPE_UINT32 = 6
+    DATA_TYPE_UINT32 = 6,
+    // uint8
+    DATA_TYPE_UINT8 = 8
 } DataType;
 
 typedef enum {
@@ -60,6 +63,7 @@ typedef enum {
     DATA_FORMAT_NC16HW16 = 6,
     DATA_FORMAT_NCDHW    = 7,
     DATA_FORMAT_NHC4W4   = 8,
+    DATA_FORMAT_NC32HW32 = 9,
     // special for LSTM ONNX
     DATA_FORMAT_CNH4     = 1000,
 } DataFormat;
@@ -98,6 +102,8 @@ typedef enum {
     NETWORK_TYPE_HUAWEI_NPU = 0x6000,
     NETWORK_TYPE_RK_NPU     = 0x7000,
     NETWORK_TYPE_TENSORRT   = 0x8000,
+    NETWORK_TYPE_TNNTORCH   = 0x9000,
+    NETWORK_TYPE_ZIXIAO     = 0xa000
 } NetworkType;
 
 typedef enum {
@@ -112,6 +118,14 @@ typedef enum {
     DEVICE_HUAWEI_NPU = 0x1050,
     DEVICE_RK_NPU     = 0x1060,
     DEVICE_APPLE_NPU  = 0x1070,
+    DEVICE_ZIXIAO     = 0x1080,
+
+    // General CPU
+    DEVICE_GROUP_CPU  = 0x4010,
+    // General GPU
+    DEVICE_GROUP_GPU  = 0x4020,
+    // General NPU
+    DEVICE_GROUP_NPU  = 0x4030,
 } DeviceType;
 
 typedef enum {
@@ -121,18 +135,27 @@ typedef enum {
     SHARE_MEMORY_MODE_SHARE_ONE_THREAD = 1,
     // set blob memory from external, different thread share blob memory need
     // synchronize
-    SHARE_MEMORY_MODE_SET_FROM_EXTERNAL = 2
+    SHARE_MEMORY_MODE_SET_FROM_EXTERNAL = 2,
+    // tnn instane share net resource
+    SHARE_MEMORY_MODE_SHARE_NET_RESOURCE = 3,
+    // set memory from external, including blob memory and forward memory
+    SHARE_MEMORY_MODE_SET_ALL_FROM_EXTERNAL = 4,
 } ShareMemoryMode;
 
 typedef enum {
-    MODEL_TYPE_TNN      = 0x0001,
-    MODEL_TYPE_NCNN     = 0x0100,
-    MODEL_TYPE_OPENVINO = 0x1000,
-    MODEL_TYPE_COREML   = 0x2000,
-    MODEL_TYPE_SNPE     = 0x3000,
-    MODEL_TYPE_HIAI     = 0x4000,
-    MODEL_TYPE_ATLAS    = 0x5000,
-    MODEL_TYPE_RKCACHE  = 0x6000
+    MODEL_TYPE_TNN             = 0x0001,
+    // reserved for 0x0002
+    MODEL_TYPE_TNNIR           = 0x0010,
+    MODEL_TYPE_NCNN            = 0x0100,
+    MODEL_TYPE_OPENVINO        = 0x1000,
+    MODEL_TYPE_COREML          = 0x2000,
+    MODEL_TYPE_SNPE            = 0x3000,
+    MODEL_TYPE_HIAI            = 0x4000,
+    MODEL_TYPE_ATLAS           = 0x5000,
+    MODEL_TYPE_RKCACHE         = 0x6000,
+    MODEL_TYPE_TORCHSCRIPT     = 0x7000,
+    MODEL_TYPE_TORCHSCRIPT_BIN = 0x7001,
+    MODEL_TYPE_LRT             = 0x8000
 } ModelType;
 
 using DimsVector = std::vector<int>;
@@ -167,6 +190,12 @@ struct PUBLIC NetworkConfig {
     // network init or reshape may cost more time to select opt kernel implement if enable tune kernel
     // cache_path can set to store tune kernel info.
     bool enable_tune_kernel = false;
+
+    // extra is used by some networks
+    // e.g.:
+    // the min block size (min_block_size) of a tensorrt network
+    // disalbe fast GELU (disable_fast_gelu) for accuracy issue
+    std::map<std::string, std::string> extra;
 };
 
 struct PUBLIC ModelConfig {

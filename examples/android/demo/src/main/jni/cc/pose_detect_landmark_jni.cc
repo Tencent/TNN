@@ -17,7 +17,7 @@ static std::shared_ptr<TNN_NS::PoseDetectLandmark> gFullBodyDetector;
 static std::shared_ptr<TNN_NS::BlazePoseDetector> gBlazePoseDetector;
 static std::shared_ptr<TNN_NS::BlazePoseLandmark> gBlazePoseLandmark;
 static std::shared_ptr<TNN_NS::BlazePoseLandmark> gBlazePoseFullBodyLandmark;
-static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu
+static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu, 3 is qualcomm SNPE
 static jclass clsObjectInfo;
 static jmethodID midconstructorObjectInfo;
 static jfieldID fidx1;
@@ -41,10 +41,16 @@ JNIEXPORT JNICALL jint TNN_POSE_DETECT_LANDMARK(init)(JNIEnv *env, jobject thiz,
     gBlazePoseFullBodyLandmark = std::make_shared<TNN_NS::BlazePoseLandmark>();
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/pose_detection.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/pose_detection.tnnmodel");
-    LOGI("pose detection proto content size %d model content size %d", protoContent.length(), modelContent.length());
+    
     gComputeUnitType = computUnitType;
+    if (gComputeUnitType == 3) { // Qualcomm SNPE use SNPE .dlc model
+        protoContent = "-";  // protoContent just not empty.
+        modelContent = fdLoadFile(modelPathStr + "/pose_detection.dlc");
+    } else {
+        protoContent = fdLoadFile(modelPathStr + "/pose_detection.tnnproto");
+        modelContent = fdLoadFile(modelPathStr + "/pose_detection.tnnmodel");
+    }
+    LOGI("pose detection proto content size %d model content size %d", protoContent.length(), modelContent.length());
     LOGI("device type: %d", gComputeUnitType);
 
     TNN_NS::Status status = TNN_NS::TNN_OK;
@@ -58,17 +64,17 @@ JNIEXPORT JNICALL jint TNN_POSE_DETECT_LANDMARK(init)(JNIEnv *env, jobject thiz,
         option->min_suppression_threshold = 0.3;
         if (gComputeUnitType == 1) {
             option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-            status = gBlazePoseDetector->Init(option);
         } else if (gComputeUnitType == 2) {
             //add for huawei_npu store the om file
             option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
             gBlazePoseDetector->setNpuModelPath(modelPathStr + "/");
             gBlazePoseDetector->setCheckNpuSwitch(false);
-            status = gBlazePoseDetector->Init(option);
+        } else if (gComputeUnitType == 3) { // Qualcomm SNPE
+            option->compute_units = TNN_NS::TNNComputeUnitsSNPE;
         } else {
             option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-            status = gBlazePoseDetector->Init(option);
         }
+        status = gBlazePoseDetector->Init(option);
 
         if (status != TNN_NS::TNN_OK) {
             LOGE("blaze pose detector init failed %d", (int)status);

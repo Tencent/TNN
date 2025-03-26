@@ -41,7 +41,7 @@ Represents a model in TNN. Including Nodes, Tensors, Edges.
     }
     ```
     
-# SubGraph Matchitng
+# SubGraph Matching
 ``` 
         Graph * graph = ...;
         Graph * pattern = ...;

@@ -60,6 +60,8 @@ public class StreamHairSegmentationFragment extends BaseFragment {
     private ToggleButton mHuaweiNPUswitch;
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
+    // add for qualcomm SNPE
+    private boolean mUseSNPE = false;
 
     private boolean mDeviceSwitched = false;
     private byte[] mColor = {(byte)0, (byte)0, (byte)185, (byte)90};
@@ -71,6 +73,9 @@ public class StreamHairSegmentationFragment extends BaseFragment {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
+        if (mUseSNPE) {
+            System.loadLibrary("SNPE");
+        }
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
         String modelPath = initModel();
@@ -84,6 +89,7 @@ public class StreamHairSegmentationFragment extends BaseFragment {
         String[] modelPathsSegmentation = {
                 "segmentation.tnnmodel",
                 "segmentation.tnnproto",
+                "segmentation.dlc",
         };
 
         for (int i = 0; i < modelPathsSegmentation.length; i++) {
@@ -350,6 +356,8 @@ public class StreamHairSegmentationFragment extends BaseFragment {
                     int device = 0;
                     if (mUseHuaweiNpu) {
                         device = 2;
+                    } else if (mUseSNPE) {
+                        device = 3;
                     } else if (mUseGPU) {
                         device = 1;
                     }
@@ -393,6 +401,8 @@ public class StreamHairSegmentationFragment extends BaseFragment {
                                 int device = 0;
                                 if (mUseHuaweiNpu) {
                                     device = 2;
+                                } else if (mUseSNPE) {
+                                    device = 3;
                                 } else if (mUseGPU) {
                                     device = 1;
                                 }
@@ -419,6 +429,8 @@ public class StreamHairSegmentationFragment extends BaseFragment {
                                     monitorResult += "opencl\n";
                                 } else if (mUseHuaweiNpu) {
                                     monitorResult += "huawei_npu\n";
+                                } else if (mUseSNPE) {
+                                    monitorResult += "snpe\n";
                                 } else {
                                     monitorResult += "arm\n";
                                 }

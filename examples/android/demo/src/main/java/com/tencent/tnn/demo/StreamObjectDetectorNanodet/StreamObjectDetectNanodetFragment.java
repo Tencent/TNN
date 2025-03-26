@@ -57,6 +57,8 @@ public class StreamObjectDetectNanodetFragment extends BaseFragment {
     private ToggleButton mHuaweiNPUswitch;
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
+    // add for qualcomm SNPE
+    private boolean mUseSNPE = false;
 
     private boolean mDeviceSwitched = false;
 
@@ -67,6 +69,9 @@ public class StreamObjectDetectNanodetFragment extends BaseFragment {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         System.loadLibrary("tnn_wrapper");
+        if (mUseSNPE) {
+            System.loadLibrary("SNPE");
+        }
         //start SurfaceHolder
         mDemoSurfaceHolder = new DemoSurfaceHolder(this);
         String modelPath = initModel();
@@ -80,10 +85,13 @@ public class StreamObjectDetectNanodetFragment extends BaseFragment {
         String[] modelPathsDetector = {
                 "nanodet_m.tnnmodel",
                 "nanodet_m.tnnproto",
+                "nanodet_m.dlc",
                 "nanodet_e1.tnnmodel",
                 "nanodet_e1.tnnproto",
+                "nanodet_e1.dlc",
                 "nanodet_t.tnnmodel",
                 "nanodet_t.tnnproto",
+                "nanodet_t.dlc",
         };
 
         for (int i = 0; i < modelPathsDetector.length; i++) {
@@ -291,6 +299,8 @@ public class StreamObjectDetectNanodetFragment extends BaseFragment {
                     int device = 0;
                     if (mUseHuaweiNpu) {
                         device = 2;
+                    } else if (mUseSNPE) {
+                        device = 3;
                     } else if (mUseGPU) {
                         device = 1;
                     }
@@ -334,6 +344,8 @@ public class StreamObjectDetectNanodetFragment extends BaseFragment {
                                 int device = 0;
                                 if (mUseHuaweiNpu) {
                                     device = 2;
+                                } else if (mUseSNPE) {
+                                    device = 3;
                                 } else if (mUseGPU) {
                                     device = 1;
                                 }
@@ -359,6 +371,8 @@ public class StreamObjectDetectNanodetFragment extends BaseFragment {
                                     monitorResult += "opencl\n";
                                 } else if (mUseHuaweiNpu) {
                                     monitorResult += "huawei_npu\n";
+                                } else if (mUseSNPE) {
+                                    monitorResult += "snpe\n";
                                 } else {
                                     monitorResult += "arm\n";
                                 }

@@ -64,6 +64,14 @@ struct PUBLIC WarpAffineParam {
     float border_val       = 0.0f;
 };
 
+typedef enum {
+    PASTE_TYPE_TOP_LEFT_ALIGN = 0x00,
+    PASTE_TYPE_CENTER_ALIGN   = 0x01,
+} PUBLIC PasteType;
+struct PUBLIC PasteParam {
+    PasteType type = PASTE_TYPE_TOP_LEFT_ALIGN;
+    int pad_value  = 0;
+};
 struct PUBLIC CopyMakeBorderParam {
     int top    = 0;
     int bottom = 0;
@@ -92,6 +100,7 @@ public:
     //src and dst device type must be same.
     static Status CvtColor(Mat& src, Mat& dst, ColorConversionType type, void* command_queue);
 
+    static Status GetMatByteSize(Mat& src, int& byte_size);
     //src and dst device type must be same. param top, bottom, left and right must be non-negative.
     static Status CopyMakeBorder(Mat& src, Mat& dst, CopyMakeBorderParam param, void* command_queue);
 };

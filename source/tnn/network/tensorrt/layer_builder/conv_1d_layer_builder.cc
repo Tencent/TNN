@@ -28,6 +28,21 @@ ILayer* Convolution1DTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
 
+    nvinfer1::ITensor* weight_tensor = nullptr;
+    if (input_blobs_.size() > 1) {
+        auto weight_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
+        weight_tensor              = std::dynamic_pointer_cast<TensorRTTensor>(weight_foreign_tensor)->GetTensor();
+        auto dims                  = weight_tensor->getDimensions();
+        paramlist->kernels[0]      = dims.d[2];
+        if (paramlist->pad_type == 3) {
+            paramlist->input_channel  = dims.d[0] / paramlist->group;
+            paramlist->output_channel = dims.d[1] * paramlist->group;
+        } else {
+            paramlist->input_channel  = dims.d[1];
+            paramlist->output_channel = dims.d[0];
+        }
+    }
+
     Weights kernelWeights;
     Weights biasWeights;
     ILayer* last_layer;
@@ -42,10 +57,13 @@ ILayer* Convolution1DTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
     kernelSize.nbDims = 2;
     kernelSize.d[0] = paramlist->kernels[0];
     kernelSize.d[1] = 1;
-
-    DimsVector unsqueeze_dims(input_tensor->getDimensions().nbDims, 0);
-    unsqueeze_dims.push_back(1);
-    ILayer* layer = AddReshapeToNetwork(network, input_tensor, unsqueeze_dims, (layer_name_ + "unsqueeze").c_str());
+  
+    //DimsVector unsqueeze_dims(input_tensor->getDimensions().nbDims, 0);
+    //unsqueeze_dims.push_back(1);
+    //ILayer* layer = AddReshapeToNetwork(network, input_tensor, unsqueeze_dims, (layer_name_ + "unsqueeze").c_str());
+   
+    const std::vector<int> axes{3}; 
+    ILayer* layer = AddUnSqueezeToNetwork(network, input_tensor, axes, (layer_name_ + "unsqueeze").c_str());
 
     IConvolutionLayer* conv_layer;
     conv_layer = network->addConvolutionNd(*(layer->getOutput(0)), paramlist->output_channel, kernelSize,
@@ -70,6 +88,10 @@ ILayer* Convolution1DTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         conv_layer->setNbGroups(paramlist->group);
     }
 
+    if (input_blobs_.size() > 1) {
+        conv_layer->setInput(1, *weight_tensor);
+    }
+
     last_layer = conv_layer;
 
     IActivationLayer* activation_layer;
@@ -86,8 +108,10 @@ ILayer* Convolution1DTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) 
         return nullptr;
     }
 
-    unsqueeze_dims.erase(unsqueeze_dims.end()-1);
-    last_layer = AddReshapeToNetwork(network, last_layer->getOutput(0), unsqueeze_dims, (layer_name_ + "squeeze").c_str());
+    //unsqueeze_dims.erase(unsqueeze_dims.end()-1);
+    //last_layer = AddReshapeToNetwork(network, last_layer->getOutput(0), unsqueeze_dims, (layer_name_ + "squeeze").c_str());
+
+    last_layer = AddSqueezeToNetwork(network, last_layer->getOutput(0), axes, (layer_name_ + "unsqueeze").c_str());
 
     return last_layer;
 }

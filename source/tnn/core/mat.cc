@@ -64,6 +64,28 @@ int Mat::GetWidth() {
     return GetDim(3);
 }
 
+void Mat::ReAlloc(DimsVector dims) {
+    dims_ = dims;
+    auto device = GetDevice(device_type_);
+    
+    void* data_alloc = nullptr;
+    auto status = device->Allocate(&data_alloc, mat_type_, dims);
+    if (status == TNN_OK) {
+        data_alloc_ = nullptr;
+        data_alloc_ = std::shared_ptr<void>(data_alloc, [=](void* p) {
+            auto device = GetDevice(device_type_);
+            if (device) {
+                device->Free(p);
+            }
+        });
+        data_       = data_alloc_.get();
+    } else {
+        data_       = nullptr;
+        data_alloc_ = nullptr;
+        LOGE("Mat ReAllocate failed msg:%s\n", status.description().c_str());
+    }
+}
+
 Mat::Mat(DeviceType device_type, MatType mat_type, DimsVector dims) {
     dims_ = dims;
 
@@ -91,6 +113,7 @@ Mat::Mat(DeviceType device_type, MatType mat_type, DimsVector dims) {
     } else {
         data_       = nullptr;
         data_alloc_ = nullptr;
+        LOGE("Mat Allocate failed msg:%s\n", status.description().c_str());
     }
 }
 

@@ -147,8 +147,11 @@ ILayer* GatherTRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) n
             LOGE("GatherTRTLayerBuilder can not find data or indices\n");
             return nullptr;
         }
-
-        return network->addGather(*data, *indices, axis);
+        
+        auto gather_layer = network->addGather(*data, *indices, axis);
+        gather_layer->setName((layer_name_).c_str());
+        //gather_layer->setInputType(1, nvinfer1::DataType::kINT32);
+        return gather_layer;
     }
     return TensorRTPluginLayerBuilder::AddToNetwork(network);
 }

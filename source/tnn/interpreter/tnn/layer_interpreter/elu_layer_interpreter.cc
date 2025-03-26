@@ -34,7 +34,7 @@ Status EluLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerR
     return TNN_OK;
 }
 
-Status EluLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status EluLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     EluLayerParam* layer_param = dynamic_cast<EluLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

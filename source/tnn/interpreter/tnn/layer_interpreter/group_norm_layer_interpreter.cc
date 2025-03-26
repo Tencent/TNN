@@ -29,7 +29,7 @@ Status GroupNormLayerInterpreter::InterpretResource(Deserializer& deserializer, 
     return TNN_OK;
 }
 
-Status GroupNormLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status GroupNormLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, GroupNormLayerParam, "invalid group norm layer param to save", param);
     output_stream << layer_param->group << " ";
     output_stream << layer_param->eps << " ";

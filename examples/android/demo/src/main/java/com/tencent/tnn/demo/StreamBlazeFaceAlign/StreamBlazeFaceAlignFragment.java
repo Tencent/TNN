@@ -59,6 +59,8 @@ public class StreamBlazeFaceAlignFragment extends BaseFragment {
     private ToggleButton mHuaweiNPUswitch;
     private boolean mUseHuaweiNpu = false;
     private TextView HuaweiNpuTextView;
+    // add for qualcomm SNPE
+    private boolean mUseSNPE = false;
 
     private boolean mDeviceSwitched = false;
 
@@ -81,7 +83,8 @@ public class StreamBlazeFaceAlignFragment extends BaseFragment {
         //copy detect model to sdcard
         String[] detectModelPathsDetector = {
                 "blazeface.tnnmodel",
-                "blazeface.tnnproto"
+                "blazeface.tnnproto",
+                "blazeface.dlc"
         };
 
         for (int i = 0; i < detectModelPathsDetector.length; i++) {
@@ -94,8 +97,10 @@ public class StreamBlazeFaceAlignFragment extends BaseFragment {
         String[] alignModelPathsDetector = {
                 "youtu_face_alignment_phase1.tnnmodel",
                 "youtu_face_alignment_phase1.tnnproto",
+                "youtu_face_alignment_phase1.dlc",
                 "youtu_face_alignment_phase2.tnnmodel",
-                "youtu_face_alignment_phase2.tnnproto"
+                "youtu_face_alignment_phase2.tnnproto",
+                "youtu_face_alignment_phase2.dlc"
         };
 
         for (int i = 0; i < alignModelPathsDetector.length; i++) {
@@ -308,6 +313,8 @@ public class StreamBlazeFaceAlignFragment extends BaseFragment {
                     int device = 0;
                     if (mUseHuaweiNpu) {
                         device = 2;
+                    } else if (mUseSNPE) {
+                        device = 3;
                     } else if (mUseGPU) {
                         device = 1;
                     }
@@ -351,6 +358,8 @@ public class StreamBlazeFaceAlignFragment extends BaseFragment {
                                 int device = 0;
                                 if (mUseHuaweiNpu) {
                                     device = 2;
+                                } else if (mUseSNPE) {
+                                    device = 3;
                                 } else if (mUseGPU) {
                                     device = 1;
                                 }
@@ -376,6 +385,8 @@ public class StreamBlazeFaceAlignFragment extends BaseFragment {
                                     monitorResult += "opencl\n";
                                 } else if (mUseHuaweiNpu) {
                                     monitorResult += "huawei_npu\n";
+                                } else if (mUseSNPE) {
+                                    monitorResult += "snpe\n";
                                 } else {
                                     monitorResult += "arm\n";
                                 }

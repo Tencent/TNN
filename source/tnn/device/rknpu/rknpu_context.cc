@@ -24,6 +24,10 @@ Status RknpuContext::GetCommandQueue(void** command_queue) {
     return TNN_OK;
 }
 
+Status RknpuContext::SetCommandQueue(void* command_queue) {
+    return TNN_OK;
+}
+
 Status RknpuContext::OnInstanceForwardBegin() {
     return TNN_OK;
 }

@@ -31,6 +31,25 @@ Status DeconvLayer::InferOutputShape(bool ignore_error) {
     Blob* input_blob             = input_blobs_[0];
     Blob* output_blob            = output_blobs_[0];
     ConvLayerParam* deconv_param = dynamic_cast<ConvLayerParam*>(param_);
+    const int pad_type = deconv_param->pad_type;
+
+    int group = deconv_param->group;
+    if (group == 0) {
+        return Status(TNNERR_INVALID_GROUP, "Error: invalid group param");
+    }
+
+    if(input_blobs_.size() > 1) {
+        auto dims = input_blobs_[1]->GetBlobDesc().dims;
+        deconv_param->kernels[0] = dims[3];
+        deconv_param->kernels[1] = dims[2];
+        if (pad_type == 3) {
+            deconv_param->output_channel = dims[1] * group;
+            deconv_param->input_channel = dims[0] / group ;
+        } else {
+            deconv_param->output_channel = dims[0];
+            deconv_param->input_channel = dims[1];
+        }
+    }
     CHECK_PARAM_NULL(deconv_param);
 
     int num    = input_blob->GetBlobDesc().dims[0];
@@ -52,7 +71,6 @@ Status DeconvLayer::InferOutputShape(bool ignore_error) {
     int height_out = 0;
     int width_out  = 0;
 
-    const int pad_type = deconv_param->pad_type;
 
     int kernel_extent_h = dilation_h * (kernel_h - 1) + 1;
     int kernel_extent_w = dilation_w * (kernel_w - 1) + 1;
@@ -116,11 +134,6 @@ Status DeconvLayer::InferOutputShape(bool ignore_error) {
     } else {
         LOGE_IF(!ignore_error, "Error: DeconvLayer dont support pad type: %d\n", pad_type);
         return Status(TNNERR_PARAM_ERR, "Error: DeconvLayer dont support pad type");
-    }
-
-    int group = deconv_param->group;
-    if (group == 0) {
-        return Status(TNNERR_INVALID_GROUP, "Error: invalid group param");
     }
 
     if (height_out <= 0 || width_out <= 0) {

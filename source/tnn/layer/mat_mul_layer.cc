@@ -21,7 +21,74 @@ namespace TNN_NS {
 DECLARE_LAYER(MatMul, LAYER_MATMUL);
 
 Status MatMulLayer::InferOutputDataType() {
-    return BaseLayer::InferOutputDataType();
+    BaseLayer::InferOutputDataType();
+    
+    auto param    = dynamic_cast<MatMulLayerParam*>(param_);
+    auto resource = dynamic_cast<MatMulLayerResource*>(resource_);
+    
+    DataType matrix_a_dtype;
+    DataType matrix_b_dtype;
+    if (input_blobs_.size() == 1) {
+        if (param->weight_position == 0) {
+            matrix_a_dtype = resource->weight.GetDataType();
+            matrix_b_dtype = input_blobs_[0]->GetBlobDesc().data_type;
+        } else if (param->weight_position == 1) {
+            matrix_a_dtype = input_blobs_[0]->GetBlobDesc().data_type;
+            matrix_b_dtype = resource->weight.GetDataType();
+        } else {
+            return Status(TNNERR_INVALID_MODEL, "MatMul input size error. param.weight_position invalid when num of input is 1.");
+        }
+    } else if (input_blobs_.size() == 2) {
+        matrix_a_dtype = input_blobs_[0]->GetBlobDesc().data_type;
+        matrix_b_dtype = input_blobs_[1]->GetBlobDesc().data_type;
+    } else {
+        return Status(TNNERR_INVALID_MODEL, "MatMul OP number of inputs should be 1 or 2.");
+    }
+ 
+    // MatMul OP Cast Output to higher data type.
+    // for example:
+    // [half, float] -> float 
+    // [float, int] -> int
+    bool in_matrixes_contains_float = false;
+    bool in_matrixes_contains_half  = false;
+    bool in_matrixes_contains_bfp16 = false;
+    bool in_matrixes_contains_int32 = false;
+
+    if (matrix_a_dtype==DATA_TYPE_FLOAT || matrix_b_dtype==DATA_TYPE_FLOAT) {
+        in_matrixes_contains_float = true;
+    }
+    if (matrix_a_dtype==DATA_TYPE_HALF || matrix_b_dtype==DATA_TYPE_HALF) {
+        in_matrixes_contains_half  = true;
+    }
+    if (matrix_a_dtype==DATA_TYPE_BFP16 || matrix_b_dtype==DATA_TYPE_BFP16) {
+        in_matrixes_contains_bfp16 = true;
+    }
+    if (matrix_a_dtype==DATA_TYPE_INT32 || matrix_b_dtype==DATA_TYPE_INT32) {
+        in_matrixes_contains_int32 = true;
+    }
+
+    if (in_matrixes_contains_float) {
+        output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_FLOAT;
+        return TNN_OK;
+    }
+
+    if (in_matrixes_contains_half && in_matrixes_contains_bfp16) {
+        return Status(TNNERR_LAYER_ERR, "Error: MatMul with one input fp16 and the other bfp16 is not allowed.");
+    }
+    if (in_matrixes_contains_half) {
+        output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_HALF;
+        return TNN_OK;
+    }
+    if (in_matrixes_contains_bfp16) {
+        output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_BFP16;
+        return TNN_OK;
+    }
+
+    if (in_matrixes_contains_int32) {
+        output_blobs_[0]->GetBlobDesc().data_type = DATA_TYPE_INT32;
+        return TNN_OK;
+    }
+    return TNN_OK;
 }
 
 // @brief matmul op to MatMul matrix_a_dims and matrix_b_dims

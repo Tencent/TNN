@@ -50,7 +50,7 @@ Status PadV2LayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
     return TNN_OK;
 }
 
-Status PadV2LayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status PadV2LayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<PadLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

@@ -205,7 +205,7 @@ int onnx2tnn_convert(std::string onnx_model_path, std::string output_dir, std::s
         }
 
         auto const_folder = std::make_shared<ConstFolder>();
-        status = const_folder->Init(network_config, model_config, interpreter, {}, {});
+        status = const_folder->Init(network_config, model_config, interpreter, {}, {}, {});
         if (status != TNN_OK) {
             DLog("ConstFolder Init Error: %s\n", status.description().c_str());
             return status;

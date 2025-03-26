@@ -53,7 +53,7 @@ Status ScaleLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
     return TNN_OK;
 }
 
-Status ScaleLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ScaleLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     ScaleLayerParam* layer_param = dynamic_cast<ScaleLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

@@ -37,7 +37,7 @@ Status ShuffleLayerInterpreter::InterpretResource(Deserializer& deserializer, La
     return TNN_OK;
 }
 
-Status ShuffleLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ShuffleLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     ShuffleLayerParam* layer_param = dynamic_cast<ShuffleLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

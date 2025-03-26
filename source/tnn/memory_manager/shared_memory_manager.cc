@@ -28,7 +28,18 @@ bool operator<(SharedMemoryId lhs, SharedMemoryId rhs) {
 std::map<SharedMemoryId, SharedMemory> SharedMemoryManager::s_shared_forward_memory;
 std::map<SharedMemoryId, std::vector<ISharedMemoryChangeListener *>> SharedMemoryManager::s_shared_memory_instances;
 
-SharedMemory SharedMemoryManager::GetSharedMemory(int forward_memory_size, std::thread::id thread_id,
+DimsVector SplitMemorySizeToDims(size_t memory_size) {
+    DimsVector dims;
+    while (memory_size > INT_MAX) {
+        int dim = (memory_size - 1) / INT_MAX + 1;
+        dims.push_back(dim);
+        memory_size /= dim;
+    }
+    dims.push_back(memory_size);
+    return dims;
+}
+
+SharedMemory SharedMemoryManager::GetSharedMemory(size_t forward_memory_size, std::thread::id thread_id,
                                                   AbstractDevice *device, int device_id,
                                                   ISharedMemoryChangeListener *listener,
                                                   Status &status) {
@@ -41,8 +52,8 @@ SharedMemory SharedMemoryManager::GetSharedMemory(int forward_memory_size, std::
     if (forward_memory_size > share_memory.shared_memory_size) {
         void *new_shared_memory = NULL;
         BlobMemorySizeInfo info;
-        info.data_type = DATA_TYPE_INT8; 
-        info.dims.push_back(forward_memory_size);
+        info.data_type = DATA_TYPE_INT8;
+        info.dims = SplitMemorySizeToDims(forward_memory_size);
         status = device->Allocate(&new_shared_memory, info);
         if (status != TNN_OK) {
             return SharedMemory();

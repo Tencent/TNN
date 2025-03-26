@@ -47,7 +47,7 @@ Status PReluLayerInterpreter::InterpretResource(Deserializer& deserializer, Laye
     return TNN_OK;
 }
 
-Status PReluLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status PReluLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<PReluLayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

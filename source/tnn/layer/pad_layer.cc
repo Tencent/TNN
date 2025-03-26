@@ -36,9 +36,20 @@ Status PadLayer::InferOutputShape(bool ignore_error) {
     Blob* input_blob  = input_blobs_[0];
     Blob* output_blob = output_blobs_[0];
     auto dims         = input_blob->GetBlobDesc().dims;
-    dims[3] += layer_param->pads[0] + layer_param->pads[1];
-    dims[2] += layer_param->pads[2] + layer_param->pads[3];
-    dims[1] += layer_param->pads[4] + layer_param->pads[5];
+    if (dims.size()==3) {
+        // C,H,W 
+        dims[2] += layer_param->pads[0] + layer_param->pads[1];
+        dims[1] += layer_param->pads[2] + layer_param->pads[3];
+        dims[0] += layer_param->pads[4] + layer_param->pads[5];
+    } else if (dims.size()==4) {
+        // N,C,H,W
+        dims[3] += layer_param->pads[0] + layer_param->pads[1];
+        dims[2] += layer_param->pads[2] + layer_param->pads[3];
+        dims[1] += layer_param->pads[4] + layer_param->pads[5];
+    } else {
+        LOGE_IF(!ignore_error, "Error: unsupported PAD input format, should be NCHW or CHW.\n");
+        return Status(TNNERR_LAYER_ERR, "Error: unsupported PAD input format, should be NCHW or CHW.");
+    }
 
     output_blob->GetBlobDesc().dims = dims;
     return TNN_OK;

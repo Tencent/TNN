@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "tnn/device/cuda/acc/cuda_layer_acc.h"
+#include "tnn/device/cuda/utils.cuh"
 #include "tnn/utils/dims_utils.h"
 
 #include "cuda_fp16.h"

@@ -31,7 +31,8 @@ Status CpuDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
     desc.dims        = dims;
     desc.device_type = DEVICE_NAIVE;
     if (mat_type == NCHW_FLOAT || 
-        mat_type == RESERVED_BFP16_TEST || mat_type == RESERVED_INT8_TEST || mat_type == RESERVED_FP16_TEST) {
+        mat_type == NCHW_BFP16 || mat_type == NC_INT8 || mat_type == NCHW_HALF || mat_type == NC_UINT8 ||
+        mat_type == RESERVED_BFP16_TEST || mat_type == RESERVED_FP16_TEST || mat_type == RESERVED_INT8_TEST) {
         desc.data_type   = DATA_TYPE_FLOAT;
         desc.data_format = DATA_FORMAT_NCHW;
         auto size_info   = Calculate(desc);
@@ -50,6 +51,10 @@ Status CpuDevice::Allocate(void** handle, MatType mat_type, DimsVector dims) {
     } else if (mat_type == NC_INT32) {
         auto size_info   = Calculate(desc);
         size_info.data_type     = DATA_TYPE_INT32;
+        return Allocate(handle, size_info);
+    } else if (mat_type == NC_INT64) {
+        auto size_info   = Calculate(desc);
+        size_info.data_type     = DATA_TYPE_INT64;
         return Allocate(handle, size_info);
     } else {
         LOGE("CpuDevice dont support mat_type:%d\n", mat_type);

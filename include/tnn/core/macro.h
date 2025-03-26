@@ -119,6 +119,8 @@
     fprintf(stderr, "%s", var_name)
 #endif  //__ANDROID__
 
+#define LOGDR(fmt, ...) fprintf(stdout, fmt, ##__VA_ARGS__)
+
 #define LOGD(fmt, ...) LOGDT(fmt, DEFAULT_TAG, ##__VA_ARGS__)
 #define LOGI(fmt, ...) LOGIT(fmt, DEFAULT_TAG, ##__VA_ARGS__)
 #define LOGE(fmt, ...) LOGET(fmt, DEFAULT_TAG, ##__VA_ARGS__)
@@ -139,8 +141,10 @@
 #ifndef DEBUG
 #undef LOGDT
 #undef LOGD
+#undef LOGDR
 #define LOGDT(fmt, tag, ...)
 #define LOGD(fmt, ...)
+#define LOGDR(fmt, ...)
 #undef ASSERT
 #define ASSERT(x)
 #endif  // DEBUG
@@ -232,6 +236,16 @@
 
 #define RETURN_ON_FAIL(status)  RETURN_ON_NEQ(status, TNN_NS::TNN_OK)
 
+#define LOG_AND_RETURN_ON_FAIL(status, log)     \
+    do {                                        \
+        auto _status = (status);                \
+        if (_status != (TNN_OK)) {              \
+            log;                                \
+            return _status;                     \
+        }                                       \
+    } while (0)
+
+
 #define CHECK_PARAM_NULL(param)                                                   \
     do {                                                                                                         \
         if (!param) {                                                                                        \
@@ -249,5 +263,17 @@
 #pragma message("WARNING: You need to implement DEPRECATED for this compiler")
 #define DEPRECATED
 #endif
+
+#define TNN_CHECK(condition, fail_msg, ...)                     \
+    do {                                                        \
+        auto _status = (condition);                             \
+        if (!_status)  {                                        \
+            char _msg[2000];                                    \
+            snprintf(_msg, 2000, fail_msg, ##__VA_ARGS__);      \
+            return Status(TNNERR_COMMON_ERROR, _msg);           \
+        }                                                       \
+    } while(0)
+
+#define CACHE_MEMORY_TAG "%memory*"
 
 #endif  // TNN_INCLUDE_TNN_CORE_MACRO_H_

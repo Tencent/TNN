@@ -31,9 +31,29 @@ ILayer* NegTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         tensor = shuffle_layer->getOutput(0);
     }
 
-    IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kNEG);
+    ILayer* layer;    
+    nvinfer1::DataType in_dtype = tensor->getType();
+    // TRT8 unary NEG does not suppport INT32
+    // Convert to FLOAT first and then back to INT32 AFTER ABS 
+    if (in_dtype==nvinfer1::DataType::kINT8 || in_dtype==nvinfer1::DataType::kINT32) {
+        ILayer* cast_layer = network->addIdentity(*tensor);
+        cast_layer->setName((layer_name_+"_int2fp").c_str());
+        cast_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
+        tensor = cast_layer->getOutput(0);
+    }
+
+    // Main Neg OP
+    layer = network->addUnary(*tensor, UnaryOperation::kNEG);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
+    }
+ 
+    // Cast back to original data type
+    if (in_dtype==nvinfer1::DataType::kINT8 || in_dtype==nvinfer1::DataType::kINT32) {
+        layer = network->addIdentity(*tensor);
+        layer->setName((layer_name_+"_fp2int").c_str());
+        layer->setOutputType(0, in_dtype);
+        tensor = layer->getOutput(0);
     }
 
     if (GetInputITensors()[0]->getDimensions().nbDims == 0) {

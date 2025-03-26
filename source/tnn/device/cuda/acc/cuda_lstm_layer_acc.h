@@ -29,32 +29,32 @@ public:
 
 protected:
 
-    int num_layers_;
-    int seq_length_;
-    int hidden_size_;
-    int input_size_;
-    bool bidirectional_;
+    // int num_layers_;
+    // int seq_length_;
+    // int hidden_size_;
+    // int input_size_;
+    // bool bidirectional_;
 
-    cudnnRNNAlgo_t rnn_algo_;
+    // cudnnRNNAlgo_t rnn_algo_;
 
-    cudnnRNNDescriptor_t rnn_desc_;
-    cudnnFilterDescriptor_t w_desc_;
-    cudnnPersistentRNNPlan_t rnn_plan_;
-    cudnnDropoutDescriptor_t dropout_desc_;
+    // cudnnRNNDescriptor_t rnn_desc_;
+    // cudnnFilterDescriptor_t w_desc_;
+    // cudnnPersistentRNNPlan_t rnn_plan_;
+    // cudnnDropoutDescriptor_t dropout_desc_;
 
-    cudnnTensorDescriptor_t *x_desc_, *y_desc_;
-    cudnnTensorDescriptor_t hx_desc_, cx_desc_;
-    cudnnTensorDescriptor_t hy_desc_, cy_desc_;
+    // cudnnTensorDescriptor_t *x_desc_, *y_desc_;
+    // cudnnTensorDescriptor_t hx_desc_, cx_desc_;
+    // cudnnTensorDescriptor_t hy_desc_, cy_desc_;
 
-    float * hx_ = nullptr;
-    float * hy_ = nullptr;
-    float * cx_ = nullptr;
-    float * cy_ = nullptr;
+    // float * hx_ = nullptr;
+    // float * hy_ = nullptr;
+    // float * cx_ = nullptr;
+    // float * cy_ = nullptr;
 
-    void * workspace_ = nullptr;
-    void * dropout_state_ = nullptr;
-    size_t workspace_size_ = 0;
-    float* weights_ = nullptr;
+    // void * workspace_ = nullptr;
+    // void * dropout_state_ = nullptr;
+    // size_t workspace_size_ = 0;
+    // float* weights_ = nullptr;
     
 };
 

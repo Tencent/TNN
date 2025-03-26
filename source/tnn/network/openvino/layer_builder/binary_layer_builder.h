@@ -1,6 +1,6 @@
 // Tencent is pleased to support the open source community by making TNN available.
 //
-// Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
+// Copyright (C) 2023 THL A29 Limited, a Tencent company. All rights reserved.
 //
 // Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -15,19 +15,9 @@
 #ifndef TNN_SOURCE_TNN_DEVICE_OPENVINO_LAYER_BUILDER_BINARY_LAYER_BUILDER_H_
 #define TNN_SOURCE_TNN_DEVICE_OPENVINO_LAYER_BUILDER_BINARY_LAYER_BUILDER_H_
 
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
-
-#include <ngraph/node.hpp>
-#include <ngraph/op/op.hpp>
-#include <ngraph/opsets/opset1.hpp>
-
+#include "tnn/extern_wrapper/base_layer_builder.h"
 #include "tnn/interpreter/layer_param.h"
 #include "tnn/interpreter/layer_resource.h"
-#include "tnn/extern_wrapper/base_layer_builder.h"
-#include "tnn/network/openvino/openvino_types.h"
 #include "tnn/network/openvino/layer_builder/openvino_layer_builder.h"
 
 namespace TNN_NS {
