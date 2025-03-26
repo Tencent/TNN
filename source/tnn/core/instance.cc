@@ -94,8 +94,8 @@ Status Instance::Init(std::shared_ptr<AbstractModelInterpreter> interpreter, Inp
     }
 
     if (default_interpreter && default_interpreter->GetNetStructure() &&
-        (NeedDoConstantFolding(default_interpreter->GetNetStructure()) || net_config_.device_type == DEVICE_CUDA ||
-         net_config_.device_type == DEVICE_APPLE_NPU || net_config_.device_type == DEVICE_ARM)) {
+        (NeedDoConstantFolding(default_interpreter->GetNetStructure()) ||
+         net_config_.device_type == DEVICE_CUDA || net_config_.device_type == DEVICE_APPLE_NPU)) {
         auto const_folder = std::make_shared<ConstFolder>();
         auto folder_net_config = net_config_;
         folder_net_config.share_memory_mode = SHARE_MEMORY_MODE_DEFAULT;

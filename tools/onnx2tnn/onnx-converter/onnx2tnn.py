@@ -71,6 +71,10 @@ def main():
                         action='store',
                         nargs='+',
                         help='manually-set static input shape, useful when the input shape is dynamic')
+    parser.add_argument('-extra_info',
+                        required=False,
+                        action='store',
+                        help='set additional configuration information')
     args = parser.parse_args()
     onnx_net_path = args.onnx_model_path
     algo_version = args.version
@@ -82,6 +86,10 @@ def main():
         input_shape = ""
         for item in args.input_shape:
             input_shape += (item + " ")
+
+    extra_info = ""
+    if args.extra_info is not None:
+        extra_info = args.extra_info
 
     if onnx_net_path is None:
         print('Please make sure the onnx model path is correct!')
@@ -134,7 +142,7 @@ def main():
         status = onnx2tnn.convert(onnx_net_opt_path, output_dir, algo_version, file_time,
                                   0 if model_half == '0' else 1,
                                   1 if algo_optimize != '0' else 0,
-                                  input_shape)
+                                  input_shape, extra_info)
     except Exception as err:
         status = -1
         traceback.print_exc()
