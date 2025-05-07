@@ -309,7 +309,7 @@ Status TensorRTNetwork_::ReshapeLayers() {
     }
 
     for (auto iter : inputs) {
-        auto dims = m_trt_engine->getTensorShape(iter.first.c_str());
+        auto dims = ConvertToTRTDims(blob_manager_->GetBlob(iter.first)->GetBlobDesc().dims);
         bool success = m_trt_context->setInputShape(iter.first.c_str(), dims);
 	    if(!success) {
             return Status(TNNERR_PARAM_ERR, "Reshape failed\n");
