@@ -27,9 +27,12 @@ uint32_t ReduceTRTLayerBuilder::GetReduceAxis() {
     auto axis = paramlist->axis;
     uint32_t reduceAxis = 0x0;
     for (int i = 0; i < axis.size(); i++) {
-        axis[i] = axis[i] > 0 ? axis[i] : axis[i] + GetInputITensors()[0]->getDimensions().nbDims;
+        axis[i] = axis[i] >= 0 ? axis[i] : axis[i] + GetInputITensors()[0]->getDimensions().nbDims;
     }
 
+    if (std::find(axis.begin(), axis.end(), 0) != axis.end()) {
+        reduceAxis |= 0x1;
+    }
     if (std::find(axis.begin(), axis.end(), 1) != axis.end()) {
         reduceAxis |= 0x2;
     }

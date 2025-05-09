@@ -15,7 +15,7 @@
 #ifndef TNN_SOURCE_TNN_NETWORK_OPENVINO_UTILS_H_
 #define TNN_SOURCE_TNN_NETWORK_OPENVINO_UTILS_H_
 
-#include <ie_precision.hpp>
+#include <ie/ie_precision.hpp>
 #include <ngraph/ngraph.hpp>
 #include <ngraph/node.hpp>
 #include <ngraph/op/op.hpp>

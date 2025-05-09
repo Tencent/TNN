@@ -221,6 +221,21 @@ Status OpenCLBlobConverterAcc::ConvertFromMat(Mat &mat, MatConvertParam param, v
     return ret;
 }
 
+bool OpenCLBlobConverterAcc::NeedDoScaleBias(MatConvertParam &param) {
+    for (auto s : param.scale) {
+        if (s != 1.0f) {
+            return true;
+        }
+    }
+    for (auto b : param.bias) {
+        if (b != 0.0f) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 Status OpenCLBlobConverterAcc::GetConvertToMatKernelName(Mat &mat, std::string& kernel_name, std::string& program_name) {
     int dims_size = blob_->GetBlobDesc().dims.size();
     if (blob_->GetBlobDesc().data_type == DATA_TYPE_INT32) {

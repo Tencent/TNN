@@ -42,11 +42,25 @@ typedef enum {
     //NCDi[0-4]: float
     NCHW_FLOAT = 0x20,
     //NCDi[0-4]: int32
-    NC_INT32 = 0x21,
-    
-    // RESERVED FOR INTERNAL TEST USE
+    NC_INT32   = 0x21,
+    //NCDi[0-4]: int64
+    NC_INT64   = 0x22,
+    //NCDi[0-4]: int8
+    NC_INT8    = 0x23,
+    //NCDi[0-4]: uint8
+    NC_UINT8   = 0x24,
+    //NCDi[0-4]: half
+    NCHW_HALF  = 0x25,
+    //NCDi[0-4]: bfp16
+    NCHW_BFP16 = 0x26,
+
+    // DEPRECATED:
+    // WOULD BE REMOVED IN FUTURE VERSION
+    // DEPRECATED, WILL CONVERT TO NCHW_BFP16
     RESERVED_BFP16_TEST = 0x200,
+    // DEPRECATED, WILL CONVERT TO NCHW_HALF
     RESERVED_FP16_TEST  = 0x201,
+    // DEPRECATED, WILL CONVERT TO NC_INT8
     RESERVED_INT8_TEST  = 0x202,
 } PUBLIC MatType;
 
@@ -71,6 +85,7 @@ public:
     int GetHeight();
     int GetWidth();
     int GetDim(int index);
+    void ReAlloc(DimsVector dims);
     DimsVector GetDims();
 
 private:

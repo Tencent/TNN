@@ -12,7 +12,7 @@
 
 static std::shared_ptr<TNN_NS::SkeletonDetector> gDetector;
 static std::shared_ptr<TNN_NS::SkeletonDetector> gSmallDetector;
-static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu
+static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu, 3 is qualcomm SNPE
 static jclass clsObjectInfo;
 static jmethodID midconstructorObjectInfo;
 static jfieldID fidx1;
@@ -34,14 +34,21 @@ JNIEXPORT JNICALL jint TNN_SKELETON_DETECTOR(init)(JNIEnv *env, jobject thiz, js
     gSmallDetector = std::make_shared<TNN_NS::SkeletonDetector>();
     std::string protoContent, middleProtoContent, smallProtoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/skeleton_big.tnnproto");
-    smallProtoContent = fdLoadFile(modelPathStr + "/skeleton_small.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/skeleton.tnnmodel");
+    
+    gComputeUnitType = computUnitType;
+    if (gComputeUnitType == 3) { // Qualcomm SNPE use SNPE .dlc model
+        protoContent      = "-";  // protoContent just not empty.
+        smallProtoContent = "-";  // protoContent just not empty.
+        modelContent      = fdLoadFile(modelPathStr + "/skeleton.dlc");
+    } else {
+        protoContent      = fdLoadFile(modelPathStr + "/skeleton_big.tnnproto");
+        smallProtoContent = fdLoadFile(modelPathStr + "/skeleton_small.tnnproto");
+        modelContent      = fdLoadFile(modelPathStr + "/skeleton.tnnmodel");
+    }
     LOGI("big proto content size: %d, "
          "small proto content size: %d, "
          "model content size %d", protoContent.length(),
          smallProtoContent.length(), modelContent.length());
-    gComputeUnitType = computUnitType;
 
     TNN_NS::Status status = TNN_NS::TNN_OK, status1 = TNN_NS::TNN_OK;
     auto option = std::make_shared<TNN_NS::SkeletonDetectorOption>();
@@ -56,25 +63,25 @@ JNIEXPORT JNICALL jint TNN_SKELETON_DETECTOR(init)(JNIEnv *env, jobject thiz, js
     LOGI("device type: %d", gComputeUnitType);
     if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        status = gDetector->Init(option);
-
         smallDetectorOption->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        status1 = gSmallDetector->Init(smallDetectorOption);
     } else if (gComputeUnitType == 2) {
         //add for huawei_npu store the om file
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
-        status = gDetector->Init(option);
 
         smallDetectorOption->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         gSmallDetector->setNpuModelPath(modelPathStr + "/");
         gSmallDetector->setCheckNpuSwitch(false);
-        status1 = gSmallDetector->Init(smallDetectorOption);
+    } else if (gComputeUnitType == 3) { // Qualcomm SNPE
+        option->compute_units = TNN_NS::TNNComputeUnitsSNPE;
+        smallDetectorOption->compute_units = TNN_NS::TNNComputeUnitsSNPE;
     } else {
-    	status = gDetector->Init(option);
-        status1 = gSmallDetector->Init(smallDetectorOption);
+        option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+        smallDetectorOption->compute_units = TNN_NS::TNNComputeUnitsCPU;
     }
+    status  = gDetector->Init(option);
+    status1 = gSmallDetector->Init(smallDetectorOption);
 
     if (status != TNN_NS::TNN_OK || status1 != TNN_NS::TNN_OK) {
         LOGE("detector init failed high precision mode status: %d, fast mode status: %d",

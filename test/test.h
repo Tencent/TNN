@@ -26,7 +26,7 @@ namespace TNN_NS {
 
 namespace test {
 
-    int Run(int argc, char* argv[]);
+    int Run(int argc, char *argv[]);
 
     bool ParseAndCheckCommandLine(int argc, char* argv[]);
 
@@ -35,6 +35,8 @@ namespace test {
     void SetCpuAffinity();
 
     InputShapesMap GetInputShapesMap();
+    
+    InputDataTypeMap GetInputDataTypeMap();
 
     ModelConfig GetModelConfig();
 
@@ -42,7 +44,7 @@ namespace test {
 
     bool CheckResult(std::string desc, Status result);
 
-    MatMap CreateBlobMatMap(BlobMap& blob_map, int mat_type);
+    bool CreateBlobMatMap(BlobMap& blob_map, int mat_type, MatMap &mat_map);
 
     void InitInputMatMap(MatMap& mat_map);
 

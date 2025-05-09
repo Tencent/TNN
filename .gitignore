@@ -494,6 +494,10 @@ model/
 # opencl generated code
 opencl_program.cc
 
+# cache
+*.cache
+*.cache~
+
 # opencl generated code
 opencl_program.cc
 platforms/mac/tnn.xcodeproj/project.xcworkspace/xcuserdata/darrenyao.xcuserdatad/UserInterfaceState.xcuserstate

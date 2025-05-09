@@ -26,7 +26,7 @@ Status SizeLayerInterpreter::InterpretResource(Deserializer &deserializer, Layer
     return TNN_OK;
 }
 
-Status SizeLayerInterpreter::SaveProto(std::ofstream &output_stream, LayerParam *param) {
+Status SizeLayerInterpreter::SaveProto(std::ostream &output_stream, LayerParam *param) {
     return TNN_OK;
 }
 

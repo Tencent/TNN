@@ -37,7 +37,7 @@ Status GLULayerInterpreter::InterpretResource(Deserializer& deserializer, LayerR
     return TNN_OK;
 }
 
-Status GLULayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status GLULayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     GLULayerParam* layer_param = dynamic_cast<GLULayerParam*>(param);
     if (nullptr == layer_param) {
         LOGE("invalid layer param to save\n");

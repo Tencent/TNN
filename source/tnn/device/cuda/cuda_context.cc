@@ -29,14 +29,25 @@ CudaContext::~CudaContext() {
         }
     }
 
-    cudnnStatus_t cudnn_status = cudnnDestroy(cudnn_handle_);
-    if (cudnn_status != CUDNN_STATUS_SUCCESS) {
-        LOGE("destroy cudnn handle failed");
+    if(own_cudnn_handle_) {
+        cudnnStatus_t cudnn_status = cudnnDestroy(cudnn_handle_);
+        if (cudnn_status != CUDNN_STATUS_SUCCESS) {
+            LOGE("destroy cudnn handle failed");
+        }
     }
 
-    cublasStatus_t cublas_status = cublasDestroy(cublas_handle_);
-    if (cublas_status != CUBLAS_STATUS_SUCCESS) {
-        LOGE("destroy cublas handle failed");
+    if(own_cublas_handle_) {
+        cublasStatus_t cublas_status = cublasDestroy(cublas_handle_);
+        if (cublas_status != CUBLAS_STATUS_SUCCESS) {
+            LOGE("destroy cublas handle failed");
+        }
+    }
+
+    if(own_cublaslt_handle_) {
+        cublasStatus_t cublas_status = cublasLtDestroy(cublaslt_handle_);
+        if (cublas_status != CUBLAS_STATUS_SUCCESS) {
+            LOGE("destroy cublasLt handle failed");
+        }
     }
 
     if (workspace_) {
@@ -50,31 +61,6 @@ Status CudaContext::Setup(int device_id) {
     CUDA_CHECK(cudaSetDevice(device_id));
     CUDA_CHECK(cudaStreamCreate(&stream_));
     own_stream_ = true;
-
-    cudnnStatus_t cudnn_status = cudnnCreate(&cudnn_handle_);
-    if (cudnn_status != CUDNN_STATUS_SUCCESS) {
-        LOGE("create cudnn handle failed");
-        return TNNERR_INST_ERR;
-    }
-
-    cudnn_status = cudnnSetStream(cudnn_handle_, stream_);
-    if (cudnn_status != CUDNN_STATUS_SUCCESS) {
-        LOGE("cudnn handle set stream failed");
-        return TNNERR_INST_ERR;
-    }
-
-    cublasStatus_t cublas_status = cublasCreate(&cublas_handle_);
-    if (cublas_status != CUBLAS_STATUS_SUCCESS) {
-        LOGE("create cublas handle failed");
-        return TNNERR_INST_ERR;
-    }
-
-    cublas_status = cublasSetStream(cublas_handle_, stream_);
-    if (cublas_status != CUBLAS_STATUS_SUCCESS) {
-        LOGE("cublas handle set stream failed");
-        return TNNERR_INST_ERR;
-    }
-
     return TNN_OK;
 }
 
@@ -85,6 +71,33 @@ Status CudaContext::LoadLibrary(std::vector<std::string> path) {
 Status CudaContext::GetCommandQueue(void** command_queue) {
     CUDA_CHECK(cudaSetDevice(device_id_));
     *command_queue = stream_;
+    return TNN_OK;
+}
+
+Status CudaContext::SetCommandQueue(void* command_queue) {
+    if (own_stream_) {
+        CUDA_CHECK(cudaStreamSynchronize(stream_))
+        CUDA_CHECK(cudaStreamDestroy(stream_));
+    }
+    own_stream_ = false;
+    stream_ = (cudaStream_t)command_queue;
+
+    if(own_cudnn_handle_) {
+        cudnnStatus_t cudnn_status = cudnnSetStream(cudnn_handle_, stream_);
+        if (cudnn_status != CUDNN_STATUS_SUCCESS) {
+            LOGE("cudnn handle set stream failed");
+            return TNNERR_INST_ERR;
+        }
+    }
+
+    if(own_cublas_handle_) {
+        cublasStatus_t cublas_status = cublasSetStream(cublas_handle_, stream_);
+        if (cublas_status != CUBLAS_STATUS_SUCCESS) {
+            LOGE("cublas handle set stream failed");
+            return TNNERR_INST_ERR;
+        }
+    }
+
     return TNN_OK;
 }
 
@@ -104,16 +117,20 @@ Status CudaContext::ShareCommandQueue(Context* context) {
     own_stream_ = false;
     stream_ = cuda_ctx->GetStream();
 
-    cudnnStatus_t cudnn_status = cudnnSetStream(cudnn_handle_, stream_);
-    if (cudnn_status != CUDNN_STATUS_SUCCESS) {
-        LOGE("cudnn handle set stream failed");
-        return TNNERR_INST_ERR;
+    if(own_cudnn_handle_) {
+        cudnnStatus_t cudnn_status = cudnnSetStream(cudnn_handle_, stream_);
+        if (cudnn_status != CUDNN_STATUS_SUCCESS) {
+            LOGE("cudnn handle set stream failed");
+            return TNNERR_INST_ERR;
+        }
     }
 
-    cublasStatus_t cublas_status = cublasSetStream(cublas_handle_, stream_);
-    if (cublas_status != CUBLAS_STATUS_SUCCESS) {
-        LOGE("cublas handle set stream failed");
-        return TNNERR_INST_ERR;
+    if(own_cublas_handle_) {
+        cublasStatus_t cublas_status = cublasSetStream(cublas_handle_, stream_);
+        if (cublas_status != CUBLAS_STATUS_SUCCESS) {
+            LOGE("cublas handle set stream failed");
+            return TNNERR_INST_ERR;
+        }
     }
 
     return TNN_OK;
@@ -128,6 +145,52 @@ Status CudaContext::OnInstanceForwardEnd() {
 
 cudaStream_t& CudaContext::GetStream() {
     return stream_;
+}
+
+cudnnHandle_t& CudaContext::GetCudnnHandle() {
+    if(!own_cudnn_handle_) {
+        cudnnStatus_t cudnn_status = cudnnCreate(&cudnn_handle_);
+        if (cudnn_status != CUDNN_STATUS_SUCCESS) {
+            LOGE("create cudnn handle failed");
+            return cudnn_handle_;
+        }
+        own_cudnn_handle_ = true;
+        cudnn_status = cudnnSetStream(cudnn_handle_, stream_);
+        if (cudnn_status != CUDNN_STATUS_SUCCESS) {
+            LOGE("cudnn handle set stream failed");
+            return cudnn_handle_;
+        }
+    }
+    return cudnn_handle_;
+}
+
+cublasHandle_t& CudaContext::GetCublasHandle() {
+    if(!own_cublas_handle_) {
+        cublasStatus_t cublas_status = cublasCreate(&cublas_handle_);
+        if (cublas_status != CUBLAS_STATUS_SUCCESS) {
+            LOGE("create cublas handle failed");
+            return cublas_handle_;
+        }
+        own_cublas_handle_ = true;
+        cublas_status = cublasSetStream(cublas_handle_, stream_);
+        if (cublas_status != CUBLAS_STATUS_SUCCESS) {
+            LOGE("cublas handle set stream failed");
+            return cublas_handle_;
+        }
+    }
+    return cublas_handle_;
+}
+
+cublasLtHandle_t& CudaContext::GetCublasLtHandle() {
+    if (!own_cublaslt_handle_) {
+        cublasStatus_t cublas_status = cublasLtCreate(&cublaslt_handle_);
+        if (cublas_status != CUBLAS_STATUS_SUCCESS) {
+            LOGE("create cublasLt handle failed");
+            return cublaslt_handle_;
+        }
+        own_cublaslt_handle_ = true;
+    }
+    return cublaslt_handle_;
 }
 
 void* CudaContext::GetWorkspace() {
@@ -151,6 +214,18 @@ Status CudaContext::Synchronize() {
         return TNNERR_CUDA_SYNC_ERROR;
     }
     return TNN_OK;
+}
+
+Status CudaContext::AddQuantResource(std::string name, std::shared_ptr<RawBuffer> res) {
+    quant_extra_res_[name] = res;
+    return TNN_OK;
+}
+
+std::shared_ptr<RawBuffer> CudaContext::GetQuantResource(std::string name) {
+    if (quant_extra_res_.count(name) == 0) {
+        return nullptr;
+    }
+    return quant_extra_res_[name];
 }
 
 }  //  namespace TNN_NS

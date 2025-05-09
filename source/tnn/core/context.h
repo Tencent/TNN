@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include "tnn/core/any.h"
 #include "tnn/core/macro.h"
 #include "tnn/core/status.h"
 #include "tnn/core/profile.h"
@@ -37,6 +38,10 @@ public:
     // @brief get tnn command queue
     // @param command_queue device command queue for forward
     virtual Status GetCommandQueue(void** command_queue) = 0;
+
+    // @brief set tnn command queue
+    // @param command_queue device command queue for forward
+    virtual Status SetCommandQueue(void* command_queue) = 0;
 
     // @brief share tnn command queue to another context
     virtual Status ShareCommandQueue(Context* context);
@@ -75,6 +80,8 @@ public:
 
     std::string GetCacheFilePath();
 
+    std::map<std::string, Any> &GetExtraInfoMap();
+
 #if TNN_PROFILE
 public:
     virtual void StartProfile();
@@ -92,6 +99,7 @@ protected:
     bool enable_tune_kernel_ = true;
     std::string cache_path_ = ""; // dir to save cache files
     std::string cache_file_path_ = "";
+    std::map<std::string, Any> extra_info_map_;
 };
 
 }  // namespace TNN_NS

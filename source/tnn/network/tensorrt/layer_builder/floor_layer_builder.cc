@@ -21,12 +21,45 @@ DECLARE_TENSORRT_LAYER_BUILDER(Floor, LAYER_FLOOR);
 ILayer* FloorTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto tensor = std::dynamic_pointer_cast<TensorRTTensor>(foreign_tensor)->GetTensor();
+
+    if (tensor->getType()==nvinfer1::DataType::kINT32) {
+        ILayer* identity_layer = network->addIdentity(*tensor);
+        return identity_layer;
+    }
+
+    const auto input_dim = tensor->getDimensions().nbDims;
+    IShuffleLayer *unsqueeze = nullptr, *squeeze = nullptr;
+    if (input_dim == 0) {
+        unsqueeze = addUnsqueeze(network, *tensor, {0,});
+        if (unsqueeze == nullptr) {
+            return unsqueeze;
+        } else {
+            unsqueeze->setName((layer_name_ + "/before_unsqueeze").c_str());
+        }
+        // update 'tensor' to the output of the Unsqueeze layer
+        tensor = unsqueeze->getOutput(0);
+    }
+
     IUnaryLayer* layer = network->addUnary(*tensor, UnaryOperation::kFLOOR);
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
+    } else {  // i.e. layer == nullptr
+        return layer;
     }
 
-    return layer;
+    if (input_dim == 0) {
+        // so here, layer != nullptr holds
+        // update 'tensor' to the output of the Floor layer
+        tensor = layer->getOutput(0);
+        squeeze = addSqueeze(network, *tensor, {0,});
+        if (squeeze == nullptr) {
+            return squeeze;
+        } else {
+            squeeze->setName((layer_name_ + "/after_squeeze").c_str());
+        }
+    }
+
+    return input_dim > 0 ? static_cast<ILayer*>(layer) : static_cast<ILayer*>(squeeze);
 }
 
 REGISTER_TENSORRT_LAYER_BUILDER(Floor, LAYER_FLOOR);

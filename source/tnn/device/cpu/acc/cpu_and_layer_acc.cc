@@ -21,7 +21,12 @@ DECLARE_CPU_BINARY_OP_ACC(And, LAYER_AND);
 
 Status CpuAndLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const std::vector<void *> &input_ptrs,
                                  const std::vector<DimsVector> &input_shapes, Blob *output) {
-    if (output->GetBlobDesc().data_type == DATA_TYPE_INT8) {
+    if (output->GetBlobDesc().data_type == DATA_TYPE_INT32) {
+        void *output_data       = output->GetHandle().base;
+        const auto &output_dims = output->GetBlobDesc().dims;
+        CPU_ELEMENT_WISE<int, int>(input_ptrs, input_shapes, output_data, output_dims,
+                                     [](int a, int b) -> char { return a && b; });
+    } else if (output->GetBlobDesc().data_type == DATA_TYPE_INT8) {
         void *output_data       = output->GetHandle().base;
         const auto &output_dims = output->GetBlobDesc().dims;
         CPU_ELEMENT_WISE<char, char>(input_ptrs, input_shapes, output_data, output_dims,
@@ -32,6 +37,7 @@ Status CpuAndLayerAcc::Calculate(const std::vector<Blob *> &input_blobs, const s
     }
     return TNN_OK;
 }
+
 REGISTER_CPU_ACC(And, LAYER_AND);
 
 }  // namespace TNN_NS

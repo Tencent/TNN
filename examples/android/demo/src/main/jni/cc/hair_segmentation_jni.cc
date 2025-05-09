@@ -22,7 +22,7 @@
 #include <android/bitmap.h>
 
 static std::shared_ptr<TNN_NS::HairSegmentation> gSegmentator;
-static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu
+static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu, 3 is qualcomm SNPE
 static jclass clsImageInfo;
 static jmethodID midconstructorImageInfo;
 static jfieldID fidimage_width;
@@ -37,10 +37,18 @@ JNIEXPORT JNICALL jint TNN_HAIR_SEGMENTATION(init)(JNIEnv *env, jobject thiz, js
     gSegmentator = std::make_shared<TNN_NS::HairSegmentation>();
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
+    
+    gComputeUnitType = computeUnitType;
+    if (gComputeUnitType == 3) { // Qualcomm SNPE use SNPE .dlc model
+        protoContent = "-";  // protoContent just not empty.
+        modelContent = fdLoadFile(modelPathStr + "/segmentation.dlc");
+    } else {
+        protoContent = fdLoadFile(modelPathStr + "/segmentation.tnnproto");
+        modelContent = fdLoadFile(modelPathStr + "/segmentation.tnnmodel");
+    }
     protoContent = fdLoadFile(modelPathStr + "/segmentation.tnnproto");
     modelContent = fdLoadFile(modelPathStr + "/segmentation.tnnmodel");
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
-    gComputeUnitType = computeUnitType;
 
     TNN_NS::Status status = TNN_NS::TNN_OK;
     auto option = std::make_shared<TNN_NS::HairSegmentationOption>();
@@ -52,17 +60,17 @@ JNIEXPORT JNICALL jint TNN_HAIR_SEGMENTATION(init)(JNIEnv *env, jobject thiz, js
     option->mode = 1;
     if (gComputeUnitType == 1) {
         option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        status = gSegmentator->Init(option);
     } else if (gComputeUnitType == 2) {
         //add for huawei_npu store the om file
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
         gSegmentator->setNpuModelPath(modelPathStr + "/");
         gSegmentator->setCheckNpuSwitch(false);
-        status = gSegmentator->Init(option);
+    } else if (gComputeUnitType == 3) { // Qualcomm SNPE
+        option->compute_units = TNN_NS::TNNComputeUnitsSNPE;
     } else {
 	    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-    	status = gSegmentator->Init(option);
     }
+    status = gSegmentator->Init(option);
 
     if (status != TNN_NS::TNN_OK) {
         LOGE("detector init failed %d", (int)status);

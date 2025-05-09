@@ -14,6 +14,7 @@
 
 #include "tnn/network/tensorrt/layer_builder/tensorrt_layer_builder.h"
 #include "tnn/network/tensorrt/utils.h"
+#include "NvInfer.h"
 
 namespace TNN_NS {
 
@@ -26,116 +27,64 @@ ILayer* InnerProductTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto output_foreign_tensor = dynamic_cast<ForeignBlob*>(output_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();
-    bool int8 = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetInt8Mode();
+
+    nvinfer1::ITensor* weight_tensor = nullptr;
+    bool weight_as_input = (input_blobs_.size() == 2);
+    int weight_count = 1;
 
     Weights kernelWeights;
     Weights biasWeights;
-    ILayer* weight_layer;
-    if (int8) {
-        float weight_scale_value = *(resource->scale_handle.force_to<float*>());
-        float input_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
-            input_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
-            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        std::vector<int> dims;
-        dims.push_back(output_blobs_[0]->GetBlobDesc().dims[1]);
-        dims.push_back(input_blobs_[0]->GetBlobDesc().dims[1]);
-        dims.push_back(1);
-        dims.push_back(1);
-        weight_layer = AddInt8WeightQDQLayers(network, &(resource->weight_handle), kernelWeights,
-            paramlist->has_bias ? &(resource->bias_handle) : nullptr,
-            biasWeights, output_scale_value / (weight_scale_value / input_scale_value), dims);
 
-        if (!std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->IsQuantized()) {
-            Weights input_quant_shift;
-            input_quant_shift.type = nvinfer1::DataType::kFLOAT;
-            input_quant_shift.values = nullptr;
-            input_quant_shift.count = 0;
-
-            Weights input_quant_scale;
-            input_quant_scale.type = nvinfer1::DataType::kFLOAT;
-            float* input_quant_scale_data = (float*)malloc(sizeof(float));
-            int8_weight_data.push_back(input_quant_scale_data);
-            *input_quant_scale_data = input_scale_value;
-            input_quant_scale.values = (void*)input_quant_scale_data;
-            input_quant_scale.count = 1;
-
-            Weights input_quant_power;
-            input_quant_power.type = nvinfer1::DataType::kFLOAT;
-            input_quant_power.values = nullptr;
-            input_quant_power.count = 0;
-
-            auto input_quant_layer = network->addScale(*input_tensor, ScaleMode::kUNIFORM,
-                input_quant_shift, input_quant_scale, input_quant_power);
-            std::string input_scale_name = layer_name_ + "_input_quant_";
-            input_quant_layer->setOutputType(0, nvinfer1::DataType::kINT8);
-            input_quant_layer->setName(input_scale_name.c_str());
-
-            Weights input_dequant_shift;
-            input_dequant_shift.type = nvinfer1::DataType::kFLOAT;
-            input_dequant_shift.values = nullptr;
-            input_dequant_shift.count = 0;
-
-            Weights input_dequant_scale;
-            input_dequant_scale.type = nvinfer1::DataType::kFLOAT;
-            float* input_dequant_scale_data = (float*)malloc(sizeof(float));
-            int8_weight_data.push_back(input_dequant_scale_data);
-            *input_dequant_scale_data = 1 / input_scale_value;
-            input_dequant_scale.values = (void*)input_dequant_scale_data;
-            input_dequant_scale.count = 1;
-
-            Weights input_dequant_power;
-            input_dequant_power.type = nvinfer1::DataType::kFLOAT;
-            input_dequant_power.values = nullptr;
-            input_dequant_power.count = 0;
-
-            auto input_dequant_layer = network->addScale(*(input_quant_layer->getOutput(0)), ScaleMode::kUNIFORM,
-                input_dequant_shift, input_dequant_scale, input_dequant_power);
-            std::string input_dequant_layer_name = layer_name_ + "_input_dequant_";
-            input_dequant_layer->setOutputType(0, nvinfer1::DataType::kFLOAT);
-            input_dequant_layer->setName(input_dequant_layer_name.c_str());
-            std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->SetQuantized();
-            input_tensor = input_dequant_layer->getOutput(0);
-        }
+    if (weight_as_input) {
+        auto weight_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[1])->GetForeignTensor();
+        weight_tensor = std::dynamic_pointer_cast<TensorRTTensor>(weight_foreign_tensor)->GetTensor();
+        auto dims = weight_tensor->getDimensions();
+        paramlist->num_output = dims.d[0];
+        for (int i = 0; i < dims.nbDims; i++)
+            weight_count *= dims.d[i];
     } else {
         kernelWeights = ConvertToWeights(&(resource->weight_handle));
-        if (paramlist->has_bias) {
-            biasWeights = ConvertToWeights(&(resource->bias_handle));
-        } else {
-            biasWeights = ConvertToWeights(nullptr, true, resource->weight_handle.GetDataType());
-        }
+        weight_count = kernelWeights.count;
     }
 
-    ILayer* layer;
+    if (paramlist->has_bias) {
+        biasWeights = ConvertToWeights(&(resource->bias_handle));
+    } else {
+        biasWeights = ConvertToWeights(nullptr, true, resource->weight_handle.GetDataType());
+    }
 
-    Dims in_dims;
-    in_dims.nbDims = 4;
-    in_dims.d[0] = -1;
-    in_dims.d[1] = kernelWeights.count / paramlist->num_output;
-    in_dims.d[2] = 1;
-    in_dims.d[3] = 1;
-    IShuffleLayer* in_reshape_layer = network->addShuffle(*input_tensor);
-    in_reshape_layer->setReshapeDimensions(in_dims);
-    input_tensor = in_reshape_layer->getOutput(0);
+    if (!weight_as_input) {
+        // Create a constant layer for the weights
+        Dims weight_dims;
+        weight_dims.nbDims = 2;
+        weight_dims.d[0] = paramlist->num_output;
+        weight_dims.d[1] = weight_count / paramlist->num_output;
+        weight_tensor = network->addConstant(weight_dims, kernelWeights)->getOutput(0);
+    }
 
-    //FullyConnected
-    layer = network->addFullyConnected(*input_tensor, paramlist->num_output, 
-        kernelWeights, biasWeights);
-    if (int8) {
-        layer->setInput(1, *(weight_layer->getOutput(0)));
-        layer->setPrecision(nvinfer1::DataType::kINT8);
+    // Matrix Multiply
+    ILayer* matmul_layer = network->addMatrixMultiply(*input_tensor, MatrixOperation::kNONE, *weight_tensor, MatrixOperation::kTRANSPOSE);
+    if (matmul_layer == nullptr) {
+        return nullptr;
+    }
+
+    ILayer* layer = matmul_layer;
+
+    // Add bias if present
+    if (paramlist->has_bias) {
+        // Adjust bias tensor dimensions to match the output of matmul_layer
+        Dims bias_dims;
+        bias_dims.nbDims = 2;
+        bias_dims.d[0] = 1; // Broadcast across batch size
+        bias_dims.d[1] = paramlist->num_output;
+
+        auto bias_tensor = network->addConstant(bias_dims, biasWeights)->getOutput(0);
+        layer = network->addElementWise(*matmul_layer->getOutput(0), *bias_tensor, ElementWiseOperation::kSUM);
     }
 
     if (layer != nullptr) {
         layer->setName(layer_name_.c_str());
         input_tensor = layer->getOutput(0);
-    }
-
-    if (int8) {
-        float output_scale_value = std::dynamic_pointer_cast<TensorRTTensor>(
-            output_foreign_tensor)->GetIntResource()->scale_handle.force_to<float*>()[0];
-        auto output_dequant_layer =  AddInt8OutputQDQLayers(network, layer->getOutput(0), output_foreign_tensor, 1, 1 / output_scale_value);
-        input_tensor = output_dequant_layer->getOutput(0);
     }
 
     Dims out_dims;

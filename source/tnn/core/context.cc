@@ -77,6 +77,10 @@ void Context::SetCacheFilePath(std::string cache_file_path) {
 std::string Context::GetCacheFilePath() {
     return cache_file_path_;
 }
+    
+std::map<std::string, Any>& Context::GetExtraInfoMap() {
+    return extra_info_map_;
+}
 
 #if TNN_PROFILE
 void Context::StartProfile() {

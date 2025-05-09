@@ -321,8 +321,10 @@ Status ModelChecker::RunModelCheckerOutput() {
         DataType data_type = DATA_TYPE_FLOAT;
         if (mat_type == NC_INT32) {
             data_type = DATA_TYPE_INT32;
-        } else if(mat_type == RESERVED_INT8_TEST) {
+        } else if(mat_type == NC_INT8 || mat_type == RESERVED_INT8_TEST) {
             data_type = DATA_TYPE_INT8;
+        } else if(mat_type == NC_UINT8) {
+            data_type = DATA_TYPE_UINT8;
         }
         
         // check for dims count
@@ -499,11 +501,17 @@ Status ModelChecker::FeedInputData() {
                 for (int i = 0; i < data_count; i++) {
                     data_ptr[i] = rand() % 2;
                 }
-            } else if (DATA_TYPE_INT8 == data_type ) {
-                mat             = std::shared_ptr<Mat>(new Mat(DEVICE_NAIVE, RESERVED_INT8_TEST, dims));
+            } else if (DATA_TYPE_INT8 == data_type) {
+                mat             = std::shared_ptr<Mat>(new Mat(DEVICE_NAIVE, NC_INT8, dims));
                 auto data_ptr = reinterpret_cast<int8_t *>(mat->GetData());
                 for (int i = 0; i < data_count; i++) {
                     data_ptr[i] = (int8_t)(rand() % 256 - 128);
+                }
+            } else if (DATA_TYPE_UINT8 == data_type) {
+                mat             = std::shared_ptr<Mat>(new Mat(DEVICE_NAIVE, NC_UINT8, dims));
+                auto data_ptr = reinterpret_cast<uint8_t *>(mat->GetData());
+                for (int i = 0; i < data_count; i++) {
+                    data_ptr[i] = (uint8_t)(rand() % 256);
                 }
             } else {
                 return Status(TNNERR_COMMON_ERROR, "generate input data failed");
@@ -592,7 +600,9 @@ Status ModelChecker::GetOutputData(Instance* instance, std::map<std::string, std
         } else if (DATA_TYPE_INT32 == data_type) {
             mat_type = NC_INT32;
         } else if (DATA_TYPE_INT8 == data_type) {
-            mat_type = RESERVED_INT8_TEST;
+            mat_type = NC_INT8;
+        } else if (DATA_TYPE_UINT8 == data_type) {
+            mat_type = NC_UINT8;
         } else {
             LOGE("ModelChecker::GetOutputData dont support data type:%d\n", data_type);
             return Status(TNNERR_INVALID_INPUT, "the data type is not support in ModelChecker::GetOutputData");
@@ -626,7 +636,9 @@ Status ModelChecker::GetBlobData(Instance* instance, Blob* blob,
     } else if (DATA_TYPE_INT32 == data_type) {
         mat_type = NC_INT32;
     } else if (DATA_TYPE_INT8 == data_type) {
-        mat_type = RESERVED_INT8_TEST;
+        mat_type = NC_INT8;
+    } else if (DATA_TYPE_UINT8 == data_type) {
+        mat_type = NC_UINT8;
     } else {
         LOGE("ModelChecker::GetBlobData dont support data type:%d\n", data_type);
         return Status(TNNERR_INVALID_INPUT, "the data type is not support in ModelChecker::GetBlobData");

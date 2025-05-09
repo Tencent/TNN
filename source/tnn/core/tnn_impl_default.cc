@@ -69,9 +69,43 @@ Status TNNImplDefault::GetModelInputShapesMap(InputShapesMap& shapes_map) {
     return TNN_OK;
 } 
 
+Status TNNImplDefault::GetModelInputDataTypeMap(InputDataTypeMap& data_type_map) {
+    if (!interpreter_) {
+        return Status(TNNERR_NET_ERR, "interpreter is nil");
+    }
+
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
+    CHECK_PARAM_NULL(default_interpreter);
+    data_type_map = default_interpreter->GetNetStructure()->input_data_type_map;
+    return TNN_OK;
+} 
+
+Status TNNImplDefault::GetModelInputNames(std::vector<std::string>& input_names) {
+    if (!interpreter_) {
+        return Status(TNNERR_NET_ERR, "interpreter is nil");
+    }
+
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
+    CHECK_PARAM_NULL(default_interpreter);
+    input_names = default_interpreter->GetNetStructure()->parsed_input_names_list;
+    return TNN_OK;
+}
+
+Status TNNImplDefault::GetModelOutputNames(std::vector<std::string>& output_names) {
+    if (!interpreter_) {
+        return Status(TNNERR_NET_ERR, "interpreter is nil");
+    }
+
+    auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
+    CHECK_PARAM_NULL(default_interpreter);
+    output_names = default_interpreter->GetNetStructure()->parsed_output_names_list;
+    return TNN_OK;
+}
+
 
 std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, Status& status,
-                                                     InputShapesMap inputs_shape) {
+                                                     InputShapesMap inputs_shape,
+                                                     InputDataTypeMap inputs_data_type) {
     if (!interpreter_) {
         status = Status(TNNERR_NET_ERR, "interpreter is nil");
         return nullptr;
@@ -87,7 +121,7 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
 #endif
 
     auto instance = std::make_shared<Instance>(net_config, model_config_);
-    status        = instance->Init(interpreter_, inputs_shape);
+    status        = instance->Init(interpreter_, inputs_shape, inputs_data_type);
 
     if (status != TNN_OK) {
         return nullptr;
@@ -96,7 +130,8 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
 }
 
 std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, Status& status,
-                                                     InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape) {
+                                                     InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape,
+                                                     InputDataTypeMap inputs_data_type) {
     if (!interpreter_) {
         status = Status(TNNERR_NET_ERR, "interpreter is nil");
         return nullptr;
@@ -112,7 +147,7 @@ std::shared_ptr<Instance> TNNImplDefault::CreateInst(NetworkConfig& net_config, 
 #endif
 
     auto instance = std::make_shared<Instance>(net_config, model_config_);
-    status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape);
+    status        = instance->Init(interpreter_, min_inputs_shape, max_inputs_shape, inputs_data_type);
 
     if (status != TNN_OK) {
         return nullptr;
@@ -124,9 +159,27 @@ Status TNNImplDefault::AddAllLayersOutput() {
     auto default_interpreter = dynamic_cast<DefaultModelInterpreter*>(interpreter_.get());
     CHECK_PARAM_NULL(default_interpreter);
     auto net_structure = default_interpreter->GetNetStructure();
+    std::set<std::string> shape_tensors;
     for(auto layer_info : net_structure->layers) {
-        for(auto output_name : layer_info->outputs) {
-            AddOutput(output_name);
+        if(layer_info->type == LAYER_SHAPE) {
+            for(auto output_name : layer_info->outputs) {
+                shape_tensors.insert(output_name);
+            }
+        } else {
+            bool all_shape_tensor = true;
+            for(auto input_name : layer_info->inputs) {
+                if(shape_tensors.count(input_name) == 0) {
+                    all_shape_tensor = false;
+                    break;
+                }    
+            }
+            for(auto output_name : layer_info->outputs) {
+                if(all_shape_tensor) {
+                    shape_tensors.insert(output_name);
+                } else {
+                    AddOutput(output_name);
+                }
+            }
         }
     }
     return TNN_OK;

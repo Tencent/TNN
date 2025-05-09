@@ -71,7 +71,7 @@ Status Conv3DLayerInterpreter::InterpretResource(Deserializer& deserializer, Lay
     return TNN_OK;
 }
 
-Status Conv3DLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status Conv3DLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, ConvLayerParam, "invalid layer param to save", param);
 
     output_stream << layer_param->group << " ";

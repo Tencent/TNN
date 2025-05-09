@@ -55,7 +55,7 @@ struct AnchorGraph : public Graph {
 
     void backTrace(int recursion);
 
-    std::vector<const Node *> allStructualMatchedNodes(const Node * pattern_sibling_node);
+    std::set<const Node *> allStructualMatchedNodes(const Node * pattern_sibling_node);
 
     Status getIOOrderingOfPatternGraph(Graph *g, std::vector<std::string> & in, std::vector<std::string> & out);
     void formalize(Graph *g);

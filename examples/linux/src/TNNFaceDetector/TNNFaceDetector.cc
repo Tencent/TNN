@@ -122,6 +122,9 @@ int main(int argc, char** argv) {
         #ifdef _CUDA_
             option->compute_units = TNN_NS::TNNComputeUnitsGPU;
         #endif
+        #ifdef _ATLAS_
+            option->compute_units = TNN_NS::TNNComputeUnitsAtlas;
+        #endif
     
         option->score_threshold = 0.95;
         option->iou_threshold = 0.15;
@@ -150,7 +153,11 @@ int main(int argc, char** argv) {
         DimsVector orig_dims = {1, 3, image_height, image_width};
 
         //Predict
+    #ifdef _ATLAS_
+        auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_ATLAS, TNN_NS::N8UC3, orig_dims, data);
+    #else
         auto image_mat = std::make_shared<TNN_NS::Mat>(TNN_NS::DEVICE_NAIVE, TNN_NS::N8UC3, orig_dims, data);
+    #endif
         auto resize_mat = predictor->ProcessSDKInputMat(image_mat, "data_input");
         CHECK_TNN_STATUS(predictor->Predict(std::make_shared<UltraFaceDetectorInput>(resize_mat), sdk_output));
         std::vector<FaceInfo> face_info;

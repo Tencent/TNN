@@ -18,9 +18,33 @@
 
 namespace TNN_NS {
 
-DECLARE_CPU_ACC(Pool, LAYER_POOLING);
+DECLARE_CPU_ACC_WITH_FUNC(Pool, LAYER_POOLING,
+                          virtual Status InferRuntimeOutputShape(const std::vector<Blob *> &inputs,
+                                                                 const std::vector<Blob *> &outputs););
 
 Status CpuPoolLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    return TNN_OK;
+}
+
+Status CpuPoolLayerAcc::InferRuntimeOutputShape(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
+    auto layer_param = dynamic_cast<PoolingLayerParam *>(param_);
+    CHECK_PARAM_NULL(layer_param);
+
+    auto input_dims = inputs[0]->GetBlobDesc().dims;
+    if (layer_param->is_adaptive_pool && inputs.size() > 1) {
+        if (inputs[1]->GetBlobDesc().data_type != DATA_TYPE_INT32) {
+            return Status(TNNERR_PARAM_ERR, "adaptive pool input(shape) has invalid data type");
+        }
+        auto dim_count = DimsVectorUtils::Count(inputs[1]->GetBlobDesc().dims);
+        auto dim_data = (int *)((char *)inputs[1]->GetHandle().base + inputs[1]->GetHandle().bytes_offset);
+        layer_param->output_shape.clear();
+        for (int i = dim_count - 1; i >= 0; i--) {
+            layer_param->output_shape.push_back(dim_data[i]);
+        }
+        std::vector<int> output_dims = {input_dims[0], input_dims[1], layer_param->output_shape[1], layer_param->output_shape[0]};
+        outputs[0]->GetBlobDesc().dims = output_dims;
+    }
+
     return TNN_OK;
 }
 

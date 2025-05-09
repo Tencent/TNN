@@ -25,9 +25,9 @@ Status CpuBiasAddLayerAcc::Reshape(const std::vector<Blob *> &inputs, const std:
 }
 
 Status CpuBiasAddLayerAcc::Forward(const std::vector<Blob *> &inputs, const std::vector<Blob *> &outputs) {
-    auto resource = dynamic_cast<BiasAddLayerResource *>(resource_);
+    auto resource = dynamic_cast<BatchNormLayerResource *>(resource_);
     if (!resource) {
-        return Status(TNNERR_MODEL_ERR, "Error: BiasAddLayerResource is nil");
+        return Status(TNNERR_MODEL_ERR, "Error: BatchNormLayerResource is nil");
     }
 
     auto input_blob        = inputs[0];

@@ -44,12 +44,13 @@ Status MatMulLayerInterpreter::InterpretResource(Deserializer& deserializer, Lay
     return TNN_OK;
 }
 
-Status MatMulLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status MatMulLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     auto layer_param = dynamic_cast<MatMulLayerParam*>(param);
     if (nullptr == layer_param) {
         return Status(TNNERR_NULL_PARAM, "invalid layer param to save");
     }
     output_stream << layer_param->weight_position << " ";
+ 
     return TNN_OK;
 }
 

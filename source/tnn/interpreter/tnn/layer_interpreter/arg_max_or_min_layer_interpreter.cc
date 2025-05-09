@@ -45,7 +45,7 @@ Status ArgMaxOrMinLayerInterpreter::InterpretResource(Deserializer& deserializer
     return TNN_OK;
 }
 
-Status ArgMaxOrMinLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status ArgMaxOrMinLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
 	auto layer_param = dynamic_cast<ArgMaxOrMinLayerParam*>(param);
     CHECK_PARAM_NULL(layer_param);
     output_stream << layer_param->mode << " ";

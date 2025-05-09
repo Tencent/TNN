@@ -32,7 +32,7 @@ Status AndLayerInterpreter::InterpretResource(Deserializer& deserializer, LayerR
     return TNN_OK;
 }
 
-Status AndLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status AndLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     CAST_OR_RET_ERROR(layer_param, MultidirBroadcastLayerParam, "invalid layer param to save", param);
     output_stream << layer_param->weight_input_index << " ";
     return TNN_OK;

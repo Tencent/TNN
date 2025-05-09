@@ -18,7 +18,7 @@
 #include <android/bitmap.h>
 
 static std::shared_ptr<TNN_NS::ImageClassifier> gDetector;
-static int gComputeUnitType = 0;
+static int gComputeUnitType = 0; // 0 is cpu, 1 is gpu, 2 is huawei_npu, 3 is qualcomm SNPE
 
 JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring modelPath, jint width, jint height, jint computeUnitType)
 {
@@ -28,11 +28,17 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring mod
     gDetector = std::make_shared<TNN_NS::ImageClassifier>();
     std::string protoContent, modelContent;
     std::string modelPathStr(jstring2string(env, modelPath));
-    protoContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnproto");
-    modelContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnmodel");
+    
+    gComputeUnitType = computeUnitType;
+    if (gComputeUnitType == 3) { // Qualcomm SNPE use SNPE .dlc model
+        protoContent = "-";  // protoContent just not empty.
+        modelContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.dlc");
+    } else {
+        protoContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnproto");
+        modelContent = fdLoadFile(modelPathStr + "/squeezenet_v1.1.tnnmodel");
+    }
     LOGI("proto content size %d model content size %d", protoContent.length(), modelContent.length());
     TNN_NS::Status status = TNN_NS::TNN_OK;
-    gComputeUnitType = computeUnitType;
 
     auto option = std::make_shared<TNN_NS::TNNSDKOption>();
     option->compute_units = TNN_NS::TNNComputeUnitsCPU;
@@ -47,6 +53,8 @@ JNIEXPORT JNICALL jint TNN_CLASSIFY(init)(JNIEnv *env, jobject thiz, jstring mod
         gDetector->setNpuModelPath(modelPathStr + "/");
         gDetector->setCheckNpuSwitch(false);
         option->compute_units = TNN_NS::TNNComputeUnitsHuaweiNPU;
+    } else if (gComputeUnitType == 3) { // Qualcomm SNPE
+        option->compute_units = TNN_NS::TNNComputeUnitsSNPE;
     } else {
 	    option->compute_units = TNN_NS::TNNComputeUnitsCPU;
     }
@@ -131,6 +139,8 @@ JNIEXPORT JNICALL jintArray TNN_CLASSIFY(detectFromImage)(JNIEnv *env, jobject t
         device = "gpu";
     } else if (gComputeUnitType == 2) {
         device = "huawei_npu";
+    } else if (gComputeUnitType == 3) {
+        device = "snpe";
     }
     sprintf(temp, " device: %s \ntime: ", device.c_str());
     std::string computeUnitTips(temp);

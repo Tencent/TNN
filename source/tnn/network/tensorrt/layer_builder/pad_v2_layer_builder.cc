@@ -69,10 +69,14 @@ nvinfer1::DataType PadV2TRTPluginLayerBuilder::getOutputDataType(int index, cons
 
 ILayer* PadV2TRTPluginLayerBuilder::AddToNetwork(INetworkDefinition* network) noexcept {
     auto paramlist = dynamic_cast<PadLayerParam*>(param_);
-
-    if (!UseTRTPaddingND(paramlist)) {
-        return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    if (paramlist->pads.empty()) {
+        LOGE("Error: PadV2 Layer got Empty params->pads.\n");
+        return nullptr;
     }
+
+    //if (!UseTRTPaddingND(paramlist)) {
+    //    return TensorRTPluginLayerBuilder::AddToNetwork(network);
+    //}
 
     auto input_foreign_tensor = dynamic_cast<ForeignBlob*>(input_blobs_[0])->GetForeignTensor();
     auto input_tensor = std::dynamic_pointer_cast<TensorRTTensor>(input_foreign_tensor)->GetTensor();

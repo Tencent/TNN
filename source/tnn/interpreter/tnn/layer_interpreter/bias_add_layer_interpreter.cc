@@ -28,12 +28,12 @@ Status BiasAddLayerInterpreter::InterpretResource(Deserializer& deserializer, La
     return TNN_OK;
 }
 
-Status BiasAddLayerInterpreter::SaveProto(std::ofstream& output_stream, LayerParam* param) {
+Status BiasAddLayerInterpreter::SaveProto(std::ostream& output_stream, LayerParam* param) {
     return TNN_OK;
 }
 
 Status BiasAddLayerInterpreter::SaveResource(Serializer& serializer, LayerParam* param, LayerResource* resource) {
-    CAST_OR_RET_ERROR(bias_res, BiasAddLayerResource, "invalid layer res to save", resource);
+    CAST_OR_RET_ERROR(bias_res, BatchNormLayerResource, "invalid layer res to save", resource);
     serializer.PutRaw(bias_res->bias_handle);
     return TNN_OK;
 }

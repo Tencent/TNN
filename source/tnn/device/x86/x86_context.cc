@@ -25,6 +25,10 @@ Status X86Context::GetCommandQueue(void** command_queue) {
     return TNN_OK;
 }
 
+Status X86Context::SetCommandQueue(void* command_queue) {
+    return TNN_OK;
+}
+
 Status X86Context::OnInstanceForwardBegin() {
     Context::OnInstanceForwardBegin();
     OMP_SET_THREADS_(GetNumThreads());

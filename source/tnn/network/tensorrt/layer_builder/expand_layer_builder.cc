@@ -24,9 +24,22 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     auto input_tensors = GetInputITensors();
     ITensor* input_data_tensor = input_tensors[0];
+    if (input_data_tensor->getType()==nvinfer1::DataType::kBOOL) {
+        // Expand Slice Layer does not support format other than INT32
+        // We need to turn BOOL, maybe output of EQUAL etc, to INT32 here. 
+        ILayer* cast_layer = network->addIdentity(*input_data_tensor);
+        cast_layer->setName((layer_name_+"_bool2int").c_str());
+        cast_layer->setOutputType(0, nvinfer1::DataType::kINT32);
+        input_data_tensor = cast_layer->getOutput(0);
+    }
+
     ITensor* inputDims;
     if (input_tensors[0]->getDimensions().nbDims != 0)
+        #if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 100
+        inputDims = network->addCast(*(network->addShape(*input_tensors[0])->getOutput(0)), nvinfer1::DataType::kINT32)->getOutput(0);
+        #else
         inputDims = network->addShape(*input_tensors[0])->getOutput(0);
+        #endif
     int inputRank;
     if (input_tensors[0]->getDimensions().nbDims != 0) {
         inputRank = inputDims->getDimensions().d[0];
@@ -36,10 +49,11 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
 
     nvinfer1::ITensor* shape;
     int shapeLength;
-    if (input_tensors.size() == 2) {
+    if (input_tensors.size() == 2 && input_tensors[1]->getDimensions().d[0]!=-1) {
         shape = input_tensors[1];
         shapeLength = input_tensors[1]->getDimensions().d[0];
-    } else if (input_tensors.size() == 1) {
+    } else if (input_tensors.size() == 1 || 
+               (input_tensors.size() == 2 && input_tensors[1]->getDimensions().d[0]==-1)) {
         nvinfer1::Dims shapeDims;
         shapeDims.nbDims = 1;
         shapeDims.d[0] = layer_param->shape.size();
@@ -62,14 +76,30 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         }
         Weights tmpWeight;
         tmpWeight.type = nvinfer1::DataType::kINT32;
-        tmpWeight.values = layer_param->shape.data();
+        if (layer_param->shape.data() != nullptr) {
+            tmpWeight.values = layer_param->shape.data();
+        } else {
+            // make sure tmpWeight.values is not nullptr
+            tmpWeight.values = input_data_tensor;
+        }
         tmpWeight.count = 1;
         if (input_tensors[0]->getDimensions().nbDims != 0) {
+            #if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 100
+            auto int64_shape_tensor = network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0);
+            nvinfer1::ITensor* const args[2] = {
+                network->addCast(*int64_shape_tensor, nvinfer1::DataType::kINT32)->getOutput(0), inputDims};
+            #else
             nvinfer1::ITensor* const args[2] = {
                 network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0), inputDims};
+            #endif
             newDims = network->addConcatenation(args, 2)->getOutput(0);
         } else {
+            #if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 100
+            auto int64_shape_tensor = network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0);
+            newDims = network->addCast(*int64_shape_tensor, nvinfer1::DataType::kINT32)->getOutput(0);
+            #else
             newDims = network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0);
+            #endif
         }
     } else {
         newDims = inputDims;
@@ -92,8 +122,14 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         tmpWeight.type = nvinfer1::DataType::kINT32;
         tmpWeight.values = layer_param->shape.data();
         tmpWeight.count = 1;
+        #if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 100
+        nvinfer1::ITensor* const args[2] = {
+            network->addCast(*(network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0)),
+                             nvinfer1::DataType::kINT32)->getOutput(0), shape};
+        #else
         nvinfer1::ITensor* const args[2] = {
             network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0), shape};
+        #endif
         newShape = network->addConcatenation(args, 2)->getOutput(0);
     } else {
         newShape = shape;
@@ -114,9 +150,16 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
             tmpDims.d[i] = 1;
         Weights tmpWeight;
         tmpWeight.type = nvinfer1::DataType::kINT32;
-        tmpWeight.values = layer_param->shape.data();
+        auto tmpValuePtr = std::make_shared<std::vector<int>>(1, 1);
+        tmpWeight.values = tmpValuePtr.get(); 
         tmpWeight.count = 1;
-        one = network->addShape(*network->addConstant(tmpDims, tmpWeight)->getOutput(0))->getOutput(0);
+        ILayer* one_shape_constant_layer = network->addConstant(tmpDims, tmpWeight);
+        one_shape_constant_layer->setName((layer_name_+"_one_shape_constant").c_str());
+        #if NV_TENSORRT_MAJOR * 10 + NV_TENSORRT_MINOR >= 100
+        one = network->addCast(*(network->addShape(*one_shape_constant_layer->getOutput(0))->getOutput(0)), nvinfer1::DataType::kINT32)->getOutput(0);
+        #else
+        one = network->addShape(*one_shape_constant_layer->getOutput(0))->getOutput(0);
+        #endif
     }
 
     ITensor* strides = network->addElementWise(*one,
@@ -124,6 +167,7 @@ ILayer* ExpandTRTLayerBuilder::AddToNetwork(INetworkDefinition* network) {
         ElementWiseOperation::kMIN)->getOutput(0);
 
     ISliceLayer* broadcast_layer = network->addSlice(*input_data_tensor, startDims, nvinfer1::Dims{}, nvinfer1::Dims{});
+    broadcast_layer->setName((layer_name_+"_expand_slice").c_str());
     if (broadcast_layer != nullptr) {
         broadcast_layer->setInput(2, *sizes);
         broadcast_layer->setInput(3, *strides);

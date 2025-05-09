@@ -34,7 +34,8 @@ OpenVINONetwork_::~OpenVINONetwork_() {
 
 Status OpenVINONetwork_::Init(NetworkConfig &net_config, ModelConfig &model_config,
                             AbstractModelInterpreter* interpreter,
-                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, bool enable_const_folder) {
+                            InputShapesMap min_inputs_shape, InputShapesMap max_inputs_shape, 
+                            InputDataTypeMap inputs_data_type, bool enable_const_folder) {
 
     Status ret  = TNN_OK;
 
@@ -151,7 +152,7 @@ Status OpenVINONetwork_::BuildNgraphNetwork(NetStructure *net_structure) {
     return TNN_OK;
 }
 
-Status OpenVINONetwork_::GetForwardMemorySize(int &memory_size) {
+Status OpenVINONetwork_::GetForwardMemorySize(size_t &memory_size) {
     memory_size = 0;
     return TNN_OK;
 }
@@ -378,6 +379,10 @@ Status OpenVINONetwork_::DeInit() {
 }
 
 Status OpenVINONetwork_::GetCommandQueue(void **command_queue) {
+    return TNN_OK;
+}
+
+Status OpenVINONetwork_::SetCommandQueue(void *command_queue) {
     return TNN_OK;
 }
 
