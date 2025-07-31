@@ -290,6 +290,7 @@ Status Instance::GetOutputMat(std::shared_ptr<Mat> &mat, MatConvertParam param, 
         auto dims                 = output_blobs[output_name]->GetBlobDesc().dims;
         std::shared_ptr<TNN_NS::Mat> output_mat(new TNN_NS::Mat(device, mat_type, dims));
         output_mats_[output_name] = output_mat;
+        output_converters_.erase(output_name);
     }
 
     mat = output_mats_[output_name];
