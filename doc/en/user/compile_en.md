@@ -1,3 +1,15 @@
+## Prerequisites
+
+Before building TNN, make sure the following tools are installed:
+
+- Git
+- CMake (version 3.10 or higher)
+- C++ Compiler:
+  - Linux: GCC 7 or newer
+  - macOS: Clang (Xcode Command Line Tools)
+  - Windows: MSVC 2019 or newer
+
+
 # Compile
 
 [中文版本](../../cn/user/compile.md)
@@ -73,6 +85,9 @@ cd <path_to_tnn>/scripts
 After the compilation is completed, the corresponding `armeabi-v7a` library, the` arm64-v8a` library and the `include` header file are generated in the` release` directory of the current directory. <font color="#dd0000">Notice that add `-Wl,--whole-archive tnn -Wl,--no-whole-archive` to the project, if tnn static library is compiled</font>.
 
 ## III. Cross-Compile in Linux
+### Description
+This section is for cross-compiling TNN on x86 Linux hosts for ARM-based devices.
+
 
 ### 1. Environment requirements
 #### Dependencies
@@ -114,7 +129,11 @@ Please see:
 RKNPU Compilation Prerequisite in [FAQ](../faq_en.md#rknpu-compilation-prerequisite)RKNPU Compilation Prerequisite.
 
 ## IV. Compile(x86 Linux)
-### 1. Enviromnment requirements
+
+### Description
+This section is for native compilation on x86 Linux systems.
+
+### 1. Environment requirements
 #### Dependencies
   - cmake (version 3.11 or higher)
 
@@ -162,7 +181,7 @@ cd <path_to_tnn>/scripts
 ### 1. Environment requirements
 #### Dependencies
   - Visual Studio (version 2015 or higher)
-  - cmake (vsrsion 3.11 or higher; Or use build-in cmake in Visual Studio)
+  - cmake (version 3.11 or higher; Or use built-in cmake in Visual Studio)
   - ninja (faster compilation, installed with chocolatey)
 
 ### 2. Compilation Steps
@@ -186,8 +205,8 @@ Openvino can only be compiled to 64-bit version. More problems refer to [FAQ](op
 ### 1. Environment requirements
 #### Dependencies
   - Visual Studio (version 2015 or higher)
-  - cmake (vsrsion 3.11 or higher; Or use build-in cmake in Visual Studio)
-  - CUDA (version 10.2 or higher) and make sure `CUDA_PATH` was set in Environment Virables
+  - cmake (vsrsion 3.11 or higher; Or use built-in cmake in Visual Studio)
+  - CUDA (version 10.2 or higher) and make sure `CUDA_PATH` was set in Environment Variables
 
 #### TensorRT configuration
   - Download TensorRT (version>=7.1) <https://developer.nvidia.com/nvidia-tensorrt-7x-download>
