@@ -17,6 +17,8 @@
 #include "tnn/utils/dims_utils.h"
 #include "tnn/utils/string_utils_inner.h"
 
+#include <cstdio>
+
 namespace TNN_NS {
 
 // magic number
@@ -63,6 +65,18 @@ Status OpenCLConvLayerAccImpl::Init(Context *context, LayerParam *param, LayerRe
     // depthwise kernel or winograd kernel use 2d ndragne.
     if (CT_CONV_DEPTHWISE == conv_type_ || CT_CONV_WINOGRAD == conv_type_ ) {
         run_3d_ndrange_ = false;
+    }
+
+    // Conv+LeakyReLU fusion (channel-shared PReLU folded into Conv by
+    if (conv_param->activation_type == ActivationType_LeakyReLU) {
+        // %.9g preserves enough decimal digits to round-trip a float exactly.
+        // Append 'f' so the literal in the kernel is a single-precision
+        // constant (matches FLOAT promotion rules in activation.inc).
+        char alpha_buf[64];
+        std::snprintf(alpha_buf, sizeof(alpha_buf),
+                      "-DCONV_LEAKY_RELU_ALPHA=%.9gf", conv_param->leaky_relu_alpha);
+        build_options_.insert(alpha_buf);
+        LOGD("conv %s: inject %s\n", layer_name_.c_str(), alpha_buf);
     }
 
     return TNN_OK;

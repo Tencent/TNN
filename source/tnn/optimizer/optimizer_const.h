@@ -27,6 +27,8 @@ extern const char * kNetOptimizerFuseConvActivation;
 
 extern const char * kNetOptimizerFuseConvAdd;
 
+extern const char * kNetOptimizerFuseConvLeakyRelu;
+
 extern const char * kNetOptimizerCbamFusedReduce;
 
 extern const char * kNetOptimizerCbamFusedPooling;

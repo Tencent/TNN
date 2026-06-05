@@ -61,6 +61,7 @@ enum ActivationType {
     ActivationType_None        = 0x0000,
     ActivationType_ReLU        = 0x0001,
     ActivationType_ReLU6       = 0x0002,
+    ActivationType_LeakyReLU   = 0x0004,
     ActivationType_SIGMOID_MUL = 0x0100,
 };
 
@@ -135,6 +136,8 @@ struct ConvLayerParam : public LayerParam {
     int bias            = 0;
     int activation_type = ActivationType_None;
     int fusion_type     = FusionType_None;
+    // PReLU into the preceding Conv).
+    float leaky_relu_alpha = 0.0f;
 
     PARAM_COPY(ConvLayerParam)
 };

@@ -27,6 +27,9 @@ const char * kNetOptimizerFuseConvActivation =
 const char * kNetOptimizerFuseConvAdd =
     "net_optimizer_fuse_conv_add";
 
+const char * kNetOptimizerFuseConvLeakyRelu =
+    "net_optimizer_fuse_conv_leaky_relu";
+
 const char * kNetOptimizerCbamFusedReduce =
     "net_optimizer_cbam_fused_reduce";
 
