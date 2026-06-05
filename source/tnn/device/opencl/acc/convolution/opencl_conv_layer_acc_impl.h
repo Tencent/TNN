@@ -35,6 +35,7 @@ struct OpenCLConvParam {
     int group;
     int has_bias;
     int activation_type;
+    int fusion_type;
 };
 
 enum ConvType { CT_CONV_COMMON = 0, CT_CONV_1x1, CT_CONV_DEPTHWISE, CT_CONV_WINOGRAD };

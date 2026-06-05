@@ -64,7 +64,18 @@ Status OpenCLSoftmaxLayerAcc::Init(Context *context, LayerParam *param, LayerRes
     }
 
     std::set<std::string> build_options;
-    AdjustBuildOptionForFp32(build_options);
+    // Always force fp32 for softmax kernel:
+    //   exp(x - max(x)) is highly sensitive to fp16 precision (max representable
+    //   value of fp16 is ~65504; deep nets routinely produce pre-softmax logits
+    //   that overflow fp16 after exp, yielding NaN). The legacy
+    //   AdjustBuildOptionForFp32() only triggers on Android <= 7.1 (sdk_version
+    //   <= 25), but the same overflow happens on modern Adreno 740/750 with
+    //   default fp16 precision (observed: SegXNet softmax outputs all NaN on
+    //   Mi 14 / OnePlus 11 / OnePlus PLK110). Unconditionally promoting
+    //   softmax to fp32 fixes the NaN. The performance cost is negligible
+    //   because softmax is typically a single-layer tail of the network with
+    //   tiny output volume relative to the conv body.
+    build_options.emplace("-DFORCE_FP32");
     build_options.insert(build_options_.begin(), build_options_.end());
 
     ret = CreateExecuteUnit(execute_units_[0], "softmax", kernel_name, build_options);
@@ -107,10 +118,13 @@ Status OpenCLSoftmaxLayerAcc::Reshape(const std::vector<Blob *> &inputs, const s
     uint32_t idx = 0;
 
     OpenCLRuntime *opencl_runtime = OpenCLRuntime::GetInstance();
+    // Softmax kernel is built with -DFORCE_FP32 (see Init), so its FLOAT4 in
+    // device-side code is always float4 regardless of the runtime precision_
+    // setting. The local_mem size below MUST match this — otherwise we'd
+    // under-allocate __local memory when running on an fp16 build and the
+    // kernel would silently read out of bounds.
     int type_size = sizeof(float);
-    if (opencl_runtime->GetPrecision() != PRECISION_HIGH) {
-        type_size = 2;
-    }
+    (void)opencl_runtime;
 
     if (1 == softmax_param->axis) {
         execute_units_[0].global_work_size = {static_cast<uint32_t>(channelBlocks), static_cast<uint32_t>(width),

@@ -38,8 +38,13 @@ namespace optimizer {
     bool NetOptimizerFuseConvAdd::IsSupported(const NetworkConfig &net_config) {
 #ifdef TNN_CONVERTER_RUNTIME
         return false;
-#else
+#endif
+#ifdef TNN_DISABLE_CONV_ADD_FUSION
+        return false;
+#endif
+#if !defined(TNN_CONVERTER_RUNTIME) && !defined(TNN_DISABLE_CONV_ADD_FUSION)
         auto device = net_config.device_type;
+        device_ = device;
         if (device == DEVICE_ARM || device == DEVICE_NAIVE || device == DEVICE_X86) {
             auto conv_post_optimizer = NetOptimizerManager::GetNetOptimizerByName(kNetOptimizerFuseConvPost);
             if (conv_post_optimizer && conv_post_optimizer->IsSupported(net_config)) {
@@ -47,6 +52,12 @@ namespace optimizer {
             } else {
                 conv_post_opt_ = nullptr;
             }
+            return true;
+        }
+        if (device == DEVICE_OPENCL) {
+            // OpenCL fuse path runs on float/half conv, conv_post fusion (activation) is
+            // independent and is registered with its own priority; we do not chain it here.
+            conv_post_opt_ = nullptr;
             return true;
         }
         return false;
@@ -76,6 +87,99 @@ namespace optimizer {
         return (IsPreviousLayerSupportFusion(prev) && IsCurrentLayerSupportFusion(current));
     }
 
+    // ---------------- OpenCL fusion judgement ----------------
+    // OpenCL fuse path covers OpenCLConvLayer1x1Acc and OpenCLConvLayerCommonAcc only.
+    // Depthwise / Winograd are excluded because their kernels are not modified to read
+    // an extra add input. The judgements below mirror the IsPrefered() logic used in
+    // those acc impls so that the optimizer never folds an Add into a conv that will
+    // be dispatched to depthwise or winograd at runtime.
+    static bool IsOpenCLConvDepthwise(const ConvLayerParam *param) {
+        // OpenCLConvLayerDepthwiseAcc::IsPrefered:
+        //   group != 1 && group == input_channel && group == output_channel
+        // We do not have channel information at optimizer time, but if group != 1
+        // and (group == input_channel == output_channel) we conservatively assume
+        // depthwise. Without channel info we can only check group != 1, which means
+        // any grouped conv is excluded from fusion (safe over-approximation).
+        return param->group != 1;
+    }
+
+    static bool IsOpenCLConvWinogradLikely(const ConvLayerParam *param) {
+        // Mirror OpenCLConvLayerWinogradAcc::IsPrefered (see source/tnn/device/
+        // opencl/acc/convolution/opencl_conv_layer_winograd_acc.cc) so that we
+        // only exclude conv layers that will actually be dispatched to the
+        // winograd kernel at runtime. Static (non-runtime) conditions are:
+        //   group == 1
+        //   kernel  == 3x3
+        //   stride  == 1
+        //   pad     == 1
+        //   dilation == 1
+        //   output_channel >  32     (strict)
+        //   input_channel  >= 32
+        // We deliberately skip the runtime-only checks (image2d_max_height /
+        // input_w/oc ratio) which require shape information not available at
+        // optimizer time; missing those checks only makes us slightly more
+        // conservative (treat a borderline winograd-eligible conv as winograd
+        // and skip fusion), which is safe.
+        if (param->group != 1) return false;
+        if (param->kernels.size() < 2 || param->strides.size() < 2 ||
+            param->pads.size() < 4 || param->dialations.size() < 2) {
+            return false;
+        }
+        if (param->kernels[0] != 3 || param->kernels[1] != 3) return false;
+        if (param->strides[0] != 1 || param->strides[1] != 1) return false;
+        if (param->pads[0] != 1 || param->pads[1] != 1 ||
+            param->pads[2] != 1 || param->pads[3] != 1) return false;
+        if (param->dialations[0] != 1 || param->dialations[1] != 1) return false;
+        // Channel-based gating: a 3x3-stride1 conv with oc <= 32 (or ic < 32)
+        // will fall back to the Common kernel, NOT winograd, so it is safe to
+        // fuse. Without this gate the optimizer would over-conservatively skip
+        // common-kernel convs that happen to be 3x3 with small channel count.
+        if (param->output_channel <= 32) return false;
+        if (param->input_channel  <  32) return false;
+        return true;
+    }
+
+    static bool IsPreviousLayerSupportFusionOpenCL(std::shared_ptr<LayerInfo> layer_info) {
+        if (layer_info->type != LAYER_CONVOLUTION) {
+            return false;
+        }
+        auto param = dynamic_cast<ConvLayerParam *>(layer_info->param.get());
+        if (!param) return false;
+        // OpenCL float/half conv path; quantized OpenCL conv is unsupported by this fuse path.
+        if (param->quantized) return false;
+        // exclude depthwise / winograd dispatch targets
+        if (IsOpenCLConvDepthwise(param)) return false;
+        if (IsOpenCLConvWinogradLikely(param)) return false;
+        return true;
+    }
+
+    static bool IsCurrentLayerSupportFusionOpenCL(std::shared_ptr<LayerInfo> layer_info,
+                                                  NetResource *resource) {
+        if (layer_info->type != LAYER_ADD) return false;
+        if (layer_info->param && layer_info->param->quantized) return false;
+        // Add must be a 2-input elementwise add; an Add with EltwiseLayerResource
+        // (i.e. one input is a constant weight) is excluded because the fused conv
+        // kernel only supports an extra runtime image input.
+        if (layer_info->inputs.size() != 2) return false;
+        // Reject if any of the two inputs is a constant (would not be a runtime image
+        // produced by another layer).
+        if (resource) {
+            for (const auto &name : layer_info->inputs) {
+                if (resource->constant_map.find(name) != resource->constant_map.end()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    static bool NeedConvAddFusionOpenCL(std::shared_ptr<LayerInfo> prev,
+                                        std::shared_ptr<LayerInfo> current,
+                                        NetResource *resource) {
+        return (IsPreviousLayerSupportFusionOpenCL(prev) &&
+                IsCurrentLayerSupportFusionOpenCL(current, resource));
+    }
+
     Status NetOptimizerFuseConvAdd::Optimize(NetStructure *structure, NetResource *resource) {
         auto ret = Status(TNN_OK);
         if (!structure) {
@@ -83,15 +187,19 @@ namespace optimizer {
             return Status(TNNERR_NET_ERR, "Error: empty NetStructure");
         }
 
-        // Only fuse quantized network now
-        auto is_quantized_net = GetQuantizedInfoFromNetStructure(structure);
-        if (!is_quantized_net) {
-            return TNN_OK;
+        const bool is_opencl_path = (device_ == DEVICE_OPENCL);
+
+        if (!is_opencl_path) {
+            // Original path: only fuse quantized network now
+            auto is_quantized_net = GetQuantizedInfoFromNetStructure(structure);
+            if (!is_quantized_net) {
+                return TNN_OK;
+            }
         }
         if (structure->layers.size() <= 1) {
             return TNN_OK;
         }
-        // step1: do conv_post fusion before conv_add fusion
+        // step1: do conv_post fusion before conv_add fusion (only for non-OpenCL path)
         if (conv_post_opt_) {
             ret = conv_post_opt_->Optimize(structure, resource);
             if (ret != TNN_OK) {
@@ -113,7 +221,10 @@ namespace optimizer {
             auto layer_info_current = layers_orig[index];
             auto layer_info_prev    = layers_orig[index - 1];
             auto conv_param = dynamic_cast<ConvLayerParam *>(layer_info_prev->param.get());
-            if (NeedConvAddFusion(layer_info_prev, layer_info_current)) {
+            const bool need_fuse = is_opencl_path
+                                       ? NeedConvAddFusionOpenCL(layer_info_prev, layer_info_current, resource)
+                                       : NeedConvAddFusion(layer_info_prev, layer_info_current);
+            if (need_fuse) {
                 auto conv_output_name   = layer_info_prev->outputs[0];
                 auto conv_inputs        = layer_info_prev->inputs;
                 // inputs of add should contain conv_outputs, and others are pushed back to conv_inputs
@@ -157,7 +268,7 @@ namespace optimizer {
         }
         structure->layers = layers_fused;
 
-        // step3: do conv_post fusion after conv_add fusion
+        // step3: do conv_post fusion after conv_add fusion (only for non-OpenCL path)
         if (conv_post_opt_) {
             ret = conv_post_opt_->Optimize(structure, resource);
         }

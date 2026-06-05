@@ -2,6 +2,28 @@ inline bool InRange(int2 coor, int2 dims) {
     return 0 <= coor.x && coor.x < dims.x && 0 <= coor.y && coor.y < dims.y;
 }
 
+// Conv-Add fusion helpers.
+// When -DFUSE_ADD=1 is enabled the conv kernel reads an extra image2d_t add_input
+// (sharing the same image layout as the output) and accumulates it into the output
+// before writing back. The accumulation is done at the same (cw, bh) coordinate as
+// the corresponding output write -- this matches BinaryElementWise semantics exactly,
+// keeping the fused result IEEE-754 identical to a separate Conv + Add execution.
+//
+// FUSE_ADD_BEFORE_ACT controls the order with respect to ActivationProcess:
+//   - undefined (default): add is applied AFTER activation.
+//                          Corresponds to FusionType_Conv_Activation_Add.
+//   - defined            : add is applied BEFORE activation.
+//                          Corresponds to FusionType_Conv_Add_Activation
+//                          (only emitted by the optimizer when activation_type==None,
+//                           in which case ActivationProcess is identity and order
+//                           does not matter).
+#ifdef FUSE_ADD
+#define FUSE_ADD_DECL_PARAM       , __read_only image2d_t add_input
+#define FUSE_ADD_LOAD(var, x, y)  FLOAT4 var = RI_F(add_input, SAMPLER, (int2)((x), (y)))
+#else
+#define FUSE_ADD_DECL_PARAM
+#endif
+
 #ifdef CHECK_INPUT_COOR
 #define READ_INPUT_IMAGE(i, base)                                                                                      \
     int in_width_value##i = in_width##i + base;                                                                        \

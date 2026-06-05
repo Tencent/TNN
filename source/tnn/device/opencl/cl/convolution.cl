@@ -10,7 +10,8 @@ __kernel void Conv2D(
     __private const int2 kernel_wh, __private const int2 stride_wh,
     __private const int2 padding_wh, __private const int2 dilation_wh,
     __private const int out_width_blocks,
-    __private const int activation_type) {
+    __private const int activation_type
+    FUSE_ADD_DECL_PARAM) {
     // deal with 2 dim image : dim0 = channel + width | dim1 = batch + height
     const int output_cw_idx = get_global_id(0);
     const int output_bh_idx = get_global_id(1);
@@ -69,16 +70,31 @@ __kernel void Conv2D(
         }
     }
 
-    out0 = ActivationProcess(out0, activation_type);
-    out1 = ActivationProcess(out1, activation_type);
-    out2 = ActivationProcess(out2, activation_type);
-    out3 = ActivationProcess(out3, activation_type);
-
     const int out_x_base = mul24(out_channel_block_idx, output_wh.x);
     int out_x_idx        = out_width_block_idx << 2;
 
     const int remain = output_wh.x - out_x_idx;
     int output_w_idx = out_x_base + out_x_idx;
+
+#if defined(FUSE_ADD) && defined(FUSE_ADD_BEFORE_ACT)
+    if (remain >= 1) out0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx,     output_bh_idx));
+    if (remain >= 2) out1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 1, output_bh_idx));
+    if (remain >= 3) out2 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 2, output_bh_idx));
+    if (remain >= 4) out3 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 3, output_bh_idx));
+#endif
+
+    out0 = ActivationProcess(out0, activation_type);
+    out1 = ActivationProcess(out1, activation_type);
+    out2 = ActivationProcess(out2, activation_type);
+    out3 = ActivationProcess(out3, activation_type);
+
+#if defined(FUSE_ADD) && !defined(FUSE_ADD_BEFORE_ACT)
+    if (remain >= 1) out0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx,     output_bh_idx));
+    if (remain >= 2) out1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 1, output_bh_idx));
+    if (remain >= 3) out2 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 2, output_bh_idx));
+    if (remain >= 4) out3 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 3, output_bh_idx));
+#endif
+
     WriteOutputAntiOutOfBounds(output, out0, out1, out2, out3, output_w_idx,
                                output_bh_idx, remain);
 }
@@ -93,7 +109,8 @@ __kernel void Conv2D_CB2(
     __private const int2 padding_wh, __private const int2 dilation_wh,
     __private const int kernel_size,
     __private const int out_width_blocks,
-    __private const int activation_type) {
+    __private const int activation_type
+    FUSE_ADD_DECL_PARAM) {
     // deal with 2 dim image : dim0 = channel + width | dim1 = batch + height
     const int output_channel_slice_w_idx = get_global_id(0);
     const int output_bh_idx = get_global_id(1);
@@ -186,6 +203,26 @@ __kernel void Conv2D_CB2(
         }
     }
 
+    const int out_x_base = mul24(out_channel_block_idx, output_wh.x);
+    int out_x_idx        = out_width_block_idx << 2;
+    const int remain = output_wh.x - out_x_idx;
+    int output_w_idx_s0 = out_x_base + out_x_idx;
+    int output_w_idx_s1 = output_w_idx_s0 + output_wh.x;
+    bool is_s1_in_boundary = (out_channel_block_idx + 1 < out_channel_block_length);
+
+#if defined(FUSE_ADD) && defined(FUSE_ADD_BEFORE_ACT)
+                       out_w0_s0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s0,     output_bh_idx));
+    if (remain >= 2) { out_w1_s0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s0 + 1, output_bh_idx)); }
+    if (remain >= 3) { out_w2_s0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s0 + 2, output_bh_idx)); }
+    if (remain >= 4) { out_w3_s0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s0 + 3, output_bh_idx)); }
+    if (is_s1_in_boundary) {
+                           out_w0_s1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s1,     output_bh_idx));
+        if (remain >= 2) { out_w1_s1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s1 + 1, output_bh_idx)); }
+        if (remain >= 3) { out_w2_s1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s1 + 2, output_bh_idx)); }
+        if (remain >= 4) { out_w3_s1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s1 + 3, output_bh_idx)); }
+    }
+#endif
+
     out_w0_s0 = ActivationProcess(out_w0_s0, activation_type);
     out_w1_s0 = ActivationProcess(out_w1_s0, activation_type);
     out_w2_s0 = ActivationProcess(out_w2_s0, activation_type);
@@ -196,18 +233,24 @@ __kernel void Conv2D_CB2(
     out_w2_s1 = ActivationProcess(out_w2_s1, activation_type);
     out_w3_s1 = ActivationProcess(out_w3_s1, activation_type);
 
-    const int out_x_base = mul24(out_channel_block_idx, output_wh.x);
-    int out_x_idx        = out_width_block_idx << 2;
+#if defined(FUSE_ADD) && !defined(FUSE_ADD_BEFORE_ACT)
+                       out_w0_s0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s0,     output_bh_idx));
+    if (remain >= 2) { out_w1_s0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s0 + 1, output_bh_idx)); }
+    if (remain >= 3) { out_w2_s0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s0 + 2, output_bh_idx)); }
+    if (remain >= 4) { out_w3_s0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s0 + 3, output_bh_idx)); }
+    if (is_s1_in_boundary) {
+                           out_w0_s1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s1,     output_bh_idx));
+        if (remain >= 2) { out_w1_s1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s1 + 1, output_bh_idx)); }
+        if (remain >= 3) { out_w2_s1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s1 + 2, output_bh_idx)); }
+        if (remain >= 4) { out_w3_s1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx_s1 + 3, output_bh_idx)); }
+    }
+#endif
 
-    const int remain = output_wh.x - out_x_idx;
-    int output_w_idx_s0 = out_x_base + out_x_idx;
     WriteSliceOutputAntiOutOfBounds(output, out_w0_s0, out_w1_s0,
                                     out_w2_s0, out_w3_s0, output_w_idx_s0,
                                     output_bh_idx, remain);
 
-    bool is_s1_in_boundary = (out_channel_block_idx + 1 < out_channel_block_length);
     if (!is_s1_in_boundary) return;
-    int output_w_idx_s1 = output_w_idx_s0 + output_wh.x;
     WriteSliceOutputAntiOutOfBounds(output, out_w0_s1, out_w1_s1,
                                     out_w2_s1, out_w3_s1, output_w_idx_s1,
                                     output_bh_idx, remain);

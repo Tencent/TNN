@@ -35,6 +35,7 @@ namespace optimizer {
         virtual Status Optimize(NetStructure *structure, NetResource *resource);
     private:
         std::shared_ptr<NetOptimizer> conv_post_opt_ = nullptr;
+        DeviceType device_ = DEVICE_NAIVE;
     };
 
 }  // namespace optimizer

@@ -53,6 +53,7 @@ Status OpenCLConvLayerAccImpl::Init(Context *context, LayerParam *param, LayerRe
     conv_params_.group           = conv_param->group;
     conv_params_.has_bias        = conv_param->bias;
     conv_params_.activation_type = conv_param->activation_type;
+    conv_params_.fusion_type     = conv_param->fusion_type;
 
     conv_params_.input_channel  = DimsFunctionUtils::GetDim(inputs[0]->GetBlobDesc().dims, 1);
     conv_params_.output_channel = DimsFunctionUtils::GetDim(outputs[0]->GetBlobDesc().dims, 1);
@@ -77,6 +78,56 @@ Status OpenCLConvLayerAccImpl::Init(Context *context, LayerParam *param, LayerRe
                       "-DCONV_LEAKY_RELU_ALPHA=%.9gf", conv_param->leaky_relu_alpha);
         build_options_.insert(alpha_buf);
         LOGD("conv %s: inject %s\n", layer_name_.c_str(), alpha_buf);
+    }
+
+    // Conv-Add fusion (OpenCL float/half path), produced by
+    // NetOptimizerFuseConvAdd.  Only Conv1x1 and Conv Common impls have
+    // their kernels updated to read the extra add input -- depthwise and
+    // winograd are explicitly excluded by the optimizer's IsPrefered-style
+    // gating, but we double-check here to fail loud rather than miscompute.
+    //   FusionType_Conv_Add_Activation : Add then activation (None for
+    //                                    pure conv+add).  We inject
+    //                                    -DFUSE_ADD_BEFORE_ACT so the
+    //                                    kernel adds before the (None)
+    //                                    activation; functionally same as
+    //                                    pure conv+add.
+    //   FusionType_Conv_Activation_Add : conv applies activation then add.
+    //                                    -DFUSE_ADD only.
+    if (conv_params_.fusion_type != FusionType_None) {
+        if (CT_CONV_DEPTHWISE == conv_type_ || CT_CONV_WINOGRAD == conv_type_) {
+            LOGE("Conv-Add fusion is not supported on depthwise/winograd OpenCL conv impl!\n");
+            return Status(TNNERR_LAYER_ERR,
+                          "Conv-Add fusion not supported on depthwise/winograd OpenCL conv impl");
+        }
+        if (inputs.size() < 2) {
+            LOGE("Conv-Add fusion requires 2 inputs, got %d\n", (int)inputs.size());
+            return Status(TNNERR_LAYER_ERR, "Conv-Add fusion requires 2 inputs");
+        }
+        const auto &add_dims = inputs[1]->GetBlobDesc().dims;
+        const auto &out_dims = outputs[0]->GetBlobDesc().dims;
+        if (add_dims.size() != out_dims.size()) {
+            LOGE("Conv-Add fusion: add input dims size %d != output dims size %d\n",
+                 (int)add_dims.size(), (int)out_dims.size());
+            return Status(TNNERR_LAYER_ERR, "Conv-Add fusion: add input dims rank mismatch");
+        }
+        for (size_t i = 0; i < out_dims.size(); ++i) {
+            if (add_dims[i] != out_dims[i]) {
+                LOGE("Conv-Add fusion: add input dim[%d]=%d != output dim[%d]=%d\n",
+                     (int)i, add_dims[i], (int)i, out_dims[i]);
+                return Status(TNNERR_LAYER_ERR, "Conv-Add fusion: add input dims mismatch");
+            }
+        }
+        if (out_dims.size() != 4) {
+            LOGE("Conv-Add fusion only supports 4D layout, got %d\n", (int)out_dims.size());
+            return Status(TNNERR_LAYER_ERR, "Conv-Add fusion only supports 4D layout");
+        }
+
+        build_options_.emplace("-DFUSE_ADD=1");
+        if (conv_params_.fusion_type == FusionType_Conv_Add_Activation) {
+            build_options_.emplace("-DFUSE_ADD_BEFORE_ACT=1");
+        }
+        LOGD("Conv-Add fusion enabled, fusion_type=%d, layer=%s\n",
+             conv_params_.fusion_type, layer_name_.c_str());
     }
 
     return TNN_OK;

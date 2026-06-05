@@ -9,7 +9,8 @@ __kernel void Conv2D1x1_S1(
     __write_only image2d_t output, __private const int2 wh,
     __private const int input_c_blocks,
     __private const int output_w_updiv_4,
-    __private const int activation_type) {
+    __private const int activation_type
+    FUSE_ADD_DECL_PARAM) {
     const int output_cw_idx = get_global_id(0);
     const int bh_idx = get_global_id(1);
     DEAL_NON_UNIFORM_DIM2(output_cw_idx, bh_idx);
@@ -56,16 +57,31 @@ __kernel void Conv2D1x1_S1(
         weights_w_base += 4;
     }
 
-    out0 = ActivationProcess(out0, activation_type);
-    out1 = ActivationProcess(out1, activation_type);
-    out2 = ActivationProcess(out2, activation_type);
-    out3 = ActivationProcess(out3, activation_type);
-
     const int out_x_base = mul24(output_c_block_idx, wh.x);
     int out_x_idx        = output_w_block_idx << 2;
 
     const int remain = wh.x - out_x_idx;
     int output_w_idx = out_x_base + out_x_idx;
+
+#if defined(FUSE_ADD) && defined(FUSE_ADD_BEFORE_ACT)
+    if (remain >= 1) out0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx,     bh_idx));
+    if (remain >= 2) out1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 1, bh_idx));
+    if (remain >= 3) out2 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 2, bh_idx));
+    if (remain >= 4) out3 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 3, bh_idx));
+#endif
+
+    out0 = ActivationProcess(out0, activation_type);
+    out1 = ActivationProcess(out1, activation_type);
+    out2 = ActivationProcess(out2, activation_type);
+    out3 = ActivationProcess(out3, activation_type);
+
+#if defined(FUSE_ADD) && !defined(FUSE_ADD_BEFORE_ACT)
+    if (remain >= 1) out0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx,     bh_idx));
+    if (remain >= 2) out1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 1, bh_idx));
+    if (remain >= 3) out2 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 2, bh_idx));
+    if (remain >= 4) out3 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 3, bh_idx));
+#endif
+
     WriteOutputAntiOutOfBounds(output, out0, out1, out2, out3, output_w_idx,
                                bh_idx, remain);
 }
@@ -77,7 +93,8 @@ __kernel void Conv2D1x1(
     __write_only image2d_t output, __private const int2 input_wh,
     __private const int input_c_blocks, __private const int2 output_wh,
     __private const int2 stride_wh, __private const int output_w_updiv_4,
-    __private const int activation_type) {
+    __private const int activation_type
+    FUSE_ADD_DECL_PARAM) {
     const int output_cw_idx = get_global_id(0);
     const int output_bh_idx = get_global_id(1);
     DEAL_NON_UNIFORM_DIM2(output_cw_idx, output_bh_idx);
@@ -125,16 +142,31 @@ __kernel void Conv2D1x1(
         CALCULATE_OUTPUT(3);
     }
 
-    out0 = ActivationProcess(out0, activation_type);
-    out1 = ActivationProcess(out1, activation_type);
-    out2 = ActivationProcess(out2, activation_type);
-    out3 = ActivationProcess(out3, activation_type);
-
     const int out_x_base = mul24(output_c_block_idx, output_wh.x);
     int out_x_idx        = output_w_block_idx << 2;
 
     const int remain = output_wh.x - out_x_idx;
     int output_w_idx = out_x_base + out_x_idx;
+
+#if defined(FUSE_ADD) && defined(FUSE_ADD_BEFORE_ACT)
+    if (remain >= 1) out0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx,     output_bh_idx));
+    if (remain >= 2) out1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 1, output_bh_idx));
+    if (remain >= 3) out2 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 2, output_bh_idx));
+    if (remain >= 4) out3 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 3, output_bh_idx));
+#endif
+
+    out0 = ActivationProcess(out0, activation_type);
+    out1 = ActivationProcess(out1, activation_type);
+    out2 = ActivationProcess(out2, activation_type);
+    out3 = ActivationProcess(out3, activation_type);
+
+#if defined(FUSE_ADD) && !defined(FUSE_ADD_BEFORE_ACT)
+    if (remain >= 1) out0 += RI_F(add_input, SAMPLER, (int2)(output_w_idx,     output_bh_idx));
+    if (remain >= 2) out1 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 1, output_bh_idx));
+    if (remain >= 3) out2 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 2, output_bh_idx));
+    if (remain >= 4) out3 += RI_F(add_input, SAMPLER, (int2)(output_w_idx + 3, output_bh_idx));
+#endif
+
     WriteOutputAntiOutOfBounds(output, out0, out1, out2, out3, output_w_idx,
                                output_bh_idx, remain);
 }

@@ -185,6 +185,16 @@ Status OpenCLConvLayerCommonAcc::Reshape(const std::vector<Blob *> &inputs, cons
     execute_units_[0].ocl_kernel.setArg(idx++, UP_DIV(output_width, 4));
     execute_units_[0].ocl_kernel.setArg(idx++, (int)conv_params_.activation_type);
 
+    // Conv-Add fusion: append the extra add input image as the last kernel argument.
+    // This must match the FUSE_ADD_DECL_PARAM appended at the tail of the kernel signature.
+    if (conv_params_.fusion_type != FusionType_None) {
+        if (inputs.size() < 2) {
+            LOGE("Conv-Add fusion requires inputs.size()>=2, got %d\n", (int)inputs.size());
+            return Status(TNNERR_LAYER_ERR, "Conv-Add fusion requires 2 inputs");
+        }
+        execute_units_[0].ocl_kernel.setArg(idx++, *((cl::Image *)inputs[1]->GetHandle().base));
+    }
+
     if (ocl_context_->GetEnableTuneKernel()) {
             execute_units_[0].local_work_size = LocalTune(execute_units_[0], ocl_context_, GenerateTuneKernelKey(execute_units_[0]));
     }
